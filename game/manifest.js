@@ -43,6 +43,7 @@ globalThis.SA_MANIFEST = {
     'game/wander.js',
     'game/render/ambient.js',
     'game/picking.js',
+    'game/pick-sfx.js',
     'game/render/picking.js',
     'game/render/tree-tap.js',
     'game/round.js',

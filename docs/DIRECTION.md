@@ -38,7 +38,10 @@ current; when your change sets or changes something future tickets must follow, 
   `SA.peaks.targets()` gives the `kind: 'peak'` climb targets and decor draws a flat-topped grey cone over each mound (solid 'pico').
   scene.js builds ONE `climbables` list (trees + peaks) for the camera rig (E/C/auto-climb), the Space chooser/outline and the ring;
   the rig tracks the walk-off landing as `SAT.track('climb.land', { kind, y })`. New steep things: add a data row, no engine branch.
-  Still to do: peak / station data and wiring them into the rig's target list (the next AS-0163 slices).
+  Built (AS-0194): `SA.station.climbTarget()` is the `kind: 'building'` target (wall footprint, flat rect roof at topY) and joins
+  `climbables` (trees + peaks + station). The Space chooser measures reach with `SA.climb.edgeDistance` for every kind, and the
+  outline finds a target's node by `userData.climbId === target.id` (peaks, station), so no kind-specific branches remain.
+  Jumping on any top works as on the ground (lift on top of topY); jumping past the edge is the normal walk-off fall.
   Treetop hopping (AS-0166): treetops are flat standable tops, and a landing assist lands you on the tree you jump
   roughly toward (~7 units, ~40 degrees). Be generous: kids should chain tree to tree easily.
 - **The world reacts to bumping (AS-0156, AS-0157).** A cactus pricks: bounce back with "¡Ay! ¡Pica!" (never a penalty).

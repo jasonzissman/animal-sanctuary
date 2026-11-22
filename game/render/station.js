@@ -64,6 +64,7 @@
   SA.render.buildStation = function (THREE) {
     var L = SA.station.layout(), m = mats(THREE), g = new THREE.Group(), y0 = L.floorY, t = L.wallT / 2;
     g.userData.station = true;
+    g.userData.climbId = 'station';   // the Space-target outline finds the building by its climb target's id
     var x0 = L.cx - L.halfW, x1 = L.cx + L.halfW, z0 = L.cz - L.halfD, z1 = L.cz + L.halfD, yTop = y0 + L.wallH;
 
     // Plinth: a low slab that hides the slope under the floor, plus a floor so the doorway looks into a room.

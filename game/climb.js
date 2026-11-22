@@ -23,6 +23,7 @@
  *       freely on the flat top (y = topY, obstacles ignored, map-clamped); walking off its edge starts a short FALL arc
  *       (mode 'down', fall: true) to dry in-bounds ground just beyond the edge, no damage. The frame it lands the state
  *       carries land: { x, z, y, kind } (one frame only; SA.climb.landed(state)) so the caller can track it.
+ *   SA.climb.edgeDistance(target, x, z) -> distance from the point to the target's base edge (0 inside): the one "in reach" measure
  *   SA.climb.autoStep(timer, before, after, input, targets, dtMs) -> { ms, tree, progress, climb }: the AS-0157 push timer
  *   SA.climb.active(state) -> true while up, on or coming down a target
  * Coming down (button or fall) always ends on dry, in-bounds ground outside the base, never damage: the landing is the point
@@ -101,6 +102,9 @@
 
   function topOf(t) { var n = norm(t); return n ? n.topY : 0; }
   function edgeOf(t) { var n = norm(t); return n ? n.top.r : 0; }
+
+  /** Distance from the (x, z) point to the target's solid base edge (0 inside it); Infinity for junk. The one "in reach" measure. */
+  function edgeDistance(t, x, z) { var n = norm(t); return n ? edgeDist(n.foot, n.x, n.z, x, z) : Infinity; }
 
   function copy(s, patch) {
     var o = { x: s.x, z: s.z, heading: s.heading, y: num(s.y, 0), climb: s.climb || null };
@@ -251,6 +255,6 @@
 
   SA.climb = { RANGE: RANGE, EDGE_RANGE: EDGE_RANGE, UP_TIME: UP_TIME, DOWN_TIME: DOWN_TIME, TRUNK_R: TRUNK_R, nearest: nearest, prompt: prompt,
     start: start, stop: stop, toggle: toggle, step: step, active: active, onTop: onTop, landed: landed, fromTree: fromTree,
-    edgeRadius: edgeOf, topOf: topOf, AUTO_CLIMB_MS: AUTO_CLIMB_MS, autoStep: autoStep };
+    edgeRadius: edgeOf, edgeDistance: edgeDistance, topOf: topOf, AUTO_CLIMB_MS: AUTO_CLIMB_MS, autoStep: autoStep };
   if (SA.player) SA.player.climb = SA.climb;
 })(typeof window !== 'undefined' ? window : globalThis);

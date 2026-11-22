@@ -97,7 +97,8 @@
     });
     // One combined climb-target list (AS-0193): the trees plus the data-driven peaks (SA.peaks.targets()). The camera rig, the
     // Space/E chooser, the outline and the auto-climb ring all read this same list, so a peak climbs exactly like a tree.
-    var climbables = trees.concat(SA.peaks ? SA.peaks.targets() : []);
+    // The station building (AS-0194) is a third kind of data target in the same list.
+    var climbables = trees.concat(SA.peaks ? SA.peaks.targets() : [], SA.station && SA.station.climbTarget ? [SA.station.climbTarget()] : []);
     // Collectable finds (SA.pickups): fruit up in the canopies, rocks/flowers/leaves on the ground, fish on the banks.
     var pickups = SA.render.createPickups && SA.pickups ? SA.render.createPickups(THREE, { getPlayer: rig.getPlayer, trees: trees, avoid: avoid, seed: 80, container: container }) : null;
     if (pickups) scene.add(pickups.group);
@@ -110,8 +111,8 @@
       if (kind === 'tree') {
         var i = trees.indexOf(ref);
         if (i >= 0) return treeNodes[i];
-        var found = null;   // a peak target: outline its grey cone
-        if (ref && ref.kind === 'peak') decor.children.forEach(function (o) { if (o.userData && o.userData.peak === ref.id) found = o; });
+        var found = null;   // any data target (peak, building): the node carrying its id as userData.climbId
+        if (ref && ref.id) decor.children.concat(station ? [station] : []).forEach(function (o) { if (o.userData && o.userData.climbId === ref.id) found = o; });
         return found;
       }
       return kind === 'pickup' && pickups ? pickups.nodeFor(ref) : null;

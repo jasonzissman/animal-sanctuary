@@ -3,6 +3,7 @@
  *   SA.picking.onPick(cb) -> unsubscribe fn. cb receives { animalId, part } for every confirmed tap on a part.
  *   SA.picking.emit(pick)  notifies subscribers (called by game/render/picking.js; a throwing listener never
  *                          stops the others).
+ *   SA.picking.setPaused(on) while true, emit() is silent (the habitat sandbox owns taps).
  *   SA.picking.createTapTracker({ threshold }) -> { down, move, up, cancel }: tells a tap from a drag.
  *       down(id, x, y); move(id, x, y); up(id, x, y) -> { x, y } when it was a tap, else null.
  *       A pointer that moved more than `threshold` px from where it went down is a drag, never a tap, and a
@@ -33,7 +34,12 @@
     };
   }
 
+  // While paused (habitat sandbox) taps on animals are ignored by the Scout & Care loops.
+  var paused = false;
+  function setPaused(on) { paused = !!on; }
+
   function emit(pick) {
+    if (paused) return;
     var out = { animalId: pick.animalId, part: pick.part };
     listeners.slice().forEach(function (cb) {
       try { cb(out); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error(e); }
@@ -110,6 +116,6 @@
 
   SA.picking = {
     DRAG_THRESHOLD: DRAG_THRESHOLD, DURATION: DURATION, ICONS: ICONS,
-    setRubTarget: setRubTarget, hasRubTarget: hasRubTarget, isRubTarget: isRubTarget, onPick: onPick, emit: emit, createTapTracker: createTapTracker, labelFor: labelFor, reactionPose: reactionPose,
+    setRubTarget: setRubTarget, hasRubTarget: hasRubTarget, isRubTarget: isRubTarget, onPick: onPick, emit: emit, setPaused: setPaused, createTapTracker: createTapTracker, labelFor: labelFor, reactionPose: reactionPose,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

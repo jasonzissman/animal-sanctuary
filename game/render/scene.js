@@ -45,6 +45,9 @@
     } });
     picking = SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container });
 
+    var props = SA.render.createProps(THREE, { canvas: renderer.domElement, camera: camera });
+    scene.add(props.group);
+
     var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid });
     var fx = SA.render.createRoundFx({ animals: animals });
     var careFx = SA.render.createCareFx(THREE, { animals: animals, rig: rig, ambient: ambient });
@@ -60,7 +63,7 @@
     root.addEventListener('resize', resize);
 
     return {
-      scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, fx: fx, careFx: careFx, ambient: ambient, resize: resize,
+      scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, ambient: ambient, resize: resize,
       render: function (dt) { rig.update(dt); picking.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); renderer.render(scene, camera); },
     };
   };

@@ -15,9 +15,31 @@
       return;
     }
     // Scout & Spot starts right away; a failure here must never stop the render loop.
-    try { SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx }); } catch (e) {
-      if (root.SAT) root.SAT.track('error', { message: String(e && e.message).slice(0, 200), source: 'prompt.start', line: 0, stack: String(e && e.stack).slice(0, 500) });
+    function report(source, e) {
+      if (root.SAT) root.SAT.track('error', { message: String(e && e.message).slice(0, 200), source: source, line: 0, stack: String(e && e.stack).slice(0, 500) });
     }
+    var ctl = null;
+    try { ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx }); } catch (e) { report('prompt.start', e); }
+    // Habitat sandbox: a big button + prop tray; saved props come back on reload. Never blocks the main loop.
+    try {
+      if (SA.sandbox && stage.props) {
+        var box = null;
+        var view = SA.sandboxView.create(root.document, { toggle: function () { box.toggle(); }, select: function (id) { box.select(id); } });
+        var setStars = function (n) { if (ctl && ctl.setStars) ctl.setStars(n); view.setStars(n); };
+        box = SA.sandbox.create({
+          scene: stage.props,
+          view: { setActive: view.setActive, select: view.select, toast: view.toast, setStars: setStars },
+          onMode: function (on) {
+            SA.picking.setPaused(on);
+            if (ctl && ctl.setHidden) ctl.setHidden(on);
+            if (!on && ctl && ctl.setStars) ctl.setStars(SA.save.get().stars);
+          }
+        });
+        stage.props.bind({ active: box.active, selected: box.selected, onGround: box.onGround, onPropTap: box.onPropTap });
+        box.restore();
+        view.setStars(SA.save.get().stars);
+      }
+    } catch (e) { report('sandbox.start', e); }
     var last = null;
     function loop(now) {
       var dt = last === null ? 0 : Math.min((now - last) / 1000, 0.25);

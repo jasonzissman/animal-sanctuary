@@ -41,6 +41,8 @@
     var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera);
     var picking = SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container });
 
+    var fx = SA.render.createRoundFx({ animals: animals });
+
     function resize() {
       var w = container.clientWidth || root.innerWidth || 800;
       var h = container.clientHeight || root.innerHeight || 600;
@@ -52,8 +54,8 @@
     root.addEventListener('resize', resize);
 
     return {
-      scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, resize: resize,
-      render: function (dt) { rig.update(dt); picking.update(dt); renderer.render(scene, camera); },
+      scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, fx: fx, resize: resize,
+      render: function (dt) { rig.update(dt); picking.update(dt); fx.update(dt); renderer.render(scene, camera); },
     };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

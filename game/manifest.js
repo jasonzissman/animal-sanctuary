@@ -20,6 +20,7 @@ globalThis.SA_MANIFEST = {
     'game/data/biomes.js',
     'game/data/animals.js',
     'game/data/vocab.js',
+    'game/data/voice-clips.js',
     'game/data/clues.js',
     'game/clues.js',
     'game/data/clue-levels.js',

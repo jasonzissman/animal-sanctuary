@@ -41,13 +41,22 @@
     } catch (e) { /* best effort */ }
   }
 
-  function playClip(path) {
+  // A clip that fails to load/decode (e.g. file missing) is replaced by speechSynthesis of `text`, unless
+  // the browser merely blocked autoplay (NotAllowedError) or the clip was stopped/replaced meanwhile.
+  function playClip(path, text) {
     try {
       if (typeof root.Audio !== 'function') return false;
       var a = new root.Audio(path);
       currentClip = a;
+      var fell = false;
+      var fallback = function () {
+        if (fell || currentClip !== a) return;
+        fell = true;
+        speak(text);
+      };
+      a.onerror = fallback;
       var p = a.play();
-      if (p && typeof p.catch === 'function') p.catch(function () {});
+      if (p && typeof p.catch === 'function') p.catch(function (e) { if (!e || e.name !== 'NotAllowedError') fallback(); });
       return true;
     } catch (e) {
       return false;
@@ -75,7 +84,7 @@
     try {
       if (typeof keyOrText !== 'string' || !keyOrText.trim() || SA.audio.isMuted()) return null;
       var entry = SA.vocab && SA.vocab.get(keyOrText);
-      if (entry && entry.clip && playClip(entry.clip)) return 'clip';
+      if (entry && entry.clip && playClip(entry.clip, entry.es)) return 'clip';
       return speak(entry ? entry.es : keyOrText) ? 'speech' : null;
     } catch (e) {
       return null;

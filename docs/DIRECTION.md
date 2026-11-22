@@ -17,7 +17,8 @@ current; when your change sets or changes something future tickets must follow, 
   how far out the camera may sit (never below `minClear`), smoothed by `easeClearance` (pulls in fast, relaxes slowly).
 - **The chase camera shows what is above you (AS-0116).** Near tree animals or up in a canopy it eases back and tilts
   up on its own so birds and monkeys are on screen; on open ground it eases back to normal. Still one camera, no
-  button to learn. Space jumps everywhere, including in a canopy (AS-0115).
+  button to learn (`SA.camera.frameAbove` in `game/camera-frame.js`: extra distance, lower pitch, higher look-at, small fov
+  widening, eased ~0.5 s; a drag overrides it; `hooks.chase.above()` supplies perched animals). Space jumps everywhere, including in a canopy (AS-0115).
 - **No modes: keys always move the player.** Arrow keys/WASD only ever walk the player; nothing (finding an animal,
   care, menus) switches the keyboard to controlling something else, and there is never an "Escape to unlock". The
   mouse or a tap clicks on things (body parts, items); E/Enter uses the equipped item, Space jumps.

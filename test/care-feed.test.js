@@ -8,7 +8,7 @@ import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/foods.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/picking.js',
-  'game/camera.js', 'game/round.js', 'game/data/care.js', 'game/care.js', 'game/ui/care-flow.js', 'game/ui/prompt.js'];
+  'game/camera.js', 'game/round.js', 'game/data/items.js', 'game/inventory.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js', 'game/ui/care-flow.js', 'game/ui/prompt.js'];
 
 function setup(opts = {}) {
   const SA = loadGame(FILES);
@@ -36,7 +36,7 @@ test('foods are data with es labels, gender, plural and vocab entries; every die
 
 test('care task data validates the new kinds', () => {
   const { SA } = setup();
-  assert.deepEqual([...SA.data.all('careTasks').map((d) => d.kind)],['limpiar', 'curar', 'alimentar']);
+  assert.deepEqual([...SA.data.all('careTasks').map((d) => d.kind)], ['limpiar', 'curar', 'cepillar', 'acariciar', 'alimentar']);
   const feed = SA.data.get('careTasks', 'alimentar');
   assert.throws(() => SA.data.register('careTasks', [{ ...feed, id: 'a1', prompt: 'Dale {count} {food}' }]), /\{animal\}/);
   assert.throws(() => SA.data.register('careTasks', [{ ...feed, id: 'a2', maxCount: 6 }]), /maxCount/);
@@ -289,12 +289,13 @@ test('heal: "Cura las alas" is done by one tap on the named part; wrong parts ar
   const task = care.maybeStart('tucan', true, 'curar');
   const other = SA.data.get('animals', 'tucan').parts.map((p) => p.part).find((k) => k !== task.part);
   events.length = 0;
-  const wrong = care.tap({ animalId: 'tucan', part: other });
+  const wrong = care.tap({ animalId: 'tucan', part: other, item: 'venda' });
   assert.equal(wrong.status, 'wrong');
+  assert.equal(wrong.reason, 'part');
   assert.equal(wrong.label, SA.data.get('parts', other).label.es);
   assert.equal(care.active(), true);
   assert.equal(SA.save.get().stars, 0);
-  const done = care.tap({ animalId: 'tucan', part: task.part });
+  const done = care.tap({ animalId: 'tucan', part: task.part, item: 'venda' });
   assert.equal(done.status, 'done');
   assert.equal(done.kind, 'curar');
   assert.equal(done.stars, 1);
@@ -364,7 +365,7 @@ test('flow (heal): a tap bandages the part with a plus star; no rub target is se
   const task = f.care.current();
   assert.equal(f.calls.find((c) => c[0] === 'showCare')[1].icon, '🩹');
   assert.equal(f.SA.picking.hasRubTarget(), false);
-  const res = flow.onPick({ animalId: 'tucan', part: task.part });
+  const res = flow.onPick({ animalId: 'tucan', part: task.part, item: 'venda' });
   assert.equal(res.status, 'done');
   assert.deepEqual(f.calls.filter((c) => c[0] === 'scrub' || c[0] === 'bandage').map((c) => c[0]), ['scrub', 'bandage']);
 });

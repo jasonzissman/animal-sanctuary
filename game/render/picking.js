@@ -256,7 +256,8 @@
       if (rubDist >= RUB_PX) {
         rubDist = 0;
         if (hit.mesh) setGlow(hit.mesh, 1);
-        SA.picking.emit({ animalId: hit.animalId, part: hit.part });
+        var held = SA.inventory && SA.inventory.equipped ? SA.inventory.equipped() : null;
+        SA.picking.emit({ animalId: hit.animalId, part: hit.part, item: held || undefined });   // rubbing counts with the tool in hand
       }
     }
 

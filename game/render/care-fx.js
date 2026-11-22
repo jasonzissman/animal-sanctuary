@@ -21,6 +21,7 @@
     var geo = new THREE.SphereGeometry(1, 7, 5);
     var mats = [new THREE.MeshLambertMaterial({ color: MUD }), new THREE.MeshLambertMaterial({ color: MUD_DARK })];
     var scrapeMats = [new THREE.MeshLambertMaterial({ color: 0xd9534f }), new THREE.MeshLambertMaterial({ color: 0xb03a36 })];
+    var tangleMats = [new THREE.MeshLambertMaterial({ color: 0xb08a4a }), new THREE.MeshLambertMaterial({ color: 0x8a6a34 })];
     var bandageMat = new THREE.MeshLambertMaterial({ color: 0xf6e3c4 }), crossMat = new THREE.MeshLambertMaterial({ color: 0xe8706b });
     var group = null, spots = [], bits = [], lastSpot = null;
     var seed = 1;
@@ -42,8 +43,9 @@
       if (!group) return false;
       var meshes = partMeshes(group, task.part);
       if (task.part && !meshes.length) return false;      // a feed task has no part: only the zoom below
-      var palette = task.kind === 'curar' ? scrapeMats : mats;
-      for (var i = 0; task.part && i < task.spots; i++) {
+      var palette = task.kind === 'curar' ? scrapeMats : task.kind === 'cepillar' ? tangleMats : mats;   // sore / tangled / muddy
+      var count = task.kind === 'acariciar' ? 0 : task.spots;      // petting la barriga has nothing to wash off
+      for (var i = 0; task.part && i < count; i++) {
         var m = meshes[i % meshes.length];
         var spot = new THREE.Mesh(geo, palette[i % 2]);
         // a point on the ellipsoid around the part, biased upward so the mud shows from the tilted camera

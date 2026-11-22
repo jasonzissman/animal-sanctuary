@@ -69,6 +69,8 @@
     part('plumas', 'las plumas', 'feathers', 'f', 'pl', 'box', 'back', 'wiggle'),
     part('nariz', 'la nariz', 'nose', 'f', 'sg', 'sphere', 'front', 'sniff'),
     part('joroba', 'la joroba', 'hump', 'f', 'sg', 'sphere', 'top', 'wobble'),
-    part('mejillas', 'las mejillas', 'cheeks', 'f', 'pl', 'sphere', 'front', 'wobble')
+    part('mejillas', 'las mejillas', 'cheeks', 'f', 'pl', 'sphere', 'front', 'wobble'),
+    part('pelo', 'el pelo', 'fur', 'm', 'sg', 'box', 'top', 'wiggle'),
+    part('barriga', 'la barriga', 'belly', 'f', 'sg', 'sphere', 'bottom', 'wobble')
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

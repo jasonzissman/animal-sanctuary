@@ -40,7 +40,8 @@
   [['cabeza', 'la cabeza'], ['cuerpo', 'el cuerpo'], ['orejas', 'las orejas'], ['ojos', 'los ojos'],
     ['hocico', 'el hocico'], ['pico', 'el pico'], ['cola', 'la cola'], ['patas', 'las patas'], ['alas', 'las alas'],
     ['caparazon', 'el caparazón'], ['cuernos', 'los cuernos'], ['aletas', 'las aletas'], ['plumas', 'las plumas'],
-    ['nariz', 'la nariz'], ['joroba', 'la joroba'], ['mejillas', 'las mejillas']].forEach(function (p) { add('part', p[0], p[1]); });
+    ['nariz', 'la nariz'], ['joroba', 'la joroba'], ['mejillas', 'las mejillas'],
+    ['pelo', 'el pelo'], ['barriga', 'la barriga']].forEach(function (p) { add('part', p[0], p[1]); });
 
   [['conejo', 'el conejo'], ['pato', 'el pato'], ['tortuga', 'la tortuga'], ['mono', 'el mono'],
     ['tucan', 'el tucán'], ['rana', 'la rana'], ['camello', 'el camello'], ['serpiente', 'la serpiente'],

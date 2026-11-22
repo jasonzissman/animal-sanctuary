@@ -325,6 +325,7 @@
     var careFlow = o.care || null;
     if (!careFlow && o.careFx !== undefined && SA.careFlow && SA.care) {
       careFlow = SA.careFlow.create({ care: SA.care.create(), view: view, fx: o.careFx, audio: o.audio, later: o.later,
+        react: function (id, name) { if (o.fx && o.fx.play) o.fx.play(id, name); },
         onDone: function () { if (ctl) ctl.begin(); } });
     }
     ctl = createController({ game: o.game || SA.round.create(), view: view, fx: o.fx, audio: o.audio, later: o.later, biomeFx: o.biomeFx,

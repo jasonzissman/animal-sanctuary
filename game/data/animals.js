@@ -128,7 +128,8 @@
         p('cuerpo', '#a9a9b0', 1, 1, [0, 0.5, 0]), p('cabeza', '#a9a9b0', 0.7, 1, [0, 1.0, 0.5]),
         p('orejas', '#c9c9d0', [0.25, 1.4, 0.25], 2, [0.14, 1.75, 0.45]), p('cola', '#ffffff', 0.3, 1, [0, 0.5, -0.55]),
         p('patas', '#8e8e96', 0.35, 4, [0.28, 0.18, 0]), eyes(0.16, [0.17, 1.08, 0.77]),
-        p('hocico', '#f4b6c2', 0.14, 1, [0, 0.96, 0.84])
+        p('hocico', '#f4b6c2', 0.14, 1, [0, 0.96, 0.84]),
+        p('pelo', '#d4d4da', [0.5, 0.16, 0.6], 1, [0, 0.94, -0.1]), p('barriga', '#e8e8ee', [0.5, 0.3, 0.5], 1, [0, 0.3, 0.3])
       ], easterEgg: false },
     { id: 'pato', name: { es: 'pato', en: 'duck', gender: 'm' }, icon: '🦆', biome: 'bosque',
       traits: { size: 'mediano', color: 'amarillo', movement: 'nada', diet: 'omnívoro', legs: 2 },
@@ -151,7 +152,8 @@
         p('cuerpo', '#8a5a34', 1, 1, [0, 0.8, 0]), p('cabeza', '#8a5a34', 0.65, 1, [0, 1.45, 0.3]),
         { part: 'orejas', builder: 'sphere', color: '#e8b894', scale: [0.14, 0.28, 0.28], count: 2, offset: [0.3, 1.5, 0.3] }, p('hocico', '#e8b894', 0.25, 1, [0, 1.42, 0.6]),
         p('cola', '#6d4423', [0.12, 0.12, 1.8], 1, [0, 0.8, -0.9]), p('patas', '#6d4423', [0.2, 0.7, 0.2], 4, [0.3, 0.35, 0]),
-        eyes(0.14, [0.15, 1.53, 0.56])
+        eyes(0.14, [0.15, 1.53, 0.56]),
+        p('pelo', '#a06a40', [0.6, 0.16, 0.7], 1, [0, 1.28, -0.05]), p('barriga', '#e8b894', [0.6, 0.35, 0.5], 1, [0, 0.45, 0.4])
       ], easterEgg: false },
     { id: 'tucan', name: { es: 'tucán', en: 'toucan', gender: 'm' }, icon: '🦜', biome: 'selva', perch: 'tree',
       traits: { size: 'mediano', color: 'negro', movement: 'vuela', diet: 'herbívoro', legs: 2 },
@@ -173,7 +175,8 @@
         p('cuerpo', '#c99a5b', [1.1, 0.9, 1.9], 1, [0, 1.5, 0]), p('joroba', '#b8864a', 0.75, 1, [0, 2.15, -0.1]),
         p('cabeza', '#c99a5b', 0.7, 1, [0, 1.95, 1.0]), p('hocico', '#a87a40', [0.3, 0.25, 0.3], 1, [0, 1.88, 1.3]),
         p('orejas', '#a87a40', [0.15, 0.2, 0.15], 2, [0.2, 2.3, 0.95]), p('cola', '#a87a40', [0.1, 0.1, 0.5], 1, [0, 1.6, -1.1]),
-        p('patas', '#b8864a', [0.22, 1.4, 0.22], 4, [0.4, 0.7, 0]), eyes(0.1, [0.2, 2.03, 1.25])
+        p('patas', '#b8864a', [0.22, 1.4, 0.22], 4, [0.4, 0.7, 0]), eyes(0.1, [0.2, 2.03, 1.25]),
+        p('pelo', '#d6ab6a', [0.7, 0.2, 1.0], 1, [0, 1.98, -0.4]), p('barriga', '#e0c08a', [0.8, 0.45, 0.9], 1, [0, 0.9, 0.3])
       ], easterEgg: false },
     { id: 'serpiente', name: { es: 'serpiente', en: 'snake', gender: 'f' }, icon: '🐍', biome: 'desierto',
       traits: { size: 'mediano', color: 'naranja', movement: 'repta', diet: 'carnívoro', legs: 0 },
@@ -187,7 +190,8 @@
         p('cuerpo', '#f2efe6', [0.9, 0.8, 1.3], 1, [0, 0.9, 0]), p('cabeza', '#f2efe6', 0.55, 1, [0, 1.25, 0.62]),
         p('cuernos', '#8a7a62', [0.1, 0.4, 0.1], 2, [0.16, 1.65, 0.58]), p('orejas', '#d8d2c4', [0.3, 0.14, 0.1], 2, [0.3, 1.3, 0.62]),
         p('hocico', '#d8d2c4', 0.2, 1, [0, 1.21, 0.88]), p('cola', '#d8d2c4', [0.15, 0.15, 0.45], 1, [0, 1.15, -0.65]),
-        p('patas', '#c8c2b4', [0.14, 0.75, 0.14], 4, [0.28, 0.375, 0]), eyes(0.09, [0.16, 1.31, 0.82])
+        p('patas', '#c8c2b4', [0.14, 0.75, 0.14], 4, [0.28, 0.375, 0]), eyes(0.09, [0.16, 1.31, 0.82]),
+        p('pelo', '#ffffff', [0.55, 0.2, 0.8], 1, [0, 1.3, -0.1]), p('barriga', '#e6e0d0', [0.55, 0.3, 0.6], 1, [0, 0.55, 0.3])
       ], easterEgg: false },
     { id: 'aguila', name: { es: 'águila', en: 'eagle', gender: 'f' }, icon: '🦅', biome: 'montana',
       traits: { size: 'grande', color: 'marrón', movement: 'vuela', diet: 'carnívoro', legs: 2 },

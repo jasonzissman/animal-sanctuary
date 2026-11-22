@@ -21,7 +21,7 @@
 
   var ICONS = {
     cabeza: '🙂', cuerpo: '🧸', orejas: '👂', ojos: '👀', hocico: '🐽', pico: '🐦', cola: '➰', patas: '🐾',
-    alas: '🪶', caparazon: '🐢', cuernos: '🦌', aletas: '🐟', plumas: '🪶', nariz: '👃', joroba: '🐪', mejillas: '😊',
+    alas: '🪶', caparazon: '🐢', cuernos: '🦌', aletas: '🐟', plumas: '🪶', nariz: '👃', joroba: '🐪', mejillas: '😊', pelo: '🪮', barriga: '🤗',
   };
 
   var listeners = [];

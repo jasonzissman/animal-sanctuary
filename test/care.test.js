@@ -8,7 +8,8 @@ import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/picking.js', 'game/camera.js',
-  'game/round.js', 'game/data/foods.js', 'game/data/care.js', 'game/care.js', 'game/ui/care-flow.js', 'game/ui/prompt.js'];
+  'game/round.js', 'game/data/foods.js', 'game/data/items.js', 'game/inventory.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js',
+  'game/ui/care-flow.js', 'game/ui/prompt.js'];
 
 function setup(opts = {}) {
   const SA = loadGame(FILES);
@@ -24,8 +25,12 @@ test('care task data validates and only names parts that exist', () => {
   const defs = SA.data.all('careTasks');
   assert.ok(defs.length >= 1);
   assert.ok(defs[0].parts.includes('patas') && defs[0].parts.includes('caparazon') && defs[0].parts.includes('cola'));
-  assert.throws(() => SA.data.register('careTasks', [{ id: 'x', kind: 'limpiar', parts: ['nope'], prompt: 'Limpia {part}', rubs: 3, spotsPerRub: 2, chance: 1 }]));
-  assert.throws(() => SA.data.register('careTasks', [{ id: 'y', kind: 'limpiar', parts: ['patas'], prompt: 'Limpia', rubs: 3, spotsPerRub: 2, chance: 1 }]));
+  const ok = { kind: 'limpiar', action: 'lavar', parts: ['patas'], prompt: 'Lava {part}', rubs: 3, spotsPerRub: 2, chance: 1 };
+  assert.throws(() => SA.data.register('careTasks', [{ ...ok, id: 'x', parts: ['nope'] }]), /unknown part/);
+  assert.throws(() => SA.data.register('careTasks', [{ ...ok, id: 'y', prompt: 'Lava' }]), /\{part\}/);
+  assert.throws(() => SA.data.register('careTasks', [{ ...ok, id: 'z', action: 'volar' }]), /unknown action/);
+  assert.throws(() => SA.data.register('careTasks', [{ ...ok, id: 'w', prompt: 'Limpia {part}' }]), /action verb/);
+  assert.throws(() => SA.data.register('careTasks', [{ ...ok, id: 'v', parts: ['barriga'] }]), /does not work on/);
 });
 
 test('maybeStart targets a part the animal really has, for every animal, with agreeing Spanish', () => {
@@ -37,7 +42,7 @@ test('maybeStart targets a part the animal really has, for every animal, with ag
       if (!task) { assert.ok(!a.parts.some((p) => def.parts.includes(p.part))); continue; }
       assert.ok(a.parts.some((p) => p.part === task.part), `${a.id} has ${task.part}`);
       assert.ok(def.parts.includes(task.part));
-      assert.equal(task.text, 'Limpia ' + SA.data.get('parts', task.part).label.es);
+      assert.equal(task.text, 'Lava ' +SA.data.get('parts', task.part).label.es);
       assert.equal(task.remaining, def.rubs);
       assert.equal(task.spots, def.rubs * def.spotsPerRub);
     }
@@ -59,7 +64,7 @@ test('maybeStart only sometimes starts a task, and never for unknown animals', (
 test('tapping the right part scrubs spots away and finishing awards a star and round.complete', () => {
   const { SA, care, events, advance } = setup();
   const task = care.maybeStart('tortuga', true, 'limpiar');
-  const ctx = { animalId: 'tortuga', part: task.part };
+  const ctx = { animalId: 'tortuga', part: task.part, item: 'esponja' };
   advance(4200);
   let res = care.tap(ctx);
   assert.deepEqual({ ...res }, { status: 'scrub', remaining: 2, spotsLeft: 4 });
@@ -87,8 +92,9 @@ test('a wrong part names itself, counts a miss, emits part.tap correct:false and
   const { SA, care, events } = setup();
   const task = care.maybeStart('tortuga', true, 'limpiar');
   const other = SA.data.get('animals', 'tortuga').parts.map((p) => p.part).find((k) => k !== task.part);
-  const res = care.tap({ animalId: 'tortuga', part: other });
+  const res = care.tap({ animalId: 'tortuga', part: other, item: 'esponja' });
   assert.equal(res.status, 'wrong');
+  assert.equal(res.reason, 'part');
   assert.equal(res.label, SA.data.get('parts', other).label.es);
   assert.equal(res.misses, 1);
   assert.equal(task.remaining, task.rubs);
@@ -140,14 +146,28 @@ test('flow: scrub splashes, wrong boings with its name, finish celebrates then c
   f.flow.offer('tortuga');
   const task = f.care.current();
   f.calls.length = 0;
-  f.flow.onPick({ animalId: 'tortuga', part: task.part });
+  const sponge = { animalId: 'tortuga', part: task.part, item: 'esponja' };
+  f.flow.onPick(sponge);
   assert.deepEqual(f.calls, [['sfx', 'splash'], ['scrub', 4]]);
   f.calls.length = 0;
   const other = ['ojos', 'cabeza', 'cuerpo'].find((k) => k !== task.part);
-  f.flow.onPick({ animalId: 'tortuga', part: other });
-  assert.deepEqual(f.calls, [['sfx', 'boing'], ['toast', '🙈 ' + f.SA.data.get('parts', other).label.es]]);
-  f.flow.onPick({ animalId: 'tortuga', part: task.part });
-  f.flow.onPick({ animalId: 'tortuga', part: task.part });
+  const partLabel = f.SA.data.get('parts', other).label.es;
+  f.flow.onPick({ animalId: 'tortuga', part: other, item: 'esponja' });           // right tool, wrong part
+  assert.deepEqual(f.calls, [['sfx', 'boing'], ['toast', '🙈 la esponja · ' + partLabel], ['say', 'item:esponja']]);
+  f.timers.length = 0;
+  f.calls.length = 0;
+  f.flow.onPick({ animalId: 'tortuga', part: task.part, item: 'cepillo' });       // wrong tool, right part: names both, no progress
+  assert.deepEqual(f.calls.slice(0, 3), [['sfx', 'boing'], ['toast', '🙈 el cepillo · ' + f.SA.data.get('parts', task.part).label.es], ['say', 'item:cepillo']]);
+  assert.equal(f.timers.length, 1, 'the part name follows after a pause');
+  f.timers[0][0]();
+  assert.deepEqual(f.calls.at(-1), ['say', 'part:' + task.part]);
+  f.timers.length = 0;
+  assert.equal(f.care.current().remaining, 2, 'wrong pairings never progress or penalise');
+  assert.equal(f.SA.save.get().stars, 0);
+  f.flow.onPick({ animalId: 'tortuga', part: task.part });                         // empty hands on a sponge task: also a funny miss
+  assert.equal(f.care.current().remaining, 2);
+  f.flow.onPick(sponge);
+  f.flow.onPick(sponge);
   assert.ok(f.names().includes('confetti') && f.names().includes('celebrate'));
   assert.equal(f.SA.picking.hasRubTarget(), false);
   assert.equal(f.timers.length, 1);
@@ -184,7 +204,7 @@ test('prompt controller: a correct pick can lead into a care task, then the next
   assert.deepEqual(calls, ['round', 'care']);
   assert.equal(care.active(), true);
   const task = t.care.current();
-  for (let i = 0; i < task.rubs; i++) ctl.onPick({ animalId: task.animalId, part: task.part });
+  for (let i = 0; i < task.rubs; i++) ctl.onPick({ animalId: task.animalId, part: task.part, item: task.item });
   assert.equal(care.active(), false);
   timers.shift()();                                   // care celebration over: next round
   assert.deepEqual(calls, ['round', 'care', 'round']);

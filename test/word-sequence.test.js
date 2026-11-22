@@ -4,7 +4,7 @@ import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/foods.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/picking.js',
-  'game/camera.js', 'game/round.js', 'game/data/care.js', 'game/care.js', 'game/word-sequence.js', 'game/ui/care-flow.js',
+  'game/camera.js', 'game/round.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js', 'game/word-sequence.js', 'game/ui/care-flow.js',
   'game/ui/prompt.js'];
 
 const J = (x) => JSON.parse(JSON.stringify(x));

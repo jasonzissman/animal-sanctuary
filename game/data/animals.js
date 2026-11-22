@@ -157,6 +157,24 @@
         ball(0.32, 3.387, 1.62), seg(0.26, 0.5, 55, 3.53, 1.825)] };
   }
 
+  /** Scale every piece of a parts[] list (and its `also` extras) by one factor k: sizes, offsets and the leg `row` spacing, so
+   *  proportions, pick volumes (derived from the sizes), reach and framing all stay in step. Returns a new list. */
+  function shrink(parts, k) {
+    function s3(v) { return Array.isArray(v) ? v.map(function (n) { return n * k; }) : v * k; }
+    function one(e) {
+      var o = {};
+      Object.keys(e).forEach(function (key) { o[key] = e[key]; });
+      o.scale = s3(e.scale);
+      o.offset = e.offset.map(function (n) { return n * k; });
+      if (e.row !== undefined) o.row = e.row * k;
+      if (e.also) o.also = e.also.map(one);
+      return o;
+    }
+    return parts.map(one);
+  }
+
+  var CAMEL_SCALE = 0.75;   // AS-0215: the camel was giraffe-tall; this is its overall size factor (the design below is at 1.0)
+
   SA.data.register('animals', [
     { id: 'conejo', name: { es: 'conejo', en: 'rabbit', gender: 'm' }, icon: '🐰', biome: 'bosque',
       traits: { size: 'pequeño', color: 'gris', movement: 'salta', diet: 'herbívoro', legs: 4 },
@@ -207,7 +225,7 @@
       ], easterEgg: false },
     { id: 'camello', name: { es: 'camello', en: 'camel', gender: 'm' }, icon: '🐫', biome: 'desierto',
       traits: { size: 'grande', color: 'marrón', movement: 'corre', diet: 'herbívoro', legs: 4 },
-      parts: [
+      parts: shrink([
         // Long horizontal oval body on tall thin legs; one hump sitting ON the back; an S-curved neck (3 segments + joint
         // balls, all part "cabeza") rises forward from the chest to a small, long-snouted head held high.
         p('cuerpo', '#d2a86a', [1.1, 1.0, 2.1], 1, [0, 1.95, 0]), p('joroba', '#c0925a', [0.8, 0.75, 0.9], 1, [0, 2.55, -0.1]),
@@ -224,7 +242,7 @@
         eyes(0.1, [0.17, 3.76, 2.28]),
         p('pelo', '#d6ab6a', [0.4, 0.14, 0.5], 1, [0, 2.9, -0.1]),
         p('barriga', '#d2a86a', [0.7, 0.3, 1.0], 1, [0, 1.65, 0.1])   // same colour as the body and tucked inside it: not a visible pale blob
-      ], easterEgg: false },
+      ], CAMEL_SCALE), easterEgg: false },
     { id: 'serpiente', name: { es: 'serpiente', en: 'snake', gender: 'f' }, icon: '🐍', biome: 'desierto',
       traits: { size: 'mediano', color: 'naranja', movement: 'repta', diet: 'carnívoro', legs: 0 },
       parts: [

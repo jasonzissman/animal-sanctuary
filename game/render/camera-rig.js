@@ -222,6 +222,10 @@
             player.climb ? 0 : SA.player.floorAt(player.x, player.z, obs, hop.lift));   // lands / stands on a low rock
           jumpTap = false;
           if ((hop.event === 'takeoff' || hop.event === 'double') && SA.audio && SA.audio.sfx) SA.audio.sfx(hop.event === 'double' ? 'hop2' : 'hop');
+          if (hop.event === 'land' && SA.audio && SA.audio.sfx && SA.footsteps) {   // one soft landing sound per hop (AS-0119)
+            var ls = SA.footsteps.landSound(player.climb && player.climb.mode === 'canopy' ? 'canopy' : !player.climb && SA.map.isWater(player.x, player.z) ? 'water' : 'ground');
+            SA.audio.sfx(ls.sfx, ls.volume);
+          }
         }
         camY += (player.y - camY) * (1 - Math.exp(-5 * Math.min(dt, 0.1)));
         moving = Math.hypot(player.x - before.x, player.z - before.z) > 1e-4 || player.heading !== before.heading;

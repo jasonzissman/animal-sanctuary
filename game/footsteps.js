@@ -11,6 +11,8 @@
  *            `rate` is a tiny pitch variation (a fixed cycle, so it is never robotic and never random).
  * A step lands about every WALK_GAP (0.45 s) walking and RUN_GAP (0.28 s) running; standing still, airborne or climbing resets
  * the timer so the next walk starts with a step after about half a gap.
+ *   SA.footsteps.landSound(surface)                        -> { sfx: 'land' | 'splash' | 'stepLeaf', volume } (AS-0119): the sound for
+ *            SA.jump event 'land': a soft thump on the ground, a quieter splash in water, a leafy brush in a canopy.
  * Constants: WALK_GAP, RUN_GAP, RECIPE (surface -> sfx name), RATES.
  */
 (function (root) {
@@ -35,5 +37,10 @@
     return { state: { t: t - gap, n: s.n + 1 }, event: { sfx: name, rate: RATES[s.n % RATES.length], volume: VOLUME } };
   }
 
-  SA.footsteps = { create: create, step: step, WALK_GAP: WALK_GAP, RUN_GAP: RUN_GAP, RECIPE: RECIPE, RATES: RATES };
+  // Landing (AS-0119): the one sound per hop when SA.jump reports event 'land'. Soft thump on the ground, a quieter splash in water,
+  // a leafy brush in a canopy. Unknown surfaces count as ground.
+  var LAND = { ground: { sfx: 'land', volume: 1 }, water: { sfx: 'splash', volume: 0.5 }, canopy: { sfx: 'stepLeaf', volume: 1 } };
+  function landSound(surface) { var l = LAND[surface] || LAND.ground; return { sfx: l.sfx, volume: l.volume }; }
+
+  SA.footsteps = { landSound: landSound, LAND: LAND, create: create, step: step, WALK_GAP: WALK_GAP, RUN_GAP: RUN_GAP, RECIPE: RECIPE, RATES: RATES };
 })(typeof window !== 'undefined' ? window : globalThis);

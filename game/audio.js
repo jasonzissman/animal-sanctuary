@@ -25,6 +25,8 @@
     hop2: [{ w: 'sine', f: 400, f2: 800, t: 0, d: 0.18, g: 0.18, wob: 14 }, { w: 'triangle', f: 200, f2: 400, t: 0, d: 0.18, g: 0.08 }],
     // Soft "ouch" (AS-0156): a short falling squeak with a tiny prickle of noise; gentle, never scary.
     ouch: [{ w: 'triangle', f: 700, f2: 330, t: 0, d: 0.2, g: 0.2, wob: 22 }, { n: 1, hp: 3500, t: 0, d: 0.04, g: 0.07 }],
+    // Landing thump (AS-0119): a soft low "tup" with a breath of muffled noise; quieter than the takeoff hop.
+    land: [{ w: 'sine', f: 120, f2: 60, t: 0, d: 0.12, g: 0.18 }, { n: 1, lp: 400, hp: 100, t: 0, d: 0.06, g: 0.08 }],
     // Footsteps (AS-0118): soft and short (they play hundreds of times). Dry ground: a low muffled tap; water: a quick filtered
     // splish; canopy: a leafy brush. All far quieter than pop. sfx(name, volume, rate) shifts the pitch a hair per step.
     step: [{ w: 'sine', f: 150, f2: 80, t: 0, d: 0.08, g: 0.12 }, { n: 1, lp: 500, hp: 120, t: 0, d: 0.05, g: 0.06 }],

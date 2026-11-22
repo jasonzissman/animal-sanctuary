@@ -105,18 +105,16 @@
       // Misiones board (AS-0197) renders into the station card: done (replay), next (start), locked and En curso cards.
       if (stationMenu && stationMenu.body && SA.missionsBoardView) SA.missionsBoardView.create(root.document, { body: stationMenu.body });
     } catch (e) { report('station.menu', e); }
-    // The scientist's intro (AS-0202): plays once on a new save (introSeen false), then Mission 1 starts and la cámara is in the hotbar.
-    var introCard = null;
+    // The scientist's hello (AS-0213): on every load, one card with two short lines; closes on ✕ / Enter / E / a tap / walking.
+    // It starts no mission: missions are chosen at the board in the station.
+    var greeting = null;
     try {
-      if (SA.introView) introCard = SA.introView.create(root.document, { onToggle: function (on) {
-        SA.picking.setPaused(on);
-        if (!on && hotbar) hotbar.update();
-      } });
-    } catch (e) { report('intro.start', e); }
-    // Using the scientist (AS-0204): a one-line mission reminder plus the current mission; 💬 replays the intro (never starts a mission).
+      if (SA.greetingView) greeting = SA.greetingView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); },
+        player: function () { return stage.rig.getPlayer(); } });
+    } catch (e) { report('greeting.start', e); }
+    // Using the scientist (AS-0204): a one-line mission reminder plus the current mission (never starts a mission).
     try {
-      if (SA.scientistView) SA.scientistView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); },
-        onReplayIntro: function () { if (introCard) introCard.start(true); } });
+      if (SA.scientistView) SA.scientistView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); } });
     } catch (e) { report('scientist.start', e); }
     // Grown-up drawer (press-and-hold gear, an item of the 🎒 menu). Never blocks the main loop.
     var menuView = null;
@@ -131,6 +129,7 @@
       stage.render(dt);
       if (hotbar) { try { hotbar.update(); } catch (e) { hotbar = null; report('hotbar.update', e); } }
       if (useBtn) { try { useBtn.update(); } catch (e) { useBtn = null; report('useButton.update', e); } }
+      if (greeting && greeting.isOpen()) { try { greeting.update(stage.rig.getPlayer()); } catch (e) { greeting = null; report('greeting.update', e); } }
       if (climbBtn) { try { climbBtn.update(); } catch (e) { climbBtn = null; report('climbButton.update', e); } }
       if (hintFlow) { try { hintFlow.update(dt); } catch (e) { hintFlow = null; report('hintFlow.update', e); } }
       if (rerollWatch) { try { rerollWatch.update(dt); } catch (e) { rerollWatch = null; report('reroll.update', e); } }

@@ -54,6 +54,7 @@
 
     var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid });
     var fx = SA.render.createRoundFx({ animals: animals });
+    var biomeGlow = SA.render.createBiomeGlow ? SA.render.createBiomeGlow(THREE, { scene: scene }) : null;
     var careFx = SA.render.createCareFx(THREE, { animals: animals, rig: rig, ambient: ambient });
 
     function resize() {
@@ -68,9 +69,9 @@
 
     // stageApi.onTreeTap({ id, biome }) is set by main.js (easter-egg unlocks).
     stageApi = {
-      scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, ambient: ambient, resize: resize,
+      scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize,
       animals: animals, treeTap: treeTap, onTreeTap: null,
-      render: function (dt) { rig.update(dt); picking.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); renderer.render(scene, camera); },
+      render: function (dt) { rig.update(dt); picking.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
     };
     return stageApi;
   };

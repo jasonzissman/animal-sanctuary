@@ -4,7 +4,7 @@ import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/clues.js', 'game/clues.js', 'game/data/clue-levels.js', 'game/clue-levels.js',
-  'game/save.js', 'game/scaffold.js', 'game/picking.js', 'game/round.js', 'game/render/round-fx.js', 'game/ui/prompt.js'];
+  'game/save.js', 'game/scaffold.js', 'game/picking.js', 'game/hint-stage.js', 'game/round.js', 'game/render/round-fx.js', 'game/ui/prompt.js'];
 const load = () => { const SA = loadGame(FILES); SA.save.reset(); return SA; };
 
 function animal(id, parts, extra = {}) {
@@ -187,13 +187,15 @@ test('controller: hint appears automatically after ~20s and is counted in round.
   assert.equal(events.find((e) => e.type === 'round.complete').hints, 1);
 });
 
-test('controller: no auto hint at beginner level, after a correct pick, or for a stale round', () => {
+test('controller: no silhouette auto hint at beginner level, after a correct pick, or for a stale round', () => {
   const SA = load();
   const view = { showRound() {}, showHint() { throw new Error('should not hint'); }, toast() {}, shake() {}, celebrate() {}, confetti() {}, clear() {} };
   const timers = [];
   const b = SA.round.create({ level: 1, rng: SA.clues.makeRng(1), track() {} });
   SA.prompt.createController({ game: b, view, audio: {}, later: (fn) => timers.push(fn) }).begin();
-  assert.equal(timers.length, 0);
+  timers[0]();                                         // beginner's second stage is the biome glow, never showHint
+  assert.equal(b.current().hints, 1);
+  timers.length = 0;
 
   const game = SA.round.create({ level: 2, rng: SA.clues.makeRng(2), track() {} });
   const ctl = SA.prompt.createController({ game, view, audio: {}, fx: null, later: (fn) => timers.push(fn) });

@@ -222,6 +222,9 @@ current; when your change sets or changes something future tickets must follow, 
   The found animal does not wander during its mission: `ambient.pin(id)` / `unpin(id)` (render/ambient.js; `release` is ignored
   while pinned, so care tasks ending cannot free it). mission-flow takes `pin: { pin, unpin }` (main passes `stage.ambient`),
   pins at the find and unpins at the correct photo or when the mission is replaced (begin/reroll).
+  **Proof card (AS-0201, slice 3):** the correct final photo is the proof: the snapshot card (`view.snapshot({ icon, text, stamp, hold })`,
+  the `snapshot` HUD zone) slides in with a red "¡Está bien!" stamp (`phrase:estabien`, spoken) and is held; after `NEXT_MS` the flow
+  calls `view.snapshotHide()` and then starts the next mission. The photo is saved by `SA.photo.take` (`save.photos`, dated album page).
 - **Tasks while roaming.** Missions ("Busca un animal con orejas largas") sit on a card while you explore freely. You
   complete a find by taking a photo with *la cámara*, and the photo album rewards exploring.
   Built (AS-0084): the round IS the photo mission. The top card keeps the clue, Replay and a 📷 badge (tap = equip la cámara);

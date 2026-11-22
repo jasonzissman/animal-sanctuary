@@ -42,11 +42,11 @@ current; when your change sets or changes something future tickets must follow, 
   it every frame through `SA.map.followHeight` (eased, bounded lag; used by `SA.climb.step`), animals (`render/ambient.js`),
   pickups, decor and props all read it, and the chase camera is lifted by `SA.map.cameraHeight` so it never dips into hills.
   New things placed in the world must take their `y` from `groundHeight`, never a constant.
-- **Water is a soft wall for the player (AS-0077).** `SA.player.step` never leaves the player in `SA.map.isWater`: walking
-  into water slides along the shore (never a penalty), and a player who starts in water goes to `SA.player.nearestDry`.
-  `SA.player.heightAt(x, z)` is the pure feet-height helper. Tree canopies pass `{ water: false }`. Because the river
-  runs the full map height, `SA.map.FORD` (z = 19, near the spawn) is a dry crossing so the west half and the montaña stay
-  reachable; a test flood-fills the map from the spawn. Keep any new water body crossable the same way.
+- **Water never blocks the player (AS-0109, replaces the AS-0077 soft wall).** `SA.player.step` has no shore/nearestDry
+  rule any more: only obstacle circles and the map edge stop the player. `SA.player.heightAt(x, z)` is the feet-height
+  helper; the avatar follows the floor (so it can sink under the surface) and `SA.map.cameraHeight` keeps the chase camera
+  above `WATER_LEVEL`. A test sweeps the map and asserts open terrain never blocks forward movement. `SA.map.FORD` stays
+  as a shallow crossing but is no longer required for reachability.
 - **Being close matters.** Inspecting, caring and photographing need the player within reach. Too far gives a
   friendly "¡Acércate!", never a wrong answer. Rule: `SA.reach.canReach(player, animal, part?)` (game/reach.js, player
   `y` is its standing height so climbing raises reach); `render/picking.js` gates every pick and rub through it and

@@ -134,7 +134,6 @@ test('run keeps the map bounds, obstacles and the shore at full speed', () => {
   for (const heading of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
     const s = walk({ x: 0, z: 0, heading }, { forward: true, run: true }, 30);
     assert.ok(s.x >= B.minX && s.x <= B.maxX && s.z >= B.minZ && s.z <= B.maxZ, 'inside the map');
-    assert.ok(!SA.map.isWater(s.x, s.z), 'dry');
   }
   const tree = [0, 5, 1];   // running straight at a tree slides around it, never into it
   let s = { x: 0, z: 0, heading: 0 };
@@ -183,46 +182,40 @@ test('heightAt returns SA.map.groundHeight', () => {
   for (const [x, z] of [[0, 0], [-9, 14], [22, 10], [-60, 3]]) assert.equal(P.heightAt(x, z), SA.map.groundHeight(x, z));
 });
 
-test('starting in water moves to the nearest dry point, even with no input', () => {
+// ---- AS-0109: walk on any hard ground; water and dips never block
+test('a player standing in water stays put (no teleport to the shore) and can walk on', () => {
   const wetPt = { x: SA.map.riverX(0), z: 0, heading: 0 };
   assert.ok(SA.map.isWater(wetPt.x, wetPt.z));
   const s = P.step(wetPt, {}, 0);
-  assert.ok(!SA.map.isWater(s.x, s.z));
-  assert.ok(Math.hypot(s.x - wetPt.x, s.z - wetPt.z) < 6, 'moved only to the nearby shore');
-  const pond = P.step({ x: 22, z: 10, heading: 0 }, { forward: true }, DT);
-  assert.ok(!SA.map.isWater(pond.x, pond.z));
-  const n = P.nearestDry(-9, 14);
-  near(n.x, -9); near(n.z, 14);
-});
-
-test('walking at the river never enters water and slides along the shore', () => {
-  for (const heading of [Math.PI / 2, Math.PI / 4, (3 * Math.PI) / 4]) {
-    let s = { x: SA.map.riverX(0) - 9, z: 0, heading };
-    let moved = 0;
-    for (let t = 0; t < 6; t += DT) {
-      const n = P.step(s, { forward: true }, DT);
-      assert.ok(!SA.map.isWater(n.x, n.z), `wet at ${n.x},${n.z}`);
-      moved += Math.hypot(n.x - s.x, n.z - s.z);
-      s = n;
-    }
-    assert.ok(moved > 3, 'kept moving (slid) rather than freezing');
-  }
-});
-
-test('walking around the pond from every side never ends in water', () => {
-  for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
-    let s = { x: 22 + Math.cos(a) * 12, z: 10 + Math.sin(a) * 8, heading: Math.atan2(-Math.cos(a), -Math.sin(a)) };
-    for (let t = 0; t < 8; t += DT) {
-      s = P.step(s, { forward: true }, DT);
-      assert.ok(!SA.map.isWater(s.x, s.z), `wet at ${s.x},${s.z}`);
-    }
-  }
-});
-
-test('water: false skips the shore rule (canopy walking)', () => {
-  const wetPt = { x: SA.map.riverX(0), z: 0, heading: 0 };
-  const s = P.step(wetPt, {}, 0, [], { water: false });
   near(s.x, wetPt.x); near(s.z, wetPt.z);
+  const m = P.step(wetPt, { forward: true }, DT);
+  near(m.z, P.SPEED * DT);
+});
+
+test('the player wades into, across and out of the river and the pond', () => {
+  let s = { x: SA.map.riverX(0) - 9, z: 0, heading: Math.PI / 2 };
+  let wet = 0;
+  for (let t = 0; t < 5; t += DT) { s = P.step(s, { forward: true }, DT); if (SA.map.isWater(s.x, s.z)) wet++; }
+  assert.ok(wet > 0, 'went under water');
+  assert.ok(s.x > SA.map.riverX(0) + 3, `crossed the river: ${s.x}`);
+  s = { x: SA.map.POND.x - 14, z: SA.map.POND.z, heading: Math.PI / 2 };
+  s = walk(s, { forward: true }, 6);
+  assert.ok(s.x > SA.map.POND.x + 4, `crossed the pond: ${s.x}`);
+});
+
+test('sweep: on open terrain (dips and water included) walking forward always makes full progress', () => {
+  const B = SA.map.BOUNDS, headings = [0, Math.PI / 2, Math.PI, -Math.PI / 2, 0.7, 2.4];
+  let checked = 0, wetChecked = 0;
+  for (let x = B.minX + 3; x <= B.maxX - 3; x += 3) {
+    for (let z = B.minZ + 3; z <= B.maxZ - 3; z += 3) {
+      const heading = headings[(checked + 1) % headings.length];
+      const s = P.step({ x, z, heading }, { forward: true }, DT);
+      const gained = (s.x - x) * Math.sin(heading) + (s.z - z) * Math.cos(heading);
+      assert.ok(gained > P.SPEED * DT - 1e-6, `blocked at ${x},${z} heading ${heading}: ${gained}`);
+      checked++; if (SA.map.isWater(x, z)) wetChecked++;
+    }
+  }
+  assert.ok(checked > 500 && wetChecked > 20, `swept ${checked} points, ${wetChecked} wet`);
 });
 
 test('standing on top of two obstacles the player escapes; a free player is still blocked by a tree', () => {
@@ -232,28 +225,14 @@ test('standing on top of two obstacles the player escapes; a free player is stil
   assert.ok(Math.hypot(t.x, t.z) >= 1 + P.RADIUS - 0.03);
 });
 
-test('the map stays reachable on foot: water blocks, but a ford crosses the river', () => {
-  const B = SA.map.BOUNDS, STEP = 1, W = Math.round((B.maxX - B.minX) / STEP) + 1, H = Math.round((B.maxZ - B.minZ) / STEP) + 1;
-  const ix = (x) => Math.round((x - B.minX) / STEP), iz = (z) => Math.round((z - B.minZ) / STEP);
-  const dry = (i, j) => !SA.map.isWater(B.minX + i * STEP, B.minZ + j * STEP);
-  const s = P.spawn(), seen = new Set([ix(s.x) + ',' + iz(s.z)]), queue = [[ix(s.x), iz(s.z)]];
-  while (queue.length) {
-    const [i, j] = queue.pop();
-    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const a = i + di, b = j + dj, k = a + ',' + b;
-      if (a < 0 || b < 0 || a >= W || b >= H || seen.has(k) || !dry(a, b)) continue;
-      seen.add(k); queue.push([a, b]);
-    }
-  }
-  for (const [x, z] of [[-60, 0], [-60, -15], [-45, -15], [60, 0], [20, -15]]) {
-    if (dry(ix(x), iz(z))) assert.ok(seen.has(ix(x) + ',' + iz(z)), `(${x}, ${z}) reachable`);
-  }
-  assert.ok(!SA.map.isWater(SA.map.riverX(SA.map.FORD.z), SA.map.FORD.z), 'the ford is dry');
-});
-
 test('the player can walk across the ford from the east bank to the west bank', () => {
   const z = SA.map.FORD.z;
   const s = walk({ x: SA.map.riverX(z) + 9, z, heading: -Math.PI / 2 }, { forward: true }, 5);
   assert.ok(s.x < SA.map.riverX(z) - 3, `crossed: ${s.x}`);
-  assert.ok(!SA.map.isWater(s.x, s.z));
+});
+
+test('the camera stays above the water surface while the player is under it', () => {
+  const x = SA.map.riverX(0), z = 0, floor = SA.map.groundHeight(x, z);
+  assert.ok(floor < SA.map.WATER_LEVEL);
+  assert.ok(SA.map.cameraHeight(floor + 1, x, z) >= SA.map.WATER_LEVEL + 0.6 - 1e-9);
 });

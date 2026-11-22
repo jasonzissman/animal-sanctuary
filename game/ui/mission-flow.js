@@ -13,7 +13,8 @@
  *              chance); each finished task (flow.onCareDone) starts the next one, then the photo step.
  *       photo  only a la cámara shot of the found animal (SA.photo.take -> mission.photo) finishes the mission. 'wrong' (another
  *              animal) and 'early' (help not done) are friendly nudges; 'correct' celebrates with a level cue and the next
- *              mission begins after NEXT_MS.
+ *              mission begins after NEXT_MS. The photo is the proof card: it slides in stamped "¡Está bien!" (phrase:estabien,
+ *              spoken), is saved in the album (SA.photo.take) and stays until the next mission begins.
  *   The card for every step comes from SA.missionCard (find: clue + animal icon; help: the care-flow card with its tool/food icon;
  *   photo: "Tómale una foto" + camera badge). Option `pin` = { pin(id), unpin(id) } (the render ambient system): the found animal
  *   is pinned (stops wandering) from the find until the photo is taken, or until the mission is replaced (begin / reroll).
@@ -28,6 +29,7 @@
   var HELP_WAIT_MS = 1800;   // if the animal's name is never reported finished, the help task starts after this anyway
   var AUTO_HINT_MS = 20000;  // stuck on the find step this long: reveal the next hint stage
   var PHOTO_KEY = 'phrase:tomalefoto';
+  var PROOF_KEY = 'phrase:estabien';
 
   function iconFor(animalId) {
     var a = SA.data && SA.data.get('animals', animalId);
@@ -163,24 +165,35 @@
       return res;
     }
 
-    function snap(p) {
+    function snap(p, extra) {
       var a = SA.data && SA.data.get('animals', p.animalId);
-      if (view.snapshot) view.snapshot({ icon: iconFor(p.animalId), text: a && a.name ? a.name.es : '' });
+      var card = { icon: iconFor(p.animalId), text: a && a.name ? a.name.es : '' };
+      if (extra) { card.stamp = extra.stamp; card.hold = extra.hold; }
+      if (view.snapshot) view.snapshot(card);
+    }
+
+    // The proof card: the final photo (icon + name) slides in stamped "¡Está bien!" and stays until the next mission begins.
+    function proofCard(p) {
+      var v = SA.vocab && SA.vocab.get(PROOF_KEY);
+      snap(p, { stamp: v ? v.es : '¡Está bien!', hold: true });
+      say(PROOF_KEY);
     }
 
     function onShot(p) {
       var m = cur();
       sfx('shutter');
-      snap(p);
-      var res = SA.photo.take(mission, p);
+      var res = SA.photo.take(mission, p);      // also saves the photo (save.photos) and dates its album page
       trackTap(p, res.status === 'correct');
       if (res.status === 'correct') {
         unpin();                        // the mission is complete: the animal wanders again
         levelCue(res.levelChange);
         celebrate(res.animalId, res.stars);
-        say('animal:' + res.animalId);
-        later(begin, NEXT_MS);
-      } else if (res.status === 'wrong' || res.status === 'early') {   // a friendly nudge back to the step (nothing is lost)
+        proofCard(p);                   // flash + the stamped photo, "¡Está bien!" spoken; the next mission waits for it
+        later(function () { try { if (view.snapshotHide) view.snapshotHide(); } catch (e) { /* silent */ } begin(); }, NEXT_MS);
+        return res;
+      }
+      snap(p);
+      if (res.status === 'wrong' || res.status === 'early') {   // a friendly nudge back to the step (nothing is lost)
         react(p.animalId, 'wobble');
         view.toast(res.status === 'wrong' ? '¡Qué foto! Pero busca…' : '¡Primero ayuda! 💛');
         if (res.status === 'wrong') say('phrase:quefoto');
@@ -258,5 +271,5 @@
         hasBiomePool: mission.hasBiomePool } };
   }
 
-  SA.missionFlow = { NEXT_MS: NEXT_MS, HELP_WAIT_MS: HELP_WAIT_MS, AUTO_HINT_MS: AUTO_HINT_MS, PHOTO_KEY: PHOTO_KEY, create: create };
+  SA.missionFlow = { NEXT_MS: NEXT_MS, HELP_WAIT_MS: HELP_WAIT_MS, AUTO_HINT_MS: AUTO_HINT_MS, PHOTO_KEY: PHOTO_KEY, PROOF_KEY: PROOF_KEY, create: create };
 })(typeof window !== 'undefined' ? window : globalThis);

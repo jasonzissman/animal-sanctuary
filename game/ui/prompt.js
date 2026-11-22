@@ -150,7 +150,7 @@
     var noop = function () {};
     if (!doc || typeof doc.createElement !== 'function' || !doc.body) {
       return { showRound: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop,
-        setStars: noop, setHidden: noop, levelCue: noop, snapshot: noop };
+        setStars: noop, setHidden: noop, levelCue: noop, snapshot: noop, snapshotHide: noop };
     }
     handlers = handlers || {};
     function el(tag, css, text) {
@@ -239,24 +239,44 @@
         camEl.style.display = r.camera ? '' : 'none';
         if (r.hintShown) setIcon(r.icon, true); else setIcon('❓', false);
       },
-      // s: { icon, text }. White flash, then a framed snapshot (animal icon + its Spanish name) slides in from the right.
+      // s: { icon, text, stamp?, hold? }. White flash, then a framed snapshot (animal icon + its Spanish name) slides in from the right.
+      // With `stamp` ("¡Está bien!") a red stamp thumps onto the photo (the rescue proof card); with `hold` the card stays until
+      // snapshotHide() (the mission flow hides it when the next mission starts), otherwise it slides out by itself after ~2.4 s.
       snapshot: function (s) {
         flashEl.style.transition = 'none'; flashEl.style.opacity = '0.9'; flashEl.style.display = 'block';
         snapEl.textContent = '';
         snapEl.appendChild(el('div', 'font-size:' + px(rects ? rects.snapshot.height * 0.42 : 56) + ';line-height:1.1;background:#d9f0e0;' +
           'border-radius:.2em;padding:0 .2em;', s.icon || '🐾'));
         snapEl.appendChild(el('div', '', s.text || ''));
+        var stamp = null;
+        if (s.stamp) {
+          stamp = el('div', 'margin-top:-.2em;padding:0 .25em;border:.12em solid #c62828;border-radius:.3em;color:#c62828;' +
+            'background:rgba(255,255,255,.85);font-size:1.15em;line-height:1.2;white-space:nowrap;opacity:0;' +
+            'transform:scale(2.6) rotate(-14deg);', s.stamp);
+          snapEl.appendChild(stamp);
+        }
         snapEl.style.transition = 'none'; snapEl.style.transform = 'translateX(140%) rotate(4deg)'; snapEl.style.display = 'flex';
         if (snapTimer) root.clearTimeout(snapTimer);
+        snapTimer = null;
         root.setTimeout(function () {
           flashEl.style.transition = 'opacity .35s'; flashEl.style.opacity = '0';
           snapEl.style.transition = 'transform .4s ease-out'; snapEl.style.transform = 'translateX(0) rotate(-3deg)';
         }, 40);
         root.setTimeout(function () { flashEl.style.display = 'none'; }, 450);
+        if (stamp) root.setTimeout(function () {
+          stamp.style.transition = 'transform .25s cubic-bezier(.2,1.4,.4,1), opacity .15s';
+          stamp.style.opacity = '1'; stamp.style.transform = 'scale(1) rotate(-14deg)';
+        }, 550);
+        if (s.hold) return;
         snapTimer = root.setTimeout(function () {
           snapEl.style.transition = 'transform .4s ease-in'; snapEl.style.transform = 'translateX(140%) rotate(4deg)';
           snapTimer = root.setTimeout(function () { snapEl.style.display = 'none'; snapTimer = null; }, 450);
         }, 2400);
+      },
+      snapshotHide: function () {
+        if (snapTimer) root.clearTimeout(snapTimer);
+        snapEl.style.transition = 'transform .4s ease-in'; snapEl.style.transform = 'translateX(140%) rotate(4deg)';
+        snapTimer = root.setTimeout(function () { snapEl.style.display = 'none'; snapTimer = null; }, 450);
       },
       showCare: function (r) {      // care prompt: short text + tool icon (never a silhouette), no hint button
         text.textContent = r.text;

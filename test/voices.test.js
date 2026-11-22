@@ -6,7 +6,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { loadGame } from './helpers/vm.js';
 import {
-  clipName, parseVoices, pickVoice, renderClipsJs, loadManifest, generate, CLIPS_FILE, CORE_GROUPS
+  clipName, parseVoices, pickVoice, renderClipsJs, loadManifest, generate, CLIPS_FILE, isCoreKey, MANIFEST_FILES
 } from '../scripts/voices.js';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -38,7 +38,7 @@ function fakeExec({ voices = VOICE_LIST, failAac = false } = {}) {
 /** A temp project root with just the files the generator reads. */
 function tempRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-voices-test-'));
-  for (const f of ['game/sa.js', 'game/data-registry.js', 'game/data/vocab.js']) {
+  for (const f of MANIFEST_FILES) {
     fs.mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
     fs.copyFileSync(path.join(ROOT, f), path.join(root, f));
   }
@@ -117,6 +117,20 @@ test('generate is idempotent: skips existing clips unless --force', () => {
   assert.equal(fs.readFileSync(path.join(root, CLIPS_FILE), 'utf8'), first);
 });
 
+test('every feed vocab key (number:un/una, phrase:y, foodsg:*, foodpl:*) is in the core voice key list', () => {
+  const keys = loadManifest(ROOT).map((e) => e.key);
+  const feed = keys.filter((k) => /^(foodsg|foodpl):/.test(k));
+  assert.ok(feed.length >= 18, 'food keys come from game/data/foods.js');
+  const wanted = ['number:un', 'number:una', 'phrase:y', ...feed];
+  const planned = generate({ root: ROOT, exec: () => { throw new Error('must not run'); }, listOnly: true, core: true });
+  for (const k of wanted) {
+    assert.ok(keys.includes(k), k + ' is in the manifest');
+    assert.ok(isCoreKey(k), k + ' is a core key');
+    assert.ok(planned.clips[k], k + ' is planned');
+  }
+  assert.ok(!isCoreKey('number:3'));
+});
+
 test('generate falls back to aiff + afconvert when say cannot write AAC', () => {
   const root = tempRoot();
   const { exec, calls } = fakeExec({ failAac: true });
@@ -133,7 +147,7 @@ test('generate --core only renders core groups; --voice and listOnly work', () =
   const r = generate({ root, exec, core: true, voice: 'Mónica' });
   assert.equal(r.voice, 'Mónica');
   assert.ok(Object.keys(r.clips).length > 10);
-  assert.ok(Object.keys(r.clips).every((k) => CORE_GROUPS.includes(k.split(':')[0])));
+  assert.ok(Object.keys(r.clips).every(isCoreKey));
   assert.ok(!calls.some((c) => c[1] === '?'), 'explicit voice skips the voice lookup');
 
   const planned = generate({ root: tempRoot(), exec: () => { throw new Error('must not run'); }, listOnly: true });
@@ -144,11 +158,11 @@ test('generate --core prunes non-core clips left by a full run', () => {
   const root = tempRoot();
   const { exec } = fakeExec();
   const full = generate({ root, exec });
-  const nonCore = Object.keys(full.clips).filter((k) => !CORE_GROUPS.includes(k.split(':')[0]));
+  const nonCore = Object.keys(full.clips).filter((k) => !isCoreKey(k));
   assert.ok(nonCore.length > 0);
   const r = generate({ root, exec, core: true });
   assert.equal(r.rendered, 0);
-  assert.ok(Object.keys(r.clips).every((k) => CORE_GROUPS.includes(k.split(':')[0])));
+  assert.ok(Object.keys(r.clips).every(isCoreKey));
   for (const k of nonCore) assert.ok(!fs.existsSync(path.join(root, full.clips[k])), k + ' pruned');
 });
 

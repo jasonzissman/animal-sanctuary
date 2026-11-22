@@ -19,15 +19,23 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const CLIP_DIR = 'assets/voice';
 export const CLIPS_FILE = 'game/data/voice-clips.js';
-export const CORE_GROUPS = ['part', 'animal', 'biome', 'phrase'];
+export const CORE_GROUPS = ['part', 'animal', 'biome', 'phrase', 'foodsg', 'foodpl'];
+// Single keys of otherwise non-core groups that feed prompts speak ("una zanahoria"); other numbers stay full-run only.
+export const CORE_KEYS = ['number:un', 'number:una'];
+/** True when a vocab key belongs in the core (classroom) clip set. */
+export const isCoreKey = (key) => CORE_GROUPS.includes(key.split(':')[0]) || CORE_KEYS.includes(key);
 export const SIZE_BUDGET = 3 * 1024 * 1024;
 const PREFERRED = ['paulina', 'monica'];
+
+// foods.js registers the foodsg:/foodpl: keys; it needs animals (diets), which need parts and biomes.
+export const MANIFEST_FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
+  'game/data/animals.js', 'game/data/vocab.js', 'game/data/foods.js'];
 
 /** Loads the vocab manifest in a vm context: [{ key, es }]. */
 export function loadManifest(root = ROOT) {
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
-  for (const f of ['game/sa.js', 'game/data-registry.js', 'game/data/vocab.js']) {
+  for (const f of MANIFEST_FILES) {
     vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
   }
   return ctx.window.SA.data.all('vocab').map((v) => ({ key: v.key, es: v.es }));
@@ -105,7 +113,7 @@ export function renderClip({ exec, voice, text, dest, tmpDir }) {
 export function generate({ root = ROOT, force = false, core = false, voice = null, listOnly = false,
   exec = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8' }), log = () => {} } = {}) {
   let entries = loadManifest(root);
-  if (core) entries = entries.filter((e) => CORE_GROUPS.includes(e.key.split(':')[0]));
+  if (core) entries = entries.filter((e) => isCoreKey(e.key));
   const names = new Map();
   for (const e of entries) {
     const n = clipName(e.key);

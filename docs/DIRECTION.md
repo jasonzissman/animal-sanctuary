@@ -449,6 +449,15 @@ current; when your change sets or changes something future tickets must follow, 
   in `game/rescue-log.js`). Badges are data rows in `game/data/badges.js` (`rule: { kind, count }`: earned when the log holds `count`
   entries of that rescue kind); the reunion logs kind `reunion` (idempotent per mission + seed), which earns **Reúne familias**. Later
   rescue kinds and the sticker UI add rows/entries, not new logic.
+- **Mission compass (AS-0228):** while a story step has a world target (`SA.missionRuntime.target()`, i.e. the step's `at`), one big
+  yellow arrow (no text, no numbers) sits near the top centre and points toward it relative to the camera yaw, so it turns every frame.
+  `SA.compass` (`game/compass.js`, pure): `angle(player, target, yawDeg)` (0 = right, PI/2 = straight ahead), `evaluate(...)` (hidden when
+  there is no target, when reached (< 2.5), or when near (< 8, +2 hysteresis) AND on screen; inside 22 it pulses and shrinks to 70%),
+  `place(vp)` (top-centre, slid by `SA.hintPointer.avoid` clear of the prompt pill, star badge, menu column, hotbar, joystick, touch
+  buttons and `controlRects`) and `create({ track })` (telemetry `compass.shown { role }` / `compass.hidden { reason }`, at most one per 3 s).
+  `game/ui/compass-view.js` is the DOM arrow (`pointer-events: none`). **Any new step kind or mission gets the compass by giving the
+  step an `at` (or by extending `SA.missionSpawn.target`); never special-case a mission here.** It is separate from the Scout & Spot hint
+  arrow (`SA.hintFlow`), which is idle while a mission runs.
 
 ## Unchanged from the spec
 
@@ -456,6 +465,8 @@ Visual-first and low-reading, correct Spanish grammar agreement, never punish, o
 franchise copies), file:// with vendored three.js, data-driven content, privacy-safe local telemetry.
 
 ## Log
+
+- 2026-11-22: mission compass (AS-0228): a HUD arrow points at the current mission step's target (the piglet, then mamá).
 
 - 2026-11-22: pivot to third-person free roam, reach, climbing, inventory, tools, photo missions and album
   (tickets AS-0069 to AS-0085). Mouse/tap on a part works as well as Space.

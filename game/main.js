@@ -74,6 +74,10 @@
         if (SA.npc && SA.npc.onTalk) SA.npc.onTalk(function () { rt.report({ type: 'talked', who: 'scientist' }); return false; });
       }
     } catch (e) { report('missionRuntime.start', e); }
+    // Mission compass (AS-0228): a big arrow toward the current step's world target (the piglet, then mamá), turning with the camera.
+    var compass = null;
+    try { if (SA.compassView) compass = SA.compassView.create({ doc: root.document, runtime: rt, rig: stage.rig, camera: stage.camera }); }
+    catch (e) { report('compass.start', e); }
     // Icon-only rotate/tilt buttons so touch players can orbit the camera (same path as Q/E/R/F).
     try { if (SA.orbitPad) SA.orbitPad.create(root.document, stage.rig, root); } catch (e) { report('orbitPad.start', e); }
     // Virtual joystick (bottom-left, shown at the first touch) so touch players can walk without a keyboard.
@@ -161,6 +165,7 @@
       if (rt) { try { rt.update(stage.rig.getPlayer()); } catch (e) { rt = null; report('missionRuntime.update', e); } }
       if (ctl && ctl.updateTasks) { try { ctl.updateTasks(); } catch (e) { ctl.updateTasks = null; report('taskGate.update', e); } }
       if (ctl && ctl.updatePill) { try { ctl.updatePill(); } catch (e) { ctl.updatePill = null; report('missionPill.update', e); } }
+      if (compass) { try { compass.update(dt); } catch (e) { compass = null; report('compass.update', e); } }
       if (hintFlow) { try { hintFlow.update(dt); } catch (e) { hintFlow = null; report('hintFlow.update', e); } }
       if (rerollWatch) { try { rerollWatch.update(dt); } catch (e) { rerollWatch = null; report('reroll.update', e); } }
       if (root.SAT && root.SAT.frame) { try { root.SAT.frame(dt); } catch (e) { /* telemetry never stops the loop */ } }

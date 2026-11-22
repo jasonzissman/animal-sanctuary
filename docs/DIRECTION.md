@@ -28,6 +28,12 @@ current; when your change sets or changes something future tickets must follow, 
 - **Climb anything too steep to walk (AS-0163 to AS-0165).** Trees, mountain peaks and the station all climb the same way:
   face it -> outline -> E/Enter, or push forward 0.6 s. Tops are flat enough to stand and turn (peaks: a 2-3 unit summit);
   walk or jump off the edge to drop down safely. Climb targets are data; anything new that is too steep joins them.
+  Built (AS-0192): `SA.climb` takes plain target data `{ kind: 'tree'|'peak'|'building', x, z, radius | footprint {w,d}, topY,
+  top: { shape: 'circle'|'rect', size } }` (range is to the base edge; `SA.climb.fromTree` adapts trees, so tree callers are
+  unchanged). On top the climb mode is `'canopy'` for trees and `'top'` for the rest (`SA.climb.onTop(state)` covers both); you
+  walk the flat top at `topY`. Walking off the edge is a short no-damage fall arc (`climb.mode 'down'`, `fall: true`) to dry
+  in-bounds ground (else the spot you climbed from); the landing frame carries `state.land` (`SA.climb.landed(state)`) to track.
+  Still to do: peak / station data and wiring them into the rig's target list (the next AS-0163 slices).
   Treetop hopping (AS-0166): treetops are flat standable tops, and a landing assist lands you on the tree you jump
   roughly toward (~7 units, ~40 degrees). Be generous: kids should chain tree to tree easily.
 - **The world reacts to bumping (AS-0156, AS-0157).** A cactus pricks: bounce back with "¡Ay! ¡Pica!" (never a penalty).

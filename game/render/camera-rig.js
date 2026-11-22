@@ -83,7 +83,7 @@
       offset = r.yaw; state = { x: state.x, z: state.z, dist: state.dist, yaw: state.yaw, pitch: r.pitch };
     }
     /** True during the climb up/down animation (no hopping then); standing in the canopy is not "climbing". */
-    function climbing() { return !!player.climb && player.climb.mode !== 'canopy'; }
+    function climbing() { return !!player.climb && !SA.climb.onTop(player); }
     function trees() { return hooks && hooks.chase && hooks.chase.trees ? hooks.chase.trees() : []; }
     function panWith(dx, dy) {
       if (player.climb) return;   // up a tree you walk with the keys / stick only

@@ -1,32 +1,45 @@
-/* SA.climb (also SA.player.climb): pure tree-climbing state machine for the walking player (no THREE, no DOM; node:vm tested).
+/* SA.climb (also SA.player.climb): pure climbing state machine for the walking player (no THREE, no DOM; node:vm tested).
  * Needs SA.map, SA.player and SA.perch (canopy heights per tree kind).
  *
- * Player state grows two fields: { x, z, heading, y, climb }.  y = height the player stands at (the terrain height,
- * SA.map.groundHeight, eased as they walk; the canopy height up a tree: SA.reach compares it with perched animals). climb = null on the ground, else
- * { mode: 'up'|'canopy'|'down', t, tree, from:{x,z,y}, to:{x,z,y}, safe:{x,z} } (plain data, never mutated).
+ * A climb TARGET is plain data (AS-0192), the same for trees, peaks and buildings:
+ *   { kind: 'tree'|'peak'|'building', x, z, radius | footprint: { w, d }, topY, top: { shape: 'circle'|'rect', size } }
+ *   footprint/radius = the solid base you stand next to (range is measured to its edge, not its centre); topY = the flat
+ *   standing height; top.size = radius for a circle, a side (or { w, d }) for an axis-aligned rect (centred on x, z).
+ * Trees keep their old shape { x, z, y?, scale?, kind? }: SA.climb.fromTree adapts them (SA.perch canopy height and radius),
+ * so every existing caller that passes trees works unchanged. nearest/start return the object the caller passed in.
  *
- *   SA.climb.nearest(state, trees)    -> the climbable tree { x, z, y?, scale?, kind? } within RANGE, or null
- *   SA.climb.prompt(state, trees)     -> 'up' (show the climb button) | 'down' (show the down button) | null
- *   SA.climb.start(state, tree)       -> state climbing up the tree (unchanged when already climbing or too far)
+ * Player state grows two fields: { x, z, heading, y, climb }.  y = height the player stands at (the terrain height,
+ * SA.map.groundHeight, eased as they walk; the top height up a target: SA.reach compares it with perched animals). climb = null
+ * on the ground, else { mode: 'up'|'top'|'canopy'|'down', t, dur, tree, target, from:{x,z,y}, to:{x,z,y}, safe:{x,z}, fall? }
+ * (plain data, never mutated). On top the mode is 'canopy' for trees (alias kept for tree code) and 'top' for everything else;
+ * SA.climb.onTop(state) is true for both.
+ *
+ *   SA.climb.nearest(state, targets)  -> the climbable target within EDGE_RANGE of its edge, or null
+ *   SA.climb.prompt(state, targets)   -> 'up' (show the climb button) | 'down' (show the down button) | null
+ *   SA.climb.start(state, target)     -> state climbing up the target (unchanged when already climbing or too far)
  *   SA.climb.stop(state)              -> state heading back down to the ground (unchanged on the ground / already down)
- *   SA.climb.toggle(state, trees)     -> start when prompt is 'up', stop when 'down'; else unchanged
- *   SA.climb.step(state, input, dt, obstacles?) -> new state. On the ground this is SA.player.step (plus y 0). Up a
- *       tree you walk on the canopy (obstacles ignored, map-clamped); walking off its edge starts the climb down.
- *   SA.climb.autoStep(timer, before, after, input, trees, dtMs) -> { ms, tree, progress, climb }: the AS-0157 push timer (AUTO_CLIMB_MS)
- *   SA.climb.active(state) -> true while up, on or coming down a tree
- * Climbing down always ends on dry, in-bounds ground outside the trunk (never a fall, never damage): the landing is
- * the point just beyond the canopy edge, or the spot you started climbing from when that is water.
+ *   SA.climb.toggle(state, targets)   -> start when prompt is 'up', stop when 'down'; else unchanged
+ *   SA.climb.step(state, input, dt, obstacles?) -> new state. On the ground this is SA.player.step (plus y). On top you walk
+ *       freely on the flat top (y = topY, obstacles ignored, map-clamped); walking off its edge starts a short FALL arc
+ *       (mode 'down', fall: true) to dry in-bounds ground just beyond the edge, no damage. The frame it lands the state
+ *       carries land: { x, z, y, kind } (one frame only; SA.climb.landed(state)) so the caller can track it.
+ *   SA.climb.autoStep(timer, before, after, input, targets, dtMs) -> { ms, tree, progress, climb }: the AS-0157 push timer
+ *   SA.climb.active(state) -> true while up, on or coming down a target
+ * Coming down (button or fall) always ends on dry, in-bounds ground outside the base, never damage: the landing is the point
+ * just beyond the edge, or the spot you started climbing from when that is water / out of bounds.
  */
 (function (root) {
   'use strict';
   var SA = root.SA;
 
-  var RANGE = 3.2;          // stand within this distance of a trunk to climb it (trunk obstacle ~1 + body 0.6)
+  var EDGE_RANGE = 2.2;     // stand within this distance of a target's edge to climb it (trunk obstacle 1 + body 0.6 + slack)
+  var TREE_BASE_R = 1;      // a tree's solid base radius (decor obstacle)
+  var RANGE = TREE_BASE_R + EDGE_RANGE;   // from a tree's centre (kept for callers)
   var UP_TIME = 1.4;        // seconds to climb up
   var DOWN_TIME = 0.9;      // seconds to climb down
-  var TRUNK_R = 1.1;        // where you stand on the canopy / hug the trunk, from the tree centre
+  var TRUNK_R = 1.1;        // where you stand on a tree's canopy / hug the trunk, from the tree centre
   var EDGE_PAD = 1.2;       // canopy walkable radius = canopy radius * scale + this
-  var LAND_PAD = 0.6;       // land this far beyond the canopy edge
+  var LAND_PAD = 0.6;       // land this far beyond the edge
   var MAX_DT = 0.1;
 
   function num(v, d) { return typeof v === 'number' && isFinite(v) ? v : d; }
@@ -36,10 +49,58 @@
   // Ground height under the avatar: the single terrain source, SA.map.groundHeight.
   function groundAt(x, z) { return SA.player.heightAt ? SA.player.heightAt(x, z) : SA.map.groundHeight(x, z); }
 
+  // ---- Shapes: { round, r, hw, hd }, centred on the target ----
+  function circle(r) { return { round: true, r: r, hw: r, hd: r }; }
+  function rect(hw, hd) { return { round: false, r: Math.max(hw, hd), hw: hw, hd: hd }; }
+  /** Distance from the shape's edge to the point (0 inside). */
+  function edgeDist(sh, tx, tz, x, z) {
+    if (sh.round) return Math.max(0, Math.hypot(x - tx, z - tz) - sh.r);
+    return Math.hypot(Math.max(0, Math.abs(x - tx) - sh.hw), Math.max(0, Math.abs(z - tz) - sh.hd));
+  }
+  /** Distance from the centre to the edge along the unit direction (ux, uz). */
+  function extent(sh, ux, uz) {
+    if (sh.round) return sh.r;
+    var ax = Math.abs(ux), az = Math.abs(uz);
+    return Math.min(ax > 1e-9 ? sh.hw / ax : Infinity, az > 1e-9 ? sh.hd / az : Infinity);
+  }
+  function topShape(top, fallback) {
+    var size = top && top.size;
+    if (top && top.shape === 'rect') {
+      if (typeof size === 'number' && size > 0) return rect(size / 2, size / 2);
+      if (size && size.w > 0 && size.d > 0) return rect(size.w / 2, size.d / 2);
+      return null;
+    }
+    return typeof size === 'number' && size > 0 ? circle(size) : fallback;
+  }
+
+  // ---- Trees: the small adapter into target data ----
   function kindOf(tree) { var K = SA.perch && SA.perch.KINDS; return (K && (K[tree.kind] || K.jungle)) || { height: 4, radius: 0.8 }; }
   function scaleOf(tree) { return num(tree.scale, 1) > 0 ? num(tree.scale, 1) : 1; }
-  function topOf(tree) { return num(tree.y, SA.map.groundHeight(tree.x, tree.z)) + kindOf(tree).height * scaleOf(tree); }
-  function edgeOf(tree) { return kindOf(tree).radius * scaleOf(tree) + EDGE_PAD; }
+  /** Tree { x, z, y?, scale?, kind? } -> climb target data (plain, JSON-serialisable). */
+  function fromTree(tree) {
+    var k = kindOf(tree), sc = scaleOf(tree);
+    return { kind: 'tree', x: tree.x, z: tree.z, radius: TREE_BASE_R,
+      topY: num(tree.y, SA.map.groundHeight(tree.x, tree.z)) + k.height * sc, top: { shape: 'circle', size: k.radius * sc + EDGE_PAD } };
+  }
+
+  var cache = typeof WeakMap === 'function' ? new WeakMap() : null;
+  /** Anything the callers hand in -> { kind, x, z, topY, foot, top, inset } (shapes normalised) or null for junk. Cached per object. */
+  function norm(t) {
+    if (!t || typeof t !== 'object' || !isFinite(t.x) || !isFinite(t.z)) return null;
+    var hit = cache && cache.get(t);
+    if (hit) return hit;
+    var generic = typeof t.topY === 'number' && isFinite(t.topY), d = generic ? t : fromTree(t), foot;
+    if (d.footprint && d.footprint.w > 0 && d.footprint.d > 0) foot = rect(d.footprint.w / 2, d.footprint.d / 2);
+    else foot = circle(num(d.radius, 1) > 0 ? num(d.radius, 1) : 1);
+    var top = topShape(d.top, circle(Math.max(1.5, foot.r)));
+    if (!top) return null;
+    var n = { kind: d.kind || 'tree', x: d.x, z: d.z, topY: d.topY, foot: foot, top: top, inset: generic && d.kind !== 'tree' ? 0 : TRUNK_R };
+    if (cache) cache.set(t, n);
+    return n;
+  }
+
+  function topOf(t) { var n = norm(t); return n ? n.topY : 0; }
+  function edgeOf(t) { var n = norm(t); return n ? n.top.r : 0; }
 
   function copy(s, patch) {
     var o = { x: s.x, z: s.z, heading: s.heading, y: num(s.y, 0), climb: s.climb || null };
@@ -48,56 +109,68 @@
   }
 
   function active(state) { return !!(state && state.climb); }
+  function onTop(state) { var c = state && state.climb; return !!c && (c.mode === 'top' || c.mode === 'canopy'); }
+  function landed(state) { return state && state.land || null; }
 
-  function nearest(state, trees) {
-    if (!state || active(state) || !trees) return null;
-    var best = null, bd = RANGE;
-    trees.forEach(function (t) {
-      if (!t || !isFinite(t.x) || !isFinite(t.z)) return;
-      var d = Math.hypot(t.x - state.x, t.z - state.z);
+  function nearest(state, targets) {
+    if (!state || active(state) || !targets) return null;
+    var best = null, bd = EDGE_RANGE;
+    targets.forEach(function (t) {
+      var n = norm(t);
+      if (!n) return;
+      var d = edgeDist(n.foot, n.x, n.z, state.x, state.z);
       if (d <= bd) { best = t; bd = d; }
     });
     return best;
   }
 
-  function prompt(state, trees) {
+  function prompt(state, targets) {
     if (!state) return null;
     if (state.climb) return state.climb.mode === 'down' ? null : 'down';
-    return nearest(state, trees) ? 'up' : null;
+    return nearest(state, targets) ? 'up' : null;
   }
 
-  function start(state, tree) {
-    if (!state || !tree || active(state) || !isFinite(tree.x) || !isFinite(tree.z)) return state;
-    var dx = state.x - tree.x, dz = state.z - tree.z, d = Math.hypot(dx, dz);
-    if (d > RANGE) return state;
+  function start(state, target) {
+    var n = norm(target);
+    if (!state || !n || active(state)) return state;
+    if (edgeDist(n.foot, n.x, n.z, state.x, state.z) > EDGE_RANGE) return state;
+    var dx = state.x - n.x, dz = state.z - n.z, d = Math.hypot(dx, dz);
     if (d < 1e-6) { dx = -Math.sin(state.heading || 0); dz = -Math.cos(state.heading || 0); d = 1; }
-    var to = { x: tree.x + (dx / d) * TRUNK_R, z: tree.z + (dz / d) * TRUNK_R, y: topOf(tree) };
+    var ux = dx / d, uz = dz / d;
+    var inset = n.inset || Math.min(TRUNK_R, 0.6 * extent(n.top, ux, uz));   // trees stand TRUNK_R out; others well inside the top
+    var to = { x: n.x + ux * inset, z: n.z + uz * inset, y: n.topY };
     return copy(state, { y: num(state.y, 0), climb: {
-      mode: 'up', t: 0, tree: tree, from: { x: state.x, z: state.z, y: num(state.y, 0) }, to: to, safe: { x: state.x, z: state.z },
+      mode: 'up', t: 0, dur: UP_TIME, tree: target, target: n, from: { x: state.x, z: state.z, y: num(state.y, 0) }, to: to, safe: { x: state.x, z: state.z },
     } });
   }
 
-  /** Landing point for a climb down: just past the canopy edge on the side the player is on, else the safe start spot. */
+  /** Landing point for a climb down or fall: just past the edge on the side the player is on, else the safe start spot. */
   function landing(state, c) {
-    var tree = c.tree, dx = state.x - tree.x, dz = state.z - tree.z, d = Math.hypot(dx, dz);
-    if (d < 1e-6) { dx = c.safe.x - tree.x; dz = c.safe.z - tree.z; d = Math.hypot(dx, dz) || 1; }
-    var r = edgeOf(tree) + LAND_PAD, p = { x: tree.x + (dx / d) * r, z: tree.z + (dz / d) * r };
-    var B = SA.map.BOUNDS, inside = p.x > B.minX + 1 && p.x < B.maxX - 1 && p.z > B.minZ + 1 && p.z < B.maxZ - 1;
-    return inside && !SA.map.isWater(p.x, p.z) ? p : { x: c.safe.x, z: c.safe.z };
+    var n = c.target, dx = state.x - n.x, dz = state.z - n.z, d = Math.hypot(dx, dz);
+    if (d < 1e-6) { dx = c.safe.x - n.x; dz = c.safe.z - n.z; d = Math.hypot(dx, dz) || 1; }
+    var ux = dx / d, uz = dz / d, r = Math.max(extent(n.top, ux, uz), extent(n.foot, ux, uz)) + LAND_PAD;
+    var p = { x: n.x + ux * r, z: n.z + uz * r };
+    var B = SA.map.BOUNDS, ok = p.x > B.minX + 1 && p.x < B.maxX - 1 && p.z > B.minZ + 1 && p.z < B.maxZ - 1;
+    return ok && !SA.map.isWater(p.x, p.z) ? p : { x: c.safe.x, z: c.safe.z };
+  }
+
+  function down(state, c, fall) {
+    var to = landing(state, c), gy = groundAt(to.x, to.z), h = Math.max(0, num(state.y, 0) - gy);
+    return copy(state, { climb: {
+      mode: 'down', t: 0, dur: fall ? Math.min(0.8, 0.35 + 0.05 * h) : DOWN_TIME, fall: !!fall, tree: c.tree, target: c.target,
+      from: { x: state.x, z: state.z, y: state.y }, to: { x: to.x, z: to.z, y: gy }, safe: c.safe,
+    } });
   }
 
   function stop(state) {
     var c = state && state.climb;
     if (!c || c.mode === 'down') return state;
-    var to = landing(state, c);
-    return copy(state, { climb: {
-      mode: 'down', t: 0, tree: c.tree, from: { x: state.x, z: state.z, y: state.y }, to: { x: to.x, z: to.z, y: groundAt(to.x, to.z) }, safe: c.safe,
-    } });
+    return down(state, c, false);
   }
 
-  function toggle(state, trees) {
-    var p = prompt(state, trees);
-    return p === 'up' ? start(state, nearest(state, trees)) : p === 'down' ? stop(state) : state;
+  function toggle(state, targets) {
+    var p = prompt(state, targets);
+    return p === 'up' ? start(state, nearest(state, targets)) : p === 'down' ? stop(state) : state;
   }
 
   function face(from, to, heading) {
@@ -114,29 +187,38 @@
       return { x: g.x, z: g.z, heading: g.heading, y: SA.map.followHeight(state.y, groundAt(g.x, g.z), dt), climb: null };
     }
     dt = Math.max(0, Math.min(MAX_DT, num(dt, 0)));
-    if (c.mode === 'canopy') {
+    var n = c.target;
+    if (c.mode === 'canopy' || c.mode === 'top') {
       var w = SA.player.step(state, input, dt, []);
-      var walked = copy(state, { x: w.x, z: w.z, heading: w.heading });
-      if (Math.hypot(w.x - c.tree.x, w.z - c.tree.z) > edgeOf(c.tree)) return stop(walked);   // walked off the edge: climb down
+      var walked = copy(state, { x: w.x, z: w.z, heading: w.heading, y: n.topY });
+      if (edgeDist(n.top, n.x, n.z, w.x, w.z) > 0) return down(walked, c, true);   // walked off the edge: a short fall
       return walked;
     }
-    var dur = c.mode === 'up' ? UP_TIME : DOWN_TIME, t = Math.min(1, c.t + dt / dur), k = ease(t);
-    var move = ease(Math.min(1, t * 3));   // slide to / from the trunk quickly, then it is mostly a vertical climb
-    var next = { mode: c.mode, t: t, tree: c.tree, from: c.from, to: c.to, safe: c.safe };
-    var heading = c.mode === 'up' ? face(c.from, c.tree, state.heading) : face(c.tree, c.to, state.heading);
+    var dur = c.dur || (c.mode === 'up' ? UP_TIME : DOWN_TIME), t = Math.min(1, c.t + dt / dur), k = ease(t);
+    var move = ease(Math.min(1, t * 3));   // slide to / from the base quickly, then it is mostly a vertical climb
+    var next = { mode: c.mode, t: t, dur: c.dur, fall: c.fall, tree: c.tree, target: n, from: c.from, to: c.to, safe: c.safe };
+    var heading = c.mode === 'up' ? face(c.from, n, state.heading) : c.fall ? state.heading : face(n, c.to, state.heading);
     if (t >= 1) {
-      if (c.mode === 'up') return copy(state, { x: c.to.x, z: c.to.z, y: c.to.y, heading: heading, climb: { mode: 'canopy', t: 1, tree: c.tree, from: c.from, to: c.to, safe: c.safe } });
+      if (c.mode === 'up') {
+        return copy(state, { x: c.to.x, z: c.to.z, y: c.to.y, heading: heading,
+          climb: { mode: n.kind === 'tree' ? 'canopy' : 'top', t: 1, dur: c.dur, tree: c.tree, target: n, from: c.from, to: c.to, safe: c.safe } });
+      }
       var land = SA.player.step({ x: c.to.x, z: c.to.z, heading: state.heading }, {}, 0, obstacles);   // push out of props, clamp to the map
-      return { x: land.x, z: land.z, heading: land.heading, y: groundAt(land.x, land.z), climb: null };
+      var out = { x: land.x, z: land.z, heading: land.heading, y: groundAt(land.x, land.z), climb: null };
+      if (c.fall) out.land = { x: out.x, z: out.z, y: out.y, kind: n.kind };
+      return out;
+    }
+    if (c.fall) {   // gravity-like arc: drops slowly then quickly while drifting out to the landing spot
+      return copy(state, { x: lerp(c.from.x, c.to.x, ease(t)), z: lerp(c.from.z, c.to.z, ease(t)), y: lerp(c.from.y, c.to.y, t * t), heading: heading, climb: next });
     }
     var m = c.mode === 'up' ? move : ease(Math.min(1, t * 1.5));
     return copy(state, { x: lerp(c.from.x, c.to.x, m), z: lerp(c.from.z, c.to.z, m), y: lerp(c.from.y, c.to.y, k), heading: heading, climb: next });
   }
 
-  // ---- Auto-climb (AS-0157): keep pushing forward into a tree and you climb it. Pure timer, the rig feeds it each frame. ----
+  // ---- Auto-climb (AS-0157): keep pushing forward into a climb target and you climb it. Pure timer, the rig feeds it each frame. ----
   var AUTO_CLIMB_MS = 600;     // data constant: how long a blocked forward push lasts before the climb starts
-  var AUTO_TURN_AWAY = Math.PI / 4;   // facing more than ~45 degrees away from the tree resets the push
-  var AUTO_PUSH_RANGE = 2.2;   // only a push against the trunk itself (obstacle ~1 + body 0.6 + slack), not a tree 3 units away
+  var AUTO_TURN_AWAY = Math.PI / 4;   // facing more than ~45 degrees away from the target resets the push
+  var AUTO_PUSH_RANGE = 1.2;   // only a push against the base itself (edge distance: body 0.6 + slack), not a target 3 units away
   var AUTO_BLOCKED = 0.35;     // moved less than this fraction of the free-walk distance = blocked
 
   var AUTO_IDLE = { ms: 0, tree: null, progress: 0, climb: false };
@@ -149,13 +231,15 @@
   /** One frame of the push timer. `timer` is the previous result (or null), `before`/`after` the player state either side of
    *  SA.climb.step, `input` the walking input that frame (forward > 0 = held, joystick forward counts), dtMs the frame time in
    *  milliseconds. -> { ms, tree, progress 0..1, climb } where climb is true on the frame the push is long enough: the caller
-   *  then calls SA.climb.start(after, tree). Anything else (released, turned away, moved freely, already climbing, no tree,
-   *  or only a cactus/rock nearby: those are never in `trees`) gives the idle timer again. */
-  function autoStep(timer, before, after, input, trees, dtMs) {
+   *  then calls SA.climb.start(after, tree) (`tree` is the target object that was in `targets`). Anything else (released, turned
+   *  away, moved freely, already climbing, no target, or only a cactus/rock nearby: those are never in `targets`) gives the idle timer. */
+  function autoStep(timer, before, after, input, targets, dtMs) {
     if (!before || !after || active(before) || active(after) || !input || !(input.forward > 0.3)) return AUTO_IDLE;
-    var tree = nearest(after, trees);
-    if (!tree || Math.hypot(tree.x - after.x, tree.z - after.z) > AUTO_PUSH_RANGE) return AUTO_IDLE;
-    var aim = Math.atan2(tree.x - after.x, tree.z - after.z);
+    var tree = nearest(after, targets), n = norm(tree);
+    if (!n || edgeDist(n.foot, n.x, n.z, after.x, after.z) > AUTO_PUSH_RANGE) return AUTO_IDLE;
+    var px = n.foot.round ? n.x : Math.max(n.x - n.foot.hw, Math.min(n.x + n.foot.hw, after.x));   // nearest point of the base
+    var pz = n.foot.round ? n.z : Math.max(n.z - n.foot.hd, Math.min(n.z + n.foot.hd, after.z));
+    var aim = Math.atan2(px - after.x, pz - after.z);
     if (angleBetween(num(after.heading, 0), aim) > AUTO_TURN_AWAY) return AUTO_IDLE;
     var dt = Math.max(0, num(dtMs, 0)) / 1000, speed = input.run ? SA.player.RUN_SPEED : SA.player.SPEED;
     var moved = Math.hypot(after.x - before.x, after.z - before.z);
@@ -165,8 +249,8 @@
     return { ms: ms, tree: tree, progress: Math.min(1, ms / AUTO_CLIMB_MS), climb: done };
   }
 
-  SA.climb = { RANGE: RANGE, UP_TIME: UP_TIME, DOWN_TIME: DOWN_TIME, TRUNK_R: TRUNK_R, nearest: nearest, prompt: prompt,
-    start: start, stop: stop, toggle: toggle, step: step, active: active, edgeRadius: edgeOf, topOf: topOf,
-    AUTO_CLIMB_MS: AUTO_CLIMB_MS, autoStep: autoStep };
+  SA.climb = { RANGE: RANGE, EDGE_RANGE: EDGE_RANGE, UP_TIME: UP_TIME, DOWN_TIME: DOWN_TIME, TRUNK_R: TRUNK_R, nearest: nearest, prompt: prompt,
+    start: start, stop: stop, toggle: toggle, step: step, active: active, onTop: onTop, landed: landed, fromTree: fromTree,
+    edgeRadius: edgeOf, topOf: topOf, AUTO_CLIMB_MS: AUTO_CLIMB_MS, autoStep: autoStep };
   if (SA.player) SA.player.climb = SA.climb;
 })(typeof window !== 'undefined' ? window : globalThis);

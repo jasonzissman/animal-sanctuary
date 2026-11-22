@@ -48,7 +48,8 @@
 
     function startNow(id) {
       var r = SA.missions.start(id);
-      if (r && r.ok) closeMenu(); else { talk = null; render(); }   // busy (another one is running): just refresh, nothing breaks
+      talk = null;   // the start card is done either way: a later E / Enter in the world must never reach it
+      if (r && r.ok) closeMenu(); else render();   // busy (another one is running): just refresh, nothing breaks
     }
 
     function tapCard(c) {
@@ -131,6 +132,7 @@
     if (doc.addEventListener) {
       doc.addEventListener('keydown', function (e) {
         if (!talk || !e || (e.key !== 'Enter' && e.key !== 'e' && e.key !== 'E')) return;
+        if (SA.station && SA.station.isOpen && !SA.station.isOpen()) { talk = null; return; }   // card not on screen: leave the key to the world
         if (e.preventDefault) e.preventDefault();
         if (e.stopPropagation) e.stopPropagation();
         startTalk();
@@ -192,6 +194,7 @@
 
     render(false);
     if (SA.station && SA.station.onOpen) SA.station.onOpen(function () { render(true); });
+    if (SA.station && SA.station.onClose) SA.station.onClose(function () { talk = null; });   // closing the station (Esc, ✕, start) drops the start card
     return { render: function () { render(false); }, element: grid };
   }
 

@@ -147,6 +147,25 @@ test('Enter and E press ¡Vamos! while the card shows; ✕ goes back to the boar
   assert.equal(SA.missions.active().id, 'm1');
 });
 
+test('after ¡Vamos! or closing the station, E / Enter in the world are left alone and start nothing', () => {
+  const { SA, keys, cards } = board(3);
+  const kd = keys.find((k) => k.cap);
+  const press = (key) => { let stopped = false; kd.f({ key, preventDefault() { stopped = true; }, stopPropagation() { stopped = true; } }); return stopped; };
+  SA.station.open('use');
+  cards()[0].listeners.click();
+  assert.equal(press('e'), true, 'the card is showing: E starts it');
+  assert.equal(SA.missions.active().id, 'm1');
+  assert.equal(press('e'), false, 'the next E (use key in the world) is not swallowed');
+  assert.equal(press('Enter'), false);
+  SA.missions.abandon();
+  SA.station.open('use');
+  cards()[0].listeners.click();
+  SA.station.close();   // Esc / ✕ with the start card still showing
+  assert.equal(press('Enter'), false, 'a closed station never starts a mission');
+  assert.equal(press('e'), false);
+  assert.equal(SA.missions.active(), null);
+});
+
 test('✕ on the start card goes back to the board without starting', () => {
   const { SA, menu, view, cards } = board(3);
   SA.station.open('use');

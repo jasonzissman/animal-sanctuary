@@ -424,6 +424,16 @@ current; when your change sets or changes something future tickets must follow, 
   bigger head and eyes on a ~55% body need no engine code. `animal.voice` is a vocab key (`phrase:oinc`, baby `phrase:oincbebe`); a
   vocab entry's optional `pitch` (1 = normal) is applied by `SA.audio.say` when it falls back to speechSynthesis. `rosa` is a colour.
 
+- **Mission spawns and step targets (AS-0233, slice 2 of Mission 1):** a mission row may declare `spawn: { baby, mama, minApart? }` (animal ids,
+  so a replay can use another species) and each step may carry `at: 'baby' | 'mama'`. `SA.missionSpawn` (`game/mission-spawn.js`, pure)
+  places both animals deterministically from the run's seed in the mamá's biome: inside the map, dry flat ground off the river/pond banks,
+  outside the station, the spawn circle and every solid (the player's obstacle list), at least `minApart` (14) apart. `sync()` follows
+  `SA.missions.active()` (places on a new run, clears when none; a reload re-places identically). `SA.missionRuntime.target()` returns the
+  current step's `{ x, z, role, id }` (piglet for find, mamá for follow and the photo): **the compass (AS-0228) reads that**. A `find`
+  step is met by walking up to the piglet (`SA.missionSpawn.locate`). `render/mission-spawn.js` draws them through
+  `SA.render.animalBuilder(THREE)` (the same builder as the world animals) in their own `missionAnimals` group; while the baby waits
+  it shows a blue tear, shivers and whimpers (`SA.audio.sfx('whimper')`, quieter with distance); mamá turns her head, worried.
+
 ## Unchanged from the spec
 
 Visual-first and low-reading, correct Spanish grammar agreement, never punish, original Easter-egg creatures (no

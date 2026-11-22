@@ -31,16 +31,13 @@
     if (spec.extra) mesh.userData.extra = true;   // a neck segment / knee / foot: rides with its parent part when limbs animate
   }
 
-  SA.render.buildAnimals = function (THREE, opts) {
+  // One animal group from data at a spot { x, y, z, rotY }; shares geometry/material caches across calls (AS-0233: story animals
+  // placed by a mission use the very same path, SA.render.animalBuilder(THREE)(animal, spot)).
+  SA.render.animalBuilder = function (THREE) {
     var geos = {}, mats = {};
     var pickGeo = new THREE.BoxGeometry(1, 1, 1);
     var pickMat = new THREE.MeshBasicMaterial({ visible: false });
-    var group = new THREE.Group();
-    group.name = 'animals';
-    var animals = SA.data.all('animals').filter(function (a) { return !a.story; });   // story animals (pigs) are placed by their mission
-    var spots = SA.animalPlan.placements(animals, opts);
-
-    animals.forEach(function (animal) {
+    return function build(animal, s) {
       var g = new THREE.Group();
       g.name = animal.id;
       g.userData = { animalId: animal.id, pickVolumes: [] };
@@ -72,13 +69,21 @@
         g.add(mesh, pick);
         g.userData.pickVolumes.push(pick);
       });
-      var s = spots[animal.id];
       g.position.set(s.x, s.y, s.z);
       g.rotation.y = s.rotY;
       // Easter eggs stay hidden (and cannot be picked) until SA.unlockFlow reveals them.
       g.visible = !animal.easterEgg || !!(SA.unlocks && SA.unlocks.isUnlocked(animal.id));
-      group.add(g);
-    });
+      return g;
+    };
+  };
+
+  SA.render.buildAnimals = function (THREE, opts) {
+    var build = SA.render.animalBuilder(THREE);
+    var group = new THREE.Group();
+    group.name = 'animals';
+    var animals = SA.data.all('animals').filter(function (a) { return !a.story; });   // story animals (pigs) are placed by their mission
+    var spots = SA.animalPlan.placements(animals, opts);
+    animals.forEach(function (animal) { group.add(build(animal, spots[animal.id])); });
     return group;
   };
 })(typeof window !== 'undefined' ? window : globalThis);

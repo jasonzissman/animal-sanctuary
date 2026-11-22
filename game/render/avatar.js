@@ -9,7 +9,7 @@
   SA.render = SA.render || {};
 
   var CLIMB_RATE = 7;   // climb animation: hand-over-hand cycles per second ~1
-  var RUN_GAIT = 1.6;   // stride speed multiplier while player.running
+  var RUN_GAIT = 2.2;   // stride speed multiplier while player.running
   var SWING = 0.9, STRIDE = 9, BOB = 0.07;   // arm/leg swing (rad), steps per second, body bob height
 
   SA.render.createAvatar = function (THREE) {

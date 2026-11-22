@@ -138,7 +138,7 @@ test('holding Shift runs (faster than walking); releasing Shift walks again; Shi
   const walking = dist(false), running = dist(true);
   assert.equal(walking.running, false);
   assert.equal(running.running, true);
-  assert.ok(Math.abs(running.d / walking.d - 7 / 4) < 0.05, `run is RUN_SPEED/SPEED faster (${running.d} vs ${walking.d})`);
+  assert.ok(Math.abs(running.d / walking.d - 10 / 4) < 0.05, `run is RUN_SPEED/SPEED faster (${running.d} vs ${walking.d})`);
 
   const { rig, keys } = chaseRig();
   let prevented = false;

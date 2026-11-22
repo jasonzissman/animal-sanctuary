@@ -12,7 +12,7 @@
     minDist: 4, maxDist: 55, tiltDeg: 55, fovDeg: 45, keySpeed: 0.9, wheelK: 0.0012,
     minPitch: 10, maxPitch: 89, yawPerPx: 0.3, pitchPerPx: 0.2, yawKeySpeed: 90, pitchKeySpeed: 45,
     // Third-person chase camera: a few metres behind and slightly above the player, looking ahead at animal height.
-    chaseDist: 7, chasePitch: 16, lookAhead: 3, lookY: 1, followRate: 8, turnRate: 6, offsetDecay: 1.5,
+    chaseDist: 7, chasePitch: 16, lookAhead: 3, lookY: 1, followRate: 10, turnRate: 6, offsetDecay: 1.5,
     // Collision: the camera stays camMargin outside obstacle circles but never comes closer than minClear to the player.
     camMargin: 0.6, minClear: 1.5, clearInRate: 14, clearOutRate: 2.5,
   };

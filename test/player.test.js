@@ -117,10 +117,13 @@ test('junk obstacle entries are ignored', () => {
   near(s.z, P.SPEED * DT);
 });
 
-test('run: forward moves at RUN_SPEED (about 1.8x SPEED); backing up stays at BACK_SPEED', () => {
-  assert.ok(P.RUN_SPEED >= 1.7 * P.SPEED && P.RUN_SPEED <= 1.9 * P.SPEED);
+test('run: forward moves at RUN_SPEED (2.5x SPEED); backing up stays at BACK_SPEED', () => {
+  assert.equal(P.RUN_SPEED, 10);
+  assert.ok(Math.abs(P.RUN_SPEED / P.SPEED - 2.5) < 0.05);
   let s = P.step({ x: 0, z: 0, heading: 0 }, { forward: true, run: true }, DT);
   near(s.z, P.RUN_SPEED * DT);
+  s = walk({ x: 0, z: 0, heading: 0 }, { forward: true, run: true }, 1);   // a full second covers RUN_SPEED units
+  near(s.z, P.RUN_SPEED, 1e-4);
   s = P.step({ x: 0, z: 0, heading: 0 }, { forward: true, run: false }, DT);
   near(s.z, P.SPEED * DT);
   s = P.step({ x: 0, z: 0, heading: 0 }, { back: true, run: true }, DT);
@@ -141,9 +144,34 @@ test('run keeps the map bounds, obstacles and the shore at full speed', () => {
     s = P.step(s, { forward: true, run: true }, DT, [tree]);
     assert.ok(Math.hypot(s.x - tree[0], s.z - tree[1]) >= tree[2] + P.RADIUS - 1e-6, 'never inside the tree');
   }
-  // the biggest allowed frame (0.1 s = 0.7 units) cannot tunnel through a thin obstacle
-  s = P.step({ x: 0, z: 0, heading: 0 }, { forward: true, run: true }, 5, [[0, 0.5, 0.2]]);
-  assert.ok(Math.hypot(s.x, s.z - 0.5) >= 0.8 - 1e-6);
+  // the biggest allowed frame (0.1 s = 1 unit) cannot tunnel through a thin obstacle
+  s = { x: 0, z: 0, heading: 0 };
+  for (let i = 0; i < 5; i++) s = P.step(s, { forward: true, run: true }, 5, [[0, 1.5, 0.2]]);
+  assert.ok(Math.hypot(s.x, s.z - 1.5) >= 0.8 - 1e-6);
+});
+
+test('run is sub-stepped: a rock or tree cannot be crossed at any frame rate', () => {
+  // A thin rock (radius 0.1) dead ahead: one 0.1 s run frame moves 1 unit, more than the player radius, so without
+  // sub-stepping a frame could land on the far side of it.
+  for (const rock of [[0, 1.5, 0.1], [0.05, 1.4, 0.1], [0, 1.2, 0.05]]) {
+    for (const dt of [1 / 60, 1 / 30, 0.1, 5]) {
+      let s = { x: 0, z: 0, heading: 0 };
+      for (let i = 0; i < 40; i++) {
+        s = P.step(s, { forward: true, run: true }, dt, [rock]);
+        assert.ok(Math.hypot(s.x - rock[0], s.z - rock[1]) >= rock[2] + P.RADIUS - 1e-6, `outside the rock at dt ${dt}`);
+        assert.ok(s.z < rock[1] + 0.3 || Math.abs(s.x - rock[0]) > 0.3, 'slid around rather than jumping through');
+      }
+    }
+  }
+  // a tree (radius 1) at a low frame rate: never inside, and the player still gets past it
+  let s = { x: 0, z: 0, heading: 0 };
+  for (let i = 0; i < 40; i++) {
+    s = P.step(s, { forward: true, run: true }, 0.1, [[0, 3, 1]]);
+    assert.ok(Math.hypot(s.x, s.z - 3) >= 1 + P.RADIUS - 1e-6);
+  }
+  // sub-stepping keeps the distance exact when nothing is in the way (diagonal strafe + run: 1 unit each way in 0.1 s)
+  s = P.step({ x: 0, z: 0, heading: 0 }, { forward: true, right: 1, strafe: true, run: true }, 0.1);
+  near(Math.hypot(s.x, s.z), Math.SQRT2, 1e-9);
 });
 
 test('spawn zone helpers: spawn is inside, far away is not, and the zone is an avoid point', () => {

@@ -100,6 +100,9 @@ current; when your change sets or changes something future tickets must follow, 
   chip or speech. During a task on it, its parts glow, show their chip and say their names.
 - **Every animal that fits counts (AS-0122).** A clue accepts ANY animal matching it (a duck and a turtle both swim; every
   grey animal is grey). Never a single hidden right answer.
+- **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
+  briefs you (spoken, icons: busca, ayuda, foto), hands you la cámara and gives missions; proof photos go on the station's
+  photo board. Inside the station you can change your character any time (body style, hair, skin tone, clothes), saved.
 - **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
   (hurt, stuck, hungry, tangled, scared: 1 task at beginner, 2 later) -> take its photo as proof it is OK ("¡Está bien!",
   saved to the album) -> next mission. Finding alone never ends a round. This supersedes "the photo answers the round" below.
@@ -193,3 +196,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: double jump: Space again in mid-air (AS-0126).
 - 2026-11-22: realistic animals, starting with the camel (AS-0127); parts light up only while helping (AS-0128).
 - 2026-11-22: higher-fidelity world, 2x map, biome landmarks, detailed avatar/animals, more animals and species (AS-0129 to AS-0140).
+- 2026-11-22: research station start, scientist briefing, photo board, character customizer (AS-0141 to AS-0144).

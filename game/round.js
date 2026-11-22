@@ -115,7 +115,14 @@
       return round;
     }
 
-    return { start: start, pick: pick, hint: hint, current: function () { return round; } };
+    /** The off-screen arrow was tapped: counts as one hint for this round (once). */
+    function pointerHint() {
+      if (!round || round.done) return null;
+      if (!round.pointerUsed) { round.pointerUsed = true; round.hints += 1; }
+      return round;
+    }
+
+    return { start: start, pick: pick, hint: hint, pointerHint: pointerHint, current: function () { return round; } };
   }
 
   SA.round = { TYPES: TYPES, MIN_BIOME_ANIMALS: MIN_BIOME_ANIMALS, candidatesForBiome: candidatesForBiome,

@@ -19,7 +19,8 @@
       if (root.SAT) root.SAT.track('error', { message: String(e && e.message).slice(0, 200), source: source, line: 0, stack: String(e && e.stack).slice(0, 500) });
     }
     var ctl = null;
-    try { ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx }); } catch (e) { report('prompt.start', e); }
+    try { ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx,
+      game: SA.round.create({ biome: function () { return SA.round.biomeForX(stage.rig.getState().x); } }) }); } catch (e) { report('prompt.start', e); }
     // Habitat sandbox: a big button + prop tray; saved props come back on reload. Never blocks the main loop.
     try {
       if (SA.sandbox && stage.props) {

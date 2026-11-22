@@ -7,7 +7,6 @@
   SA.render = SA.render || {};
 
   var SKY = 0xbfe6f5;
-  var DECOR_R = 1, ANIMAL_R = 1.3;   // obstacle radii (world units) the walking avatar slides around
 
   SA.render.createStage = function (THREE, container) {
     var renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -42,11 +41,18 @@
     var picking, stageApi = {};
     // While a care task is rubbing a part, a drag that starts on that part rubs it instead of orbiting.
     // Third person: the player walks as a kid avatar; animals, decor and placed props push the avatar aside.
-    var obstacleProps = [];
+    var solidPropPoints = [];   // placed props that block the player (flores don't); rebuilt in refreshAvoid
+    // Only things that should stop the player count: trees, rocks, ponds, bridges and big animals. Flowers, grass and small
+    // animals are soft (SA.blocking reads that from data), so the player walks straight through them.
     function obstacles() {
-      var list = avoid.map(function (a) { return [a[0], a[1], DECOR_R]; }).concat(obstacleProps);
-      animals.children.forEach(function (g) { if (!(g.userData && g.userData.perched)) list.push([g.position.x, g.position.z, ANIMAL_R]); });
-      return list;
+      return SA.blocking.obstacles({
+        decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor }; }),
+        propPoints: solidPropPoints,
+        animals: animals.children.map(function (g) {
+          var u = g.userData || {};
+          return { x: g.position.x, z: g.position.z, animalId: u.animalId, perched: u.perched };
+        }),
+      });
     }
     var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, null, { chase: { obstacles: obstacles, trees: function () { return trees; } }, canOrbit: function (e) {
       return !(SA.picking.hasRubTarget() && picking && SA.picking.isRubTarget(picking.pickAt(e.clientX, e.clientY)));
@@ -81,8 +87,9 @@
     // already updated when the sandbox calls add/remove, so the list is rebuilt from SA.habitat.list().
     function refreshAvoid() {
       if (SA.propAvoid && SA.habitat) {
-        obstacleProps = SA.propAvoid.points(SA.habitat.list());
-        ambient.setAvoid(avoid.concat(spawnZone, obstacleProps));
+        var records = SA.habitat.list();
+        solidPropPoints = SA.blocking.solidProps(records);
+        ambient.setAvoid(avoid.concat(spawnZone, SA.propAvoid.points(records)));   // wanderers still keep clear of every prop
       }
     }
     ['add', 'remove'].forEach(function (k) {

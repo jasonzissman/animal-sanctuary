@@ -10,6 +10,7 @@
  *   biomes    biome ids (see game/data/biomes.js) where it may be placed
  *   where     'land' (dry ground only) or 'shore' (on or beside water, e.g. a bridge)
  *   radius    keep-clear distance (world units) from the prop centre that wandering animals respect (SA.propAvoid)
+ *   solid     true = also blocks the walking player (same radius); false = soft, the player walks through (flores)
  */
 (function (root) {
   'use strict';
@@ -31,19 +32,20 @@
     });
     if (typeof p.radius !== 'number' || !isFinite(p.radius) || p.radius <= 0 || p.radius > 6) fail('radius', 'must be a number in (0, 6]');
     if (WHERE.indexOf(p.where) < 0) fail('where', 'must be one of ' + WHERE.join(', '));
+    if (typeof p.solid !== 'boolean') fail('solid', 'must be true (blocks the walking player) or false (walk through)');
   }
 
-  function prop(id, icon, es, en, cost, builder, biomes, where, radius) {
-    return { id: id, icon: icon, name: { es: es, en: en }, cost: cost, builder: builder, biomes: biomes, where: where, radius: radius };
+  function prop(id, icon, es, en, cost, builder, biomes, where, radius, solid) {
+    return { id: id, icon: icon, name: { es: es, en: en }, cost: cost, builder: builder, biomes: biomes, where: where, radius: radius, solid: solid };
   }
 
   var both = ['bosque', 'selva'];
   var props = [
-    prop('flores', '🌼', 'las flores', 'flowers', 1, 'flowers', both, 'land', 1.2),
-    prop('roca', '🪨', 'la roca', 'rock', 1, 'rock', ['bosque', 'selva', 'desierto', 'montana'], 'land', 1.5),
-    prop('arbol', '🌳', 'el árbol', 'tree', 2, 'tree', both, 'land', 1.5),
-    prop('charca', '💧', 'la charca', 'pond', 3, 'pond', both, 'land', 2.4),
-    prop('puente', '🌉', 'el puente', 'bridge', 3, 'bridge', ['bosque'], 'shore', 2.2)
+    prop('flores', '🌼', 'las flores', 'flowers', 1, 'flowers', both, 'land', 1.2, false),
+    prop('roca', '🪨', 'la roca', 'rock', 1, 'rock', ['bosque', 'selva', 'desierto', 'montana'], 'land', 1.5, true),
+    prop('arbol', '🌳', 'el árbol', 'tree', 2, 'tree', both, 'land', 1.5, true),
+    prop('charca', '💧', 'la charca', 'pond', 3, 'pond', both, 'land', 2.4, true),
+    prop('puente', '🌉', 'el puente', 'bridge', 3, 'bridge', ['bosque'], 'shore', 2.2, true)
   ];
 
   SA.data.defineKind('props', validateProp);

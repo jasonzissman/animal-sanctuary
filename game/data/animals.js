@@ -103,7 +103,11 @@
     if (!a.easterEgg && a.unlock !== undefined) fail('unlock', 'only easter eggs have an unlock condition');
   }
 
-  SA.animals = { SIZES: SIZES, COLORS: COLORS, MOVEMENTS: MOVEMENTS, DIETS: DIETS, PERCHES: PERCHES };
+  // How far a ground animal of each size keeps the walking player out (world units; SA.blocking). Small ones (conejo,
+  // rana, ratón) are 0: the player walks through them. Medium and big ones push the player aside.
+  var BLOCK_RADIUS = { 'pequeño': 0, 'mediano': 1, 'grande': 1.3 };
+
+  SA.animals = { SIZES: SIZES, COLORS: COLORS, MOVEMENTS: MOVEMENTS, DIETS: DIETS, PERCHES: PERCHES, BLOCK_RADIUS: BLOCK_RADIUS };
   SA.data.defineKind('animals', validateAnimal);
 
   function p(part, color, scale, count, offset) {

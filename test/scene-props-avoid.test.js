@@ -5,7 +5,8 @@ import { loadGame } from './helpers/vm.js';
 // Loads game/render/scene.js with a stub THREE and stubbed render builders (no DOM, no WebGL, no network), real
 // habitat/save/propAvoid, and records every ambient.setAvoid call.
 const BASE = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
-  'game/data/vocab.js', 'game/map.js', 'game/save.js', 'game/data/props.js', 'game/habitat.js', 'game/prop-avoid.js'];
+  'game/data/vocab.js', 'game/map.js', 'game/save.js', 'game/data/props.js', 'game/habitat.js', 'game/prop-avoid.js',
+  'game/data/decor.js', 'game/blocking.js'];
 
 function setup() {
   const calls = [], rigHooks = [];

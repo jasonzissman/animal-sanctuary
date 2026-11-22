@@ -2,6 +2,7 @@
 
 > Written by Jason (2026-11-21). The work is split into small agentic-sdlc tickets, not the PR plan in section 8,
 > which is only a suggestion. Where this spec and `CLAUDE.md` differ on engineering details, `CLAUDE.md` wins.
+> **The game direction has since evolved: `docs/DIRECTION.md` overrides this spec** (third-person free roam, inventory, photo missions).
 
 ## 1. Overview & Purpose
 Build **Santuario de Animales**, a browser-based 3D low-poly creature observation, care, and habitat-building game designed for ~7-year-old 2nd-grade dual-language learners (combining kids from Spanish-speaking households who may have informal/conversational Spanish with kids from English-speaking households learning Spanish).

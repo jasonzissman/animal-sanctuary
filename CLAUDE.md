@@ -5,6 +5,7 @@ It is a browser-based, low-poly 3D animal sanctuary for **~7-year-old 2nd-grade 
 observe, find and care for real animals and build habitats while picking up Spanish words for **animals, body parts
 and descriptive traits** (sizes, colours, counts, actions, habitats). Learning comes from play and actions. Never
 use text walls or quiz gates. The full product spec is **`docs/SPEC.md`**. Read the sections that relate to your ticket.
+**`docs/DIRECTION.md` overrides the spec**: it holds Jason's current direction (third-person free roam, inventory, photo missions). Read it first and keep it current.
 
 ## Deployment (read this first)
 

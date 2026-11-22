@@ -88,6 +88,11 @@ current; when your change sets or changes something future tickets must follow, 
   the animal gives a soft `chirp` (`SA.audio.sfx('chirp', volume)`, quieter with distance) while the player is within
   `SA.treetopTell.NEAR` (16 m), and a round shadow sits on the ground under it. Pure seeded timing in
   `game/treetop-tell.js`; thin THREE layer in `game/render/treetop-tell.js`. No text, no per-frame allocation.
+- **Every animal that fits counts (AS-0122).** A clue accepts ANY animal matching it (a duck and a turtle both swim; every
+  grey animal is grey). Never a single hidden right answer.
+- **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
+  (hurt, stuck, hungry, tangled, scared: 1 task at beginner, 2 later) -> take its photo as proof it is OK ("¡Está bien!",
+  saved to the album) -> next mission. Finding alone never ends a round. This supersedes "the photo answers the round" below.
 - **Tasks while roaming.** Missions ("Busca un animal con orejas largas") sit on a card while you explore freely. You
   complete a find by taking a photo with *la cámara*, and the photo album rewards exploring.
   Built (AS-0084): the round IS the photo mission. The top card keeps the clue, Replay and a 📷 badge (tap = equip la cámara);
@@ -174,3 +179,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: camera frames treetop animals automatically (AS-0116), jump in canopies (AS-0115), treetop tells (AS-0117).
 - 2026-11-22: movement sounds: footsteps, landing, water and climbing (AS-0118, AS-0119, AS-0120).
 - 2026-11-22: messages always win; the item-name chip only flashes on equip (AS-0121).
+- 2026-11-22: any matching animal counts (AS-0122); rescue missions: find, help 1-2 times, photo proof (AS-0123 to AS-0125).

@@ -7,7 +7,10 @@
  *   flow.active()                     a task is in progress
  *   flow.onPick({ animalId, part })   routes a tap/rub: splash + fewer spots; wrong part = boing + its name (no penalty);
  *                                     the last rub celebrates, awards the star (in SA.care) and calls onDone after NEXT_MS
- *   flow.replay()                     speaks the prompt again
+ *   flow.onFeed(foodId)               feed task: a tray food was tapped; the asked food is counted aloud, anything else
+ *                                     bounces back with a giggle and its name (no penalty); exactly `count` finishes
+ *   (curar: "Cura las alas" is one tap on the scraped part; finishing draws a bandage via fx.bandage())
+ *   flow.replay()                   speaks the prompt again
  */
 (function (root) {
   'use strict';
@@ -22,12 +25,22 @@
     function sfx(name) { try { if (audio && audio.sfx) audio.sfx(name); } catch (e) { /* silent */ } }
     function stars() { return SA.save.get().stars; }
 
+    function vcall(name, arg) { if (typeof view[name] === 'function') view[name](arg); }
+    function food(id) { return SA.data.get('foods', id); }
+
     function offer(animalId) {
       var task = care.maybeStart(animalId);
       if (!task) return false;
       if (fx) fx.show(task);
-      if (SA.picking && SA.picking.setRubTarget) SA.picking.setRubTarget(task.animalId, task.part);
-      view.showCare({ text: task.text, icon: '🧽', stars: stars() });
+      if (task.kind === 'alimentar') {
+        view.showCare({ text: task.text, icon: food(task.food).icon, stars: stars() });
+        vcall('showFeed', { count: task.count, given: 0, icon: food(task.food).icon,
+          tray: task.tray.map(function (id) { return { id: id, icon: food(id).icon, label: SA.vocab.get('food:' + id).es }; }) });
+      } else {
+        // only cleaning is rubbed; healing is a single tap on the scraped part
+        if (task.kind === 'limpiar' && SA.picking && SA.picking.setRubTarget) SA.picking.setRubTarget(task.animalId, task.part);
+        view.showCare({ text: task.text, icon: task.kind === 'curar' ? '🩹' : '🧽', stars: stars() });
+      }
       say(task.text);
       return true;
     }
@@ -35,9 +48,9 @@
     function finish(res) {
       if (SA.picking && SA.picking.setRubTarget) SA.picking.setRubTarget(null);
       if (fx) fx.scrub(0);
-      sfx('splash');
-      sfx('chime');
-      sfx('sparkle');
+      if (res.kind === 'curar' && fx && fx.bandage) fx.bandage();
+      vcall('hideFeed');
+      sfx(res.kind === 'alimentar' ? 'pop' : 'splash');
       view.celebrate({ icon: '✨', stars: res.stars });
       view.confetti();
       view.toast('¡Muy bien! ⭐');
@@ -62,9 +75,27 @@
       return res;
     }
 
+    // A tray food was tapped: each right one is counted aloud ("uno, dos, tres"); anything else bounces back with a giggle.
+    function onFeed(foodId) {
+      var res = care.feed(foodId);
+      if (res.status === 'fed' || res.status === 'done') {
+        var t = care.current();
+        sfx('pop');
+        say('number:' + t.given);
+        vcall('updateFeed', { given: t.given });
+        if (res.status === 'done') finish(res);
+      } else if (res.status === 'wrong') {
+        sfx('giggle');
+        vcall('bounceFood', foodId);
+        view.toast('😄 ' + res.label);
+        say('food:' + foodId);
+      }
+      return res;
+    }
+
     function replay() { var t = care.current(); if (t && care.active()) say(t.text); }
 
-    return { offer: offer, active: care.active, onPick: onPick, replay: replay };
+    return { offer: offer, active: care.active, onPick: onPick, onFeed: onFeed, replay: replay };
   }
 
   SA.careFlow = { NEXT_MS: NEXT_MS, create: create };

@@ -8,7 +8,7 @@ import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/picking.js', 'game/camera.js',
-  'game/round.js', 'game/data/care.js', 'game/care.js', 'game/ui/care-flow.js', 'game/ui/prompt.js'];
+  'game/round.js', 'game/data/foods.js', 'game/data/care.js', 'game/care.js', 'game/ui/care-flow.js', 'game/ui/prompt.js'];
 
 function setup(opts = {}) {
   const SA = loadGame(FILES);
@@ -33,7 +33,7 @@ test('maybeStart targets a part the animal really has, for every animal, with ag
   const def = SA.data.get('careTasks', 'limpiar');
   for (const a of SA.data.all('animals').filter((x) => !x.easterEgg)) {
     for (let i = 0; i < 6; i++) {
-      const task = care.maybeStart(a.id, true);
+      const task = care.maybeStart(a.id, true, 'limpiar');
       if (!task) { assert.ok(!a.parts.some((p) => def.parts.includes(p.part))); continue; }
       assert.ok(a.parts.some((p) => p.part === task.part), `${a.id} has ${task.part}`);
       assert.ok(def.parts.includes(task.part));
@@ -58,7 +58,7 @@ test('maybeStart only sometimes starts a task, and never for unknown animals', (
 
 test('tapping the right part scrubs spots away and finishing awards a star and round.complete', () => {
   const { SA, care, events, advance } = setup();
-  const task = care.maybeStart('tortuga', true);
+  const task = care.maybeStart('tortuga', true, 'limpiar');
   const ctx = { animalId: 'tortuga', part: task.part };
   advance(4200);
   let res = care.tap(ctx);
@@ -85,7 +85,7 @@ test('tapping the right part scrubs spots away and finishing awards a star and r
 
 test('a wrong part names itself, counts a miss, emits part.tap correct:false and the task continues', () => {
   const { SA, care, events } = setup();
-  const task = care.maybeStart('tortuga', true);
+  const task = care.maybeStart('tortuga', true, 'limpiar');
   const other = SA.data.get('animals', 'tortuga').parts.map((p) => p.part).find((k) => k !== task.part);
   const res = care.tap({ animalId: 'tortuga', part: other });
   assert.equal(res.status, 'wrong');
@@ -100,7 +100,7 @@ test('a wrong part names itself, counts a miss, emits part.tap correct:false and
 test('taps with no task, or on another animal, are ignored and emit nothing', () => {
   const { care, events } = setup();
   assert.equal(care.tap({ animalId: 'tortuga', part: 'patas' }).status, 'ignored');
-  care.maybeStart('tortuga', true);
+  care.maybeStart('tortuga', true, 'limpiar');
   assert.equal(care.tap({ animalId: 'conejo', part: 'cola' }).status, 'ignored');
   assert.equal(care.tap(null).status, 'ignored');
   assert.equal(events.length, 0);

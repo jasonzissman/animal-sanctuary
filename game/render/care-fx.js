@@ -19,13 +19,16 @@
     var animals = opts.animals, rig = opts.rig || null, ambient = opts.ambient || null, held = null;
     var geo = new THREE.SphereGeometry(1, 7, 5);
     var mats = [new THREE.MeshLambertMaterial({ color: MUD }), new THREE.MeshLambertMaterial({ color: MUD_DARK })];
-    var group = null, spots = [], bits = [];
+    var scrapeMats = [new THREE.MeshLambertMaterial({ color: 0xd9534f }), new THREE.MeshLambertMaterial({ color: 0xb03a36 })];
+    var bandageMat = new THREE.MeshLambertMaterial({ color: 0xf6e3c4 }), crossMat = new THREE.MeshLambertMaterial({ color: 0xe8706b });
+    var group = null, spots = [], bits = [], lastSpot = null;
     var seed = 1;
     function rand() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
 
     function clear() {
       spots.forEach(function (s) { if (s.parent) s.parent.remove(s); });
       spots = [];
+      lastSpot = null;
     }
 
     function partMeshes(g, part) {
@@ -37,10 +40,11 @@
       group = animals.getObjectByName(task.animalId);
       if (!group) return false;
       var meshes = partMeshes(group, task.part);
-      if (!meshes.length) return false;
-      for (var i = 0; i < task.spots; i++) {
+      if (task.part && !meshes.length) return false;      // a feed task has no part: only the zoom below
+      var palette = task.kind === 'curar' ? scrapeMats : mats;
+      for (var i = 0; task.part && i < task.spots; i++) {
         var m = meshes[i % meshes.length];
-        var spot = new THREE.Mesh(geo, mats[i % 2]);
+        var spot = new THREE.Mesh(geo, palette[i % 2]);
         // a point on the ellipsoid around the part, biased upward so the mud shows from the tilted camera
         var a = rand() * Math.PI * 2, el = rand() * 1.1 - 0.1, h = Math.sqrt(Math.max(0, 1 - el * el));
         spot.position.set(m.position.x + Math.cos(a) * h * m.scale.x * 0.5,
@@ -71,9 +75,24 @@
     function scrub(spotsLeft) {
       while (spots.length > Math.max(0, spotsLeft)) {
         var s = spots.pop();
+        lastSpot = s.position.clone();
         if (group && group.parent) burst(s.position);
         if (s.parent) s.parent.remove(s);
       }
+    }
+
+    // Heal: a small beige bandage with a pink cross where the scrape was; it stays until hide().
+    function bandage() {
+      if (!group || !lastSpot) return;
+      var b = new THREE.Mesh(new THREE.BoxGeometry(1, 0.45, 0.8), bandageMat);
+      var c = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 0.9), crossMat);
+      b.add(c);
+      b.position.copy(lastSpot);
+      b.scale.setScalar(0.22);
+      b.rotation.y = 0.6;
+      b.userData = { mud: true, bandage: true };
+      group.add(b);
+      spots.push(b);
     }
 
     function hide() {
@@ -94,6 +113,6 @@
       });
     }
 
-    return { show: show, scrub: scrub, hide: hide, update: update, spotCount: function () { return spots.length; } };
+    return { show: show, scrub: scrub, bandage: bandage, hide: hide, update: update, spotCount: function () { return spots.length; } };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

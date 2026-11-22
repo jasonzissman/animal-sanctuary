@@ -115,7 +115,9 @@ current; when your change sets or changes something future tickets must follow, 
 - **Animals keep an arm's length apart (AS-0153).** Never bunched: at least ~1.5 units of gap between any two animals'
   bodies at all times (hard rule, not a soft preference), so tapping one never hits another. Implemented for wandering
   ground animals by `SA.spacing` (GAP, `bodyRadius` from the size trait) and checked on every step in `SA.wander`
-  (`others` = `[[x, z, r], ...]`, `bodyRadius`); overlapping spawns are pushed apart in ~1 s. Placement is slice 2.
+  (`others` = `[[x, z, r], ...]`, `bodyRadius`); overlapping spawns are pushed apart in ~1 s. Placement (AS-0162): `SA.animalPlan.placements` spawns every animal
+  (herds included) over its whole biome strip with the gap AND non-overlapping pick volumes (`pickRadius`); tree
+  perchers (`SA.perch.create` `others`/`bodyRadius`, `claims()`) only sit on or hop to spots that are free by the same gap.
 - **Small inventory (AS-0154, AS-0155).** Tools (cámara, cepillo, esponja, venda), la fresa as the only food, and rocks.
   No flor or hoja collectibles. Add items only when a mission needs them; fewer is better.
 - **Lots of animals.** Several of each species (3-5) spread around each biome, and >= 5 species per biome. Any instance

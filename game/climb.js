@@ -114,7 +114,7 @@
     }
     dt = Math.max(0, Math.min(MAX_DT, num(dt, 0)));
     if (c.mode === 'canopy') {
-      var w = SA.player.step(state, input, dt, [], { water: false });
+      var w = SA.player.step(state, input, dt, []);
       var walked = copy(state, { x: w.x, z: w.z, heading: w.heading });
       if (Math.hypot(w.x - c.tree.x, w.z - c.tree.z) > edgeOf(c.tree)) return stop(walked);   // walked off the edge: climb down
       return walked;

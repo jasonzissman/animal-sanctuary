@@ -10,7 +10,7 @@
   /** Tag a decor object with its data id (game/data/decor.js decides whether it blocks the player). */
   function tag(obj, id) { obj.userData.decor = id; return obj; }
 
-  function mat(THREE, color) { return new THREE.MeshLambertMaterial({ color: color, flatShading: true }); }
+  function mat(THREE, color) { return new THREE.MeshPhongMaterial({ color: color, flatShading: true, specular: 0x000000 }); }
 
   function pine(THREE, m, s) {
     var g = new THREE.Group();

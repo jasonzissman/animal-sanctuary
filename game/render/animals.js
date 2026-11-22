@@ -45,7 +45,7 @@
       g.userData = { animalId: animal.id, pickVolumes: [] };
       SA.animalPlan.plan(animal).forEach(function (spec) {
         var geo = geos[spec.builder] || (geos[spec.builder] = unitGeometry(THREE, spec.builder));
-        var mat = mats[spec.color] || (mats[spec.color] = new THREE.MeshLambertMaterial({ color: spec.color, flatShading: true }));
+        var mat = mats[spec.color] || (mats[spec.color] = new THREE.MeshPhongMaterial({ color: spec.color, flatShading: true, specular: 0x000000 }));
         var mesh = new THREE.Mesh(geo, mat);
         mesh.scale.set(spec.size[0], spec.size[1], spec.size[2]);
         mesh.position.set(spec.position[0], spec.position[1], spec.position[2]);
@@ -53,7 +53,7 @@
         tag(mesh, spec);
         if (spec.pupil) {
           // A child of the part mesh (unit-sphere space, so it follows the part's scale and reactions); never a pick target.
-          var pmat = mats[spec.pupil] || (mats[spec.pupil] = new THREE.MeshLambertMaterial({ color: spec.pupil, flatShading: true }));
+          var pmat = mats[spec.pupil] || (mats[spec.pupil] = new THREE.MeshPhongMaterial({ color: spec.pupil, flatShading: true, specular: 0x000000 }));
           var pupil = new THREE.Mesh(geos.pupil || (geos.pupil = unitGeometry(THREE, 'sphere')), pmat);
           pupil.scale.set(PUPIL_SIZE, PUPIL_SIZE, PUPIL_SIZE);
           pupil.position.set(0, 0, PUPIL_FORWARD);

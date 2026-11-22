@@ -257,3 +257,14 @@ test('decayOffset drifts back behind the walking player and holds still otherwis
   assert.equal(C.decayOffset(450, false, 1), 90, 'wrapped');
   assert.equal(C.decayOffset(NaN, true, 1), 0);
 });
+
+test('easeToward also eases pitch when the target has one, and ignores junk pitch', () => {
+  const s = { x: 0, z: 0, dist: 7, yaw: 0, pitch: 16 };
+  const a = C.easeToward(s, { x: 0, z: 0, dist: 7, pitch: 40 }, 0.1, 4, B);
+  assert.ok(a.pitch > 16 && a.pitch < 40);
+  let r = s;
+  for (let i = 0; i < 200; i++) r = C.easeToward(r, { x: 0, z: 0, dist: 7, pitch: 40 }, 0.05, 4, B);
+  assert.ok(Math.abs(r.pitch - 40) < 0.01);
+  assert.equal(C.easeToward(s, { x: 0, z: 0, dist: 7 }, 0.1, 4, B).pitch, 16, 'no pitch target keeps pitch');
+  assert.equal(C.easeToward(s, { x: 0, z: 0, dist: 7, pitch: NaN }, 0.1, 4, B).pitch, 16);
+});

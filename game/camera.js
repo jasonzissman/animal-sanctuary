@@ -116,11 +116,15 @@
     return { x: s.x + h * Math.sin(y), y: s.dist * Math.sin(t), z: s.z + h * Math.cos(y) };
   }
 
-  /** Frame-rate independent ease of the state toward `target` ({x,z,dist}); rate ~4 settles in about a second. */
+  /** Frame-rate independent ease of the state toward `target` ({x,z,dist}, optional pitch); rate ~4 settles in about a second. */
   function easeToward(s, target, dt, rate, bounds, o) {
     var k = 1 - Math.exp(-(rate || 4) * Math.max(0, dt));
-    return clampState(moved(s, s.x + (target.x - s.x) * k, s.z + (target.z - s.z) * k,
-      s.dist + (target.dist - s.dist) * k), bounds, o);
+    var r = moved(s, s.x + (target.x - s.x) * k, s.z + (target.z - s.z) * k, s.dist + (target.dist - s.dist) * k);
+    if (typeof target.pitch === 'number' && isFinite(target.pitch)) {
+      var cur = clampPitch(s.pitch, o);
+      r.pitch = cur + (clampPitch(target.pitch, o) - cur) * k;
+    }
+    return clampState(r, bounds, o);
   }
 
   /** Shortest-way ease of an angle (degrees) toward `target`; frame-rate independent. */

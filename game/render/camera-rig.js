@@ -31,7 +31,9 @@
     var padYaw = 0, padPitch = 0; // on-screen rotate/tilt buttons (-1..1): the same axes as Q/E and F/R
     var pinchDist = 0, mid = null;
     var glide = false;            // true while `focus` is a glideTo that ends by itself
-    var focus = null;            // { x, z, dist }: while set the camera eases there; only orbit input is accepted
+    var focus = null;            // { x, z, dist, pitch? }: while set the camera eases there; only orbit input is accepted
+    var saved = null;            // chase: { dist, pitch } from before a care focus, eased back to after release()
+    var FOCUS_PITCH = 40;        // chase: lift the camera a little for the care close-up
 
     function viewH() { return canvas.clientHeight || 600; }
     function ids() { return Object.keys(pointers); }
@@ -52,7 +54,7 @@
     function obstacles() { return chase && hooks.chase.obstacles ? hooks.chase.obstacles() : []; }
     // Orbit input swings the offset around the player (chase) or the state itself (focused on a care task / classic).
     function orbitWith(fn) {
-      if (!chase || focus) { state = fn(state); return; }
+      if (!chase || focus) { if (focus) focus.pitch = undefined; state = fn(state); return; }
       var r = fn({ x: state.x, z: state.z, dist: state.dist, yaw: offset, pitch: state.pitch });
       offset = r.yaw; state = { x: state.x, z: state.z, dist: state.dist, yaw: state.yaw, pitch: r.pitch };
     }
@@ -143,6 +145,10 @@
           var before = player;
           player = SA.player.step(player, { forward: az < 0, back: az > 0, left: ax < 0, right: ax > 0 }, dt, obstacles());
           moving = Math.hypot(player.x - before.x, player.z - before.z) > 1e-4 || player.heading !== before.heading;
+          if (!focus && saved) {   // care task over: ease the zoom and tilt back to the ground-level chase view
+            state = C.easeToward(state, { x: state.x, z: state.z, dist: saved.dist, pitch: saved.pitch }, dt, 3, B);
+            if (Math.abs(state.dist - saved.dist) < 0.05 && Math.abs(state.pitch - saved.pitch) < 0.5) saved = null;
+          }
           if (!focus) {
             offset = C.decayOffset(offset, az < 0, dt);
             state = C.chaseFollow(state, player, offset, dt, B);
@@ -155,7 +161,12 @@
       /** On-screen buttons hold yaw/pitch axes (-1, 0, 1); update() runs them through the same clamped orbitByKeys path as the keys. */
       setOrbitAxes: function (yaw, pitch) { padYaw = yaw > 0 ? 1 : yaw < 0 ? -1 : 0; padPitch = pitch > 0 ? 1 : pitch < 0 ? -1 : 0; },
       /** Ease in on a ground point (care tasks); pan/zoom are ignored until release(), orbit still works. */
-      focusOn: function (x, z, dist) { glide = false; focus =C.clampState({ x: x, z: z, dist: dist }, B); },
+      focusOn: function (x, z, dist) {
+        glide = false;
+        if (chase && !saved) saved = { dist: state.dist, pitch: state.pitch };
+        focus = C.clampState({ x: x, z: z, dist: dist }, B);
+        if (chase) focus.pitch = FOCUS_PITCH;
+      },
       release: function () { focus = null; glide = false; },
       /** Ease the view over to a ground point keeping the zoom, then hand control back (arrow hint). */
       glideTo: function (x, z) {

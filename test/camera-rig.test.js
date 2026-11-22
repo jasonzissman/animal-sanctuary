@@ -242,3 +242,30 @@ test('chase: dragging orbits the camera around the player and care focus still t
   frames(rig, 120);
   assert.ok(Math.hypot(rig.getState().x - p0.x, rig.getState().z - p0.z) < 6, 'camera returns to the player');
 });
+
+test('chase: a care focus lifts and zooms out, and release() eases dist and pitch back to the ground-level chase view', () => {
+  const { rig, SA } = chaseRig();
+  const D = SA.camera.DEFAULTS;
+  frames(rig, 30);
+  const before = rig.getState();
+  rig.focusOn(0, 0, 18);
+  frames(rig, 120);
+  assert.ok(rig.getState().dist > 15, 'zoomed out for the close-up');
+  assert.ok(rig.getState().pitch > D.chasePitch + 10, 'lifted for the care close-up');
+  rig.release();
+  frames(rig, 240);
+  assert.ok(Math.abs(rig.getState().dist - before.dist) < 0.5, 'dist is back near the chase distance');
+  assert.ok(Math.abs(rig.getState().dist - D.chaseDist) < 0.5);
+  assert.ok(Math.abs(rig.getState().pitch - before.pitch) < 1, 'pitch is back to the chase pitch');
+});
+
+test('chase: orbiting during a care focus stops the focus pitch ease so the child keeps control', () => {
+  const { rig, keys } = chaseRig();
+  rig.focusOn(0, 0, 18);
+  keys.keydown({ key: 'r', preventDefault() {} });
+  frames(rig, 10);
+  keys.keyup({ key: 'r' });
+  const p = rig.getState().pitch;
+  frames(rig, 60);
+  assert.equal(rig.getState().pitch, p);
+});

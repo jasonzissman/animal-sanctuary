@@ -9,7 +9,7 @@
 
   var BASE = 136, KNOB = 68, RADIUS = (BASE - KNOB) / 2 + 12;   // px; the knob travels a little past the rim
 
-  var BOTTOM = 132;   // px above the bottom edge (was 84, which touched the hotbar and sat inside the habitat tray's area)
+  var BOTTOM = 252;   // px above the bottom edge (was 84, which touched the hotbar; 132 still met the 5-food feed tray at 768px)
 
   function create(doc, rig, win) {
     var none = { show: function () {}, release: function () {} };
@@ -18,9 +18,10 @@
 
     var pad = doc.createElement('div');
     pad.setAttribute('aria-label', 'Caminar');
-    // bottom:132px clears the stars badge (top edge ~62px), the hotbar (72px slots, an equipped one lifts to ~90px) and the
-    // habitat tray (top edge ~125px) at 768px wide and up; the pad spans 132..268px from the bottom, so it also stays
-    // below the prompt bar at 600px tall.
+    // bottom:252px clears the stars badge (top edge ~62px), the hotbar (72px slots, an equipped one lifts to ~90px), the habitat
+    // tray (top edge ~125px) and the centred feed tray (bottom:96px, up to ~245px high, ~535px wide with 5 foods, so its left
+    // edge is ~118px at 768px wide). The pad spans 252..388px from the bottom, so at 600px tall it stays below the prompt bar
+    // (top 12..~90px).
     pad.style.cssText = 'position:fixed;left:16px;bottom:' + BOTTOM + 'px;z-index:4;display:none;width:' + BASE + 'px;height:' + BASE + 'px;' +
       'border-radius:50%;background:rgba(255,248,214,.45);border:.1em solid #24543a;touch-action:none;user-select:none;' +
       '-webkit-user-select:none;pointer-events:auto;';

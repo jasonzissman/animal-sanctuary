@@ -53,6 +53,8 @@
     } });
     var avatar = SA.render.createAvatar(THREE);
     scene.add(avatar.group);
+    // The equipped item (SA.inventory) shows as a small model in the avatar's right hand; it swaps as the equipped item changes.
+    var handItem = SA.render.createHandItem ? SA.render.createHandItem(THREE, { hand: avatar.parts.armR }) : null;
     // Taps on an animal out of the walking player's reach show "¡Acércate!" above the avatar (SA.reach) instead of picking.
     var reachCue = SA.render.createReachCue ? SA.render.createReachCue(THREE, { camera: camera, container: container, getPlayer: rig.getPlayer }) : null;
     picking = SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container,
@@ -102,7 +104,7 @@
       scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize,
       animals: animals, treeTap: treeTap, onTreeTap: null,
       avatar: avatar,
-      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); picking.update(dt); if (reachCue) reachCue.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
+      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); if (handItem) handItem.update(); picking.update(dt); if (reachCue) reachCue.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
     };
     return stageApi;
   };

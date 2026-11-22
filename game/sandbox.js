@@ -37,6 +37,8 @@
       selected = id;
       view.select(id);
       if (scene.hideGhost) scene.hideGhost();
+      // A prop just picked from the tray: show its ghost at the last mouse position without waiting for a move.
+      if (id && scene.refreshGhost) scene.refreshGhost();
     }
 
     function restore() { SA.habitat.list().forEach(function (r) { scene.add(r); }); }

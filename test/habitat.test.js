@@ -432,3 +432,77 @@ test('render ghost: green on valid spots, red on invalid, hidden on touch releas
   listeners.pointercancel();
   assert.equal(props.ghostVisible(), false);
 });
+
+// ---- ghost shows straight after tray selection (AS-0060) ----
+test('ghostRefresh.decide: show only when active, selected and a finite pointer position is known', () => {
+  const SA = loadGame(['game/sa.js', 'game/ghost-refresh.js']);
+  const d = SA.ghostRefresh.decide;
+  assert.deepEqual({ ...d({ active: true, selected: 'arbol', last: { x: 10, y: 20 } }) }, { show: true, propId: 'arbol', x: 10, y: 20 });
+  assert.equal(d({ active: true, selected: 'arbol', last: null }).show, false, 'no known pointer (touch)');
+  assert.equal(d({ active: true, selected: null, last: { x: 1, y: 1 } }).show, false);
+  assert.equal(d({ active: false, selected: 'arbol', last: { x: 1, y: 1 } }).show, false);
+  assert.equal(d({ active: true, selected: 'arbol', last: { x: NaN, y: 1 } }).show, false);
+  assert.equal(d(null).show, false);
+});
+
+test('sandbox: picking a prop asks the scene to refresh its ghost; putting it back does not', () => {
+  const SA = setup(5);
+  const calls = [];
+  const box = SA.sandbox.create({
+    scene: { add() {}, remove() {}, hideGhost: () => calls.push('hide'), refreshGhost: () => calls.push('refresh') },
+    view: { setActive() {}, select() {}, setStars() {}, toast() {} },
+    audio: { say() {}, sfx() {} },
+  });
+  box.toggle();
+  calls.length = 0;
+  box.select('arbol');
+  assert.deepEqual(calls, ['hide', 'refresh']);
+  calls.length = 0;
+  box.select('arbol');
+  assert.deepEqual(calls, ['hide']);
+});
+
+test('render ghost: tray selection shows it at the last mouse position without a move; unknown/touch does nothing', () => {
+  const ctx = vm.createContext({ console });
+  ctx.window = ctx;
+  ctx.self = ctx;
+  for (const f of ['game/vendor/three.min.js', ...LOGIC.slice(0, -1), 'game/ghost-refresh.js', 'game/render/props.js', 'game/render/prop-ghost.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+  }
+  const { SA, THREE } = ctx;
+  SA.save.reset();
+  SA.save.update({ stars: 10 });
+  const listeners = {};
+  const canvas = { addEventListener: (ev, fn) => { listeners[ev] = fn; }, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+  const camera = new THREE.PerspectiveCamera(50, 800 / 600, 0.5, 400);
+  camera.position.set(0, 40, 30);
+  camera.lookAt(0, 0, 0);
+  camera.updateMatrixWorld(true);
+  const props = SA.render.createProps(THREE, { canvas, camera });
+  let selected = null;
+  props.bind({ active: () => true, selected: () => selected, onGround() {}, onPropTap() {} });
+  const ev = (type) => ({ pointerId: 1, pointerType: type, clientX: 400, clientY: 300 });
+
+  selected = 'arbol';
+  props.refreshGhost();
+  assert.equal(props.ghostVisible(), false, 'no known pointer position: nothing happens, no error');
+
+  selected = null;
+  listeners.pointermove(ev('mouse'));
+  listeners.pointerleave();            // the mouse moved off the canvas onto the tray
+  assert.equal(props.ghostVisible(), false);
+  selected = 'arbol';
+  props.refreshGhost();
+  assert.equal(props.ghostVisible(), true, 'ghost appears straight away at the remembered spot');
+
+  selected = null;
+  props.hideGhost();
+  props.refreshGhost();
+  assert.equal(props.ghostVisible(), false, 'nothing selected, nothing shown');
+
+  listeners.pointerdown(ev('touch'));
+  listeners.pointerup(ev('touch'));
+  selected = 'arbol';
+  props.refreshGhost();
+  assert.equal(props.ghostVisible(), false, 'touch forgets the mouse position');
+});

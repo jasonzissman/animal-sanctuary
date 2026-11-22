@@ -32,6 +32,11 @@ current; when your change sets or changes something future tickets must follow, 
   never opens it); the door frame group (`station.userData.doorNode`) is what the one outline glows; `render/station-door-tap.js`
   raycasts an invisible pick volume (`userData.stationDoor`) so a tap/click on the door opens it too. `ui/station-menu-view.js` is only a
   placeholder card (⚛️ + "La estación" + ✕); the customizer (AS-0144) attaches via `SA.station.onOpen` and renders into the view's `body`.
+  **Misiones board (AS-0197):** `ui/missions-board-view.js` renders into that `body` (re-rendered on every open) from the pure
+  `SA.missionsBoard` (`missions-board.js`: `cards()` maps `SA.missions.list()` to done ✅ / next ⭐ / active ▶️ / locked 🔒 cards,
+  `layout()` sizes a wrapping, scrolling grid so cards never overlap each other or the ✕). Tap done = replay, next = start (the
+  scientist's intro comes in the next ticket), active = En curso + Continuar / Abandonar; locked cards are grey numbered silhouettes
+  that only say "Misión N". Every card speaks via `SA.audio.say`.
 - **Climb anything too steep to walk (AS-0163 to AS-0165).** Trees, mountain peaks and the station all climb the same way:
   face it -> outline -> E/Enter, or push forward 0.6 s. Tops are flat enough to stand and turn (peaks: a 2-3 unit summit);
   walk or jump off the edge to drop down safely. Climb targets are data; anything new that is too steep joins them.

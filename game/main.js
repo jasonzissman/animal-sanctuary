@@ -98,7 +98,9 @@
     } catch (e) { report('album.start', e); }
     // Station menu hook (AS-0146): the door opens SA.station.open(); this is the placeholder card until the customizer (AS-0144).
     try {
-      if (SA.stationMenuView) SA.stationMenuView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); } });
+      var stationMenu = SA.stationMenuView ? SA.stationMenuView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); } }) : null;
+      // Misiones board (AS-0197) renders into the station card: done (replay), next (start), locked and En curso cards.
+      if (stationMenu && stationMenu.body && SA.missionsBoardView) SA.missionsBoardView.create(root.document, { body: stationMenu.body });
     } catch (e) { report('station.menu', e); }
     // Grown-up drawer (press-and-hold gear, an item of the 🎒 menu). Never blocks the main loop.
     var menuView = null;

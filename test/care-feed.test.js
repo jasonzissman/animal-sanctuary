@@ -55,7 +55,7 @@ test('feed tasks ask for 1-3 at level 1 and 1-5 at level 2, with agreeing Spanis
         const task = care.maybeStart(a.id, true, 'alimentar');
         const food = SA.data.get('foods', task.food);
         seen[level].add(task.count);
-        const who = (a.name.gender === 'f' ? 'a la ' : 'al ') + a.name.es;
+        const who = (a.name.gender === 'f' && a.id !== 'aguila' ? 'a la ' : 'al ') + a.name.es;   // el águila
         const word = task.count === 1 ? (food.label.gender === 'f' ? 'una' : 'un') : SA.vocab.get('number:' + task.count).es;
         assert.equal(task.text, `Dale ${word} ${task.count === 1 ? food.label.es : food.label.plural} ${who}`);
         assert.ok(food.diets.includes(a.traits.diet), `${a.id} eats ${food.id}`);

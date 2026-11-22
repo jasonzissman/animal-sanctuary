@@ -115,9 +115,9 @@
     var rand = M.rng(7);
     var spots = [], result = {};
     animals.forEach(function (a) {
-      var best = null;
+      var best = null, strip = M.biomeRange(a.biome) || { centerX: 0 };
       for (var t = 0; t < 400; t++) {
-        var x = (4 + rand() * 18) * (rand() < 0.5 ? -1 : 1), z = -6 + rand() * 20;
+        var x = strip.centerX + (rand() * 2 - 1) * 14, z = -6 + rand() * 20;
         if (M.biomeAt(x) !== a.biome || M.groundHeight(x, z) < M.WATER_LEVEL + 0.45) continue;
         var ok = true, i;
         for (i = 0; i < spots.length && ok; i++) ok = Math.hypot(spots[i][0] - x, spots[i][1] - z) >= 4.5;
@@ -125,7 +125,7 @@
         if (ok) { best = [x, z]; break; }
         if (!best) best = [x, z];
       }
-      best = best || [a.biome === 'bosque' ? -8 : 8, 4];
+      best = best || [strip.centerX, 4];
       spots.push(best);
       result[a.id] = { x: best[0], z: best[1], y: M.groundHeight(best[0], best[1]), rotY: (rand() - 0.5) * 1.2 };
     });

@@ -22,13 +22,15 @@
     var colors = new Float32Array(p.count * 3);
     var rand = M.rng(7);
     var sand = new THREE.Color('#d8c58a');
-    var tmp = new THREE.Color();
+    var tmp = new THREE.Color(), snow = new THREE.Color();
     for (var f = 0; f < p.count; f += 3) {
       var cx = (p.getX(f) + p.getX(f + 1) + p.getX(f + 2)) / 3;
       var cy = (p.getY(f) + p.getY(f + 1) + p.getY(f + 2)) / 3;
       var biome = biomes[M.biomeAt(cx)];
       tmp.set(biome ? biome.ground : '#6fae5e');
       if (cy < M.WATER_LEVEL + 0.35 && M.nearWater(cx, (p.getZ(f) + p.getZ(f + 1) + p.getZ(f + 2)) / 3, 2.5)) tmp.lerp(sand, 0.8);
+      // Snow caps: a biome with a `peak` colour blends to it on high ground.
+      if (biome && biome.peak && cy > 2.2) tmp.lerp(snow.set(biome.peak), Math.min(1, (cy - 2.2) / 1.2));
       var shade = 0.92 + rand() * 0.14 + Math.max(-0.1, Math.min(0.1, cy * 0.06));
       tmp.multiplyScalar(shade);
       for (var k = 0; k < 3; k++) {

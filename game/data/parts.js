@@ -67,6 +67,7 @@
     part('cuernos', 'los cuernos', 'horns', 'm', 'pl', 'cone', 'top', 'nod'),
     part('aletas', 'las aletas', 'fins', 'f', 'pl', 'box', 'side', 'swish'),
     part('plumas', 'las plumas', 'feathers', 'f', 'pl', 'box', 'back', 'wiggle'),
-    part('nariz', 'la nariz', 'nose', 'f', 'sg', 'sphere', 'front', 'sniff')
+    part('nariz', 'la nariz', 'nose', 'f', 'sg', 'sphere', 'front', 'sniff'),
+    part('joroba', 'la joroba', 'hump', 'f', 'sg', 'sphere', 'top', 'wobble')
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

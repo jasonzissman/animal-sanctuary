@@ -1,14 +1,19 @@
 /* SA.map: pure world layout (no THREE, no DOM). Shared by rendering and tests.
  *
- * The map is a rectangle centred on the origin. The west half is the bosque (with a river), the east half
- * is the selva (with a pond). groundHeight(x, z) is the single source of truth for terrain height so
- * decorations, water and (later) animals all agree on where the ground is.
+ * The map is a rectangle centred on the origin with four biome strips, west to east: montaña (snowy peaks),
+ * bosque (with a river), selva (with a pond) and desierto (dunes). groundHeight(x, z) is the single source of
+ * truth for terrain height so decorations, water and animals all agree on where the ground is.
  */
 (function (root) {
   'use strict';
   var SA = root.SA;
 
-  var BOUNDS = { minX: -40, maxX: 40, minZ: -25, maxZ: 25 };
+  var BOUNDS = { minX: -80, maxX: 80, minZ: -25, maxZ: 25 };
+  // Biome strips by x, west to east; each is 40 wide (`lo`/`hi` = world x range).
+  var STRIPS = [
+    { id: 'montana', lo: -80, hi: -40 }, { id: 'bosque', lo: -40, hi: 0 },
+    { id: 'selva', lo: 0, hi: 40 }, { id: 'desierto', lo: 40, hi: 80 },
+  ];
   var WATER_LEVEL = -0.3;
   var RIVER = { centerX: -20, wiggle: 3, freq: 0.14, halfWidth: 2.6 };
   var POND = { x: 22, z: 10, radius: 5 };
@@ -17,7 +22,32 @@
   function smooth(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
 
   /** Which biome id owns this point (data id from SA.data 'biomes'). */
-  function biomeAt(x) { return x < 0 ? 'bosque' : 'selva'; }
+  function biomeAt(x) {
+    for (var i = 0; i < STRIPS.length - 1; i++) if (x < STRIPS[i].hi) return STRIPS[i].id;
+    return STRIPS[STRIPS.length - 1].id;
+  }
+
+  /** { id, lo, hi, centerX } of a biome strip, or null. */
+  function biomeRange(id) {
+    for (var i = 0; i < STRIPS.length; i++) {
+      if (STRIPS[i].id === id) return { id: id, lo: STRIPS[i].lo, hi: STRIPS[i].hi, centerX: (STRIPS[i].lo + STRIPS[i].hi) / 2 };
+    }
+    return null;
+  }
+
+  /** Snowy peaks: rise from the montaña border (x = -38) to bumpy peaks up to ~5.5 high. */
+  function mountainHeight(x, z) {
+    var ramp = smooth((-38 - x) / 10);
+    if (ramp <= 0) return 0;
+    var bump = Math.max(0, Math.sin(x * 0.19) * Math.sin(z * 0.23 + 1.3));
+    return ramp * (1 + 4.5 * bump * bump);
+  }
+
+  /** Sand dunes: soft ridges that fade in from the desierto border (x = 38). Lifts the ground 0.8 to 1.7 so it is dry. */
+  function duneHeight(x, z) {
+    var ramp = smooth((x - 38) / 6);
+    return ramp <= 0 ? 0 : ramp * (0.8 + 0.9 * (0.5 + 0.5 * Math.sin(x * 0.23 + Math.sin(z * 0.11) * 2 + z * 0.08)));
+  }
 
   function riverX(z) { return RIVER.centerX + RIVER.wiggle * Math.sin(z * RIVER.freq); }
 
@@ -28,7 +58,7 @@
     h -= 2.2 * smooth((span - dr) / 2.5);
     var dp = Math.sqrt((x - POND.x) * (x - POND.x) + (z - POND.z) * (z - POND.z));
     h -= 2.2 * smooth((POND.radius + 2 - dp) / 2.5);
-    return h;
+    return h + mountainHeight(x, z) + duneHeight(x, z);
   }
 
   function isWater(x, z) { return groundHeight(x, z) < WATER_LEVEL; }
@@ -52,7 +82,7 @@
   }
 
   SA.map = {
-    BOUNDS: BOUNDS, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND,
+    BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND,
     clamp: clamp, biomeAt: biomeAt, riverX: riverX, groundHeight: groundHeight, isWater: isWater, nearWater: nearWater, rng: rng,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

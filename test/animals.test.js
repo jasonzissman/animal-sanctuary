@@ -11,11 +11,12 @@ const good = () => ({
   parts: [part()], easterEgg: false,
 });
 
-test('2 biomes and 6 animals are registered; every animal is a real animal in a known biome', () => {
+test('4 biomes and 10 animals are registered; every animal is a real animal in a known biome', () => {
   const SA = loadGame(FILES);
-  assert.deepEqual(Array.from(SA.data.all('biomes'), (b) => b.id), ['bosque', 'selva']);
+  assert.deepEqual(Array.from(SA.data.all('biomes'), (b) => b.id), ['bosque', 'selva', 'desierto', 'montana']);
   const animals = SA.data.all('animals');
-  assert.deepEqual(Array.from(animals, (a) => a.id),['conejo', 'pato', 'tortuga', 'mono', 'tucan', 'rana']);
+  assert.deepEqual(Array.from(animals, (a) => a.id),
+    ['conejo', 'pato', 'tortuga', 'mono', 'tucan', 'rana', 'camello', 'serpiente', 'cabra', 'aguila']);
   for (const a of animals) {
     assert.equal(a.easterEgg, false);
     assert.ok(SA.data.get('biomes', a.biome), a.id);
@@ -24,6 +25,18 @@ test('2 biomes and 6 animals are registered; every animal is a real animal in a 
   const byBiome = (b) => Array.from(animals.filter((a) => a.biome === b), (a) => a.id);
   assert.deepEqual(byBiome('bosque'), ['conejo', 'pato', 'tortuga']);
   assert.deepEqual(byBiome('selva'), ['mono', 'tucan', 'rana']);
+  assert.deepEqual(byBiome('desierto'), ['camello', 'serpiente']);
+  assert.deepEqual(byBiome('montana'), ['cabra', 'aguila']);
+});
+
+test('new animals use the new parts (joroba, cuernos) and Spanish names agree', () => {
+  const SA = loadGame(FILES);
+  const has = (id, part) => SA.data.get('animals', id).parts.some((p) => p.part === part);
+  assert.ok(has('camello', 'joroba') && has('cabra', 'cuernos'));
+  assert.equal(SA.data.get('parts', 'joroba').label.es, 'la joroba');
+  assert.equal(SA.data.get('animals', 'aguila').name.es, 'águila');
+  assert.equal(SA.data.get('animals', 'serpiente').traits.legs, 0);
+  assert.equal(SA.data.get('animals', 'serpiente').traits.movement, 'repta');
 });
 
 test('Spanish names carry accents and gender', () => {
@@ -51,8 +64,9 @@ test('validator accepts a good animal and biome', () => {
   const SA = loadGame(FILES);
   SA.data.register('animals', [good()]);
   assert.equal(SA.data.get('animals', 'zorro').name.en, 'fox');
-  SA.data.register('biomes', [{ id: 'desierto', name: { es: 'El desierto', en: 'Desert' }, ground: '#e0c080', accent: '#c08040' }]);
-  assert.ok(SA.data.get('biomes', 'desierto'));
+  SA.data.register('biomes', [{ id: 'playa', name: { es: 'La playa', en: 'Beach' }, ground: '#e0c080', accent: '#c08040', peak: '#ffffff' }]);
+  assert.ok(SA.data.get('biomes', 'playa'));
+  assert.throws(() => SA.data.register('biomes', [{ id: 'cueva', name: { es: 'La cueva', en: 'Cave' }, ground: '#e0c080', accent: '#c08040', peak: 'white' }]), /peak/);
 });
 
 test('validation fails clearly on an unknown part key or biome', () => {

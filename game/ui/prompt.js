@@ -158,7 +158,7 @@
   function createView(doc, handlers) {
     var noop = function () {};
     if (!doc || typeof doc.createElement !== 'function' || !doc.body) {
-      return { showRound: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop,
+      return { showRound: noop, showStep: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop,
         setStars: noop, setHidden: noop, levelCue: noop, snapshot: noop, snapshotHide: noop };
     }
     handlers = handlers || {};
@@ -248,6 +248,13 @@
         starsEl.textContent = '⭐ ' + r.stars;
         camEl.style.display = r.camera ? '' : 'none';
         if (r.hintShown) setIcon(r.icon, true); else setIcon('❓', false);
+      },
+      // On a story mission (AS-0223, SA.missionPill): the pill shows only the current step's line + icon (no hint silhouette, no camera badge).
+      showStep: function (s) {
+        current = s.icon;
+        text.textContent = s.text;
+        camEl.style.display = 'none';
+        setIcon(s.icon, false);
       },
       // s: { icon, text, stamp?, hold? }. White flash, then a framed snapshot (animal icon + its Spanish name) slides in from the right.
       // With `stamp` ("¡Está bien!") a red stamp thumps onto the photo (the rescue proof card); with `hold` the card stays until
@@ -409,9 +416,9 @@
   // o.careFx (optional): the 3D care effects (SA.render.createCareFx); enables the care loop.
   function start(o) {
     o = o || {};
-    var ctl = null;
+    var ctl = null, pill = null;
     var view = createView(o.doc, {
-      replay: function () { if (ctl) ctl.replay(); },
+      replay: function () { if (pill && pill.replay()) return; if (ctl) ctl.replay(); },
       feed: function (id) { if (careFlow) careFlow.onFeed(id); },
     });
     var careFlow = o.care || null;
@@ -431,6 +438,11 @@
     // Habitat sandbox hooks: hide/show the bar and refresh the star badge after spending or refunding.
     ctl.setStars = view.setStars;
     ctl.setHidden = view.setHidden;
+    // On a story mission only the mission shows: the pill follows the current step (main.js polls ctl.updatePill() each frame).
+    if (SA.missionPill) {
+      pill = SA.missionPill.create({ view: view, audio: o.audio });
+      ctl.updatePill = pill.update;
+    }
     return ctl;
   }
 

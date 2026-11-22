@@ -6,7 +6,7 @@ const FILES = ['game/sa.js', 'game/data-registry.js', 'game/save.js', 'game/data
 
 function row(n, extra = {}) {
   return { id: 'm' + n, n, es: 'Misión ' + n, en: 'Mission ' + n, icon: '⭐', intro: { es: 'Hola.', icon: '👋' },
-    steps: [{ kind: 'find' }, { kind: 'photo' }], reward: { stars: n }, ...extra };
+    steps: [{ kind: 'find', line: { es: 'Busca', icon: '🔍' } }, { kind: 'photo', line: { es: 'Toma una foto', icon: '📷' } }], reward: { stars: n }, ...extra };
 }
 
 function setup(opts = {}) {
@@ -103,7 +103,7 @@ test('progress is saved and restored by a fresh instance on the same save', () =
   assert.equal(a.step, 1);
   assert.equal(a.seed, s.seed);
   assert.equal(a.replay, false);
-  assert.deepEqual(plain(a.stepData), { kind: 'photo' });
+  assert.deepEqual(plain(a.stepData), { kind: 'photo', line: { es: 'Toma una foto', icon: '📷' } });
   assert.deepEqual(JSON.parse(JSON.stringify(SA.save.get().missions)), { done: [], active: { id: 'm1', step: 1, seed: s.seed, replay: false } });
 });
 
@@ -180,6 +180,14 @@ test('mission rows are validated with clear errors', () => {
   bad({ intro: { es: 'Hola.', icon: '👋', en: '' } }, 'intro.en');
   bad({ steps: [] }, 'steps');
   bad({ steps: [{}] }, 'steps[0]');
+  // AS-0223: every step needs ONE short line for the prompt pill.
+  bad({ steps: [{ kind: 'find' }] }, 'steps[0].line');
+  bad({ steps: [{ kind: 'find', line: 'Busca' }] }, 'steps[0].line');
+  bad({ steps: [{ kind: 'find', line: { es: '', icon: '🔍' } }] }, 'steps[0].line.es');
+  bad({ steps: [{ kind: 'find', line: { es: 'Busca al cerdito de la granja', icon: '🔍' } }] }, 'steps[0].line.es');
+  bad({ steps: [{ kind: 'find', line: { es: 'Busca', icon: '' } }] }, 'steps[0].line.icon');
+  bad({ steps: [{ kind: 'find', line: { es: 'Busca', icon: '🔍', en: '' } }] }, 'steps[0].line.en');
+  assert.doesNotThrow(() => SA.data.register('missions', [{ ...row(10), steps: [{ kind: 'find', line: { es: 'Uno dos tres cuatro', icon: '🔍', en: 'Find' } }] }]));
   bad({ reward: { stars: -1 } }, 'reward');
   bad({ reward: null }, 'reward');
 });

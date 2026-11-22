@@ -254,7 +254,12 @@ current; when your change sets or changes something future tickets must follow, 
   random `careFlow.offer` when not forced; the AS-0179 encounter starter must ask it too). A forced offer (a mission's own help
   step) still works. `main.js` calls `SA.focus.update()` each frame; on 'mission' it calls `ctl.pause()` (clears the card, drops the
   round and any care task quietly via `mission/round.cancel()` and `careFlow.cancel()`: no miss, star or round event, glow removed);
-  on 'free' it calls `ctl.begin()` so small tasks resume. Slice 2 (AS-0221) makes the top-left prompt show the mission's step.
+  on 'free' it calls `ctl.begin()` so small tasks resume. **On a mission, only the mission shows (AS-0223, slice 2):** small tasks pause
+  AND the top-left pill shows only the current step's line + icon. Every step in `game/data/missions.js` carries a required
+  `line: { es, icon, en? }` (es <= 4 words, correct gender/number; validated; e.g. 'Busca al cerdito' 🐷, 'Llévalo con mamá' 🐖,
+  'Toma una foto' 📷). `SA.missionPill` (`game/mission-pill.js`, pure) is polled by `main.js` after `SA.focus.update()`: it calls
+  `view.showStep` and speaks the line via `SA.audio.say` on every step change; Replay 🔊 repeats it. When the mission ends the focus
+  rule calls `ctl.begin()` and the pill shows its free-roam text again. A new mission's steps must each have a `line`.
 - **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
   (hurt, stuck, hungry, tangled, scared: 1 task at beginner, 2 later) -> take its photo as proof it is OK ("¡Está bien!",
   saved to the album) -> next mission. Finding alone never ends a round. This supersedes "the photo answers the round" below.

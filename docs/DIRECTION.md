@@ -52,7 +52,10 @@ current; when your change sets or changes something future tickets must follow, 
   `SA.render.createStationBoard(THREE, { key: 'badgesBoard', badges: true, titles })`: "Insignias" ("Badges" with English on) and medal doodles.
   The pure `SA.badgesBoard.rows()` (`badges-board.js`) maps `SA.badges.progress()` to `{ id, icon, name, have, need, earned, text }` (`text` =
   `n/m` or ✅); `ui/badges-board-view.js` draws icon + name + text rows into the same station `body` and shows only for source `'badges'`
-  (the missions view hides itself for that source). Tap a row to hear its name. Slice 2 of AS-0219 refines the card.
+  (the missions view hides itself for that source). **Card polish (AS-0240, slice 2):** rows also carry `es`, `goal`, `say`, `fraction`
+  (0..1), `state` (`earned` | `progress` | `locked`) and `locked`; `SA.badgesBoard.goal(rule)` builds the short Spanish goal ('Rescata 5
+  conejos', 'Quita 1 espina', digits + an agreeing noun, never over ~6 words). The view adds a progress bar per row, ✅ when earned,
+  grey for not-started rows, a scrolling list (title + rows only), and a tap says `row.say` = name + goal via `SA.audio.say`.
   **Misiones board (AS-0197):** `ui/missions-board-view.js` renders into that `body` (re-rendered on every open) from the pure
   `SA.missionsBoard` (`missions-board.js`: `cards()` maps `SA.missions.list()` to done ✅ / next ⭐ / active ▶️ / locked 🔒 cards,
   `layout()` sizes a wrapping, scrolling grid so cards never overlap each other or the ✕). Tap done = replay, next = start (the

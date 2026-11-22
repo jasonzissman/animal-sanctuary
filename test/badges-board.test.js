@@ -27,8 +27,10 @@ test('rows: one per badge with icon, Spanish name, n/m text, ✅ when earned', (
   const board = SA.badgesBoard.build({ badges: { progress: () => PROGRESS }, rows: DATA });
   const rows = board.rows();
   assert.equal(rows.length, 3);
-  assert.deepEqual(JSON.parse(JSON.stringify(rows[0])), { id: 'a', icon: '🐷', name: 'Amigo de los cerdos', have: 1, need: 1, earned: true, text: '✅', tier: 'bronce' });
-  assert.deepEqual(JSON.parse(JSON.stringify(rows[1])), { id: 'b', icon: '🌙', name: 'Noche', have: 2, need: 5, earned: false, text: '2/5' });
+  assert.deepEqual(JSON.parse(JSON.stringify(rows[0])), { id: 'a', icon: '🐷', name: 'Amigo de los cerdos', es: 'Amigo de los cerdos', goal: 'Rescata 1 animal',
+    say: 'Amigo de los cerdos. Rescata 1 animal', have: 1, need: 1, earned: true, fraction: 1, state: 'earned', locked: false, text: '✅', tier: 'bronce' });
+  assert.deepEqual(JSON.parse(JSON.stringify(rows[1])), { id: 'b', icon: '🌙', name: 'Noche', es: 'Noche', goal: 'Rescata 1 animal', say: 'Noche. Rescata 1 animal',
+    have: 2, need: 5, earned: false, fraction: 0.4, state: 'progress', locked: false, text: '2/5' });
   assert.equal(rows[2].icon, '🏅', 'a fallback medal when the data has no icon');
   assert.equal(rows[2].text, '0/12');
   assert.equal(JSON.stringify(board.summary(rows)), JSON.stringify({ earned: 1, total: 3 }));
@@ -148,9 +150,69 @@ test('view: shows icon + name + n/m rows only for source badges, spoken on tap, 
   assert.ok(texts.includes('🐷') && texts.some((t) => /Insignias 1\/3/.test(t)));
   const row = flat(view.element).find((e) => e.listeners.click);
   row.listeners.click({});
-  assert.deepEqual(spoken, ['Amigo de los cerdos']);
+  assert.deepEqual(spoken, ['Amigo de los cerdos. Rescata 1 animal']);
   SA.station.close();
   assert.match(view.element.style.cssText, /display:none/);
+});
+
+test('rows: progress fraction and state flags (earned ✅, progress, locked grey)', () => {
+  const { SA } = boot();
+  const rows = SA.badgesBoard.build({ badges: { progress: () => PROGRESS }, rows: DATA }).rows();
+  assert.deepEqual(rows.map((r) => r.state), ['earned', 'progress', 'locked']);
+  assert.deepEqual(rows.map((r) => r.locked), [false, false, true]);
+  assert.deepEqual(rows.map((r) => r.fraction), [1, 0.4, 0]);
+  assert.equal(rows[0].text, '✅');
+  const odd = SA.badgesBoard.build({ badges: { progress: () => [{ id: 'a', have: 3, need: 0, earned: false }] }, rows: DATA }).rows();
+  assert.equal(odd[0].fraction, 0, 'never NaN');
+});
+
+test('goal phrases: short, with gender/number agreement, for every shipped badge', () => {
+  const { SA } = boot(['game/data/biomes.js', 'game/data/parts.js', 'game/data/animals.js', 'game/data/badges.js', 'game/badges.js']);
+  const g = (rule) => SA.badgesBoard.goal(rule);
+  assert.equal(g({ count: 1 }), 'Rescata 1 animal');
+  assert.equal(g({ count: 25 }), 'Rescata 25 animales');
+  assert.equal(g({ animalId: 'conejo', count: 1 }), 'Rescata 1 conejo');
+  assert.equal(g({ animalId: 'conejo', count: 5 }), 'Rescata 5 conejos');
+  assert.equal(g({ animalId: 'tucan', count: 15 }), 'Rescata 15 tucanes');
+  assert.equal(g({ animalId: 'aguila', count: 5 }), 'Rescata 5 águilas');
+  assert.equal(g({ animalId: 'tortuga', count: 1 }), 'Rescata 1 tortuga');
+  assert.equal(g({ kind: 'reunion', count: 1 }), 'Reúne 1 familia');
+  assert.equal(g({ kind: 'reunion', count: 3 }), 'Reúne 3 familias');
+  assert.equal(g({ need: 'thorn', count: 5 }), 'Quita 5 espinas');
+  assert.equal(g({ need: 'thorn', count: 1 }), 'Quita 1 espina');
+  assert.equal(g({ need: 'hungry', count: 5 }), 'Alimenta 5 animales');
+  assert.equal(g({ need: 'mud', count: 1 }), 'Limpia 1 animal');
+  assert.equal(g({ biome: 'bosque', count: 5 }), 'Rescata 5 animales en el bosque');
+  assert.equal(g({ biome: 'selva', count: 5 }), 'Rescata 5 animales en la selva');
+  assert.equal(g({ biome: 'montana', count: 5 }), 'Rescata 5 animales en la montaña');
+  assert.equal(g({ night: true, count: 3 }), 'Rescata 3 animales de noche');
+  assert.equal(g({ album: 'all' }), 'Fotografía todos los animales');
+  assert.equal(g(), 'Rescata 1 animal');
+  SA.badgesBoard.rows().forEach((r) => {
+    assert.ok(r.goal.split(' ').length <= 6, r.goal);
+    assert.equal(r.say, r.es + '. ' + r.goal);
+  });
+});
+
+test('view: rows have a progress bar; locked rows are grey; a tap speaks the name and goal', () => {
+  const { SA } = boot();
+  const spoken = [];
+  SA.audio = { say: (t) => spoken.push(t) };
+  const data = [{ id: 'x', es: 'Chef del santuario', icon: '🍓', rule: { need: 'hungry', count: 5 } },
+    { id: 'y', es: 'Noche', icon: '🌙', rule: { night: true, count: 3 } }];
+  SA.badgesBoard = SA.badgesBoard.build({ badges: { progress: () => [{ id: 'x', have: 2, need: 5, earned: false }, { id: 'y', have: 0, need: 3, earned: false }] }, rows: data });
+  const doc = fakeDoc(), view = SA.badgesBoardView.create(doc, { body: doc.createElement('div') });
+  SA.station.open('badges');
+  const all = flat(view.element), clickable = all.filter((e) => e.listeners.click);
+  assert.equal(clickable.length, 2);
+  assert.match(String(clickable[0].style.cssText), /background:#fff/);
+  assert.match(String(clickable[1].style.cssText), /background:#e4e4e4/, 'not started = grey');
+  assert.ok(all.some((e) => /width:40%/.test(e.style.cssText)), '2/5 bar');
+  assert.ok(all.some((e) => /width:0%/.test(e.style.cssText)), 'empty bar');
+  assert.match(all.find((e) => e.style.cssText && /overflow-y:auto/.test(e.style.cssText)).style.cssText, /max-height:\d+px/, 'scrolls');
+  clickable[0].listeners.click({});
+  clickable[1].listeners.click({ stopPropagation() {} });
+  assert.deepEqual(spoken, ['Chef del santuario. Alimenta 5 animales', 'Noche. Rescata 3 animales de noche']);
 });
 
 test('view: a missing DOM or body is a quiet no-op', () => {

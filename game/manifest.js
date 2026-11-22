@@ -54,6 +54,8 @@ globalThis.SA_MANIFEST = {
     'game/render/world.js',
     'game/render/decor-dry.js',
     'game/render/decor.js',
+    'game/render/block-text.js',
+    'game/render/station-board.js',
     'game/render/station.js',
     'game/render/station-door-tap.js',
     'game/render/scientist-tap.js',

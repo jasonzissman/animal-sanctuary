@@ -123,7 +123,7 @@ test('player.spawn() falls back to a fixed bosque spot when the station is not l
 test('buildStation makes a flat-shaded model of primitives (no textures) from the layout', () => {
   const ctx = vm.createContext({ console });
   ctx.window = ctx; ctx.self = ctx;
-  for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/map.js', 'game/station.js', 'game/render/station.js']) {
+  for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/map.js', 'game/station.js', 'game/render/block-text.js', 'game/render/station-board.js', 'game/render/station.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
   const g = ctx.SA.render.buildStation(ctx.THREE);
@@ -140,4 +140,76 @@ test('buildStation makes a flat-shaded model of primitives (no textures) from th
   const box = new ctx.THREE.Box3().setFromObject(g), c = ctx.SA.station.layout();
   assert.ok(box.min.x > c.cx - c.halfW - 3 && box.max.x < c.cx + c.halfW + 3);
   assert.ok(box.max.y > c.roof.y && box.max.y < c.roof.y + 4);
+  assert.ok(g.userData.board && g.userData.board.group.parent === g, 'the missions board is part of the station model');
+});
+
+const overlaps = (a, b) => a.x0 < b.x1 && a.x1 > b.x0 && a.z0 < b.z1 && a.z1 > b.z0;
+const boardBox = (B) => ({ x0: B.x - B.width / 2, x1: B.x + B.width / 2, z0: B.z - B.depth / 2, z1: B.z + B.depth / 2 });
+
+test('the missions board is inside the station, faces the doorway and keeps clear of door, bench, crates and the doorway noClimb strip (AS-0210)', () => {
+  const B = L.board, bb = boardBox(B);
+  assert.ok(B && B.width > 2 && B.height > 1 && B.depth > 0);
+  // Inside the walls (the back wall's inner face is its limit) and under the wall top, above the floor.
+  assert.ok(bb.x0 >= L.cx - L.halfW + L.wallT / 2 && bb.x1 <= L.cx + L.halfW - L.wallT / 2, 'inside the side walls');
+  assert.ok(bb.z0 > L.door.z && bb.z1 <= L.cz + L.halfD - L.wallT / 2 + 1e-9, 'inside the room, against the back wall');
+  assert.ok(B.y - B.height / 2 > L.floorY && B.y + B.height / 2 < L.floorY + L.wallH);
+  // Faces the doorway: the front normal points at the front wall, and the door's centre line crosses the board.
+  assert.ok(B.facing.x === 0 && B.facing.z === -1);
+  assert.equal(B.facing.z, L.facing.z);
+  assert.ok(Math.abs(B.x - L.door.x) <= B.width / 2, 'seen straight on from the doorway');
+  // Clear of the doorway, bench, crates (those are all outside the room) and the doorway strip of noClimb.
+  const d = L.door, doorBox = { x0: d.x - d.width / 2, x1: d.x + d.width / 2, z0: d.z - L.wallT / 2, z1: d.z + L.wallT / 2 };
+  assert.ok(!overlaps(bb, doorBox));
+  const b = L.bench;
+  assert.ok(!overlaps(bb, { x0: b.x - b.w / 2, x1: b.x + b.w / 2, z0: b.z - b.d / 2, z1: b.z + b.d / 2 }));
+  for (const c of L.crates) assert.ok(!overlaps(bb, { x0: c.x - c.size / 2, x1: c.x + c.size / 2, z0: c.z - c.size / 2, z1: c.z + c.size / 2 }));
+  const strip = S.climbTarget().noClimb[0];
+  assert.ok(!overlaps(bb, strip), 'the doorway strip of noClimb stays clear of the board');
+  // The board stands out from the wall, so it is an obstacle.
+  assert.ok(S.collisionBoxes().some((c) => Math.abs(c.z0 - bb.z0) < 1e-9 && Math.abs(c.x1 - bb.x1) < 1e-9));
+  assert.ok(S.obstacles().some(([x, z]) => Math.abs(z - B.z) < 1e-9 && Math.abs(x - B.x) <= B.width / 2));
+});
+
+test('the missions board model has a title that switches Spanish <-> English with the scaffold toggle (AS-0210)', () => {
+  const ctx = vm.createContext({ console });
+  ctx.window = ctx; ctx.self = ctx;
+  for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/map.js', 'game/station.js', 'game/render/block-text.js', 'game/render/station-board.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+  }
+  let english = false;
+  ctx.SA.save = { get: () => ({ settings: { english } }) };
+  const board = ctx.SA.render.createStationBoard(ctx.THREE), B = ctx.SA.station.layout().board;
+  const meshes = (o) => { let n = 0; o.traverse((x) => { if (x.isMesh) n++; }); return n; };
+  assert.equal(board.english, false);
+  const es = board.title, esBlocks = meshes(es);
+  assert.ok(esBlocks > 40 && es.parent === board.group, 'a block-letter title is on the board');
+  assert.ok(meshes(board.group) > esBlocks + 15, 'frame, panel, scribble lines and doodles besides the title');
+  board.update();
+  assert.equal(board.title, es, 'unchanged toggle keeps the same title group');
+  english = true;
+  board.update();
+  assert.equal(board.english, true);
+  assert.notEqual(board.title, es);
+  assert.equal(es.parent, null, 'the Spanish title is removed');
+  assert.notEqual(meshes(board.title), esBlocks, 'a different word');
+  english = false;
+  board.update();
+  assert.equal(meshes(board.title), esBlocks, 'back to "Lista de misiones"');
+  // Flat colours only, placed at the layout's board.
+  board.group.traverse((o) => { if (o.isMesh) assert.ok(o.material.flatShading && !o.material.map); });
+  assert.equal(board.group.position.x, B.x);
+  assert.equal(board.group.position.z, B.z);
+  // Missing save (no storage) is fine: Spanish.
+  delete ctx.SA.save;
+  assert.doesNotThrow(() => board.update());
+  assert.equal(board.english, false);
+});
+
+test('block-text knows every letter of both board titles', () => {
+  const SA2 = loadGame(['game/sa.js', 'game/render/block-text.js']);
+  for (const word of ['Lista de misiones', 'Mission list', 'Estación']) {
+    for (const ch of word.toUpperCase().replace('Ó', 'O')) if (ch !== ' ') assert.ok(SA2.render.blockTextFont[ch], `glyph ${ch}`);
+    assert.ok(SA2.render.blockTextBlocks(word) > 0);
+  }
+  assert.equal(SA2.render.blockTextBlocks(''), 0);
 });

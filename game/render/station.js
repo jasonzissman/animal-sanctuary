@@ -10,13 +10,6 @@
   var COLORS = { wall: 0xf1e6d0, trim: 0x8a6a4a, roof: 0xc4553f, glass: 0x9fd8ea, plinth: 0x9a9a92, door: 0x5b3e2b, dish: 0xe8edf0,
     metal: 0x6e7880, sign: 0x2f6f8f, letter: 0xffffff, icon: 0xffd24a, wood: 0xb98a55, crate: 0xc99a5b, floor: 0xd9c9a8 };
 
-  // 3x5 block letters for "ESTACIÓN" (rows top to bottom; 1 = a small box).
-  var FONT = {
-    E: ['111', '100', '111', '100', '111'], S: ['111', '100', '111', '001', '111'], T: ['111', '010', '010', '010', '010'],
-    A: ['010', '101', '111', '101', '101'], C: ['111', '100', '100', '100', '111'], I: ['111', '010', '010', '010', '111'],
-    O: ['111', '101', '101', '101', '111'], N: ['101', '111', '111', '111', '101'],
-  };
-
   function mats(THREE) {
     var m = {};
     Object.keys(COLORS).forEach(function (k) { m[k] = new THREE.MeshPhongMaterial({ color: COLORS[k], flatShading: true, specular: 0x000000 }); });
@@ -30,25 +23,7 @@
   }
 
   /** The word on the sign, facing -z (toward the player at the door). Returns the group and its width. */
-  function signText(THREE, m, text, px) {
-    var g = new THREE.Group(), x = 0, word = text.toUpperCase().replace('Ó', 'O');
-    for (var i = 0; i < word.length; i++) {
-      var rows = FONT[word[i]];
-      if (!rows) { x += 2 * px; continue; }
-      for (var r = 0; r < 5; r++) for (var c = 0; c < 3; c++) {
-        if (rows[r][c] !== '1') continue;
-        var b = new THREE.Mesh(new THREE.BoxGeometry(px, px, px * 0.6), m.letter);
-        b.position.set(-(x + c * px), (2 - r) * px, 0);   // -x: the sign faces -z, so the reader's left is +x
-        g.add(b);
-      }
-      if (text[i] === 'Ó') { var tick = new THREE.Mesh(new THREE.BoxGeometry(px, px, px * 0.6), m.letter); tick.position.set(-(x + 2 * px), 3.4 * px, 0); g.add(tick); }
-      x += 4 * px;
-    }
-    g.position.x = (x - px) / 2;   // centre
-    var holder = new THREE.Group();
-    holder.add(g);
-    return { group: holder, width: x - px };
-  }
+  function signText(THREE, m, text, px) { return SA.render.blockText(THREE, m.letter, text, px); }   // glyphs: render/block-text.js
 
   /** Atom icon: a gold nucleus with two crossing rings. */
   function atom(THREE, m) {
@@ -126,6 +101,13 @@
     icon.scale.setScalar(0.8);
     icon.position.set(s.x + bw / 2 - 0.4, s.y, s.z - 0.12);
     g.add(word.group, icon);
+
+    // The "Lista de misiones" board on the inside of the back wall, facing the doorway (AS-0210).
+    if (SA.render.createStationBoard && L.board) {
+      var board = SA.render.createStationBoard(THREE);
+      g.add(board.group);
+      g.userData.board = board;
+    }
 
     // Bench: a plank seat on two legs, against the front wall.
     var b = L.bench, bx0 = b.x - b.w / 2, bx1 = b.x + b.w / 2, bz0 = b.z - b.d / 2, bz1 = b.z + b.d / 2, by = L.floorY;

@@ -31,7 +31,10 @@ current; when your change sets or changes something future tickets must follow, 
   `SA.npc.scientist()` reads her post from the layout. `SA.station` (game/station.js, pure) is the one source: `layout()`, `collisionBoxes()` (doorway left open),
   `obstacles()` (those boxes as circle chains, appended to the player's obstacle list in scene.js), `spawn()` (what `SA.player.spawn()`
   returns when the module is loaded) and `inFootprint()` (decor and animal placement keep out). `game/render/station.js` builds the model
-  from flat primitives (the sign letters are boxes, no textures). Later slices put the scientist and briefing in/at the station.
+  from flat primitives (the sign letters are boxes, no textures; the block font is shared in `render/block-text.js`). Later slices put the scientist and briefing in/at the station.
+  **"Lista de misiones" board (AS-0210, slice 1 of AS-0205):** `layout().board` sits on the back wall's inner face facing the door (it is in `collisionBoxes()`);
+  `render/station-board.js` builds it (frame, title, scribbles, doodles) and `update()` swaps the title to "Mission list" when the English scaffold is on.
+  Visual only so far: slice 2 makes it the Use target that opens the missions.
   **The doorway is a Use target (AS-0146).** `game/station-door.js` adds `SA.station.doorTarget()/doorTargets()` (the doorway centre,
   reach `DOOR_REACH` 2.6) and the menu hook: `SA.station.open(source)` / `close()` / `toggle()` / `isOpen()` / `onOpen(fn)` / `onClose(fn)`
   (`SAT.track('station.open', { source })` once per opening). `SA.spaceTarget` takes `doors` (kind `'door'`, scored like trees and

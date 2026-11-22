@@ -44,4 +44,11 @@
   SA.data.register('vocab', foods.map(function (f) {
     return { id: 'food:' + f.id, key: 'food:' + f.id, es: (f.label.gender === 'f' ? 'la ' : 'el ') + f.label.es, clip: null };
   }));
+  // Bare nouns for counted asks ("dos fresas y una zanahoria"): 'foodpl:<id>' plural, 'foodsg:<id>' singular (count 1).
+  SA.data.register('vocab', foods.map(function (f) {
+    return { id: 'foodpl:' + f.id, key: 'foodpl:' + f.id, es: f.label.plural, clip: null };
+  }));
+  SA.data.register('vocab', foods.map(function (f) {
+    return { id: 'foodsg:' + f.id, key: 'foodsg:' + f.id, es: f.label.es, clip: null };
+  }));
 })(typeof window !== 'undefined' ? window : globalThis);

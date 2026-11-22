@@ -35,6 +35,7 @@
       if (task.kind === 'alimentar') {
         view.showCare({ text: task.text, icon: food(task.food).icon, stars: stars() });
         vcall('showFeed', { count: task.count, given: 0, icon: food(task.food).icon,
+          items: task.items.map(function (it) { return { icon: food(it.food).icon, count: it.count, given: 0 }; }),
           tray: task.tray.map(function (id) { return { id: id, icon: food(id).icon, label: SA.vocab.get('food:' + id).es }; }) });
       } else {
         // only cleaning is rubbed; healing is a single tap on the scraped part
@@ -81,8 +82,9 @@
       if (res.status === 'fed' || res.status === 'done') {
         var t = care.current();
         sfx('pop');
-        say('number:' + t.given);
-        vcall('updateFeed', { given: t.given });
+        var item = t.items.filter(function (it) { return it.food === foodId; })[0];
+        say('number:' + item.given);        // counts each asked food on its own: "uno, dos" fresas, then "uno" zanahoria
+        vcall('updateFeed', { given: t.given, items: t.items.map(function (it) { return { given: it.given }; }) });
         if (res.status === 'done') finish(res);
       } else if (res.status === 'wrong') {
         sfx('giggle');

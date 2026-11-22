@@ -169,7 +169,7 @@
     var foodsEl = el('div', 'display:flex;gap:.4em;');
     trayEl.appendChild(dotsEl); trayEl.appendChild(foodsEl);
     doc.body.appendChild(trayEl);
-    var foodBtns = {}, feedIcon = '', feedCount = 0;
+    var foodBtns = {}, feedIcon = '', feedCount = 0, feedItems = null;
     hintBtn.addEventListener('click', function () { if (handlers.hint) handlers.hint(); });
     replayBtn.addEventListener('click', function () { if (handlers.replay) handlers.replay(); });
     var toastTimer = null;
@@ -194,9 +194,10 @@
         hintBtn.style.display = 'none';
         setIcon(r.icon, false);
       },
-      // r: { count, given, icon, tray: [{ id, icon, label }] }
+      // r: { count, given, icon, items?: [{ icon, count }], tray: [{ id, icon, label }] }  (items: one row per asked food)
       showFeed: function (r) {
         feedIcon = r.icon; feedCount = r.count;
+        feedItems = r.items && r.items.length > 1 ? r.items : null;
         foodsEl.textContent = '';
         foodBtns = {};
         r.tray.forEach(function (f) {
@@ -209,11 +210,19 @@
           foodsEl.appendChild(b);
         });
         trayEl.style.display = 'flex';
-        this.updateFeed({ given: r.given });
+        this.updateFeed({ given: r.given, items: r.items });
       },
       updateFeed: function (r) {
         var s = '';
-        for (var i = 0; i < feedCount; i++) s += i < r.given ? feedIcon : '⚪';
+        if (feedItems && r.items) {      // two-food ask: one group of dots per food, e.g. "🍓🍓 🥕"
+          s = feedItems.map(function (it, k) {
+            var g = r.items[k] ? r.items[k].given : 0, d = '';
+            for (var j = 0; j < it.count; j++) d += j < g ? it.icon : '⚪';
+            return d;
+          }).join(' ');
+        } else {
+          for (var i = 0; i < feedCount; i++) s += i < r.given ? feedIcon : '⚪';
+        }
         dotsEl.textContent = s;
       },
       hideFeed: function () { trayEl.style.display = 'none'; },

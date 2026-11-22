@@ -7,13 +7,16 @@
  *       With the task's `chance` (or always when force) picks a part from the task data that the animal really has:
  *       { id, taskId, kind, animalId, part, text: 'Limpia las patas', rubs, remaining, spots, misses, done }
  *       A feed task has no part: { ..., kind: 'alimentar', food: 'fresa', count: 3, given: 0, tray: [foodIds],
- *       text: 'Dale tres fresas al conejo' }; the tray mixes the asked food with other foods (some the animal
- *       does not eat). The count is 1-3 at scaffold level 1 and 1-5 from level 2.
+ *       items: [{ food, count, given }], words: [vocabKeys], text: 'Dale tres fresas al conejo' }; the tray mixes
+ *       the asked food(s) with other foods (some the animal does not eat). `count`/`given` are totals over `items`;
+ *       `words` are the vocab keys of the asked phrase ("number:3", "foodpl:fresa"). Counts are 1-3 at scaffold
+ *       level 1, 1-5 at level 2, and 1-8 at level 3+, which can also ask two different foods in any order:
+ *       'Dale dos fresas y una zanahoria al conejo' (words: number:2 foodpl:fresa phrase:y number:una foodsg:zanahoria).
  *   care.feed(foodId) -> { status: 'ignored' | 'wrong' | 'fed' | 'done', ... }
- *       Only the asked food counts. 'fed' carries `given`/`remaining`; the task completes (star, round.complete)
- *       only at exactly `count`. Any other food, or one too many, is 'wrong' with `reason` 'diet' (the animal
- *       does not eat it) | 'other' (it eats it, but it was not asked) | 'extra', plus the food's Spanish `label`;
- *       no penalty, the task continues. Emits care.feed {food, correct}.
+ *       Only the asked food(s) count. 'fed' carries `given`/`remaining` (totals); the task completes (star,
+ *       round.complete) only when every asked item has exactly its count. Any other food, or one too many of an
+ *       asked food, is 'wrong' with `reason` 'diet' (the animal does not eat it) | 'other' (it eats it, but it was
+ *       not asked) | 'extra', plus the food's Spanish `label`; no penalty, the task continues. Emits care.feed {food, correct}.
  *   care.tap({ animalId, part }) -> { status: 'ignored' | 'wrong' | 'scrub' | 'done', ... }
  *       Emits part.tap {part, correct}. The right part washes one rub away ('scrub' with `remaining`, spots left in
  *       `spotsLeft`); the last rub finishes the task: +1 star, rounds.completed +1, round.complete
@@ -56,33 +59,54 @@
       return a;
     }
 
-    // "una"/"un" for 1 (agrees with the food's gender), else the spoken number word from the vocab ("tres").
-    function countWord(n, gender) {
-      if (n === 1) return gender === 'f' ? 'una' : 'un';
-      var v = SA.vocab && SA.vocab.get('number:' + n);
-      return v ? v.es : String(n);
+    // Vocab key of the count word: "una"/"un" for 1 (agrees with the food's gender), else the number ("number:3").
+    function countKey(n, gender) { return n === 1 ? (gender === 'f' ? 'number:una' : 'number:un') : 'number:' + n; }
+
+    function vocabEs(key) {
+      var v = SA.vocab && SA.vocab.get(key);
+      return v ? v.es : key.split(':')[1];
     }
 
     function eats(food, diet) { return food.diets.indexOf(diet) >= 0; }
 
+    function randInt(lo, hi) { var span = hi - lo + 1; return lo + Math.floor(rng() * span) % span; }
+
+    // Scaffold level 1: 1..easyMax; 2: 1..maxCount; 3+ (challenge): 1..challengeMax, or sometimes two different foods.
     function startFeed(animal, def) {
       var diet = animal.traits.diet;
       var foods = SA.data.all('foods');
       var yes = foods.filter(function (f) { return eats(f, diet); });
       if (!yes.length) return null;
+      var level = levelNow();
       var target = pick(yes);
-      var maxN = levelNow() >= 2 ? def.maxCount : def.easyMax;
-      var count = def.minCount + Math.floor(rng() * (maxN - def.minCount + 1)) % (maxN - def.minCount + 1);
-      var others = shuffled(yes.filter(function (f) { return f !== target; })).slice(0, def.trayMatching);
+      var second = null;
+      if (level >= 3 && yes.length > 1 && rng() < def.pairChance) {
+        second = pick(yes.filter(function (f) { return f !== target; }));
+      }
+      var maxN = level >= 3 ? def.challengeMax : level >= 2 ? def.maxCount : def.easyMax;
+      var items = second
+        ? [{ food: target.id, count: randInt(def.minCount, def.pairMax), given: 0 },
+          { food: second.id, count: randInt(def.minCount, def.pairMax), given: 0 }]
+        : [{ food: target.id, count: randInt(def.minCount, maxN), given: 0 }];
+      var asked = second ? [target, second] : [target];
+      var others = shuffled(yes.filter(function (f) { return asked.indexOf(f) < 0; })).slice(0, def.trayMatching);
       var wrong = shuffled(foods.filter(function (f) { return !eats(f, diet); })).slice(0, def.trayOther);
-      var tray = shuffled([target].concat(others, wrong)).map(function (f) { return f.id; });
+      var tray = shuffled(asked.concat(others, wrong)).map(function (f) { return f.id; });
       // Feminine nouns that start with a stressed "á" take "el" (el águila), so "al águila", not "a la águila".
       var who = (animal.name.gender === 'f' && !/^á/.test(animal.name.es) ? 'a la ' : 'al ') + animal.name.es;
-      var text = def.prompt.replace('{count}', countWord(count, target.label.gender))
-        .replace('{food}', count === 1 ? target.label.es : target.label.plural).replace('{animal}', who);
+      // Each ask is "<count> <noun>" with the count agreeing in gender, the noun singular for 1; asks are joined by "y".
+      var words = [], phrases = [];
+      items.forEach(function (it, i) {
+        var f = asked[i], keys = [countKey(it.count, f.label.gender), (it.count === 1 ? 'foodsg:' : 'foodpl:') + f.id];
+        phrases.push(keys.map(vocabEs).join(' '));
+        words = words.concat(i ? ['phrase:y'] : [], keys);
+      });
+      var text = def.prompt.replace('{count} {food}', phrases.join(' y ')).replace('{animal}', who);
+      var total = items.reduce(function (n, it) { return n + it.count; }, 0);
       seq += 1;
       return { id: 'c' + seq + ':' + animal.id + ':' + target.id, taskId: def.id, kind: 'alimentar', animalId: animal.id,
-        part: null, food: target.id, count: count, given: 0, tray: tray, text: text, misses: 0, done: false };
+        part: null, food: target.id, count: total, given: 0, items: items, words: words, tray: tray, text: text,
+        misses: 0, done: false };
     }
 
     function startPart(animal, def) {
@@ -125,13 +149,20 @@
     function feed(foodId) {
       if (!task || task.done || task.kind !== 'alimentar' || task.tray.indexOf(foodId) < 0) return { status: 'ignored' };
       var animal = SA.data.get('animals', task.animalId), food = SA.data.get('foods', foodId);
-      var ok = foodId === task.food && task.given < task.count;
+      var item = null, asked = false;
+      task.items.forEach(function (it) {
+        if (it.food !== foodId) return;
+        asked = true;
+        if (it.given < it.count) item = it;
+      });
+      var ok = !!item;
       track('care.feed', { food: foodId, correct: ok });
       if (!ok) {         // wrong food, a food it does not eat, or one too many: it bounces back (no penalty)
         task.misses += 1;
-        var reason = foodId === task.food ? 'extra' : eats(food, animal.traits.diet) ? 'other' : 'diet';
+        var reason = asked ? 'extra' : eats(food, animal.traits.diet) ? 'other' : 'diet';
         return { status: 'wrong', reason: reason, food: foodId, label: SA.vocab.get('food:' + foodId).es, misses: task.misses };
       }
+      item.given += 1;
       task.given += 1;
       if (task.given >= task.count) return complete();
       return { status: 'fed', food: foodId, given: task.given, remaining: task.count - task.given };

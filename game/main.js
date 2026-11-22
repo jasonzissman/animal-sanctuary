@@ -90,6 +90,10 @@
         view.setStars(SA.save.get().stars);
       }
     } catch (e) { report('sandbox.start', e); }
+    // Photo album (📖 under the habitat button): every photographed animal with its name and parts. Pauses picking while open.
+    try {
+      if (SA.albumView) SA.albumView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); } });
+    } catch (e) { report('album.start', e); }
     // Grown-up drawer (press-and-hold gear). Never blocks the main loop.
     try { if (SA.settingsView) SA.settingsView.create(root.document); } catch (e) { report('settings.start', e); }
     var last = null;

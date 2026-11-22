@@ -34,6 +34,7 @@
     var patch = {};
     patch[animalId] = n;
     SA.save.update({ photos: patch });
+    if (SA.album) SA.album.add(animalId);   // the first photo of a species dates its album page
     return n;
   }
 

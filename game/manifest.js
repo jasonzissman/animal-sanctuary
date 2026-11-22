@@ -41,6 +41,8 @@ globalThis.SA_MANIFEST = {
     'game/perch.js',
     'game/climb.js',
     'game/render/reach-cue.js',
+    'game/click-outcome.js',
+    'game/render/click-fx.js',
     'game/render/world.js',
     'game/render/decor-dry.js',
     'game/render/decor.js',

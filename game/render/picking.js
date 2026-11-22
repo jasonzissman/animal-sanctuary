@@ -15,6 +15,9 @@
  *   (parts beat trees and pickups there, so Space never both uses a part and grabs a find).
  * - Reach: with opts.getPlayer() (the walking avatar) a pick on an out-of-reach animal never reaches SA.picking.emit; it
  *   shows opts.reachCue ("¡Acércate!") and calls SA.reach.notifyFar instead. Rubbing out of reach is silently ignored.
+ * - Click feedback (SA.clickOutcome): a click that picks nothing (empty ground, sky, the player's own avatar, which is never a
+ *   pick volume so it never blocks) shows opts.clickFx.ripple(x, y) and, when an animal is on screen but out of reach, the
+ *   opts.reachCue "¡Acércate!". Gentle only: nothing is emitted, nothing counts as a miss.
  * Returns { update(dt), pickAt(clientX, clientY) -> {animalId, part, ...}|null, target() -> {animalId, part, mesh}|null, useTarget() -> bool }. Call update(dt) every frame.
  */
 (function (root) {
@@ -140,10 +143,33 @@
       chipLeft = CHIP_SECONDS;
     }
 
+    var pv = new THREE.Vector3();
     var lastType = 'mouse';
     function tap(x, y) {
-      var paused = SA.picking.isPaused && SA.picking.isPaused();
-      select(pickAt(x, y) || (paused ? null : aimedHit(x, y, lastType === 'touch')));
+      var paused = !!(SA.picking.isPaused && SA.picking.isPaused());
+      var hit = pickAt(x, y) || (paused ? null : aimedHit(x, y, lastType === 'touch'));
+      if (!SA.clickOutcome) { select(hit); return; }
+      // SA.clickOutcome decides the feedback; a click that picks nothing (ground, sky, the avatar) gets a ripple and,
+      // with an animal in view but out of reach, the friendly ¡Acércate! (never a wrong pick, nothing is emitted).
+      var o = SA.clickOutcome.decide({ hit: hit && hit.mesh ? hit : null, inReach: !!(hit && hit.mesh && inReach(hit)), paused: paused,
+        farVisible: !hit && !paused && SA.clickOutcome.farVisible(opts.getPlayer && opts.getPlayer(), onScreenAnimals()) });
+      if (o.kind === 'pick' || o.kind === 'far') select(hit);
+      else if (o.cue && opts.reachCue) opts.reachCue.show();
+      if (o.ripple && opts.clickFx) opts.clickFx.ripple(x, y);
+    }
+
+    // Visible animals (never the avatar) with whether they are on screen, for SA.clickOutcome.farVisible.
+    function onScreenAnimals() {
+      var out = [];
+      camera.updateMatrixWorld();
+      animals.children.forEach(function (g) {
+        if (g.visible === false || (g.userData && g.userData.avatar)) return;
+        pv.set(g.position.x, g.position.y + 0.6, g.position.z).project(camera);
+        out.push({ x: g.position.x, y: g.position.y, z: g.position.z,
+          onScreen: pv.z > -1 && pv.z < 1 && Math.abs(pv.x) <= 1 && Math.abs(pv.y) <= 1,
+          ignoreHeight: !!(g.userData && g.userData.perched && !SA.climb) });
+      });
+      return out;
     }
 
     // The one pick path: a mouse click or a tap (never the keyboard) ends up here.
@@ -171,8 +197,6 @@
     // ---- Forgiving aim: project the in-reach parts to the screen, keep the nearest one highlighted (SA.aim). ----
     var aim = SA.aim ? SA.aim.create() : null;
     var pointer = null;               // mouse position (client px) while it is over the canvas; null = aim from the screen centre
-    var pv = new THREE.Vector3();
-
     function partRadiusPx(mesh, depth, h) {
       var g = mesh.geometry;
       if (!g || !(depth > 0)) return 0;

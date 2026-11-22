@@ -52,9 +52,14 @@
     if (master && master.gain) master.gain.value = isMuted() ? 0 : 0.8;
   }
 
+  // Callbacks run when mute turns on, so voice output (game/speech.js) can stop what is already playing.
+  var muteListeners = [];
+  function onMute(fn) { if (typeof fn === 'function') muteListeners.push(fn); }
+
   function setMuted(v) {
     muted = !!v;
     applyMaster();
+    if (muted) muteListeners.forEach(function (fn) { try { fn(); } catch (e) { /* best effort */ } });
     try { if (SA.save) SA.save.update({ settings: { muted: muted } }); } catch (e) { /* best effort */ }
     return muted;
   }
@@ -148,6 +153,7 @@
     isAvailable: available,
     isMuted: isMuted,
     setMuted: setMuted,
+    onMute: onMute,
     toggleMute: function () { return setMuted(!isMuted()); }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

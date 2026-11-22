@@ -43,6 +43,7 @@
       if (!toast) {
         toast = doc.createElement('div');
         toast.setAttribute('aria-live', 'polite');
+        toast.setAttribute('data-sa-message', '1');
         toast.style.cssText = 'position:fixed;z-index:3;pointer-events:none;display:none;box-sizing:border-box;justify-content:center;overflow:hidden;' +
           'align-items:center;gap:.4em;padding:0 .9em;background:#fff;color:#24543a;border:.1em solid #24543a;border-radius:1em;' +
           'box-shadow:0 .15em .6em rgba(0,0,0,.3);font:700 2rem system-ui,sans-serif;white-space:nowrap;';

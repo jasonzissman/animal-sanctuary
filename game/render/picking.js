@@ -140,6 +140,7 @@
       if (!chip) {
         chip = root.document.createElement('div');
         chip.setAttribute('aria-live', 'polite');
+        chip.setAttribute('data-sa-message', '1');   // the hotbar's item chip stays hidden while this is showing
         chip.style.cssText = 'position:fixed;z-index:3;box-sizing:border-box;justify-content:center;white-space:nowrap;overflow:hidden;' +
           'pointer-events:none;display:none;align-items:center;gap:.6em;padding:0 .9em;' +
           'background:#fff;color:#24543a;border:.12em solid #24543a;border-radius:1em;' +

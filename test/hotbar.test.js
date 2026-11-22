@@ -179,24 +179,57 @@ test('every item (tool, food, find) has a chip whose article agrees with its gen
   }
 });
 
-test('hotbar view: equipping shows the name chip and speaks it, unequipping hides it, a restored item is shown but not spoken', () => {
-  const said = [];
+test('chipVisible: shows for 1.5 s after an equip, never without one, never over a message', () => {
+  const { SA } = setup();
+  const vis = (sinceEquip, messageShown) => SA.hotbar.chipVisible({ sinceEquip, messageShown });
+  assert.equal(SA.hotbar.CHIP_MS, 1500);
+  assert.equal(vis(0, false), true);
+  assert.equal(vis(1499, false), true);
+  assert.equal(vis(1500, false), false);
+  assert.equal(vis(60000, false), false);
+  for (const bad of [null, undefined, -1, NaN, '5']) assert.equal(vis(bad, false), false, String(bad));   // restored/never equipped
+  assert.equal(vis(0, true), false);                                                      // messages always win
+  assert.equal(vis(700, true), false);
+  assert.equal(SA.hotbar.chipVisible(), false);
+});
+
+function viewSetup() {
+  const said = [], clock = { t: 1000 };
+  class FakeDate extends Date { static now() { return clock.t; } }
   const stub = (SA) => { SA.audio = { say: (k) => said.push(k) }; };
-  const g = loadGame([...FILES, stub, 'game/ui/hotbar-view.js'], { localStorage: fakeStorage() });
+  const g = loadGame([...FILES, stub, 'game/ui/hotbar-view.js'], { localStorage: fakeStorage(), Date: FakeDate });
   g.save.load();
-  const { made, doc } = fakeDoc();
+  const f = fakeDoc();
+  const messages = [];
+  f.doc.querySelectorAll = (sel) => { assert.equal(sel, '[data-sa-message]'); return messages; };
+  const msg = () => { const el = f.doc.createElement(); el.attrs['data-sa-message'] = '1'; el.style.display = 'none'; messages.push(el); return el; };
+  return { g, said, clock, msg, ...f };
+}
+const tapSlot = (v, i) => v.element.children[i].on.pointerdown({ preventDefault() {}, stopPropagation() {} });
+
+test('hotbar view: the name chip flashes ~1.5 s on equip, speaks it, and is never shown for the restored item', () => {
+  const { g, said, clock, made, doc } = viewSetup();
   const v = g.hotbarView.create(doc);
   const chip = made[1];
   assert.match(chip.style.cssText, /display:none/);                                       // hidden until something is equipped
 
-  v.element.children[1].on.pointerdown({ preventDefault() {}, stopPropagation() {} });   // equip el cepillo
+  tapSlot(v, 1);                                                                          // equip el cepillo
   assert.equal(chip.textContent, '🪮 el cepillo');
   assert.equal(chip.style.display, 'flex');
   assert.deepEqual(said, ['item:cepillo']);
+  assert.match(g.hotbarView ? v.element.children[1].style.cssText : '', /#ff9f1c/);       // the slot ring is unchanged
 
-  g.hotbar.pressKey('1');                                                                 // switch, then update()
+  clock.t += 1000; v.update();
+  assert.equal(chip.style.display, 'flex');
+  clock.t += 600; v.update();                                                             // 1.6 s after the equip
+  assert.equal(chip.style.display, 'none');
   v.update();
+  assert.equal(chip.style.display, 'none');                                               // stays hidden while still equipped
+  assert.equal(g.inventory.equipped(), 'cepillo');
+
+  g.hotbar.pressKey('1'); v.update();                                                     // switch: flashes again
   assert.equal(chip.textContent, '📷 la cámara');
+  assert.equal(chip.style.display, 'flex');
   assert.deepEqual(said, ['item:cepillo', 'item:camara']);
 
   v.setHidden(true);
@@ -204,16 +237,41 @@ test('hotbar view: equipping shows the name chip and speaks it, unequipping hide
   v.setHidden(false);
   assert.equal(chip.style.display, 'flex');
 
-  g.hotbar.pressKey('0');
-  v.update();
+  g.hotbar.pressKey('0'); v.update();
   assert.equal(chip.style.display, 'none');
   assert.equal(said.length, 2);                                                           // unequip is silent
 
-  // a new view with an item already in hand: chip shows, nothing is spoken
+  // a new view with an item already in hand (restored from the save): no chip, nothing spoken
   g.hotbar.pressKey('4');
   const before = said.length;
-  const { made: made2, doc: doc2 } = fakeDoc();
-  g.hotbarView.create(doc2);
-  assert.equal(made2[1].textContent, '🩹 la venda');
+  const second = fakeDoc();
+  const v2 = g.hotbarView.create(second.doc);
+  v2.update();
+  assert.notEqual(second.made[1].style.display, 'flex');
   assert.equal(said.length, before);
+});
+
+test('hotbar view: the chip never shows while a message, animal name, part label or tray is visible', () => {
+  const { g, clock, msg, made, doc } = viewSetup();
+  const v = g.hotbarView.create(doc);
+  const chip = made[1];
+  const toast = msg(), partLabel = msg();   // created after the view, so made[1] is still the chip
+
+  partLabel.style.display = 'flex';                                                       // a part label is up
+  tapSlot(v, 1);
+  assert.notEqual(chip.style.display, 'flex');
+  partLabel.style.display = 'none';                                                       // it goes away inside the window
+  v.update();
+  assert.equal(chip.style.display, 'flex');
+
+  toast.style.display = 'flex';                                                           // a message arrives: the chip yields
+  v.update();
+  assert.notEqual(chip.style.display, 'flex');
+  toast.style.display = 'none'; toast.style.visibility = 'hidden';                        // hidden messages do not count
+  v.update();
+  assert.equal(chip.style.display, 'flex');
+  toast.style.visibility = 'visible'; toast.style.display = 'flex';
+  clock.t += 2000; v.update();
+  toast.style.display = 'none'; v.update();
+  assert.notEqual(chip.style.display, 'flex');                                               // and it does not return after 1.5 s
 });

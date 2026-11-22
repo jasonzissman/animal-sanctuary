@@ -2,8 +2,9 @@
  * One big (72px) button per SA.hotbar slot: the item icon, a count badge for stacks (> 1) and a bright ring on the
  * equipped slot. Tapping a slot calls SA.hotbar.tapSlot (tap the equipped one again to empty your hands).
  * update() is cheap (compares SA.hotbar.signature()) and rebuilds only when the inventory changed; call it every frame.
- * A chip above the bar shows the equipped item's icon and Spanish name with article ("el cepillo"); equipping speaks it via
- * SA.audio.say('item:<id>') (not for an item restored from the save), unequipping hides the chip.
+ * A chip in the HUD's transient strip flashes the equipped item's icon and Spanish name ("el cepillo") for ~1.5 s after an
+ * equip (SA.hotbar.chipVisible), never on load with the restored item and never while a [data-sa-message] element (toast, part
+ * or animal name, feed tray...) is visible. Equipping speaks it via SA.audio.say('item:<id>'); the equipped slot stays ringed.
  * Each button has an aria-label with the Spanish item name; no visible text. No-op without a DOM.
  */
 (function (root) {
@@ -46,20 +47,40 @@
       SA.hudPlace.register('hotbarChip', chip, { onPlace: function (r) { chip.style.fontSize = Math.round(r.height * 0.5) + 'px'; } });
     }
 
-    function showChip(c) {
-      chip.textContent = c.icon + ' ' + c.text;
-      chip.style.display = hidden ? 'none' : 'flex';
+    // AS-0121: the chip is a ~1.5 s confirmation after an equip (never for the item restored from the save) and it never covers a
+    // message: any visible [data-sa-message] element (toast, pickup toast, reach cue, part/animal name, feed tray) hides it.
+    var equippedAt = null, chipOn = false;
+    function now() { return root.Date.now(); }
+    function messageShown() {
+      var list = doc.querySelectorAll ? doc.querySelectorAll('[data-sa-message]') : [];
+      for (var i = 0; i < list.length; i++) {
+        var s = list[i].style;
+        if (s.display !== 'none' && s.visibility !== 'hidden') return true;
+      }
+      return false;
+    }
+    function refreshChip() {
+      var since = equippedAt === null ? null : now() - equippedAt;
+      var on = !hidden && !!chipId && SA.hotbar.chipVisible({ sinceEquip: since, messageShown: messageShown() });
+      if (on) {
+        var left = SA.hotbar.CHIP_MS - since;
+        chip.style.opacity = left < 300 ? String(Math.max(0.05, left / 300)) : '1';   // fade out at the end
+      }
+      if (on === chipOn) return;
+      chipOn = on;
+      chip.style.display = on ? 'flex' : 'none';
       relayout();
     }
 
-    // Show/hide the name chip when the equipped item changes; speak it on equip (not for the item restored from the save).
+    // Start the chip when the equipped item changes; speak it on equip (not for the item restored from the save).
     function syncChip() {
       var id = SA.inventory ? SA.inventory.equipped() : null;
       if (id === chipId) return;
       chipId = id;
       var c = SA.hotbar.nameChip(id);
-      if (!c) { chip.style.display = 'none'; relayout(); return; }
-      showChip(c);
+      if (!c) { equippedAt = null; return; }
+      chip.textContent = c.icon + ' ' + c.text;
+      equippedAt = now();
       if (SA.audio && SA.audio.say) SA.audio.say(c.key);
     }
 
@@ -89,6 +110,7 @@
 
     function update() {
       syncChip();
+      refreshChip();
       var sig = SA.hotbar.signature();
       if (sig === shown) return;
       shown = sig;
@@ -96,14 +118,12 @@
     }
 
     update();
-    var c0 = SA.hotbar.nameChip(chipId);
-    if (c0) showChip(c0);
     return {
       update: update,
       setHidden: function (h) {
         hidden = !!h;
         bar.style.display = hidden ? 'none' : 'flex';
-        chip.style.display = hidden || !chipId ? 'none' : 'flex';
+        refreshChip();
         relayout();
       },
       element: bar

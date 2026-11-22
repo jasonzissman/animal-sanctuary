@@ -8,6 +8,7 @@
  *       Wrapping grid sized to the screen: columns never overflow availW, so cards never overlap each other or the ✕
  *       (which sits outside the body, on the card's corner). When the rows are taller than maxH the body scrolls instead.
  *       The active card spans the whole row (availW) so its two big buttons fit.
+ *   SA.missionsBoard.pointAndStartFirst() -> { ok, id?, reason? }   see below; the scientist's intro/celebration logic is SA.missionsDialogue.
  *   SA.missionsBoard.EN_CURSO / CONTINUAR / ABANDONAR / PROXIMAMENTE   the short Spanish phrases.
  */
 (function (root) {
@@ -48,6 +49,11 @@
     return { cols: cols, rows: rows, cardW: cardW, cardH: cardH, gap: gap, availW: availW, maxH: maxH, scroll: needed > maxH };
   }
 
-  SA.missionsBoard = { cards: cards, layout: layout, EN_CURSO: 'En curso', CONTINUAR: 'Continuar', ABANDONAR: 'Abandonar',
-    PROXIMAMENTE: 'Próximamente' };
+  // The hook the intro conversation (AS-0142) ends with: open the station on the Misiones board, point at the next card (mission 1 on
+  // a fresh save) and run the scientist's intro for it, whose "Empezar" starts it. Returns { ok, id?, reason? }. The board view
+  // (ui/missions-board-view.js) replaces this no-op once it is mounted; without a DOM it stays { ok: false, reason: 'no-board' }.
+  function pointAndStartFirst() { return { ok: false, reason: 'no-board' }; }
+
+  SA.missionsBoard = { cards: cards, layout: layout, pointAndStartFirst: pointAndStartFirst, EN_CURSO: 'En curso', CONTINUAR: 'Continuar',
+    ABANDONAR: 'Abandonar', PROXIMAMENTE: 'Próximamente' };
 })(typeof window !== 'undefined' ? window : globalThis);

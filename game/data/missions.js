@@ -5,7 +5,8 @@
  *   n       1-based position in the ordered list; rows are contiguous (1, 2, 3...). Mission n unlocks when n-1 is done.
  *   es, en  short title ('¿Dónde está mamá?'); en is scaffolding only
  *   icon    short emoji
- *   intro   spoken lines (Spanish, short) the scientist says when it starts
+ *   intro   2-3 lines the scientist says before "Empezar" (AS-0198): { es, icon } each; es <= 6 words with correct gender/number,
+ *           icon is the picture card shown with the line
  *   steps   ordered step objects { kind: 'find'|'help'|'follow'|..., ... }; the runner (AS-0178) owns the kinds' fields
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
@@ -14,6 +15,7 @@
   'use strict';
   var SA = root.SA;
   var fail = SA.data.fail;
+  var MAX_WORDS = 6;
 
   function validateMission(m) {
     if (!/^[a-z][a-z0-9-]*$/.test(m.id)) fail('id', 'must be lowercase ASCII letters, digits or "-"');
@@ -21,8 +23,14 @@
     if (typeof m.es !== 'string' || !m.es.trim()) fail('es', 'must be a non-empty string');
     if (typeof m.en !== 'string' || !m.en.trim()) fail('en', 'must be a non-empty string');
     if (typeof m.icon !== 'string' || !m.icon.trim() || m.icon.length > 8) fail('icon', 'must be a short non-empty emoji string');
-    if (!Array.isArray(m.intro) || !m.intro.length) fail('intro', 'must be a non-empty array of spoken lines');
-    m.intro.forEach(function (l, i) { if (typeof l !== 'string' || !l.trim()) fail('intro[' + i + ']', 'must be a non-empty string'); });
+    if (!Array.isArray(m.intro) || m.intro.length < 2 || m.intro.length > 3) fail('intro', 'must be 2-3 spoken lines { es, icon }');
+    m.intro.forEach(function (l, i) {
+      var f = 'intro[' + i + ']';
+      if (!l || typeof l !== 'object' || Array.isArray(l)) fail(f, 'must be an object { es, icon }');
+      if (typeof l.es !== 'string' || !l.es.trim()) fail(f + '.es', 'must be a non-empty Spanish phrase');
+      if (l.es.trim().split(/\s+/).length > MAX_WORDS) fail(f + '.es', 'must be at most ' + MAX_WORDS + ' words (kids do not read walls of text)');
+      if (typeof l.icon !== 'string' || !l.icon.trim() || l.icon.length > 8) fail(f + '.icon', 'must be a short emoji for the picture card');
+    });
     if (!Array.isArray(m.steps) || !m.steps.length) fail('steps', 'must be a non-empty array');
     m.steps.forEach(function (s, i) {
       if (!s || typeof s !== 'object' || Array.isArray(s) || typeof s.kind !== 'string' || !s.kind) fail('steps[' + i + ']', 'must be an object with a "kind" string');
@@ -35,7 +43,8 @@
   SA.data.register('missions', [
     // Mission 1 (AS-0173 builds it): a lost piglet follows you to mamá cerda. Later rows are added by their own tickets.
     { id: 'mama', n: 1, es: '¿Dónde está mamá?', en: 'Where is mama?', icon: '🐷',
-      intro: ['Un cerdito se perdió.', '¡Ayúdalo a encontrar a mamá!'],
+      intro: [{ es: 'Un cerdito se perdió.', icon: '🐷' }, { es: 'Está llorando.', icon: '😢' },
+        { es: '¡Ayúdalo a encontrar a mamá!', icon: '🐖' }],
       steps: [{ kind: 'find' }, { kind: 'follow' }, { kind: 'photo' }],
       reward: { stars: 2 } }
   ]);

@@ -133,6 +133,7 @@ globalThis.SA_MANIFEST = {
     'game/ui/album-view.js',
     'game/ui/station-menu-view.js',
     'game/missions-board.js',
+    'game/missions-dialogue.js',
     'game/ui/missions-board-view.js',
     'game/ui/settings-view.js',
     'game/menu.js',

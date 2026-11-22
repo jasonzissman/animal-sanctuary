@@ -21,6 +21,11 @@ current; when your change sets or changes something future tickets must follow, 
   (`SA.player` SPAWN) with a clear radius `SA.player.SPAWN_CLEAR` (5): seeded decor skips it, `animal-plan` placements
   stay SPAWN_CLEAR + 1 away, wanderers get `SA.player.spawnZone()` as an avoid point, and `SA.player.step` lets a player
   who overlaps obstacles (wedged between trees and an animal) walk or slide out instead of being pinned.
+  Built (AS-0106): the player walks through flowers and small animals, never through trees, rocks or big animals.
+  Blocking is data: decor in `game/data/decor.js` (`solid`, `radius`; builders tag meshes `userData.decor`), placed props
+  carry `solid` (flores false), animals use `SA.animals.BLOCK_RADIUS` by size trait (pequeño 0). `SA.blocking`
+  (game/blocking.js, pure) builds the obstacle list; wanderers still keep clear of every decor item and prop.
+  New decor or props must declare `solid`; untagged decor blocks by default.
 - **Being close matters.** Inspecting, caring and photographing need the player within reach. Too far gives a
   friendly "¡Acércate!", never a wrong answer. Rule: `SA.reach.canReach(player, animal, part?)` (game/reach.js, player
   `y` is its standing height so climbing raises reach); `render/picking.js` gates every pick and rub through it and

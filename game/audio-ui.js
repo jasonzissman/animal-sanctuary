@@ -1,4 +1,4 @@
-/* Mute/sound button + first-gesture unlock for SA.audio. Always visible, large (touch friendly).
+/* Mute/sound button + first-gesture unlock for SA.audio. A large touch button held in the 🎒 menu (game/ui/menu-view.js).
  * SA.audioUI.mount(doc, target) builds the button; it is a harmless no-op without a DOM. */
 (function (root) {
   'use strict';
@@ -24,6 +24,14 @@
     GESTURES.forEach(function (g) { target.addEventListener(g, once, true); });
   }
 
+  // Mute on/off from the button or the M key (menu-view): unlock, flip, repaint, a soft pop (silent when it just got muted).
+  function toggle() {
+    SA.audio.unlock();
+    SA.audio.toggleMute();
+    if (muteBtn) paint(muteBtn);
+    SA.audio.sfx('pop');
+  }
+
   function mount(doc, target) {
     hookGestures(root);
     if (!doc || typeof doc.createElement !== 'function') return null;
@@ -37,12 +45,7 @@
     paint(btn);
     // The rect comes from SA.hud 'audioUi' (SA.hudPlace sets left/top/width/height; index.html always loads it before mount()).
     if (SA.hudPlace) SA.hudPlace.register('audioUi', btn, { reserve: true, onPlace: function (r) { s.fontSize = Math.round(r.height * 0.53) + 'px'; } });
-    btn.addEventListener('click', function () {
-      SA.audio.unlock();
-      SA.audio.toggleMute();
-      paint(btn);
-      SA.audio.sfx('pop');
-    });
+    btn.addEventListener('click', toggle);
     muteBtn = btn;
     var host = target || doc.body;
     if (host && typeof host.appendChild === 'function') host.appendChild(btn);
@@ -52,5 +55,5 @@
   // Repaints the mute button after the mute state changed elsewhere (e.g. the grown-up drawer).
   function refresh() { if (muteBtn) paint(muteBtn); }
 
-  SA.audioUI = { mount: mount, hookGestures: hookGestures, refresh: refresh };
+  SA.audioUI = { mount: mount, hookGestures: hookGestures, refresh: refresh, toggle: toggle };
 })(typeof window !== 'undefined' ? window : globalThis);

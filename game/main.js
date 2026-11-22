@@ -92,12 +92,16 @@
         view.setStars(SA.save.get().stars);
       }
     } catch (e) { report('sandbox.start', e); }
-    // Photo album (📖 under the habitat button): every photographed animal with its name and parts. Pauses picking while open.
+    // Photo album (📖, an item of the 🎒 menu): every photographed animal with its name and parts. Pauses picking while open.
     try {
       if (SA.albumView) SA.albumView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); } });
     } catch (e) { report('album.start', e); }
-    // Grown-up drawer (press-and-hold gear). Never blocks the main loop.
-    try { if (SA.settingsView) SA.settingsView.create(root.document); } catch (e) { report('settings.start', e); }
+    // Grown-up drawer (press-and-hold gear, an item of the 🎒 menu). Never blocks the main loop.
+    var menuView = null;
+    try { if (SA.settingsView) SA.settingsView.create(root.document, { onOpen: function () { if (menuView) menuView.used('settings'); } }); }
+    catch (e) { report('settings.start', e); }
+    // 🎒 menu (top-right): holds sound, 🏡, 📖 and ⚙️; M toggles mute, Escape / an outside tap closes it.
+    try { if (SA.menuView) menuView = SA.menuView.create(root.document, root); } catch (e) { report('menu.start', e); }
     var last = null;
     function loop(now) {
       var dt = last === null ? 0 : Math.min((now - last) / 1000, 0.25);

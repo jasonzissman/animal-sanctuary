@@ -27,7 +27,7 @@ test('a registered element takes its rect from SA.hud and follows window resizes
   resize(375, 667);
   assert.deepEqual({ left: el.style.left, top: el.style.top, width: el.style.width, height: el.style.height },
     px(SA.hud.layout({ width: 375, height: 667 }).album));
-  assert.equal(el.style.width, '56px', 'phones get the compact size');
+  assert.equal(el.style.width, '44px', 'phones get the compact size');
 });
 
 test('onPlace gets the rect and mode; unknown ids and missing elements are ignored', () => {
@@ -40,18 +40,21 @@ test('onPlace gets the rect and mode; unknown ids and missing elements are ignor
 
 test('hiding an element frees its slot for the next one; showing it again pushes the next back down', () => {
   const { SA } = boot(1280, 800);
-  const gear = { style: { display: 'none' } }, home = { style: {} };
-  SA.hudPlace.register('settings', gear, {});
-  SA.hudPlace.register('sandbox', home, {});
-  const packed = styleRect(home).top;
-  gear.style.display = 'block';
+  // the items sit in a 2-wide grid under the 🎒 button: a third item starts the second row
+  const first = { style: { display: 'none' } }, second = { style: {} }, third = { style: {} };
+  SA.hudPlace.register('audioUi', first, {});
+  SA.hudPlace.register('sandbox', second, {});
+  SA.hudPlace.register('album', third, {});
+  const packed = styleRect(third);
+  assert.equal(packed.top, styleRect(second).top, 'with the first item hidden, sandbox and album share the first row');
+  first.style.display = 'block';
   SA.hudPlace.refresh();
-  assert.ok(styleRect(home).top > packed, 'sandbox sits lower once settings is shown');
-  assert.equal(styleRect(gear).top + styleRect(gear).height + 8, styleRect(home).top);
+  assert.ok(styleRect(third).top > packed.top, 'the album drops to the second row once the first item is shown');
+  assert.equal(styleRect(second).top, styleRect(first).top);
   // reserve keeps the slot while hidden, so a neighbour never jumps
-  gear.style.display = 'none';
-  SA.hudPlace.register('settings', gear, { reserve: true });
-  assert.ok(styleRect(home).top > packed);
+  first.style.display = 'none';
+  SA.hudPlace.register('audioUi', first, { reserve: true });
+  assert.ok(styleRect(third).top > packed.top);
 });
 
 test('🏡, 📖 and the settings button never overlap the prompt, stars or snapshot card at the 4 sizes', () => {

@@ -7,7 +7,8 @@
  *       the module size its children (font, slots, knob) from the rect.
  *   SA.hudPlace.refresh()       re-run the layout for every registered element
  *   SA.hudPlace.layout()        the last layout (rect per id); parked rects of unregistered ids are the all-visible ones
- *   SA.hudPlace.viewport()      { width, height } in CSS px
+ *   SA.hudPlace.element(id)     the element registered for `id`, or null
+ *   SA.hudPlace.viewport()     { width, height } in CSS px
  *   SA.hudPlace.nudge(rect)     a copy of `rect` moved clear of every other HUD rect (for the roaming hint arrow)
  * Ids that are not registered here (the prompt, stars, toast, snapshot and feed tray are placed by ui/prompt.js) count as
  * visible, so what is laid out here never collides with them.
@@ -50,11 +51,14 @@
 
   function layout() { return last || refresh() || {}; }
 
+  // The element registered under `id` (or null): the 🎒 menu uses it to show/hide the buttons it holds.
+  function element(id) { return items[id] ? items[id].el : null; }
+
   function nudge(rect) {
     var vp = viewport(), L = layout();
     var others = SA.hud.IDS.filter(function (id) { return SA.hud.ZONES.floating.indexOf(id) < 0 && L[id]; }).map(function (id) { return L[id]; });
     return SA.hud.nudge(rect, others, vp.width, vp.height);
   }
 
-  SA.hudPlace = { register: register, refresh: refresh, layout: layout, viewport: viewport, nudge: nudge };
+  SA.hudPlace = { register: register, refresh: refresh, layout: layout, element: element, viewport: viewport, nudge: nudge };
 })(typeof window !== 'undefined' ? window : globalThis);

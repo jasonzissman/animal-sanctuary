@@ -126,6 +126,8 @@ globalThis.SA_MANIFEST = {
     'game/settings.js',
     'game/ui/album-view.js',
     'game/ui/settings-view.js',
+    'game/menu.js',
+    'game/ui/menu-view.js',
     'game/render/scene.js',
     'game/main.js',
   ],

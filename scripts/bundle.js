@@ -32,13 +32,31 @@ function resolveLocal(root, ref) {
 const safeJs = (s) => s.replace(/<\/(script)/gi, '<\\/$1').replace(/<!--/g, '<\\!--');
 const safeCss = (s) => s.replace(/<\/(style)/gi, '<\\/$1');
 
+const CLIP_RE = /(["'])assets\/voice\/([A-Za-z0-9._-]+\.m4a)\1/g;
+
+/**
+ * Replaces quoted "assets/voice/<name>.m4a" paths in JS source with base64 data: URIs so the bundle stays one
+ * file. A clip that is missing on disk becomes "" (SA.vocab.applyClips skips empty paths, so the game uses
+ * speechSynthesis for that key). Pure apart from reading clip files; output depends only on the inputs.
+ */
+export function inlineVoiceClips(code, root = ROOT, cache = new Map()) {
+  return code.replace(CLIP_RE, (_m, q, name) => {
+    if (!cache.has(name)) {
+      const file = path.join(root, 'assets', 'voice', name);
+      cache.set(name, fs.existsSync(file) ? `data:audio/mp4;base64,${fs.readFileSync(file).toString('base64')}` : '');
+    }
+    return `${q}${cache.get(name)}${q}`;
+  });
+}
+
 /** Returns the bundled HTML text for `<root>/<entry>`. Pure apart from reading files. */
 export function buildBundle({ root = ROOT, entry = 'index.html', classroom = true } = {}) {
   let html = readText(path.join(root, entry));
+  const clipCache = new Map();
   html = html.replace(SCRIPT_RE, (_m, pre, dq, sq, post) => {
     const attrs = `${pre} ${post}`;
     if (/\btype\s*=\s*["']?module/i.test(attrs)) throw new Error('bundle: ES modules are not supported');
-    const code = safeJs(readText(resolveLocal(root, dq ?? sq)).replace(/\n+$/, ''));
+    const code = safeJs(inlineVoiceClips(readText(resolveLocal(root, dq ?? sq)).replace(/\n+$/, ''), root, clipCache));
     return `<script>\n${code}\n</script>`;
   });
   html = html.replace(LINK_RE, (tag) => {

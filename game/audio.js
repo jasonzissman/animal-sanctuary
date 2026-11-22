@@ -27,7 +27,10 @@
                { w: 'sine', f: 783.99, t: 0.56, d: 0.7, g: 0.18 }]),
     giggle: [{ w: 'sine', f: 700, f2: 1100, t: 0, d: 0.09, g: 0.25 }, { w: 'sine', f: 800, f2: 1250, t: 0.1, d: 0.09, g: 0.25 },
              { w: 'sine', f: 700, f2: 1150, t: 0.2, d: 0.12, g: 0.22 }],
-    sparkle: arp([1568, 2093, 2637, 3136, 4186], 0.06, 0.25, 0.14)
+    sparkle: arp([1568, 2093, 2637, 3136, 4186], 0.06, 0.25, 0.14),
+    // Camera shutter: two quick clicks (open, close).
+    shutter: [{ n: 1, hp: 1800, t: 0, d: 0.04, g: 0.3 }, { w: 'square', f: 1400, f2: 900, t: 0, d: 0.03, g: 0.08 },
+              { n: 1, hp: 1200, t: 0.07, d: 0.06, g: 0.25 }, { w: 'square', f: 800, f2: 500, t: 0.07, d: 0.04, g: 0.07 }]
   };
   var NAMES = Object.keys(RECIPES);
 

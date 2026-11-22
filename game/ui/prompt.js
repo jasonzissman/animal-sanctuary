@@ -46,7 +46,7 @@
       if (o.onProgress) { try { o.onProgress(); } catch (e) { /* unlocks never break play */ } }
       var r = game.start();
       if (!r) { view.clear(); return null; }
-      view.showRound({ text: r.clue.text, icon: iconFor(r.answerId), hintShown: r.hintShown, stars: SA.save.get().stars });
+      view.showRound({ text: r.clue.text, icon: iconFor(r.answerId), hintShown: r.hintShown, stars: SA.save.get().stars, camera: !!o.photoMode });
       say(r.clue.text);
       if (biomeFx) biomeFx.hide();
       scheduleHint(r, AUTO_HINT_MS / 1000);
@@ -70,9 +70,42 @@
       if (name) sfx(name);
     }
 
+    // Photo missions (o.photoMode): the round is a mission card; only a picture taken with la cámara answers it. Other tools or
+    // empty hands on an animal never touch the mission, so the player can roam and do other things meanwhile.
+    var photoMode = !!o.photoMode;
+
+    function onShot(p) {
+      sfx('shutter');
+      var animal = SA.data && SA.data.get('animals', p.animalId);
+      if (view.snapshot) view.snapshot({ icon: iconFor(p.animalId), text: animal && animal.name ? animal.name.es : '' });
+      var res = SA.photo.take(game, p);
+      if (res.verdict === 'other') {      // saved anyway: a friendly nudge back to the clue (the round continues)
+        if (fx) fx.play(p.animalId, 'wobble');
+        view.toast('¡Qué foto! Pero busca…');
+        say('phrase:quefoto');
+        later(function () { replay(); }, 1500);
+      }
+      return res;
+    }
+
+    function equipCamera() {
+      if (!SA.inventory || !SA.inventory.equip(SA.photo.CAMERA)) return false;
+      say('item:' + SA.photo.CAMERA);
+      return true;
+    }
+
     function onPick(p) {
       if (care && care.active()) return care.onPick(p);
-      var res = game.pick(p);
+      if (photoMode) {
+        if (!SA.photo.isShot(p)) return { status: 'ignored' };
+        var shot = onShot(p);
+        if (shot.status !== 'correct') return shot;
+        return finish(shot);
+      }
+      return finish(game.pick(p), p);
+    }
+
+    function finish(res, p) {
       levelCue(res && res.levelChange);
       if (res.status === 'wrong') {
         sfx('boing');
@@ -134,7 +167,7 @@
       return r;
     }
 
-    return { begin: begin, onPick: onPick, replay: replay, hint: hint, canReroll: canReroll, reroll: reroll };
+    return { begin: begin, onPick: onPick, replay: replay, hint: hint, canReroll: canReroll, reroll: reroll, equipCamera: equipCamera };
   }
 
   var BAR_CSS = 'position:fixed;top:12px;left:12px;right:90px;z-index:4;display:flex;align-items:center;gap:.5em;' +
@@ -147,7 +180,7 @@
     var noop = function () {};
     if (!doc || typeof doc.createElement !== 'function' || !doc.body) {
       return { showRound: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop,
-        setStars: noop, setHidden: noop, levelCue: noop };
+        setStars: noop, setHidden: noop, levelCue: noop, snapshot: noop };
     }
     handlers = handlers || {};
     function el(tag, css, text) {
@@ -171,8 +204,19 @@
     var toastEl = el('div', 'position:fixed;top:96px;left:50%;transform:translateX(-50%);z-index:5;display:none;' +
       'padding:.2em .8em;background:#fff;color:#24543a;border-radius:1em;font:700 2.2rem system-ui,sans-serif;' +
       'box-shadow:0 .15em .6em rgba(0,0,0,.3);pointer-events:none;');
-    bar.appendChild(icon); bar.appendChild(text); bar.appendChild(hintBtn); bar.appendChild(replayBtn);
+    // Photo mission: a camera badge on the card (tap = equip la cámara), a white flash and a framed snapshot that slides in.
+    var cameraBtn = el('button', BTN_CSS + 'display:none;', '📷');
+    cameraBtn.type = 'button';
+    cameraBtn.setAttribute('aria-label', 'La cámara');
+    cameraBtn.addEventListener('click', function () { if (handlers.camera) handlers.camera(); });
+    var flashEl = el('div', 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:6;background:#fff;opacity:0;display:none;pointer-events:none;');
+    var snapEl = el('div', 'position:fixed;right:12px;top:104px;z-index:5;display:none;flex-direction:column;align-items:center;' +
+      'padding:.3em .5em .2em;background:#fff;border:.1em solid #24543a;border-radius:.3em;box-shadow:0 .15em .6em rgba(0,0,0,.4);' +
+      'font:700 1.3rem system-ui,sans-serif;color:#24543a;transform:translateX(140%) rotate(4deg);pointer-events:none;');
+    var snapTimer = null;
+    bar.appendChild(icon); bar.appendChild(text); bar.appendChild(cameraBtn); bar.appendChild(hintBtn); bar.appendChild(replayBtn);
     doc.body.appendChild(bar); doc.body.appendChild(starsEl); doc.body.appendChild(toastEl);
+    doc.body.appendChild(flashEl); doc.body.appendChild(snapEl);
     // Feed tray: big food buttons along the bottom plus a row of counting dots (filled as food is given).
     var trayEl = el('div', 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:4;display:none;' +
       'flex-direction:column;align-items:center;gap:.3em;font:700 2rem system-ui,sans-serif;');
@@ -197,7 +241,26 @@
         text.textContent = r.text;
         starsEl.textContent = '⭐ ' + r.stars;
         hintBtn.style.display = r.hintShown ? 'none' : '';
+        cameraBtn.style.display = r.camera ? '' : 'none';
         if (r.hintShown) setIcon(r.icon, true); else setIcon('❓', false);
+      },
+      // s: { icon, text }. White flash, then a framed snapshot (animal icon + its Spanish name) slides in from the right.
+      snapshot: function (s) {
+        flashEl.style.transition = 'none'; flashEl.style.opacity = '0.9'; flashEl.style.display = 'block';
+        snapEl.textContent = '';
+        snapEl.appendChild(el('div', 'font-size:3.6rem;line-height:1.1;background:#d9f0e0;border-radius:.2em;padding:0 .2em;', s.icon || '🐾'));
+        snapEl.appendChild(el('div', '', s.text || ''));
+        snapEl.style.transition = 'none'; snapEl.style.transform = 'translateX(140%) rotate(4deg)'; snapEl.style.display = 'flex';
+        if (snapTimer) root.clearTimeout(snapTimer);
+        root.setTimeout(function () {
+          flashEl.style.transition = 'opacity .35s'; flashEl.style.opacity = '0';
+          snapEl.style.transition = 'transform .4s ease-out'; snapEl.style.transform = 'translateX(0) rotate(-3deg)';
+        }, 40);
+        root.setTimeout(function () { flashEl.style.display = 'none'; }, 450);
+        snapTimer = root.setTimeout(function () {
+          snapEl.style.transition = 'transform .4s ease-in'; snapEl.style.transform = 'translateX(140%) rotate(4deg)';
+          snapTimer = root.setTimeout(function () { snapEl.style.display = 'none'; snapTimer = null; }, 450);
+        }, 2400);
       },
       showCare: function (r) {      // care prompt: short text + tool icon (never a silhouette), no hint button
         text.textContent = r.text;
@@ -321,6 +384,7 @@
       hint: function () { if (ctl) ctl.hint(); },
       replay: function () { if (ctl) ctl.replay(); },
       feed: function (id) { if (careFlow) careFlow.onFeed(id); },
+      camera: function () { if (ctl) ctl.equipCamera(); },
     });
     var careFlow = o.care || null;
     if (!careFlow && o.careFx !== undefined && SA.careFlow && SA.care) {
@@ -329,7 +393,7 @@
         onDone: function () { if (ctl) ctl.begin(); } });
     }
     ctl = createController({ game: o.game || SA.round.create(), view: view, fx: o.fx, audio: o.audio, later: o.later, biomeFx: o.biomeFx,
-      care: careFlow, onProgress: o.onProgress });
+      care: careFlow, onProgress: o.onProgress, photoMode: o.photoMode });
     SA.picking.onPick(ctl.onPick);
     ctl.begin();
     // Easter-egg unlocks: a toast plus confetti (the 3D reveal and sounds are done by SA.unlockFlow).

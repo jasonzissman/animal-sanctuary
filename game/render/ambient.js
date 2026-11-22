@@ -1,0 +1,59 @@
+/* SA.render.createAmbient({ animals, avoid? }): ambient life for the animal groups from buildAnimals. No THREE calls
+ * (it only moves groups/meshes), so it is testable with plain objects.
+ *   ambient.update(dt)         call every frame BEFORE round-fx/care-fx (they override pose while a reaction plays)
+ *   ambient.hold(id, seconds?) stop one animal wandering (while inspected / cared for); no seconds = until release
+ *   ambient.release(id)        let it wander again
+ * Wandering comes from SA.wander (driven by traits.movement). Idle animation: breathing (group scale), ear and tail
+ * wiggle, blinking (eye scale). Animals keep breathing and blinking while held, only their travel stops.
+ */
+(function (root) {
+  'use strict';
+  var SA = root.SA;
+  SA.render = SA.render || {};
+
+  var PART_HOLD = 5;   // seconds an animal stays put after a tap
+
+  SA.render.createAmbient = function (opts) {
+    var group = opts.animals, rigs = {}, t = 0;
+    var data = {};
+    SA.data.all('animals').forEach(function (a) { data[a.id] = a; });
+
+    function base(m) { return { m: m, rx: m.rotation.x, ry: m.rotation.y, rz: m.rotation.z, sy: m.scale.y }; }
+
+    group.children.forEach(function (g, i) {
+      var a = data[g.userData.animalId];
+      if (!a) return;
+      var parts = function (name) { return g.children.filter(function (m) { return !m.userData.pick && m.userData.part === name; }).map(base); };
+      rigs[a.id] = {
+        g: g, phase: i * 1.7, ears: parts('orejas'), tail: parts('cola'), eyes: parts('ojos'),
+        sx: g.scale.x, sy: g.scale.y, sz: g.scale.z,
+        w: SA.wander.create({
+          movement: a.traits.movement, biome: a.biome, home: { x: g.position.x, z: g.position.z },
+          seed: 100 + i, avoid: opts.avoid,
+        }),
+      };
+    });
+
+    function update(dt) {
+      t += Math.min(dt, 0.1);
+      Object.keys(rigs).forEach(function (id) {
+        var r = rigs[id], g = r.g, p = r.w.update(dt), idle = SA.wander.idle(t, r.phase);
+        g.position.x = p.x;
+        g.position.z = p.z;
+        g.position.y = SA.map.groundHeight(p.x, p.z) + p.lift;
+        g.rotation.y = p.heading;
+        g.scale.set(r.sx / Math.sqrt(idle.breath), r.sy * idle.breath, r.sz / Math.sqrt(idle.breath));
+        r.ears.forEach(function (e) { e.m.rotation.z = e.rz + idle.wiggle * 0.25 * (e.m.userData.side === 'right' ? -1 : 1); });
+        r.tail.forEach(function (e) { e.m.rotation.y = e.ry + idle.wiggle * 0.5; });
+        r.eyes.forEach(function (e) { e.m.scale.y = e.sy * (1 - 0.9 * idle.blink); });
+      });
+    }
+
+    function hold(id, seconds) { if (rigs[id]) rigs[id].w.hold(seconds); }
+    function release(id) { if (rigs[id]) rigs[id].w.release(); }
+
+    if (SA.picking && SA.picking.onPick) SA.picking.onPick(function (pick) { if (pick && pick.animalId) hold(pick.animalId, PART_HOLD); });
+
+    return { update: update, hold: hold, release: release, rigs: rigs };
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

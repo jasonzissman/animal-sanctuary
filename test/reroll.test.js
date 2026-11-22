@@ -153,3 +153,63 @@ test('controller: reroll starts a new round with a soft toast, but not during ca
   game.pick({ animalId: r2.answerId, part: 'cuerpo' });
   assert.equal(ctl.canReroll(), false, 'answered round is not abandoned');
 });
+
+test('payload: pure {from, to} builder; unknown ids become null', () => {
+  const { SA } = setup({ cur: 'bosque' });
+  assert.deepEqual({ ...SA.reroll.payload('zorro', 'tucan') }, { from: 'zorro', to: 'tucan' });
+  assert.deepEqual({ ...SA.reroll.payload(undefined, '') }, { from: null, to: null });
+});
+
+test('track: emits round.reroll once and is a no-op without SAT', () => {
+  const { SA } = setup({ cur: 'bosque' });
+  const calls = [];
+  assert.equal(SA.reroll.track({ track: (t, f) => calls.push([t, f]) }, 'a', 'b'), true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], 'round.reroll');
+  assert.deepEqual({ ...calls[0][1] }, { from: 'a', to: 'b' });
+  assert.equal(SA.reroll.track(undefined, 'a', 'b'), false);
+  assert.equal(SA.reroll.track({}, 'a', 'b'), false);
+  assert.equal(SA.reroll.track({ track() { throw new Error('x'); } }, 'a', 'b'), false);
+});
+
+test('controller: a re-roll tracks round.reroll once with old and new animal ids; none without SAT; begin() does not', () => {
+  const b = { cur: 'bosque' };
+  const events = [];
+  const SAT = { track: (t, f) => events.push({ t, f }) };
+  const view = new Proxy({}, { get: () => () => {} });
+  const mk = (extra) => {
+    const SA = loadGame(FILES, extra);
+    SA.save.reset();
+    const game = SA.round.create({ rng: SA.clues.makeRng(11), track: () => {}, biome: () => b.cur });
+    const ctl = SA.prompt.createController({ game, view, care: { active: () => false, offer: () => false },
+      audio: { say() {}, sfx() {} }, later() {} });
+    return ctl;
+  };
+  const ctl = mk({ SAT });
+  const r1 = ctl.begin();
+  assert.equal(events.length, 0, 'a normal round start is not a re-roll');
+  b.cur = 'selva';
+  const r2 = ctl.reroll();
+  assert.equal(events.length, 1);
+  assert.equal(events[0].t, 'round.reroll');
+  assert.deepEqual({ ...events[0].f }, { from: r1.answerId, to: r2.answerId });
+
+  const c2 = mk({});   // no SAT global at all
+  c2.begin();
+  assert.ok(c2.reroll(), 'still re-rolls when SAT is undefined');
+});
+
+test('health metrics ignore round.reroll events', async () => {
+  const { computeMetrics } = await import('../src/health.js');
+  const now = new Date('2026-01-10T00:00:00Z');
+  const ts = '2026-01-09T00:00:00Z';
+  const base = [
+    { ts, type: 'session.end', sid: 's1', seconds: 600 },
+    { ts, type: 'round.complete', sid: 's1', roundId: 'r', seconds: 10, misses: 0, hints: 0, level: 1 },
+    { ts, type: 'part.tap', sid: 's1', part: 'cola', correct: true },
+    { ts, type: 'perf.fps', fps: 60, hidden: false },
+  ];
+  const withReroll = [...base, { ts, type: 'round.reroll', sid: 's1', from: 'a', to: 'b' },
+    { ts, type: 'round.reroll', sid: 's1', from: 'b', to: 'c' }];
+  assert.deepEqual(computeMetrics(withReroll, now), computeMetrics(base, now));
+});

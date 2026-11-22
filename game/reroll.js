@@ -8,6 +8,8 @@
  *       the rule fires. `game` is an SA.round game; `biome()` returns the camera biome id (or null);
  *       `canReroll()` returns false while the care loop or the sandbox owns the screen.
  *       A re-roll is just a new round: it adds no miss and emits no round.complete for the abandoned one.
+ *   SA.reroll.payload(from, to) -> { from, to }   pure builder for the round.reroll event fields (animal ids)
+ *   SA.reroll.track(sat, from, to) -> boolean     SAT.track('round.reroll', payload); no-op without SAT
  */
 (function (root) {
   'use strict';
@@ -41,5 +43,18 @@
     };
   }
 
-  SA.reroll = { DWELL_SECONDS: DWELL_SECONDS, shouldReroll: shouldReroll, createWatcher: createWatcher };
+  /** Pure: the round.reroll event fields, the abandoned and the new target animal ids (null when unknown). */
+  function payload(from, to) {
+    return { from: typeof from === 'string' && from ? from : null, to: typeof to === 'string' && to ? to : null };
+  }
+
+  /** Emit round.reroll once through `sat` (window.SAT). Does nothing when SAT is missing; telemetry never breaks play. */
+  function track(sat, from, to) {
+    if (!sat || typeof sat.track !== 'function') return false;
+    try { sat.track('round.reroll', payload(from, to)); } catch (e) { return false; }
+    return true;
+  }
+
+  SA.reroll = { DWELL_SECONDS: DWELL_SECONDS, shouldReroll: shouldReroll, createWatcher: createWatcher,
+    payload: payload, track: track };
 })(typeof window !== 'undefined' ? window : globalThis);

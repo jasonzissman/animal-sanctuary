@@ -109,6 +109,15 @@
       var n = count(un[k], 0);
       if (n > 0) out.stats.unlocks[k] = n;
     });
+    // stats.unlockTimes is optional (absent until the first unlock); when present keep only finite-number values.
+    if (out.stats.unlockTimes !== undefined) {
+      var ut = isObj(out.stats.unlockTimes) ? out.stats.unlockTimes : {};
+      out.stats.unlockTimes = {};
+      Object.keys(ut).forEach(function (k) {
+        if (k === '__proto__' || k === 'constructor' || k === 'prototype') return;
+        if (typeof ut[k] === 'number' && isFinite(ut[k])) out.stats.unlockTimes[k] = ut[k];
+      });
+    }
     out.inventory = normalizeInventory(s.inventory);
     if (s.album !== undefined) out.album = normalizeAlbum(s.album);   // optional, like photos: absent until the first photo
     return out;

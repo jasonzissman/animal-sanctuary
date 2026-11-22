@@ -200,6 +200,26 @@ test('stats.unlocks keeps valid counts, drops junk, and survives a reload', () =
   assert.deepEqual(plain(c.save.load().stats.unlocks), {});
 });
 
+test('stats.unlockTimes keeps finite numbers and drops junk; non-objects load as {}', () => {
+  // 1e999 parses to Infinity; null/strings/booleans/objects are non-numeric.
+  const raw = '{"version":2,"stars":7,"stats":{"unlocks":{"a|b|1":2},"unlockTimes":{"ok":1700000000000,"zero":0,"neg":-5,"inf":1e999,"nul":null,"str":"12","bool":true,"obj":{},"arr":[1]}}}';
+  const a = setup({ storage: fakeStorage({ [KEY]: raw }) });
+  const s = a.save.load();
+  assert.deepEqual(plain(s.stats.unlockTimes), { ok: 1700000000000, zero: 0, neg: -5 });
+  assert.equal(s.stars, 7);
+  assert.deepEqual(plain(s.stats.unlocks), { 'a|b|1': 2 });
+  for (const bad of ['null', '[1,2]', '"x"', '5', 'true']) {
+    const b = setup({ storage: fakeStorage({ [KEY]: `{"version":2,"stars":3,"stats":{"unlocks":{"a|b|1":1},"unlockTimes":${bad}}}` }) });
+    const t = b.save.load();
+    assert.deepEqual(plain(t.stats.unlockTimes), {}, bad);
+    assert.equal(t.stars, 3);
+    assert.deepEqual(plain(t.stats.unlocks), { 'a|b|1': 1 });
+  }
+  // Absent stays absent (no new default field).
+  const c = setup({ storage: fakeStorage({ [KEY]: '{"version":2,"stats":{"unlocks":{}}}' }) });
+  assert.equal('unlockTimes' in c.save.load().stats, false);
+});
+
 test('throwing localStorage getter does not crash', () => {
   const ctx = vm.createContext({ console });
   ctx.window = ctx;

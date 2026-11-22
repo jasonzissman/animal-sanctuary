@@ -101,6 +101,8 @@ current; when your change sets or changes something future tickets must follow, 
   several tree kinds, moving water, faceted rocks, soft shadows. Each biome has character (forest paths, streams and fallen
   logs to jump; desert dunes, arch, oasis; mountain trail, waterfall; jungle giant trees, vines, waterfall). Keep adding
   variety with discretion: fun, never cluttered, ~60 fps (instancing, auto quality).
+- **Animals keep an arm's length apart (AS-0153).** Never bunched: at least ~1.5 units of gap between any two animals'
+  bodies at all times (hard rule, not a soft preference), so tapping one never hits another.
 - **Lots of animals.** Several of each species (3-5) spread around each biome, and >= 5 species per biome. Any instance
   counts for its species.
 - **Animals look like the real animal (AS-0127).** Low-poly but recognisable: real proportions and silhouette (neck, legs,
@@ -207,3 +209,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: higher-fidelity world, 2x map, biome landmarks, detailed avatar/animals, more animals and species (AS-0129 to AS-0140).
 - 2026-11-22: research station start, scientist briefing, photo board, character customizer (AS-0141 to AS-0144).
 - 2026-11-22: declutter: one HUD layout with no overlaps, small mission pill, one menu (AS-0147 to AS-0149).
+- 2026-11-22: animals keep an arm's length apart (AS-0153).

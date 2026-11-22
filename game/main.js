@@ -33,7 +33,7 @@
     var game = null;
     // The rescue mission (SA.mission, played by SA.missionFlow): find an animal that fits, help it, then la cámara photo.
     try { game = SA.mission.create({ biome: function () { return SA.round.biomeForRig(stage.rig); } });
-      ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx, biomeFx: stage.biomeGlow,
+      ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx, pin: stage.ambient, biomeFx: stage.biomeGlow,
         onProgress: function () { if (unlocks) unlocks.check(); }, mission: game });
       game = ctl.game || game;      // the round-like adapter that hint arrow and biome reroll read
     } catch (e) { report('prompt.start', e); }

@@ -17,11 +17,17 @@ current; when your change sets or changes something future tickets must follow, 
   how far out the camera may sit (never below `minClear`), smoothed by `easeClearance` (pulls in fast, relaxes slowly).
 - **No modes: keys always move the player.** Arrow keys/WASD only ever walk the player; nothing (finding an animal,
   care, menus) switches the keyboard to controlling something else, and there is never an "Escape to unlock". The
-  mouse or a tap clicks on things (body parts, items); Space uses the equipped item.
+  mouse or a tap clicks on things (body parts, items); E/Enter uses the equipped item, Space jumps.
 - **Hold Shift to run (AS-0094).** Shift (either side) is a held modifier, never a mode: while it is down, moving forward
   uses `SA.player.RUN_SPEED` (7, about 1.8x `SPEED`) via `input.run`; backing up stays at `BACK_SPEED`. The touch joystick
   runs when pushed forward to its outer edge (`SA.joystick.RUN_AT`). Bounds, soft collisions, water and reach apply
   unchanged; the avatar's stride plays faster (`rig.getPlayer().running`). Shift triggers nothing else.
+- **Keys for a 7-year-old (AS-0111, AS-0112).** Arrows/WASD walk, Shift runs (about 2.5x, AS-0110), **Space jumps**,
+  **E or Enter uses** the equipped item on the outlined target (climb, pick up, care, photo), 1-9 picks a hotbar item,
+  click/tap on the outline also uses it. Wherever the notes below say "Space" for using/acting, read E/Enter.
+- **Walk on any hard ground (AS-0109).** Only solid obstacles and the map edge block the player. Water and dips never
+  do: the player wades in and may go under the surface for a moment, the camera stays above it. This overrides the
+  water soft-wall / nearestDry notes below; animals still avoid water.
 - **Soft things don't block.** The player walks through flowers, grass and small animals; only trees, rocks, ponds and
   big animals block. You never start stuck or have to wait for an animal to move. Built (AS-0105): the spawn is fixed
   (`SA.player` SPAWN) with a clear radius `SA.player.SPAWN_CLEAR` (5): seeded decor skips it, `animal-plan` placements
@@ -137,3 +143,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: no keyboard lock-in. Part-cycling with arrows/Escape is removed (AS-0093); keys always move the player, mouse/tap picks parts.
 - 2026-11-22: one visible Space target. Whatever Space would act on gets a distinct outline (AS-0101; folds in AS-0100).
 - 2026-11-22: clear spawn, never stuck (AS-0105); walk through flowers and small animals (AS-0106).
+- 2026-11-22: Space jumps, E/Enter uses (AS-0111, AS-0112); run about 2.5x (AS-0110); walk on any ground, water never blocks (AS-0109).

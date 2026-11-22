@@ -4,6 +4,7 @@
   var SA = root.SA;
 
   function start() {
+    if (SA.audioUI) SA.audioUI.mount(root.document);
     var boot = root.document.getElementById('boot');
     var stage;
     try {

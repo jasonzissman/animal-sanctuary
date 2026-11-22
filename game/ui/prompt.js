@@ -170,10 +170,11 @@
     return { begin: begin, onPick: onPick, replay: replay, hint: hint, canReroll: canReroll, reroll: reroll, equipCamera: equipCamera };
   }
 
-  var BAR_CSS = 'position:fixed;top:12px;left:12px;right:90px;z-index:4;display:flex;align-items:center;gap:.5em;' +
-    'padding:.3em .6em;background:#fff8d6;color:#24543a;border:.12em solid #24543a;border-radius:1em;' +
+  // No screen offsets here: every position comes from SA.hud.layout (see place() below).
+  var BAR_CSS = 'position:fixed;box-sizing:border-box;z-index:4;display:flex;align-items:center;gap:.5em;' +
+    'padding:.1em .6em;background:#fff8d6;color:#24543a;border:.12em solid #24543a;border-radius:1em;' +
     'box-shadow:0 .15em .6em rgba(0,0,0,.3);font:700 2rem system-ui,sans-serif;touch-action:manipulation;';
-  var BTN_CSS = 'font-size:1.8rem;min-width:64px;height:64px;border-radius:50%;border:.1em solid #24543a;' +
+  var BTN_CSS = 'font-size:1.8rem;min-width:64px;height:64px;flex:none;border-radius:50%;border:.1em solid #24543a;' +
     'background:#fff;cursor:pointer;padding:0;touch-action:manipulation;';
 
   function createView(doc, handlers) {
@@ -199,27 +200,28 @@
     var replayBtn = el('button', BTN_CSS, '🔁');
     replayBtn.type = 'button';
     replayBtn.setAttribute('aria-label', 'Otra vez');
-    var starsEl = el('div', 'position:fixed;left:12px;bottom:12px;z-index:4;padding:.1em .6em;background:#fff8d6;' +
-      'border:.1em solid #24543a;border-radius:1em;font:700 2rem system-ui,sans-serif;color:#24543a;', '⭐ 0');
-    var toastEl = el('div', 'position:fixed;top:96px;left:50%;transform:translateX(-50%);z-index:5;display:none;' +
-      'padding:.2em .8em;background:#fff;color:#24543a;border-radius:1em;font:700 2.2rem system-ui,sans-serif;' +
-      'box-shadow:0 .15em .6em rgba(0,0,0,.3);pointer-events:none;');
+    var starsEl = el('div', 'position:fixed;box-sizing:border-box;z-index:4;display:flex;align-items:center;justify-content:center;' +
+      'white-space:nowrap;background:#fff8d6;border:.1em solid #24543a;border-radius:1em;font:700 2rem system-ui,sans-serif;' +
+      'color:#24543a;', '⭐ 0');
+    var toastEl = el('div', 'position:fixed;box-sizing:border-box;z-index:5;display:none;align-items:center;justify-content:center;' +
+      'white-space:nowrap;overflow:hidden;padding:0 .4em;background:#fff;color:#24543a;border-radius:1em;' +
+      'font:700 2.2rem system-ui,sans-serif;box-shadow:0 .15em .6em rgba(0,0,0,.3);pointer-events:none;');
     // Photo mission: a camera badge on the card (tap = equip la cámara), a white flash and a framed snapshot that slides in.
     var cameraBtn = el('button', BTN_CSS + 'display:none;', '📷');
     cameraBtn.type = 'button';
     cameraBtn.setAttribute('aria-label', 'La cámara');
     cameraBtn.addEventListener('click', function () { if (handlers.camera) handlers.camera(); });
     var flashEl = el('div', 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:6;background:#fff;opacity:0;display:none;pointer-events:none;');
-    var snapEl = el('div', 'position:fixed;right:12px;top:104px;z-index:5;display:none;flex-direction:column;align-items:center;' +
-      'padding:.3em .5em .2em;background:#fff;border:.1em solid #24543a;border-radius:.3em;box-shadow:0 .15em .6em rgba(0,0,0,.4);' +
+    var snapEl = el('div', 'position:fixed;box-sizing:border-box;z-index:5;display:none;flex-direction:column;align-items:center;' +
+      'justify-content:center;overflow:hidden;padding:.1em .3em;background:#fff;border:.1em solid #24543a;border-radius:.3em;box-shadow:0 .15em .6em rgba(0,0,0,.4);' +
       'font:700 1.3rem system-ui,sans-serif;color:#24543a;transform:translateX(140%) rotate(4deg);pointer-events:none;');
     var snapTimer = null;
     bar.appendChild(icon); bar.appendChild(text); bar.appendChild(cameraBtn); bar.appendChild(hintBtn); bar.appendChild(replayBtn);
     doc.body.appendChild(bar); doc.body.appendChild(starsEl); doc.body.appendChild(toastEl);
     doc.body.appendChild(flashEl); doc.body.appendChild(snapEl);
     // Feed tray: big food buttons along the bottom plus a row of counting dots (filled as food is given).
-    var trayEl = el('div', 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:4;display:none;' +
-      'flex-direction:column;align-items:center;gap:.3em;font:700 2rem system-ui,sans-serif;');
+    var trayEl = el('div', 'position:fixed;box-sizing:border-box;z-index:4;display:none;' +
+      'flex-direction:column;align-items:center;justify-content:flex-end;gap:.3em;font:700 2rem system-ui,sans-serif;');
     var dotsEl = el('div', 'padding:.1em .6em;background:#fff8d6;border:.1em solid #24543a;border-radius:1em;letter-spacing:.2em;');
     var foodsEl = el('div', 'display:flex;gap:.4em;');
     trayEl.appendChild(dotsEl); trayEl.appendChild(foodsEl);
@@ -228,6 +230,39 @@
     hintBtn.addEventListener('click', function () { if (handlers.hint) handlers.hint(); });
     replayBtn.addEventListener('click', function () { if (handlers.replay) handlers.replay(); });
     var toastTimer = null;
+
+    // Positions: every rect comes from SA.hud.layout (pure; zones keep the prompt, stars, toast, snapshot card and feed tray
+    // clear of each other and of every button). Re-applied on resize and whenever the feed tray is rebuilt.
+    var rects = null;
+    function viewport() {
+      var d = doc.documentElement || {};
+      return { width: root.innerWidth || d.clientWidth || 1280, height: root.innerHeight || d.clientHeight || 800 };
+    }
+    function place(e, r) {
+      e.style.left = r.left + 'px'; e.style.top = r.top + 'px'; e.style.width = r.width + 'px'; e.style.height = r.height + 'px';
+    }
+    function px(n) { return Math.max(10, Math.round(n)) + 'px'; }
+    function reflow() {
+      if (!SA.hud) return;
+      rects = SA.hud.layout(viewport());
+      var r = rects;
+      place(bar, r.prompt); place(starsEl, r.stars); place(toastEl, r.toast); place(snapEl, r.snapshot); place(trayEl, r.feedTray);
+      var b = Math.min(64, r.prompt.height - 8) + 'px';
+      [hintBtn, replayBtn, cameraBtn].forEach(function (btn) { btn.style.minWidth = b; btn.style.width = b; btn.style.height = b; });
+      icon.style.fontSize = px(r.prompt.height * 0.45); bar.style.fontSize = px(r.prompt.height * 0.38);
+      starsEl.style.fontSize = px(r.stars.height * 0.6); toastEl.style.fontSize = px(r.toast.height * 0.62);
+      snapEl.style.fontSize = px(r.snapshot.height * 0.11);
+      var dots = Math.round(r.feedTray.height * 0.21);
+      dotsEl.style.fontSize = px(dots);
+      var names = Object.keys(foodBtns), n = Math.max(1, names.length);
+      var size = Math.max(40, Math.min(96, Math.floor((r.feedTray.width - (n - 1) * 6) / n), Math.floor(r.feedTray.height - dots * 1.6 - 8)));
+      names.forEach(function (k) {
+        var s = foodBtns[k].style;
+        s.width = size + 'px'; s.minWidth = size + 'px'; s.height = size + 'px'; s.fontSize = px(size * 0.55);
+      });
+    }
+    reflow();
+    if (typeof root.addEventListener === 'function') root.addEventListener('resize', reflow);
 
     function setIcon(emoji, silhouette) {
       icon.textContent = emoji;
@@ -248,7 +283,8 @@
       snapshot: function (s) {
         flashEl.style.transition = 'none'; flashEl.style.opacity = '0.9'; flashEl.style.display = 'block';
         snapEl.textContent = '';
-        snapEl.appendChild(el('div', 'font-size:3.6rem;line-height:1.1;background:#d9f0e0;border-radius:.2em;padding:0 .2em;', s.icon || '🐾'));
+        snapEl.appendChild(el('div', 'font-size:' + px(rects ? rects.snapshot.height * 0.42 : 56) + ';line-height:1.1;background:#d9f0e0;' +
+          'border-radius:.2em;padding:0 .2em;', s.icon || '🐾'));
         snapEl.appendChild(el('div', '', s.text || ''));
         snapEl.style.transition = 'none'; snapEl.style.transform = 'translateX(140%) rotate(4deg)'; snapEl.style.display = 'flex';
         if (snapTimer) root.clearTimeout(snapTimer);
@@ -284,6 +320,7 @@
           foodsEl.appendChild(b);
         });
         trayEl.style.display = 'flex';
+        reflow();
         this.updateFeed({ given: r.given, items: r.items });
       },
       updateFeed: function (r) {
@@ -327,7 +364,7 @@
       clear: function () { text.textContent = ''; },
       toast: function (msg) {
         toastEl.textContent = msg;
-        toastEl.style.display = 'block';
+        toastEl.style.display = 'flex';
         if (toastTimer !== null) root.clearTimeout(toastTimer);
         toastTimer = root.setTimeout(function () { toastEl.style.display = 'none'; toastTimer = null; }, 1400);
       },
@@ -346,9 +383,11 @@
           root.setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, ms + 100);
         }
         if (cue === 'star-burst') {
-          var plan = SA.levelCue.burstPlan();      // pure placement: starts on the star badge, fans up and right (on-screen)
+          var plan = SA.levelCue.burstPlan();      // pure fan-out (dx/dy); the origin is the star badge's rect from SA.hud
+          var sb = rects ? rects.stars : { left: 0, top: 0, width: 0, height: 0 };
+          var ox = Math.round(sb.left + sb.width / 2 - plan.size / 2), oy = Math.round(sb.top + sb.height / 2 - plan.size / 2);
           plan.stars.forEach(function (s) {
-            puff('⭐', 'left:' + plan.left + 'px;bottom:' + plan.bottom + 'px;font-size:2.2rem;line-height:1;',
+            puff('⭐', 'left:' + ox + 'px;top:' + oy + 'px;font-size:2.2rem;line-height:1;',
               { transform: 'translate(0,0) scale(.4)', opacity: 1 },
               { transform: 'translate(' + s.dx + 'px,' + s.dy + 'px) scale(1.1)', opacity: 0 }, 900);
           });

@@ -74,6 +74,7 @@ globalThis.SA_MANIFEST = {
     'game/reroll.js',
     'game/render/round-fx.js',
     'game/render/biome-glow.js',
+    'game/hud.js',
     'game/level-cue.js',
     'game/ui/prompt.js',
     'game/unlock-flow.js',

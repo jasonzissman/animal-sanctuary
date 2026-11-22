@@ -63,11 +63,16 @@ current; when your change sets or changes something future tickets must follow, 
   pure) = `nearest(pointer, candidates, {touch})` + `create()` sticky target with hysteresis (acquire 48px, ×1.5 for touch,
   kept to 1.3× that, a challenger must be 30% closer to steal it; an exact pick-volume hit wins). `render/picking.js`
   projects the in-reach parts every frame, aims from the mouse (or the screen centre for keyboard/touch play), keeps that part
-  highlighted, and exposes `picking.target()` / `picking.useTarget()`. **Space** (capture phase, beats the climb key while a
-  target is highlighted), a click, a tap (falls back to the nearest in-reach part when it misses every volume) or the touch
+  highlighted, and exposes `picking.target()` / `picking.useTarget()`. **Space** (via the one `SA.spaceUse` dispatcher), a click, a tap (falls back to the nearest in-reach part when it misses every volume) or the touch
   🤚/item **use button** (`game/ui/use-button.js`) all go through one `select()`, which emits
   `SA.picking.emit({ animalId, part, item? })`; `item` is the equipped item id, absent for empty hands (= pet/inspect).
   Tool/food behaviours (AS-0082) read `item` from `SA.picking.onPick`; don't add a second Space path.
+- **One Space target (AS-0107).** `SA.spaceTarget` (game/space-target.js, pure, allocation-free) picks the single thing Space acts
+  on: the AS-0081 aim part first, else the nearest and most in-front climbable tree (`SA.climb.RANGE`) or pickup in reach
+  (`SA.pickups` SPACE_RADIUS), with hysteresis so it never flickers. `SA.spaceUse` (game/space-use.js) is the ONLY Space key
+  handler: it uses the part, climbs that tree (`rig.climbTree`) or collects that pickup (`pickups.collectSpot`), never two at
+  once; with no target Space does nothing (up a tree it still climbs down). `render/picking.js`, `camera-rig.js` (C still
+  climbs) and `render/pickups.js` have no Space key. `spaceUse.target()` is what the outline (AS-0101 slice 2) should glow.
 - **You always see what Space will hit.** Whatever Space would act on right now (an animal part, a climbable tree, a
   pickup) is the one object with a bright outline; nothing else has it. No outline means Space does nothing.
 - **Care is physical and silly.** Brush fur, wash with the sponge, bandage, rub *la barriga*, feed by hand, tug a leaf

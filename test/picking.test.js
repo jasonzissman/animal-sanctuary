@@ -191,12 +191,10 @@ test('forgiving aim: the pointer a few pixels off the part still highlights it, 
   s.SA.inventory = { equipped: () => 'venda' };
   const picks = [];
   s.SA.picking.onPick((p) => picks.push(p));
-  let stopped = 0, prevented = 0;
-  s.handlers.keydown({ key: ' ', target: {}, preventDefault() { prevented++; }, stopImmediatePropagation() { stopped++; } });
+  assert.equal(s.handlers.keydown, undefined, 'no Space key here: SA.spaceUse calls useTarget');
+  assert.equal(s.picking.useTarget(), true);
   assert.deepEqual({ ...picks[0] }, { animalId: part.animalId, part: part.part, item: 'venda' });
   assert.equal(picks.length, 1);
-  assert.equal(stopped, 1, 'Space is consumed so the climb key does not also fire');
-  assert.equal(prevented, 1);
   s.SA.inventory = { equipped: () => null };
   assert.equal(s.picking.useTarget(), true, 'the touch use button path');
   assert.deepEqual({ ...picks[1] }, { animalId: part.animalId, part: part.part }, 'empty hands: no item, just pet/inspect');
@@ -250,13 +248,11 @@ test('speakPart speaks via SA.audio.say when present and is silent without it', 
   assert.equal(SA.picking.speakPart(null), false);
 });
 
-test('picking only reacts to Space (and only with a highlighted part): movement keys always reach the player', () => {
+test('picking has no key handlers (movement keys always reach the player); parts are chosen by click/tap', () => {
   const s = stage(false);
   assert.equal(s.handlers.keyup, undefined);
-  const touched = [];
-  const k = (key) => ({ key, target: {}, preventDefault() { touched.push('p'); }, stopImmediatePropagation() { touched.push('s'); } });
-  for (const key of ['ArrowUp', 'w', 'a', 'Escape', ' ']) s.handlers.keydown(k(key));   // nothing is highlighted yet
-  assert.deepEqual(touched, []);
+  assert.equal(s.handlers.keydown, undefined);
+  assert.equal(s.picking.useTarget(), false, 'nothing highlighted: using does nothing');
   // Parts are still chosen by click/tap.
   const picks = [];
   s.SA.picking.onPick((p) => picks.push(p));

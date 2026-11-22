@@ -165,13 +165,18 @@ test('render: pickups are drawn, collected on contact with sound + speech, hidde
   for (let i = 0; i < 60; i++) px.update(1);
   assert.equal(node1.visible, true, 'grew back');
 
-  // Space picks up something a little farther away than walking does.
+  // Space (via SA.spaceUse) reaches a little farther than walking does.
   const flower = spots.find((s) => s.item === 'flor');
   Object.assign(player, { x: flower.x + 2, z: flower.z });
   px.update(0.1);
   assert.equal(SA.inventory.count('flor'), 0);
-  listeners.keydown({ key: ' ', code: 'Space', target: { tagName: 'BODY' } });
+  assert.equal(listeners.keydown, undefined, 'no Space key of its own: SA.spaceUse dispatches');
+  const near = px.world.reachable(player, SA.pickups.SPACE_RADIUS, []);
+  assert.ok(near.some((n) => n.id === flower.id), 'reachable() lists finds within the Space radius');
+  assert.ok(px.collectSpot(flower));
   assert.equal(SA.inventory.count('flor'), 1);
+  assert.equal(px.collectSpot(flower), null, 'already collected');
+  assert.equal(px.world.reachable({ x: 1e6, z: 0 }, 2.4, []).length, 0);
   assert.equal(log[log.length - 1], 'say:found:flor');
 });
 

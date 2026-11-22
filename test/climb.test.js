@@ -147,7 +147,7 @@ test('up in the canopy a perched animal is in reach; from the ground it is not',
   assert.equal(SA.reach.canReach({ x: s.x, z: s.z, y: s.y }, perch), true);
 });
 
-test('rig: C climbs when next to a tree, Space climbs down, and getPlayer reports y', () => {
+test('rig: C climbs when next to a tree and down again, and getPlayer reports y', () => {
   const keys = {}, canvas = { style: {}, clientHeight: 600, addEventListener() {} };
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
@@ -171,7 +171,9 @@ test('rig: C climbs when next to a tree, Space climbs down, and getPlayer report
   assert.ok(rig.getPlayer().y > 3);
   assert.ok(placed.y > 3, 'chase camera rises with the player');
   assert.equal(rig.climbPrompt(), 'down');
-  keys.keydown({ key: ' ', preventDefault() {} });
+  keys.keydown({ key: ' ', preventDefault() { prevented++; } });
+  assert.equal(rig.getPlayer().climb, 'canopy', 'the rig no longer handles Space (SA.spaceUse does)');
+  keys.keydown({ key: 'C', preventDefault() {} });
   assert.equal(rig.getPlayer().climb, 'down');
   frames(40);
   assert.equal(rig.getPlayer().climb, null);
@@ -184,7 +186,7 @@ test('rig: C climbs when next to a tree, Space climbs down, and getPlayer report
   assert.equal(rig.getPlayer().climb, 'up', 'turning toward a point keeps the climb');
 });
 
-test('rig: Space does nothing (and is not swallowed) away from a tree', () => {
+test('rig: C does nothing (and is not swallowed) away from a tree', () => {
   const keys = {};
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
@@ -195,6 +197,7 @@ test('rig: Space does nothing (and is not swallowed) away from a tree', () => {
   const camera = { position: { set() {} }, lookAt() {} };
   const rig = ctx.window.SA.render.createCameraRig({}, { style: {}, clientHeight: 600, addEventListener() {} }, camera, null, {});
   let prevented = 0;
+  keys.keydown({ key: 'c', preventDefault() { prevented++; } });
   keys.keydown({ key: ' ', preventDefault() { prevented++; } });
   assert.equal(prevented, 0);
   assert.equal(rig.climbPrompt(), null);

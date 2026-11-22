@@ -91,16 +91,13 @@
       if (toastLeft > 0) { toastLeft -= dt; if (toastLeft <= 0 && toast) toast.style.display = 'none'; }
     }
 
-    // Space next to a find picks it up (a wider radius than walking into it). Space does nothing otherwise here.
-    if (typeof root.addEventListener === 'function') {
-      root.addEventListener('keydown', function (e) {
-        if (e.key !== ' ' && e.code !== 'Space') return;
-        var tag = e.target && e.target.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') return;
-        collectNear(SA.pickups.SPACE_RADIUS);
-      });
+    // Space collects the find the one Space dispatcher (SA.spaceUse) chose, via collectSpot; there is no Space key here.
+    function collectSpot(spot) {
+      var got = spot ? world.collect(spot.id) : null;
+      if (got) celebrate(got);
+      return got;
     }
 
-    return { group: group, world: world, update: update, collectNear: collectNear };
+    return { group: group, world: world, update: update, collectNear: collectNear, collectSpot: collectSpot };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -4,6 +4,7 @@
  *   ambient.hold(id, seconds?) stop one animal wandering (while inspected / cared for); no seconds = until release
  *   ambient.release(id)        let it wander again
  *   ambient.setAvoid(points)   replace the [[x, z, r?],...] points wanderers keep clear of (decor + placed props)
+ * opts.trees = [{ x, z, y?, scale?, kind? }] are the canopies tree-dwellers (animal data perch: "tree") perch in.
  * Wandering comes from SA.wander (driven by traits.movement). Idle animation: breathing (group scale), ear and tail
  * wiggle, blinking (eye scale). Animals keep breathing and blinking while held, only their travel stops.
  */
@@ -33,6 +34,16 @@
       };
     }
 
+    // Tree dwellers (animal data perch: "tree") sit on canopy branches and hop between the trees of their biome
+    // (SA.perch) instead of wandering on the ground. Adapts the hopper to the SA.wander shape update() expects.
+    function perchWalker(a, g, i) {
+      var h = SA.perch.create({ biome: a.biome, trees: opts.trees, seed: 100 + i, home: { x: g.position.x, z: g.position.z } });
+      return {
+        update: function (dt) { var p = h.update(dt); return { x: p.x, z: p.z, y: p.y, heading: p.heading, moving: p.hopping, perched: true }; },
+        hold: h.hold, release: h.release, setAvoid: function () {},
+      };
+    }
+
     group.children.forEach(function (g, i) {
       var a = data[g.userData.animalId];
       if (!a) return;
@@ -41,11 +52,12 @@
         g: g, phase: i * 1.7, ears: parts('orejas'), tail: parts('cola'), eyes: parts('ojos'), cheeks: parts('mejillas'),
         gait: SA.gait.kind(a.traits.movement), amp: 0, wings: parts('alas'), legs: parts('patas'),
         sx: g.scale.x, sy: g.scale.y, sz: g.scale.z,
-        w: SA.wander.create({
+        w: a.perch === 'tree' && SA.perch ? perchWalker(a, g, i) : SA.wander.create({
           movement: a.traits.movement, biome: a.biome, home: { x: g.position.x, z: g.position.z },
           seed: 100 + i, avoid: opts.avoid, others: othersOf(a.id),
         }),
       };
+      if (a.perch === 'tree' && SA.perch) g.userData.perched = true;   // up in a canopy: never blocks the walking player
     });
 
     // Flyers flap their alas (a gentle flutter while hovering, wide while travelling); walkers swing their patas from
@@ -70,7 +82,7 @@
         var r = rigs[id], g = r.g, p = r.w.update(dt), idle = SA.wander.idle(t, r.phase);
         g.position.x = p.x;
         g.position.z = p.z;
-        g.position.y = SA.map.groundHeight(p.x, p.z) + p.lift;
+        g.position.y = p.perched ? p.y : SA.map.groundHeight(p.x, p.z) + p.lift;
         g.rotation.y = p.heading;
         g.scale.set(r.sx / Math.sqrt(idle.breath), r.sy * idle.breath, r.sz / Math.sqrt(idle.breath));
         r.ears.forEach(function (e) { e.m.rotation.z = e.rz + idle.wiggle * 0.25 * (e.m.userData.side === 'right' ? -1 : 1); });

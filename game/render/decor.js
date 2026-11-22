@@ -19,6 +19,7 @@
     high.position.y = 3.3;
     g.add(trunk, low, high);
     g.userData.tree = true;      // tappable (SA.render.createTreeTap)
+    g.userData.kind = 'pine';    // canopy size for SA.perch
     g.scale.setScalar(s);
     return g;
   }
@@ -32,6 +33,7 @@
     top.scale.y = 0.7;
     g.add(trunk, top);
     g.userData.tree = true;
+    g.userData.kind = 'jungle';
     g.scale.setScalar(s);
     return g;
   }

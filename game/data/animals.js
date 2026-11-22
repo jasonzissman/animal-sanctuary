@@ -10,6 +10,8 @@
  *   parts     [{ part: <registered part key>, color: '#rrggbb', scale: n | [x,y,z], count: int, offset: [x,y,z] }]
  *             count > 1 spreads instances symmetrically: offset.x is the HALF-WIDTH of the spread (not a position),
  *             e.g. count 2 -> x = -offset.x and +offset.x; count 4 -> a 2x2 grid; offset y/z are shared.
+ *   perch     optional; "tree" = lives in tree canopies (SA.perch: sits on branches and hops between trees, out of
+ *             reach from the ground). Omit for ground animals.
  *   easterEgg boolean (false for real animals)
  *   unlock    easter eggs only: the condition that reveals it (plain data, evaluated by game/unlocks.js)
  * A parts[] entry may also set `pupil` ('#rrggbb'): a dark pupil sphere drawn in front of each instance, so eyes read as
@@ -24,6 +26,7 @@
   var COLORS = ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul'];
   var MOVEMENTS = ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre', 'repta'];
   var DIETS = ['herbívoro', 'carnívoro', 'omnívoro', 'insectívoro'];
+  var PERCHES = ['tree'];
   var HEX = /^#[0-9a-fA-F]{6}$/;
   var MIN_PUPIL_CONTRAST = 0.4;   // minimum luminance difference (0..1) between a pupil and its part colour
 
@@ -91,6 +94,7 @@
     if (!Array.isArray(a.parts) || !a.parts.length) fail('parts', 'must be a non-empty array');
     var seen = {};
     a.parts.forEach(function (p, i) { validatePart(p, i, seen); });
+    if (a.perch !== undefined) oneOf(a.perch, PERCHES, 'perch');
     if (typeof a.easterEgg !== 'boolean') fail('easterEgg', 'must be true or false');
     // Easter eggs stay hidden until their data-defined condition is met. game/unlocks.js validates it in depth.
     if (a.easterEgg && (!a.unlock || typeof a.unlock !== 'object' || typeof a.unlock.type !== 'string')) {
@@ -99,7 +103,7 @@
     if (!a.easterEgg && a.unlock !== undefined) fail('unlock', 'only easter eggs have an unlock condition');
   }
 
-  SA.animals = { SIZES: SIZES, COLORS: COLORS, MOVEMENTS: MOVEMENTS, DIETS: DIETS };
+  SA.animals = { SIZES: SIZES, COLORS: COLORS, MOVEMENTS: MOVEMENTS, DIETS: DIETS, PERCHES: PERCHES };
   SA.data.defineKind('animals', validateAnimal);
 
   function p(part, color, scale, count, offset) {
@@ -137,7 +141,7 @@
         p('cabeza', '#7ab86b', 0.4, 1, [0, 0.6, 0.9]), p('patas', '#7ab86b', 0.25, 4, [0.45, 0.15, 0]),
         p('cola', '#7ab86b', [0.1, 0.1, 0.3], 1, [0, 0.4, -0.8]), eyes(0.1, [0.11, 0.68, 1.03])
       ], easterEgg: false },
-    { id: 'mono', name: { es: 'mono', en: 'monkey', gender: 'm' }, icon: '🐵', biome: 'selva',
+    { id: 'mono', name: { es: 'mono', en: 'monkey', gender: 'm' }, icon: '🐵', biome: 'selva', perch: 'tree',
       traits: { size: 'mediano', color: 'marrón', movement: 'trepa', diet: 'omnívoro', legs: 4 },
       parts: [
         p('cuerpo', '#8a5a34', 1, 1, [0, 0.8, 0]), p('cabeza', '#8a5a34', 0.65, 1, [0, 1.45, 0.3]),
@@ -145,7 +149,7 @@
         p('cola', '#6d4423', [0.12, 0.12, 1.8], 1, [0, 0.8, -0.9]), p('patas', '#6d4423', [0.2, 0.7, 0.2], 4, [0.3, 0.35, 0]),
         eyes(0.14, [0.15, 1.53, 0.56])
       ], easterEgg: false },
-    { id: 'tucan', name: { es: 'tucán', en: 'toucan', gender: 'm' }, icon: '🦜', biome: 'selva',
+    { id: 'tucan', name: { es: 'tucán', en: 'toucan', gender: 'm' }, icon: '🦜', biome: 'selva', perch: 'tree',
       traits: { size: 'mediano', color: 'negro', movement: 'vuela', diet: 'herbívoro', legs: 2 },
       parts: [
         p('cuerpo', '#1e1e24', 0.9, 1, [0, 0.8, 0]), p('cabeza', '#1e1e24', 0.5, 1, [0, 1.5, 0.3]),

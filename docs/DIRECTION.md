@@ -13,7 +13,9 @@ current; when your change sets or changes something future tickets must follow, 
   `y` is its standing height so climbing raises reach); `render/picking.js` gates every pick and rub through it and
   fires `SA.reach.notifyFar` (bubble + hint-arrow nudge) instead of `SA.picking.emit`.
 - **Go vertical.** Birds, monkeys and toucans live in tree canopies, so you climb trees to reach them (and the fruit
-  up there). Climbing down is always safe.
+  up there). Climbing down is always safe. Data: animal `perch: "tree"` (mono, tucán); `SA.perch` (game/perch.js, pure,
+  seeded) picks canopy branch spots on the biome's trees and hops between them; they are out of reach from the ground
+  (`SA.reach` compares heights) until the player climbs.
 - **Tasks while roaming.** Missions ("Busca un animal con orejas largas") sit on a card while you explore freely. You
   complete a find by taking a photo with *la cámara*, and the photo album rewards exploring.
 - **Inventory and tools.** You start with *cámara, cepillo, esponja, venda* and find more (*plátanos, rocas, flores,

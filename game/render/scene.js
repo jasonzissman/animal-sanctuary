@@ -45,7 +45,7 @@
     var obstacleProps = [];
     function obstacles() {
       var list = avoid.map(function (a) { return [a[0], a[1], DECOR_R]; }).concat(obstacleProps);
-      animals.children.forEach(function (g) { list.push([g.position.x, g.position.z, ANIMAL_R]); });
+      animals.children.forEach(function (g) { if (!(g.userData && g.userData.perched)) list.push([g.position.x, g.position.z, ANIMAL_R]); });
       return list;
     }
     var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, null, { chase: { obstacles: obstacles }, canOrbit: function (e) {
@@ -66,7 +66,10 @@
     scene.add(props.group);
     if (props.ghostGroup) scene.add(props.ghostGroup);
 
-    var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid });
+    var trees = decor.children.filter(function (o) { return o.userData && o.userData.tree; }).map(function (o) {
+      return { x: o.position.x, z: o.position.z, y: o.position.y, scale: o.scale.y, kind: o.userData.kind };
+    });
+    var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid, trees: trees });
     // Placed props (this session and restored from the save) join the decor in the wander avoid list. The save is
     // already updated when the sandbox calls add/remove, so the list is rebuilt from SA.habitat.list().
     function refreshAvoid() {

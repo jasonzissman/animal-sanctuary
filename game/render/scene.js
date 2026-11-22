@@ -121,13 +121,20 @@
       // The missions board in the station (AS-0211) is a Use target: E / Enter opens the missions via the station hook (and closes it again).
       // The porch scientist (AS-0204) is an 'npc' Use target: E / Enter talks to her.
       boards: function () { return boardTargets; },
-      npcs: function () { return npcTargets; },
+      // The waiting lost baby of a story mission (AS-0234) is one more npc target: E / Enter uses it to find it.
+      npcs: function () {
+        var baby = SA.missionBaby && SA.missionBaby.useTarget();
+        return baby ? npcTargets.concat([baby]) : npcTargets;
+      },
       openBoard: function () {
         if (!SA.station || !SA.station.toggle) return false;
         SA.station.toggle('board');
         return true;
       },
-      talk: function () { return !SA.picking.isPaused() && SA.npc.talk('use'); }, root: root }) : null;
+      talk: function (npc) {
+        if (npc && npc.id === 'baby') return !SA.picking.isPaused() && !!SA.missionBaby && SA.missionBaby.use();
+        return !SA.picking.isPaused() && SA.npc.talk('use');
+      }, root: root }) : null;
     // Tapping or clicking the board does the same (an invisible pick volume in its group); a tap on the
     // scientist's pick volume talks to her, and wins where the two volumes overlap.
     var scientistTap = scientist && SA.render.createScientistTap && SA.npc ? SA.render.createScientistTap(THREE, { canvas: renderer.domElement,
@@ -146,6 +153,7 @@
         if (ref && ref.id) decor.children.concat(station ? [station] : []).forEach(function (o) { if (o.userData && o.userData.climbId === ref.id) found = o; });
         return found;
       }
+      if (kind === 'npc' && ref && ref.id === 'baby') return missionAnimals ? missionAnimals.babyNode() : null;   // the lost baby (AS-0234)
       if (kind === 'npc') return scientist ? scientist.group : null;   // her pick volume is invisible, so only the model glows
       if (kind === 'board') return station && station.userData && station.userData.board ? station.userData.board.group : null;
       return kind === 'pickup' && pickups ? pickups.nodeFor(ref) : null;
@@ -158,7 +166,8 @@
     // Tree animals give a tell from the ground (AS-0117): a shadow below them, now and then rustling leaves and a soft call.
     // Built after the ambient system, which marks the tree dwellers (userData.perched).
     // The animals a story mission places (mission 1: the lost piglet and mamá, AS-0233): same animal builder, own group, solids = the walk list.
-    var missionAnimals = SA.render.createMissionSpawn && SA.missionSpawn ? SA.render.createMissionSpawn(THREE, { scene: scene, solids: obstacles, getPlayer: rig.getPlayer }) : null;
+    var missionAnimals = SA.render.createMissionSpawn && SA.missionSpawn ? SA.render.createMissionSpawn(THREE, { scene: scene, solids: obstacles, getPlayer: rig.getPlayer,
+      baby: SA.missionBaby, canvas: renderer.domElement, camera: camera }) : null;
     var treetop = SA.render.createTreetopTell &&SA.treetopTell ? SA.render.createTreetopTell(THREE, { animals: animals, trees: trees, treeNodes: treeNodes, getPlayer: rig.getPlayer, scene: scene }) : null;
     // Placed props (this session and restored from the save) join the decor in the wander avoid list. The save is
     // already updated when the sandbox calls add/remove, so the list is rebuilt from SA.habitat.list().

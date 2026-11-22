@@ -433,6 +433,12 @@ current; when your change sets or changes something future tickets must follow, 
   step is met by walking up to the piglet (`SA.missionSpawn.locate`). `render/mission-spawn.js` draws them through
   `SA.render.animalBuilder(THREE)` (the same builder as the world animals) in their own `missionAnimals` group; while the baby waits
   it shows a blue tear, shivers and whimpers (`SA.audio.sfx('whimper')`, quieter with distance); mamá turns her head, worried.
+- **The baby follows (AS-0234, slice 3 of Mission 1):** `SA.missionBaby` (`game/mission-baby.js`, pure) makes *using* the waiting baby
+  (tap/click on it, or E / Enter: it is an `npc` use target `{ id: 'baby' }` in scene.js's `npcs()` list) report `found`; walking up to it
+  still works through the runtime. While the `follow` step is current it walks behind the player through `SA.follow.stepAll` (its `solids`
+  arg may be the walk-list **function**, resolved there). It hops and squeaks once when found, and within `EXCITE_DIST` (12) of mamá it
+  bounces and squeaks, more and faster the closer it gets (`excitement(d)`), a warmer/colder hint. Telemetry: `mission.babyFound`,
+  `mission.babyExcited`. Who reports the `followed` event that ends the follow step is the next slice.
 
 ## Unchanged from the spec
 

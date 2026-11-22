@@ -45,6 +45,8 @@
     chirp: [{ w: 'sine', f: 1900, f2: 2700, t: 0, d: 0.1, g: 0.2 }, { w: 'sine', f: 2200, f2: 3100, t: 0.14, d: 0.12, g: 0.2 }],
     // Soft whimper of a lost baby (AS-0233): two small falling sobs, quiet and never scary. sfx(name, volume) scales it with distance.
     whimper: [{ w: 'sine', f: 900, f2: 600, t: 0, d: 0.28, g: 0.12, wob: 16 }, { w: 'sine', f: 820, f2: 520, t: 0.34, d: 0.34, g: 0.1, wob: 16 }],
+    // Happy squeak of a found baby (AS-0234): two quick rising squeaks. sfx(name, volume) scales it.
+    squeak: [{ w: 'sine', f: 1300, f2: 1900, t: 0, d: 0.1, g: 0.2, wob: 24 }, { w: 'sine', f: 1500, f2: 2200, t: 0.13, d: 0.12, g: 0.2, wob: 24 }],
     // Camera shutter: two quick clicks (open, close).
     shutter: [{ n: 1, hp: 1800, t: 0, d: 0.04, g: 0.3 }, { w: 'square', f: 1400, f2: 900, t: 0, d: 0.03, g: 0.08 },
               { n: 1, hp: 1200, t: 0.07, d: 0.06, g: 0.25 }, { w: 'square', f: 800, f2: 500, t: 0.07, d: 0.04, g: 0.07 }]

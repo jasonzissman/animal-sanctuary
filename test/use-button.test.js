@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { loadGame } from './helpers/vm.js';
 
 const LOGIC = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
-  'game/data/vocab.js', 'game/data/foods.js', 'game/data/items.js', 'game/hud.js', 'game/ui/hud-place.js', 'game/ui/use-button.js'];
+  'game/data/vocab.js', 'game/data/foods.js', 'game/data/items.js', 'game/hud.js', 'game/ui/hud-place.js', 'game/touch.js', 'game/ui/use-button.js'];
 
 function fakeDoc() {
   const el = { style: {}, listeners: {}, attrs: {}, textContent: '',

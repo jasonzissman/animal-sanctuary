@@ -12,7 +12,7 @@
     'background:rgba(255,248,214,.85);color:#24543a;font:700 1.8rem system-ui,sans-serif;cursor:pointer;opacity:.85;' +
     'touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 .1em .4em rgba(0,0,0,.3);pointer-events:auto;';
 
-  function create(doc, rig) {
+  function create(doc, rig, win) {
     if (!doc || typeof doc.createElement !== 'function' || !doc.body || !rig || !SA.orbitButtons) return { release: function () {} };
     var held = {};   // pointerId -> button id
 
@@ -45,12 +45,25 @@
       b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
       wrap.appendChild(b); btns.push(b);
     });
+    wrap.style.display = 'none';   // touch devices only (Q/E/R/F and drag-to-look cover the mouse)
     doc.body.appendChild(wrap);
     if (SA.hudPlace) SA.hudPlace.register('orbitPad', wrap, { reserve: true, onPlace: function (r) {
       var s = Math.floor((r.width - 8) / 2);
       wrap.style.gridTemplateColumns = 'repeat(2,' + s + 'px)';
       btns.forEach(function (b) { b.style.width = s + 'px'; b.style.height = s + 'px'; });
     } });
+    var touch = SA.touch ? SA.touch.get(win || root) : null;   // shared: coarse pointer, or the first touch / pen pointerdown
+    var shown = null;
+    function apply() {
+      var want = !!touch && SA.touch.visible(touch.is());
+      if (want === shown) return;
+      var was = shown;
+      shown = want; wrap.style.display = want ? 'grid' : 'none';
+      if (!want && was) release();
+      if (SA.hudPlace) SA.hudPlace.refresh();
+    }
+    if (touch) touch.onChange(apply);
+    apply();
     if (typeof root.addEventListener === 'function') root.addEventListener('blur', release);
     return { release: release, element: wrap };
   }

@@ -77,7 +77,7 @@ const el = (tag) => ({ tag, style: {}, children: [], l: {}, attrs: {}, appendChi
 const ev = (o) => ({ pointerId: 1, clientX: 84, clientY: 468, preventDefault() {}, ...o });
 
 test('view: hidden until a touch, then bottom-left; dragging drives rig.setStick and release recentres', () => {
-  const SA = loadGame(['game/sa.js', 'game/hud.js', 'game/ui/hud-place.js', 'game/joystick.js', 'game/ui/joystick-view.js']);
+  const SA = loadGame(['game/sa.js', 'game/hud.js', 'game/ui/hud-place.js', 'game/joystick.js', 'game/touch.js', 'game/ui/joystick-view.js']);
   assert.doesNotThrow(() => SA.joystickView.create(null, {}).release());
   const body = el('body'), doc = { createElement: el, body };
   const win = { l: {}, addEventListener(t, f) { this.l[t] = f; } };

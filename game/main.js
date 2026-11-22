@@ -48,12 +48,12 @@
       }
     } catch (e) { report('reroll.start', e); }
     // Icon-only rotate/tilt buttons so touch players can orbit the camera (same path as Q/E/R/F).
-    try { if (SA.orbitPad) SA.orbitPad.create(root.document, stage.rig); } catch (e) { report('orbitPad.start', e); }
+    try { if (SA.orbitPad) SA.orbitPad.create(root.document, stage.rig, root); } catch (e) { report('orbitPad.start', e); }
     // Virtual joystick (bottom-left, shown at the first touch) so touch players can walk without a keyboard.
     try { if (SA.joystickView) SA.joystickView.create(root.document, stage.rig, root); } catch (e) { report('joystick.start', e); }
     // Icon-only climb button: 🧗 next to a tree, ⬇️ while up one (same as Space / C).
     var climbBtn = null;
-    try { if (SA.climbButton) climbBtn = SA.climbButton.create(root.document, stage.rig); } catch (e) { report('climbButton.start', e); }
+    try { if (SA.climbButton) climbBtn = SA.climbButton.create(root.document, stage.rig, root); } catch (e) { report('climbButton.start', e); }
     // Icon-only ⬆️ jump button (appears at the first touch, like the joystick): the same hop as Space.
     try { if (SA.jumpButton) SA.jumpButton.create(root.document, stage.rig, root); } catch (e) { report('jumpButton.start', e); }
     // Icon-only hotbar (bottom centre): tap a slot or press 1-9 to equip, tap it again or press 0 to empty your hands.

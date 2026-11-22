@@ -86,6 +86,7 @@ globalThis.SA_MANIFEST = {
     'game/hint-pointer.js',
     'game/ui/hint-arrow.js',
     'game/ui/hint-flow.js',
+    'game/touch.js',
     'game/orbit-buttons.js',
     'game/ui/orbit-pad.js',
     'game/joystick.js',

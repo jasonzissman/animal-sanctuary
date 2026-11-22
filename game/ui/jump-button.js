@@ -1,6 +1,6 @@
 /* SA.jumpButton.create(doc, rig, win) -> { show(), element }: one big round icon-only jump button (⬆️) for touch players.
  * Tapping it calls rig.jump() (the same hop as Space: one per landing, nothing in the air or up a tree). Like the
- * joystick it stays hidden on mouse/keyboard devices and appears at the first touch anywhere. It sits above the use
+ * joystick it stays hidden on mouse/keyboard devices (Space still jumps) and appears on a coarse pointer or at the first touch (SA.touch). It sits above the use
  * button, between the joystick and the right-hand buttons; only the button itself catches pointer events, so the
  * joystick and drag-to-look are untouched. No text beyond the aria-label. No-op without a DOM.
  */
@@ -26,12 +26,17 @@
     doc.body.appendChild(b);
     if (SA.hudPlace) SA.hudPlace.register('jump', b, { reserve: true, onPlace: function (r) { b.style.fontSize = Math.round(r.height * 0.4) + 'px'; } });
 
-    function show() { b.style.display = 'block'; if (SA.hudPlace) SA.hudPlace.refresh(); }
     win = win || root;
-    if (typeof win.addEventListener === 'function') {
-      // Capture phase, like the joystick: the first finger anywhere reveals it.
-      win.addEventListener('pointerdown', function (e) { if (e && (e.pointerType === 'touch' || e.pointerType === 'pen')) show(); }, true);
+    var touch = SA.touch ? SA.touch.get(win) : null;   // shared: coarse pointer, or the first touch / pen pointerdown
+    var shown = null;
+    function show() {
+      var want = !!touch && SA.touch.visible(touch.is());
+      if (want === shown) return;
+      shown = want; b.style.display = want ? 'block' : 'none';
+      if (SA.hudPlace) SA.hudPlace.refresh();
     }
+    if (touch) touch.onChange(show);
+    show();
     return { show: show, element: b };
   }
 

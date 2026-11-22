@@ -1,6 +1,6 @@
 /* SA.joystickView.create(doc, rig, win): icon-only virtual joystick, bottom-left, for touch players.
  * Dragging the knob calls rig.setStick(x, y) (unit disc, +y down); releasing recentres it. The pad stays hidden on
- * mouse/keyboard devices and appears at the first touch anywhere. Only the pad itself catches pointer events, so
+ * mouse/keyboard devices and appears on a coarse pointer or at the first touch anywhere (SA.touch). Only the pad itself catches pointer events, so
  * animals and parts stay pickable. Vector maths lives in SA.joystick (pure, tested). No-op without a DOM.
  */
 (function (root) {
@@ -58,7 +58,16 @@
       if (rig.setStick) rig.setStick(0, 0);
       setKnob(0, 0);
     }
-    function show() { pad.style.display = 'block'; if (SA.hudPlace) SA.hudPlace.refresh(); }
+    win = win || root;
+    var touch = SA.touch ? SA.touch.get(win) : null;   // shared: coarse pointer, or the first touch / pen pointerdown
+    var shown = null;
+    function show() {
+      var want = !!touch && SA.touch.visible(touch.is());
+      if (want === shown) return;
+      shown = want; pad.style.display = want ? 'block' : 'none';
+      if (SA.hudPlace) SA.hudPlace.refresh();
+    }
+    if (touch) touch.onChange(show);
 
     pad.addEventListener('pointerdown', function (e) {
       e.preventDefault();
@@ -76,12 +85,8 @@
     pad.addEventListener('pointercancel', up);
     pad.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
-    win = win || root;
-    if (typeof win.addEventListener === 'function') {
-      // Capture phase: the canvas may keep the pointer, but we still hear the very first finger.
-      win.addEventListener('pointerdown', function (e) { if (SA.joystick.isTouch(e.pointerType)) show(); }, true);
-      win.addEventListener('blur', release);
-    }
+    if (typeof win.addEventListener === 'function') win.addEventListener('blur', release);
+    show();
     return { show: show, release: release, element: pad };
   }
 

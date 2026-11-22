@@ -10,7 +10,7 @@
  *   flow.onFeed(foodId)               feed task: a tray food was tapped; the asked food is counted aloud, anything else
  *                                     bounces back with a giggle and its name (no penalty); exactly `count` finishes
  *   (curar: "Cura las alas" is one tap on the scraped part; finishing draws a bandage via fx.bandage())
- *   flow.replay()                   speaks the prompt again
+ *   flow.replay()                   speaks the prompt again (a feed ask word by word, pulsing each food: view.pulseFood(id))
  */
 (function (root) {
   'use strict';
@@ -47,6 +47,7 @@
     }
 
     function finish(res) {
+      stopSeq();
       if (SA.picking && SA.picking.setRubTarget) SA.picking.setRubTarget(null);
       if (fx) fx.scrub(0);
       if (res.kind === 'curar' && fx && fx.bandage) fx.bandage();
@@ -95,7 +96,24 @@
       return res;
     }
 
-    function replay() { var t = care.current(); if (t && care.active()) say(t.text); }
+    // Replay of a feed ask: each task.words key is spoken in turn and its tray food pulses (SA.wordSeq, pure timing).
+    // Without audio, or while muted, nothing extra happens. Other tasks (and no SA.wordSeq) speak the whole phrase.
+    var seq = null;
+    function stopSeq() { if (seq) { seq.cancel(); seq = null; } }
+    function muted() { try { return !!(audio && audio.isMuted && audio.isMuted()); } catch (e) { return false; } }
+    function replay() {
+      var t = care.current();
+      if (!t || !care.active()) return;
+      stopSeq();
+      if (t.kind !== 'alimentar' || !t.words || !t.words.length || !SA.wordSeq) { say(t.text); return; }
+      if (!audio || !audio.say || muted()) return;
+      var mine = seq = SA.wordSeq.play(t.words, {
+        say: say, later: later,
+        alive: function () { return care.active() && care.current() === t; },
+        onWord: function (step) { if (step.food) vcall('pulseFood', step.food); },
+        onEnd: function () { if (seq === mine) seq = null; }
+      });
+    }
 
     return { offer: offer, active: care.active, onPick: onPick, onFeed: onFeed, replay: replay };
   }

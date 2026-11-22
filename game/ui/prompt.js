@@ -245,6 +245,14 @@
             { transform: 'translateY(0) rotate(0deg)' }], { duration: 600 });
         }
       },
+      pulseFood: function (id) {       // highlights a tray food while its word is spoken (Replay of a feed ask)
+        var b = foodBtns[id];
+        if (b && typeof b.animate === 'function') {
+          b.animate([{ transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(255,217,61,0)' },
+            { transform: 'scale(1.25)', boxShadow: '0 0 16px 8px rgba(255,217,61,.9)' },
+            { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(255,217,61,0)' }], { duration: 800 });
+        }
+      },
       setStars: function (n) { starsEl.textContent = '⭐ ' + n; },
       setHidden: function (hide) {      // the habitat sandbox hides the prompt bar, star badge and feed tray while building
         bar.style.visibility = hide ? 'hidden' : 'visible';

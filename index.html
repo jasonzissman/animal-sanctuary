@@ -13,5 +13,8 @@
   <div id="boot">🐾 Santuario de Animales</div>
   <!-- Classic scripts only (the game runs from file://). three.js r128 is vendored: global THREE. -->
   <script src="game/vendor/three.min.js"></script>
+  <!-- Game scripts, in dependency order: SA namespace first, then the data registry. -->
+  <script src="game/sa.js"></script>
+  <script src="game/data-registry.js"></script>
 </body>
 </html>

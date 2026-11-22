@@ -10,6 +10,8 @@
  *             count > 1 spreads instances symmetrically: offset.x is the HALF-WIDTH of the spread (not a position),
  *             e.g. count 2 -> x = -offset.x and +offset.x; count 4 -> a 2x2 grid; offset y/z are shared.
  *   easterEgg boolean (false for real animals)
+ *   unlock    easter eggs only: the condition that reveals it (plain data, evaluated by game/unlocks.js)
+ * A parts[] entry may also set `builder` (a SA.parts.BUILDERS name) to draw its part with another primitive.
  */
 (function (root) {
   'use strict';
@@ -45,6 +47,9 @@
     if (!HEX.test(entry.color)) fail(f + '.color', 'must be a "#rrggbb" colour (got ' + JSON.stringify(entry.color) + ')');
     if (Array.isArray(entry.scale)) vec3(entry.scale, f + '.scale', true);
     else if (!isNum(entry.scale) || entry.scale <= 0) fail(f + '.scale', 'must be a positive number or [x,y,z]');
+    if (entry.builder !== undefined && SA.parts.BUILDERS.indexOf(entry.builder) < 0) {
+      fail(f + '.builder', 'must be one of ' + SA.parts.BUILDERS.join(', '));
+    }
     if (!Number.isInteger(entry.count) || entry.count < 1 || entry.count > 8) fail(f + '.count', 'must be an integer from 1 to 8');
     vec3(entry.offset, f + '.offset', false);
   }
@@ -69,6 +74,11 @@
     var seen = {};
     a.parts.forEach(function (p, i) { validatePart(p, i, seen); });
     if (typeof a.easterEgg !== 'boolean') fail('easterEgg', 'must be true or false');
+    // Easter eggs stay hidden until their data-defined condition is met. game/unlocks.js validates it in depth.
+    if (a.easterEgg && (!a.unlock || typeof a.unlock !== 'object' || typeof a.unlock.type !== 'string')) {
+      fail('unlock', 'an easterEgg needs an unlock condition { type, ... }');
+    }
+    if (!a.easterEgg && a.unlock !== undefined) fail('unlock', 'only easter eggs have an unlock condition');
   }
 
   SA.animals = { SIZES: SIZES, COLORS: COLORS, MOVEMENTS: MOVEMENTS, DIETS: DIETS };
@@ -153,6 +163,23 @@
         p('pico', '#f2b01e', [0.22, 0.2, 0.5], 1, [0, 1.45, 0.8]), p('alas', '#4e331b', [0.1, 0.9, 1.7], 2, [0.8, 1.0, 0]),
         p('cola', '#f4f1ea', [0.4, 0.1, 0.7], 1, [0, 0.8, -0.8]), p('patas', '#f2b01e', [0.1, 0.4, 0.1], 2, [0.2, 0.2, 0]),
         p('ojos', '#222222', 0.1, 2, [0.14, 1.58, 0.62])
-      ], easterEgg: false }
+      ], easterEgg: false },
+    // Easter egg #1 (original design): a blocky yellow mouse. Hidden until the player has 10 stars AND has tapped the
+    // same tree of the forest 5 times. The condition is plain data (see game/unlocks.js).
+    { id: 'raton', name: { es: 'ratón chispa', en: 'spark mouse', gender: 'm' }, biome: 'bosque',
+      traits: { size: 'pequeño', color: 'amarillo', movement: 'corre', diet: 'omnívoro', legs: 4 },
+      parts: [
+        { part: 'cuerpo', builder: 'box', color: '#f6d63a', scale: [0.7, 0.6, 0.8], count: 1, offset: [0, 0.45, 0] },
+        { part: 'cabeza', builder: 'box', color: '#f6d63a', scale: 0.55, count: 1, offset: [0, 0.95, 0.4] },
+        { part: 'orejas', builder: 'box', color: '#f6d63a', scale: [0.16, 0.9, 0.12], count: 2, offset: [0.2, 1.55, 0.35] },
+        { part: 'mejillas', color: '#ff7f98', scale: 0.15, count: 2, offset: [0.22, 0.88, 0.66] },
+        p('ojos', '#222222', 0.1, 2, [0.12, 1.05, 0.66]), p('hocico', '#5a3a2a', 0.09, 1, [0, 0.95, 0.7]),
+        p('patas', '#e0b81c', [0.15, 0.3, 0.15], 4, [0.22, 0.15, 0]),
+        { part: 'cola', builder: 'zigzag', color: '#e0b81c', scale: [0.5, 1.2, 0.12], count: 1, offset: [0, 0.85, -0.5] }
+      ], easterEgg: true,
+      unlock: { type: 'all', of: [
+        { type: 'stars', min: 10 },
+        { type: 'sameTap', target: 'tree', biome: 'bosque', count: 5 }
+      ] } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

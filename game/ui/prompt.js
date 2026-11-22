@@ -14,7 +14,7 @@
   var NEXT_MS = 2200;      // celebration time before the next clue
   var AUTO_HINT_MS = 20000;  // stuck this long on a round: reveal the hint automatically
 
-  var ICONS = { conejo: '🐰', pato: '🦆', tortuga: '🐢', mono: '🐵', tucan: '🦜', rana: '🐸' };
+  var ICONS = { conejo: '🐰', pato: '🦆', tortuga: '🐢', mono: '🐵', tucan: '🦜', rana: '🐸', raton: '🐭' };
   function iconFor(animalId) { return ICONS[animalId] || '🐾'; }
 
   function createController(o) {
@@ -25,6 +25,8 @@
     function sfx(name) { try { if (audio && audio.sfx) audio.sfx(name); } catch (e) { /* silent */ } }
 
     function begin() {
+      // Stars/rounds may just have changed: let easter-egg unlocks run first so a new friend can join this clue.
+      if (o.onProgress) { try { o.onProgress(); } catch (e) { /* unlocks never break play */ } }
       var r = game.start();
       if (!r) { view.clear(); return null; }
       view.showRound({ text: r.clue.text, icon: iconFor(r.answerId), hintShown: r.hintShown, stars: SA.save.get().stars });
@@ -233,9 +235,11 @@
         onDone: function () { if (ctl) ctl.begin(); } });
     }
     ctl = createController({ game: o.game || SA.round.create(), view: view, fx: o.fx, audio: o.audio, later: o.later,
-      care: careFlow });
+      care: careFlow, onProgress: o.onProgress });
     SA.picking.onPick(ctl.onPick);
     ctl.begin();
+    // Easter-egg unlocks: a toast plus confetti (the 3D reveal and sounds are done by SA.unlockFlow).
+    ctl.celebrate = function (msg) { view.toast(msg); view.confetti(); };
     // Habitat sandbox hooks: hide/show the bar and refresh the star badge after spending or refunding.
     ctl.setStars = view.setStars;
     ctl.setHidden = view.setHidden;

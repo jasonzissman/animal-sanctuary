@@ -218,7 +218,7 @@ test('care fx: mud spots appear on the target part, wash away with sparkles, and
   ctx.window = ctx;
   ctx.self = ctx;
   for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
+    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;
@@ -234,10 +234,10 @@ test('care fx: mud spots appear on the target part, wash away with sparkles, and
   assert.equal(rigCalls[0][0], 'focus');
   fx.scrub(4);
   assert.equal(fx.spotCount(), 4);
-  assert.equal(animals.children.length, 10 + 12);         // 2 spots washed away burst into 6 sparkles each
+  assert.equal(animals.children.length, 11 + 12);        // 2 spots washed away burst into 6 sparkles each
   fx.update(0.3);
   fx.update(1);                                           // sparkles expire
-  assert.equal(animals.children.length, 10);
+  assert.equal(animals.children.length, 11);
   fx.scrub(0);
   fx.hide();
   assert.equal(group.children.length, before);

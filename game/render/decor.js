@@ -18,6 +18,7 @@
     var high = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 7), m.pine);
     high.position.y = 3.3;
     g.add(trunk, low, high);
+    g.userData.tree = true;      // tappable (SA.render.createTreeTap)
     g.scale.setScalar(s);
     return g;
   }
@@ -30,6 +31,7 @@
     top.position.y = 4.1;
     top.scale.y = 0.7;
     g.add(trunk, top);
+    g.userData.tree = true;
     g.scale.setScalar(s);
     return g;
   }

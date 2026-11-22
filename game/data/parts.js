@@ -6,14 +6,14 @@
  *   id, key   same Spanish canonical key, lowercase ASCII (orejas, caparazon...)
  *   label     { es: 'las orejas' (article + accents), en: 'ears' }
  *   gender    'm' | 'f'        number  'sg' | 'pl'   (label.es must start with the agreeing article)
- *   builder   primitive name (SA.parts.BUILDERS)
+ *   builder   primitive name (SA.parts.BUILDERS); an animal's part entry may override it with its own `builder`
  *   anchor    default attachment point (SA.parts.ANCHORS)
  *   reaction  reaction animation when tapped (SA.parts.REACTIONS)
  */
 (function (root) {
   'use strict';
   var SA = root.SA;
-  var BUILDERS = ['box', 'sphere', 'cone', 'cylinder'];
+  var BUILDERS = ['box', 'sphere', 'cone', 'cylinder', 'zigzag'];
   var ANCHORS = ['top', 'bottom', 'front', 'back', 'side', 'center'];
   var REACTIONS = ['wiggle', 'flap', 'boing', 'sniff', 'blink', 'swish', 'stomp', 'wobble', 'nod'];
   var ARTICLES = { m: { sg: 'el', pl: 'los' }, f: { sg: 'la', pl: 'las' } };
@@ -68,6 +68,7 @@
     part('aletas', 'las aletas', 'fins', 'f', 'pl', 'box', 'side', 'swish'),
     part('plumas', 'las plumas', 'feathers', 'f', 'pl', 'box', 'back', 'wiggle'),
     part('nariz', 'la nariz', 'nose', 'f', 'sg', 'sphere', 'front', 'sniff'),
-    part('joroba', 'la joroba', 'hump', 'f', 'sg', 'sphere', 'top', 'wobble')
+    part('joroba', 'la joroba', 'hump', 'f', 'sg', 'sphere', 'top', 'wobble'),
+    part('mejillas', 'las mejillas', 'cheeks', 'f', 'pl', 'sphere', 'front', 'wobble')
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

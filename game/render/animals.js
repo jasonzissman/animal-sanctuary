@@ -18,6 +18,7 @@
     if (builder === 'sphere') return new THREE.SphereGeometry(0.5, 10, 8);
     if (builder === 'cone') return new THREE.ConeGeometry(0.5, 1, 8);
     if (builder === 'cylinder') return new THREE.CylinderGeometry(0.5, 0.5, 1, 8);
+    if (builder === 'zigzag') return SA.render.zigzagGeometry(THREE);
     throw new Error('unknown builder ' + builder);
   }
 
@@ -61,6 +62,8 @@
       var s = spots[animal.id];
       g.position.set(s.x, s.y, s.z);
       g.rotation.y = s.rotY;
+      // Easter eggs stay hidden (and cannot be picked) until SA.unlockFlow reveals them.
+      g.visible = !animal.easterEgg || !!(SA.unlocks && SA.unlocks.isUnlocked(animal.id));
       group.add(g);
     });
     return group;

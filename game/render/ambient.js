@@ -25,7 +25,7 @@
       if (!a) return;
       var parts = function (name) { return g.children.filter(function (m) { return !m.userData.pick && m.userData.part === name; }).map(base); };
       rigs[a.id] = {
-        g: g, phase: i * 1.7, ears: parts('orejas'), tail: parts('cola'), eyes: parts('ojos'),
+        g: g, phase: i * 1.7, ears: parts('orejas'), tail: parts('cola'), eyes: parts('ojos'), cheeks: parts('mejillas'),
         sx: g.scale.x, sy: g.scale.y, sz: g.scale.z,
         w: SA.wander.create({
           movement: a.traits.movement, biome: a.biome, home: { x: g.position.x, z: g.position.z },
@@ -46,6 +46,8 @@
         r.ears.forEach(function (e) { e.m.rotation.z = e.rz + idle.wiggle * 0.25 * (e.m.userData.side === 'right' ? -1 : 1); });
         r.tail.forEach(function (e) { e.m.rotation.y = e.ry + idle.wiggle * 0.5; });
         r.eyes.forEach(function (e) { e.m.scale.y = e.sy * (1 - 0.9 * idle.blink); });
+        // Rosy cheeks sparkle: a quick shimmering pulse (phase-shifted per cheek).
+        r.cheeks.forEach(function (e, k) { e.m.scale.y = e.sy * (1 + 0.3 * Math.abs(Math.sin(t * 5 + r.phase + k * 1.3))); });
       });
     }
 

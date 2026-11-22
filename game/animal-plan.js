@@ -58,10 +58,10 @@
   function sign(n) { return n > 1e-9 ? 1 : n < -1e-9 ? -1 : 0; }
 
   /** Turn the part to point along z for forward/back anchored cones and cylinders. */
-  function orientation(def) {
-    var long = def.builder === 'cone' || def.builder === 'cylinder';
+  function orientation(def, builder) {
+    var long = builder === 'cone' || builder === 'cylinder';
     if (long && def.anchor === 'front') return HALF_PI;
-    if (long && def.anchor === 'back') return def.builder === 'cone' ? -HALF_PI : HALF_PI;
+    if (long && def.anchor === 'back') return builder === 'cone' ? -HALF_PI : HALF_PI;
     return 0;
   }
 
@@ -74,7 +74,8 @@
       var def = lookup(entry.part);
       if (!def) throw new Error('animal ' + animal.id + ': no part definition for ' + JSON.stringify(entry.part));
       var world = vec(entry.scale);
-      var rx = orientation(def);
+      var builder = entry.builder || def.builder;   // an animal may draw a part with another primitive (zigzag tail, blocky head)
+      var rx = orientation(def, builder);
       var local = rx ? [world[0], world[2], world[1]] : world.slice();
       var ps = world[0] * world[1] * world[2] > BIG_VOLUME ? BIG_PICK_SCALE : PICK_SCALE;
       var pickSize = [local[0] * ps, local[1] * ps, local[2] * ps];
@@ -85,7 +86,7 @@
         var side = sign(x);
         var rz = !rx && entry.count > 1 && TILT[def.anchor] ? -side * TILT[def.anchor] : 0;
         out.push({
-          animalId: animal.id, part: entry.part, builder: def.builder, color: entry.color,
+          animalId: animal.id, part: entry.part, builder: builder, color: entry.color,
           size: local.slice(), worldSize: world.slice(),
           pickSize: pickSize, pickVolume: pickSize[0] * pickSize[1] * pickSize[2],
           position: [x, entry.offset[1], entry.offset[2] + spot[1]],

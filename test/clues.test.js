@@ -141,7 +141,7 @@ test('selection is seeded and deterministic', () => {
 
 test('with all 10 animals every clue has one answer; the new animals get clues (joroba, repta, cuernos)', () => {
   const SA = load();
-  const ids = SA.data.all('animals').map((a) => a.id);
+  const ids = SA.data.all('animals').filter((a) => !a.easterEgg).map((a) => a.id);   // the hidden egg is not in play yet
   assert.equal(ids.length, 10);
   const clues = SA.clues.candidates(ids, null);
   const byText = Object.fromEntries(clues.map((c) => [c.text, c.answer.animalId]));

@@ -1,7 +1,7 @@
 /* SA.round: pure Scout & Spot round state (no THREE, no DOM; unit-tested in node:vm).
  *
  *   var game = SA.round.create({ animals?, rng?, now?, level?, track? })
- *     animals  ids/objects in play (default: every non-easter-egg animal)   rng  () -> [0,1)   now  () -> ms
+ *     animals  ids/objects in play (default: every non-easter-egg animal plus unlocked eggs)   rng  () -> [0,1)   now  () -> ms
  *     level    number or () -> number; default reads SA.save settings.scaffold (1 = beginner)
  *     track    (type, fields) event sink; default window.SAT.track
  *     biome    biome id or () -> id, read at each start(): target and distractors come only from animals whose
@@ -44,7 +44,8 @@
     var seq = 0, round = null, startedAt = 0;
 
     function animals() {
-      var list = opts.animals || SA.data.all('animals').filter(function (a) { return !a.easterEgg; });
+      var found = SA.save.get().unlockedAnimals;   // unlocked easter eggs join the clue rotation
+      var list = opts.animals || SA.data.all('animals').filter(function (a) { return !a.easterEgg || found.indexOf(a.id) >= 0; });
       return list.map(function (a) { return typeof a === 'string' ? SA.data.get('animals', a) : a; });
     }
 

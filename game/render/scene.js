@@ -157,7 +157,9 @@
     var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid.concat(spawnZone), trees: trees });
     // Tree animals give a tell from the ground (AS-0117): a shadow below them, now and then rustling leaves and a soft call.
     // Built after the ambient system, which marks the tree dwellers (userData.perched).
-    var treetop = SA.render.createTreetopTell && SA.treetopTell ? SA.render.createTreetopTell(THREE, { animals: animals, trees: trees, treeNodes: treeNodes, getPlayer: rig.getPlayer, scene: scene }) : null;
+    // The animals a story mission places (mission 1: the lost piglet and mamá, AS-0233): same animal builder, own group, solids = the walk list.
+    var missionAnimals = SA.render.createMissionSpawn && SA.missionSpawn ? SA.render.createMissionSpawn(THREE, { scene: scene, solids: obstacles, getPlayer: rig.getPlayer }) : null;
+    var treetop = SA.render.createTreetopTell &&SA.treetopTell ? SA.render.createTreetopTell(THREE, { animals: animals, trees: trees, treeNodes: treeNodes, getPlayer: rig.getPlayer, scene: scene }) : null;
     // Placed props (this session and restored from the save) join the decor in the wander avoid list. The save is
     // already updated when the sandbox calls add/remove, so the list is rebuilt from SA.habitat.list().
     function refreshAvoid() {
@@ -191,7 +193,7 @@
       scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize,
       animals: animals, treeTap: treeTap, onTreeTap: null,
       avatar: avatar, pickups: pickups, spaceUse: spaceUse,
-      render: function (dt) { if (station && station.userData.board) station.userData.board.update(); rig.update(dt); avatar.update(dt, rig.getPlayer()); if (scientist) scientist.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (autoRing) autoRing.update(dt); if (reachCue) reachCue.update(dt); if (clickFx) clickFx.update(dt); treeTap.update(dt); ambient.update(dt); if (treetop) treetop.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
+      render: function (dt) { if (station && station.userData.board) station.userData.board.update(); rig.update(dt); avatar.update(dt, rig.getPlayer()); if (scientist) scientist.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (autoRing) autoRing.update(dt); if (reachCue) reachCue.update(dt); if (clickFx) clickFx.update(dt); treeTap.update(dt); ambient.update(dt); if (missionAnimals) { try { missionAnimals.update(dt); } catch (e) { missionAnimals = null; if (root.SAT && root.SAT.error) root.SAT.error('missionSpawn.update', e); } } if (treetop) treetop.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
     };
     return stageApi;
   };

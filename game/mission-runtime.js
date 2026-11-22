@@ -13,7 +13,9 @@
  *                                     skips two steps).
  *   SA.missionRuntime.update(player)  polled each frame with { x, z }: a 'goTo' step finishes when the player is inside the place
  *                                     radius, a 'find' step when the player is near the target (places/targets from locate()).
- *   SA.missionRuntime.create({ missions?, run?, locate?, grant?, celebrate?, track? })   a separate instance (tests).
+ *   SA.missionRuntime.target()        -> { x, z, role, id } | null   the current step's world target (AS-0233): the piglet's spot for
+ *                                     find, mamá's for follow (SA.missionSpawn); the compass (AS-0228) reads this
+ *   SA.missionRuntime.create({ missions?, run?, spawn?, locate?, grant?, celebrate?, track? })   a separate instance (tests).
  *       locate(id) -> { x, z, r? } | null   where a place / find target is (default: none; mission content registers them)
  *       grant(reward)       the reward of the FIRST completion (stars; default adds to save.stars); never called on a replay
  *       celebrate(result)   the finish cheer (default: the fanfare, then the instance's `celebrateHook(result)`, which main.js sets to
@@ -110,8 +112,19 @@
       return got ? report({ type: 'delivered', item: got.item, to: got.to }) : { status: 'none' };
     }
 
+    function spawner() { return opts.spawn || SA.missionSpawn || null; }
+
+    // Where the current step points in the world (AS-0233): { x, z, role, id } or null. The compass (AS-0228) points at it.
+    // `at: 'baby'` is the spawned baby (find), `at: 'mama'` is mamá (follow); a step with no `at` has no target here.
+    function target() {
+      var sp = spawner(), a;
+      try { a = missions().active(); } catch (e) { return null; }
+      return sp && a && a.stepData ? sp.target(a.stepData) : null;
+    }
+
     function update(player) {
-      var locate = opts.locate || api.locate;
+      var sp = spawner();
+      var locate = opts.locate || api.locate || (sp && sp.locate ? function (id) { return sp.locate(id); } : null);
       if (!player || !locate) return { status: 'none' };
       var a;
       try { a = missions().active(); } catch (e) { return { status: 'none' }; }
@@ -124,7 +137,7 @@
       return report(s.kind === 'goTo' ? { type: 'arrived', place: id } : { type: 'found', target: id });
     }
 
-    var api = { report: report, onPick: onPick, update: update, create: create, celebrateHook: null, onStars: null, locate: null };
+    var api = { report: report, onPick: onPick, update: update, target: target, create: create, celebrateHook: null, onStars: null, locate: null };
     return api;
   }
 

@@ -154,3 +154,72 @@ test('hint flow: arrow appears after the delay, tap glides + records a hint in r
   assert.equal(flow.update(1), null);
   assert.equal(made[0].style.display, 'none');
 });
+
+const hits = (x, y, r, half = 36) => x + half > r.left && x - half < r.right && y + half > r.top && y - half < r.bottom;
+const VIEWPORTS = [{ w: 1024, h: 768 }, { w: 1280, h: 720 }];
+const TARGETS = { right: [70, -0], left: [-70, 0], up: [0, -200], down: [0, 60],
+  'up-right': [70, -200], 'up-left': [-70, -200], 'down-right': [70, 60], 'down-left': [-70, 60] };
+const toPx = (vp, r) => [(r.ex + 1) / 2 * vp.w, (1 - r.ey) / 2 * vp.h];
+
+test('avoid: arrow box clears mute/habitat/gear/orbit rects, stays on-screen and keeps its angle (all edges + corners)', () => {
+  const SA = load();
+  for (const vp of VIEWPORTS) {
+    const rects = SA.hintPointer.controlRects(vp);
+    assert.equal(rects.length, 4);
+    for (const [name, [x, z]] of Object.entries(TARGETS)) {
+      const p = SA.hintPointer.create({ delaySeconds: 0 });
+      p.start();
+      const raw = SA.hintPointer.locate({ x, y: 0, z }, CAM, vp.w / vp.h);
+      const r = p.update(0.1, { x, y: 0, z }, CAM, vp.w / vp.h, vp);
+      assert.ok(r, `${name} ${vp.w}x${vp.h}: arrow shown`);
+      assert.equal(r.angle, raw.angle, `${name}: still points toward the target`);
+      const [px, py] = toPx(vp, r);
+      assert.ok(px >= 36 && px <= vp.w - 36 && py >= 36 && py <= vp.h - 36, `${name} ${vp.w}x${vp.h}: on-screen`);
+      for (const rc of rects) assert.ok(!hits(px, py, rc), `${name} ${vp.w}x${vp.h}: clear of ${JSON.stringify(rc)}`);
+    }
+  }
+});
+
+test('avoid: sweeping the whole edge never lands in a reserved rect; clear spots are left alone', () => {
+  const SA = load();
+  const E = SA.hintPointer.EDGE;
+  for (const vp of VIEWPORTS) {
+    const rects = SA.hintPointer.controlRects(vp);
+    for (let deg = 0; deg < 360; deg += 3) {
+      const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+      const k = Math.min(Math.abs(c) < 1e-9 ? Infinity : (c > 0 ? E.right : -E.left) / Math.abs(c),
+        Math.abs(s) < 1e-9 ? Infinity : (s > 0 ? E.top : -E.bottom) / Math.abs(s));
+      const ex = c * k, ey = s * k;
+      const o = SA.hintPointer.avoid(vp, rects, ex, ey);
+      const [px, py] = toPx(vp, o);
+      for (const rc of rects) assert.ok(!hits(px, py, rc), `${deg} deg ${vp.w}x${vp.h}`);
+      const [ox, oy] = toPx(vp, { ex, ey });
+      if (!rects.some((rc) => hits(ox, oy, rc, 36 + 8))) assert.ok(o.ex === ex && o.ey === ey, 'unchanged when already clear');
+    }
+  }
+});
+
+test('avoid: a right-edge arrow on the habitat button slides off it; degenerate input is returned as-is', () => {
+  const SA = load();
+  const vp = VIEWPORTS[0], E = SA.hintPointer.EDGE;
+  const o = SA.hintPointer.avoid(vp, SA.hintPointer.controlRects(vp), E.right, 0.55);
+  assert.ok(o.ey < 0.55 && o.ex > 0.8, 'moved down along the right edge');
+  const same = (r) => assert.ok(r.ex === 0.5 && r.ey === 0.5);
+  same(SA.hintPointer.avoid(null, [], 0.5, 0.5));
+  same(SA.hintPointer.avoid(vp, null, 0.5, 0.5));
+  same(SA.hintPointer.avoid(vp, [{ left: -10, top: -10, right: 2000, bottom: 2000 }], 0.5, 0.5));   // nowhere free
+  assert.equal(SA.hintPointer.controlRects(null).length, 4);
+});
+
+test('hint flow: passes the window size so the arrow clears the controls', () => {
+  const SA = loadGame(FILES, { innerWidth: 1024, innerHeight: 768 });
+  const round = { id: 'r1', answerId: 'zorro', done: false, hints: 0 };
+  const game = { current: () => round, pointerHint() {} };
+  const animals = { getObjectByName: () => ({ position: { x: 70, y: 0, z: -200 } }) };
+  const { doc } = fakeDom();
+  const flow = SA.hintFlow.create({ doc, game, animals, rig: { getState: () => ({ ...CAM }), glideTo() {} }, camera: { aspect: 4 / 3 } });
+  flow.update(0.1);
+  const r = flow.update(10.1);
+  const [px, py] = toPx({ w: 1024, h: 768 }, r);
+  for (const rc of SA.hintPointer.controlRects({ w: 1024, h: 768 })) assert.ok(!hits(px, py, rc));
+});

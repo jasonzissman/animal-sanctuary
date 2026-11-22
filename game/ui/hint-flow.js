@@ -21,6 +21,10 @@
       glide: function (x, z) { o.rig.glideTo(x, z); },
     });
 
+    function viewport() {   // pixel size of the window; null (no avoidance) outside a browser
+      var w = root.innerWidth, h = root.innerHeight;
+      return w > 0 && h > 0 ? { w: w, h: h } : null;
+    }
     function hide() { if (shown) { arrow.hide(); shown = false; } }
 
     return {
@@ -29,7 +33,7 @@
         var r = o.game.current();
         if (r !== current) { current = r; if (r && !r.done) pointer.start(); else pointer.stop(); }
         if (!r || r.done) { if (pointer.isActive()) pointer.stop(); hide(); return null; }
-        var res = pointer.update(dt, targetPos(), o.rig.getState(), o.camera.aspect);
+        var res = pointer.update(dt, targetPos(), o.rig.getState(), o.camera.aspect, viewport());
         if (!res) { hide(); return null; }
         arrow.show(res.ex, res.ey, res.angle);
         shown = true;

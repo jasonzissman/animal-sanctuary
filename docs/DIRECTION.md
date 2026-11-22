@@ -211,6 +211,11 @@ current; when your change sets or changes something future tickets must follow, 
 - **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
   (hurt, stuck, hungry, tangled, scared: 1 task at beginner, 2 later) -> take its photo as proof it is OK ("¡Está bien!",
   saved to the album) -> next mission. Finding alone never ends a round. This supersedes "the photo answers the round" below.
+  **Wired (AS-0199, slice 1 of AS-0124):** `game/main.js` runs `SA.mission` through `SA.prompt.start({ mission })`, which builds
+  `SA.missionFlow` (`ui/mission-flow.js`; same controller API as the plain round controller, so the prompt photoMode is gone).
+  Find = Use/touch with any item on an animal that fits (celebration, name spoken); then `care.offer(id, true, kind)` starts the help
+  task at once (no random chance), `careFlow`'s `onDone(task)` calls `mission.taskDone`, and the photo step ("Tómale una foto",
+  📷 badge) accepts only a la cámara shot (`SA.photo.take` -> `mission.photo`). Biome reroll works only in the find step.
 - **Tasks while roaming.** Missions ("Busca un animal con orejas largas") sit on a card while you explore freely. You
   complete a find by taking a photo with *la cámara*, and the photo album rewards exploring.
   Built (AS-0084): the round IS the photo mission. The top card keeps the clue, Replay and a 📷 badge (tap = equip la cámara);

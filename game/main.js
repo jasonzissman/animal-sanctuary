@@ -31,9 +31,12 @@
       };
     } catch (e) { report('unlocks.start', e); }
     var game = null;
-    try { game = SA.round.create({ biome: function () { return SA.round.biomeForRig(stage.rig); } });
+    // The rescue mission (SA.mission, played by SA.missionFlow): find an animal that fits, help it, then la cámara photo.
+    try { game = SA.mission.create({ biome: function () { return SA.round.biomeForRig(stage.rig); } });
       ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx, biomeFx: stage.biomeGlow,
-        onProgress: function () { if (unlocks) unlocks.check(); }, game: game, photoMode: true }); } catch (e) { report('prompt.start', e); }
+        onProgress: function () { if (unlocks) unlocks.check(); }, mission: game });
+      game = ctl.game || game;      // the round-like adapter that hint arrow and biome reroll read
+    } catch (e) { report('prompt.start', e); }
     // Gentle arrow toward the target animal when it is off-screen after ~10 s (counts as a hint when tapped).
     try { if (game) hintFlow = SA.hintFlow.create({ doc: root.document, game: game, animals: stage.animals, rig: stage.rig, camera: stage.camera }); }
     catch (e) { report('hintFlow.start', e); }

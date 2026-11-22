@@ -14,6 +14,7 @@
  *       'wrong' a photo of another animal, 'early' the right animal before the help is done (a friendly miss each, nothing is lost).
  *       'correct' is only the photo of the found animal after the help: +1 star, rounds.completed +1, round.complete
  *       {roundId, seconds, misses, hints, level} once, and SA.scaffold.record when the level is read from the save.
+ *   m.hasBiomePool(biomeId) -> boolean   the biome has enough animals of its own (SA.reroll); mission.biome / .picks feed it too.
  *   m.hint() -> mission | null     counts one hint.      m.current() -> mission | null
  */
 (function (root) {
@@ -81,7 +82,8 @@
       var ids = list.filter(function (a) { return SA.clues.matches(clue, a); }).map(function (a) { return a.id; });
       if (ids.indexOf(clue.answer.animalId) < 0) ids.unshift(clue.answer.animalId);
       m = { id: 'm' + seq + ':' + clue.key, clue: clue, answerId: clue.answer.animalId, answerIds: ids, level: levelNow(),
-        step: 'find', animalId: null, tasks: [], misses: 0, hints: 0, done: false };
+        step: 'find', animalId: null, tasks: [], misses: 0, hints: 0, done: false, picks: 0,
+        biome: typeof biome === 'string' && biome ? biome : null };
       startedAt = now();
       return m;
     }
@@ -140,7 +142,15 @@
       return m;
     }
 
-    return { start: start, found: found, taskDone: taskDone, photo: photo, hint: hint, current: function () { return m; } };
+    /** True when `biomeId` has enough animals of its own to roll a clue from (same rule as SA.round.hasBiomePool; SA.reroll). */
+    function hasBiomePool(biomeId) {
+      if (typeof biomeId !== 'string' || !biomeId || !SA.round) return false;
+      var list = animals();
+      return SA.round.candidatesForBiome(list, biomeId) !== list;
+    }
+
+    return { start: start, found: found, taskDone: taskDone, photo: photo, hint: hint, hasBiomePool: hasBiomePool,
+      current: function () { return m; } };
   }
 
   SA.mission = { TYPES: TYPES, supportedTasks: supportedTasks, create: create };

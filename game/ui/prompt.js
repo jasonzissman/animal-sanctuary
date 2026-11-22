@@ -6,7 +6,7 @@
  *       Pure wiring (unit-tested with stubs): speaks the clue, plays chime/confetti/name on a correct pick,
  *       boing + wobble on a wrong one (the round just continues), then starts the next round after NEXT_MS.
  *   SA.prompt.createView(doc) -> view   the DOM pill (small, top-left; tap = replay the audio): silhouette/icon hint, short
- *       Spanish clue, a camera badge in photo missions; plus the star counter, confetti and toast. Harmless no-op without a DOM.
+ *       Spanish clue, a camera badge at the photo step of a rescue mission (SA.missionFlow, started by start({ mission })); plus the star counter, confetti and toast. Harmless no-op without a DOM.
  */
 (function (root) {
   'use strict';
@@ -46,7 +46,7 @@
       if (o.onProgress) { try { o.onProgress(); } catch (e) { /* unlocks never break play */ } }
       var r = game.start();
       if (!r) { view.clear(); return null; }
-      view.showRound({ text: r.clue.text, icon: iconFor(r.answerId), hintShown: r.hintShown, stars: SA.save.get().stars, camera: !!o.photoMode });
+      view.showRound({ text: r.clue.text, icon: iconFor(r.answerId), hintShown: r.hintShown, stars: SA.save.get().stars, camera: false });
       say(r.clue.text);
       if (biomeFx) biomeFx.hide();
       scheduleHint(r, AUTO_HINT_MS / 1000);
@@ -70,38 +70,8 @@
       if (name) sfx(name);
     }
 
-    // Photo missions (o.photoMode): the round is a mission card; only a picture taken with la cámara answers it. Other tools or
-    // empty hands on an animal never touch the mission, so the player can roam and do other things meanwhile.
-    var photoMode = !!o.photoMode;
-
-    function onShot(p) {
-      sfx('shutter');
-      var animal = SA.data && SA.data.get('animals', p.animalId);
-      if (view.snapshot) view.snapshot({ icon: iconFor(p.animalId), text: animal && animal.name ? animal.name.es : '' });
-      var res = SA.photo.take(game, p);
-      if (res.verdict === 'other') {      // saved anyway: a friendly nudge back to the clue (the round continues)
-        if (fx) fx.play(p.animalId, 'wobble');
-        view.toast('¡Qué foto! Pero busca…');
-        say('phrase:quefoto');
-        later(function () { replay(); }, 1500);
-      }
-      return res;
-    }
-
-    function equipCamera() {
-      if (!SA.inventory || !SA.inventory.equip(SA.photo.CAMERA)) return false;
-      say('item:' + SA.photo.CAMERA);
-      return true;
-    }
-
     function onPick(p) {
       if (care && care.active()) return care.onPick(p);
-      if (photoMode) {
-        if (!SA.photo.isShot(p)) return { status: 'ignored' };
-        var shot = onShot(p);
-        if (shot.status !== 'correct') return shot;
-        return finish(shot);
-      }
       return finish(game.pick(p), p);
     }
 
@@ -167,7 +137,7 @@
       return r;
     }
 
-    return { begin: begin, onPick: onPick, replay: replay, hint: hint, canReroll: canReroll, reroll: reroll, equipCamera: equipCamera };
+    return { begin: begin, onPick: onPick, replay: replay, hint: hint, canReroll: canReroll, reroll: reroll };
   }
 
   // No screen offsets here: every position comes from SA.hud.layout (see place() below).
@@ -418,10 +388,12 @@
     if (!careFlow && o.careFx !== undefined && SA.careFlow && SA.care) {
       careFlow = SA.careFlow.create({ care: SA.care.create(), view: view, fx: o.careFx, audio: o.audio, later: o.later,
         react: function (id, name) { if (o.fx && o.fx.play) o.fx.play(id, name); },
-        onDone: function () { if (ctl) ctl.begin(); } });
+        onDone: function (task) { if (!ctl) return; if (ctl.onCareDone) ctl.onCareDone(task); else ctl.begin(); } });
     }
-    ctl = createController({ game: o.game || SA.round.create(), view: view, fx: o.fx, audio: o.audio, later: o.later, biomeFx: o.biomeFx,
-      care: careFlow, onProgress: o.onProgress, photoMode: o.photoMode });
+    // o.mission (SA.mission): the rescue flow (find, help, photo; game/ui/mission-flow.js) drives the card instead of a plain round.
+    var common = { view: view, fx: o.fx, audio: o.audio, later: o.later, biomeFx: o.biomeFx, care: careFlow, onProgress: o.onProgress };
+    ctl = o.mission && SA.missionFlow ? SA.missionFlow.create(Object.assign({ mission: o.mission }, common))
+      : createController(Object.assign({ game: o.game || SA.round.create() }, common));
     SA.picking.onPick(ctl.onPick);
     ctl.begin();
     // Easter-egg unlocks: a toast plus confetti (the 3D reveal and sounds are done by SA.unlockFlow).

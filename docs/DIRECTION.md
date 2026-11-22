@@ -19,6 +19,8 @@ current; when your change sets or changes something future tickets must follow, 
   up on its own so birds and monkeys are on screen; on open ground it eases back to normal. Still one camera, no
   button to learn (`SA.camera.frameAbove` in `game/camera-frame.js`: extra distance, lower pitch, higher look-at, small fov
   widening, eased ~0.5 s; a drag overrides it; `hooks.chase.above()` supplies perched animals). Space jumps everywhere, including in a canopy (AS-0115).
+- **Movement has sound (AS-0118 to AS-0120).** Soft footsteps (quicker when running, splashy in water, leafy in a
+  canopy), a hop and a landing thump, a splash entering water, a rustle while climbing. Short, quiet, never spammy; mute silences all.
 - **No modes: keys always move the player.** Arrow keys/WASD only ever walk the player; nothing (finding an animal,
   care, menus) switches the keyboard to controlling something else, and there is never an "Escape to unlock". The
   mouse or a tap clicks on things (body parts, items); E/Enter uses the equipped item, Space jumps.
@@ -168,3 +170,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: clear spawn, never stuck (AS-0105); walk through flowers and small animals (AS-0106).
 - 2026-11-22: Space jumps, E/Enter uses (AS-0111, AS-0112); run about 2.5x (AS-0110); walk on any ground, water never blocks (AS-0109).
 - 2026-11-22: camera frames treetop animals automatically (AS-0116), jump in canopies (AS-0115), treetop tells (AS-0117).
+- 2026-11-22: movement sounds: footsteps, landing, water and climbing (AS-0118, AS-0119, AS-0120).

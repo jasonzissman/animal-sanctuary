@@ -12,13 +12,14 @@
   'use strict';
   var SA = root.SA;
   var NEXT_MS = 2200;      // celebration time before the next clue
+  var AUTO_HINT_MS = 20000;  // stuck this long on a round: reveal the hint automatically
 
   var ICONS = { conejo: '🐰', pato: '🦆', tortuga: '🐢', mono: '🐵', tucan: '🦜', rana: '🐸' };
   function iconFor(animalId) { return ICONS[animalId] || '🐾'; }
 
   function createController(o) {
     var game = o.game, view = o.view, fx = o.fx, audio = o.audio || SA.audio;
-    var later = o.later || function (fn, ms) { return root.setTimeout(fn, ms); };
+    var later = o.later || function (fn, ms) { return typeof root.setTimeout === 'function' ? root.setTimeout(fn, ms) : null; };
 
     function say(key) { try { if (audio && audio.say) audio.say(key); } catch (e) { /* silent */ } }
     function sfx(name) { try { if (audio && audio.sfx) audio.sfx(name); } catch (e) { /* silent */ } }
@@ -28,6 +29,11 @@
       if (!r) { view.clear(); return null; }
       view.showRound({ text: r.clue.text, icon: iconFor(r.answerId), hintShown: r.hintShown, stars: SA.save.get().stars });
       say(r.clue.text);
+      if (!r.hintShown) {             // stuck for ~20s without a correct pick: offer the hint (counted in hints)
+        later(function () {
+          if (game.current() === r && !r.done && !r.hintShown) hint();
+        }, AUTO_HINT_MS);
+      }
       return r;
     }
 
@@ -186,5 +192,5 @@
     return ctl;
   }
 
-  SA.prompt = { NEXT_MS: NEXT_MS, ICONS: ICONS, createController: createController, createView: createView, start: start };
+  SA.prompt = { NEXT_MS: NEXT_MS, AUTO_HINT_MS: AUTO_HINT_MS, ICONS: ICONS, createController: createController, createView: createView, start: start };
 })(typeof window !== 'undefined' ? window : globalThis);

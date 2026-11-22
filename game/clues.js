@@ -7,6 +7,7 @@
  *     clue  = { key, templateId, type, text: 'Busca el animal con orejas largas',
  *               answer: { animalId, part? }, vocabKeys: ['phrase:buscaanimalcon', 'part:orejas', 'adj:largas'] }
  *     Returns null when no unique clue is left that was not used recently (callers may then widen the animals).
+ *     state.level (optional, 1..3): 2 and 3 give multi-trait clues from game/clue-levels.js (intermediate, challenge).
  *   SA.clues.remember(state, clue)   push clue.key onto state.recent, keeping only the last RECENT_LIMIT (3).
  *   SA.clues.inflect(adjective, gender, number)  adjective forms -> 'larga' etc.
  *   SA.clues.candidates(animals, types) every unique clue for those animals (before the recent filter).
@@ -111,7 +112,10 @@
   function pickClue(state, rng) {
     state = state || {};
     var recent = state.recent || [];
-    var pool = candidates(state.animals, state.types).filter(function (c) { return recent.indexOf(c.key) < 0; });
+    var fresh = function (c) { return recent.indexOf(c.key) < 0; };
+    var pool = [];
+    if (state.level >= 2 && SA.clues.leveled) pool = SA.clues.leveled(resolve(state.animals), Math.min(3, state.level)).filter(fresh);
+    if (!pool.length) pool = candidates(state.animals, state.types).filter(fresh);   // beginner clues are the fallback
     if (!pool.length) return null;
     var r = typeof rng === 'function' ? rng() : 0;
     return pool[Math.min(pool.length - 1, Math.floor(r * pool.length))];
@@ -123,5 +127,5 @@
   }
 
   SA.clues = { RECENT_LIMIT: RECENT_LIMIT, makeRng: makeRng, inflect: inflect, candidates: candidates,
-    pickClue: pickClue, remember: remember };
+    pickClue: pickClue, remember: remember, partEntry: partEntry, matchesLength: matchesLength, bareNoun: bareNoun };
 })(typeof window !== 'undefined' ? window : globalThis);

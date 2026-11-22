@@ -43,6 +43,13 @@
     [0.08, 0, -0.08].forEach(function (y) { box(0.17, 0.02, 0.025, 0x4a6fa5, 0, y, 0.035, clip); });
     box(0.025, 0.14, 0.025, 0xd23b3b, 0, -0.42, 0.04, p.armR);   // pen in the right hand
 
+    // A generous invisible pick volume (AS-0204): a tap or click near her talks. Never drawn or outlined, but still raycast.
+    var pick = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.6, 1.5), new THREE.MeshBasicMaterial({ visible: false }));
+    pick.position.set(0, 1.2, 0);
+    pick.visible = false;
+    pick.userData = { scientist: true, pick: true };
+    av.group.add(pick);
+
     function update(dt, player) {
       var s = tracker.update(dt, player), w = s.wave, t = s.t, read = 1 - w;
       av.update(dt, { x: post.x, y: SA.map ? SA.map.groundHeight(post.x, post.z) : 0, z: post.z, heading: post.heading, moving: false });

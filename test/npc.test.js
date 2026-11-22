@@ -13,6 +13,7 @@ const THREE = {
   BoxGeometry: function (w, h, d) { return { w, h, d }; },
   SphereGeometry: function (r) { return { r }; },
   MeshLambertMaterial: function (o) { return o; },
+  MeshBasicMaterial: function (o) { return o; },
 };
 const FILES = ['game/sa.js', 'game/map.js', 'game/station.js', 'game/npc.js', 'game/render/avatar.js', 'game/render/scientist.js'];
 

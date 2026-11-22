@@ -53,6 +53,13 @@ current; when your change sets or changes something future tickets must follow, 
   **Hook for the board (AS-0142):** `SA.missionsBoard.pointAndStartFirst()` opens the station, points at the next card
   (mission 1 on a fresh save) and runs its intro; returns `{ ok, id }` or `{ ok:false, reason:'busy'|'none'|'no-board' }`. The
   Scientist NPC slices (AS-0142 2/3, 3/3) may use it; the first-run intro does not (it starts Mission 1 directly).
+  **Using the scientist (AS-0204, slice 3/3 of AS-0142):** E / Enter (she is a second target in `SA.spaceUse`'s doors list, kind `'npc'`,
+  `SA.npc.useTarget()`) or a tap on her invisible pick volume (`userData.scientist`, `render/scientist-tap.js`) calls `SA.npc.talk(source)`.
+  `ui/scientist-view.js` shows a card and speaks it: the one-line mission "Ayuda a los animales: busca, ayuda, foto", then the current
+  mission (title + icon) and the step it is on, or "Elige una misión en la estación" when none runs. Text comes from the pure
+  `SA.scientistTalk.reminder()` (`scientist-talk.js`, step kinds -> icon + vocab key). 🔊 replays it; 💬 closes the card and replays
+  the whole intro (`SA.introView` `start(true)`: it never calls `finish()`, so no flag change and no mission starts). She never starts
+  a mission: missions start only at the Misiones board.
 - **Climb anything too steep to walk (AS-0163 to AS-0165).** Trees, mountain peaks and the station all climb the same way:
   face it -> outline -> E/Enter, or push forward 0.6 s. Tops are flat enough to stand and turn (peaks: a 2-3 unit summit);
   walk or jump off the edge to drop down safely. Climb targets are data; anything new that is too steep joins them.

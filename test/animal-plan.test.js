@@ -116,11 +116,11 @@ test('camello: long forward neck, head held high, hump on the back, thin legs wi
   const body = of('cuerpo')[0], hump = of('joroba')[0], head = of('cabeza')[0];
   const top = (s) => s.position[1] + s.size[1] / 2, bottom = (s) => s.position[1] - s.size[1] / 2;
   assert.ok(of('cabeza').length >= 4, 'head plus 2-3 neck segments');
-  assert.ok(head.position[1] > body.position[1] + 1.5 && head.position[2] > body.position[2] + 1.5, 'head high and forward');
+  assert.ok(head.position[1] > body.position[1] + 1.1 && head.position[2] > body.position[2] + 1.1, 'head high and forward');
   assert.ok(bottom(hump) < top(body) && top(hump) > top(body), 'hump sits on the back, overlapping the body (no gap)');
   const legs = of('patas').filter((s) => s.builder === 'cylinder');
   assert.equal(legs.length, 4);
-  for (const l of legs) assert.ok(l.size[0] <= 0.2 && l.size[1] > 1.5, 'thin and long');
+  for (const l of legs) assert.ok(l.size[0] <= 0.2 && l.size[1] > 1.2, 'thin and long');
   assert.equal(of('patas').filter((s) => s.builder === 'sphere').length, 4, 'knee bumps');
   const feet = of('patas').filter((s) => s.builder === 'box');
   assert.equal(feet.length, 4);
@@ -128,6 +128,35 @@ test('camello: long forward neck, head held high, hump on the back, thin legs wi
   const belly = of('barriga')[0];
   assert.equal(belly.color, body.color, 'barriga is not a separate pale blob');
   for (const k of ['cuerpo', 'joroba', 'cabeza', 'hocico', 'orejas', 'cola', 'patas', 'pelo', 'barriga', 'ojos']) assert.ok(of(k).length, k);
+});
+
+test('camello (AS-0215): about 75% of its old height, a little taller than the player at the hump, not giraffe-tall', () => {
+  const SA = loadGame(DATA);
+  const specs = SA.animalPlan.plan(SA.data.get('animals', 'camello'));
+  const of = (k) => specs.filter((s) => s.part === k);
+  const top = (s) => s.position[1] + s.worldSize[1] / 2;
+  const PLAYER = 1.6;          // the avatar's head/hair top (game/render/avatar.js)
+  const OLD_TOP = 3.9 + 0.065, OLD_HUMP = 2.55 + 0.375;   // pre-AS-0215 ears top (3.9 + half ear) and hump top
+  const hump = top(of('joroba')[0]);
+  const highest = Math.max(...specs.map(top));
+  assert.ok(hump > PLAYER * 1.1 && hump < PLAYER * 1.6, 'hump a little taller than the player: ' + hump);
+  assert.ok(highest < PLAYER * 2.0, 'ears/head stay well under giraffe height: ' + highest);
+  assert.ok(Math.abs(hump / OLD_HUMP - 0.75) < 0.01, 'hump is 75% of before');
+  assert.ok(Math.abs(highest / OLD_TOP - 0.75) < 0.03, 'overall height is about 75% of before');
+  // Pick volumes follow the sizes, so they shrank with the animal (no oversized invisible boxes).
+  const legs = of('patas').filter((s) => s.builder === 'cylinder');
+  for (const l of legs) assert.ok(l.pickSize[1] <= l.worldSize[1] * 1.6 + 1e-9);
+  // The tap radius (which placements use to keep animals apart) is exactly 75% of the full-size design's.
+  const camel = JSON.parse(JSON.stringify(SA.data.get('animals', 'camello')));
+  const grow = (e) => {
+    e.scale = Array.isArray(e.scale) ? e.scale.map((n) => n / 0.75) : e.scale / 0.75;
+    e.offset = e.offset.map((n) => n / 0.75);
+    if (e.row) e.row /= 0.75;
+    (e.also || []).forEach(grow);
+  };
+  const small = SA.animalPlan.pickRadius(camel);
+  camel.parts.forEach(grow);
+  assert.ok(Math.abs(small / SA.animalPlan.pickRadius(camel) - 0.75) < 1e-6, 'pick radius in step with the smaller body');
 });
 
 test('placements: deterministic, in the right biome, dry, spaced and clear of decor', () => {

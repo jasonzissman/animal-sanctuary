@@ -51,6 +51,9 @@
     try { if (SA.orbitPad) SA.orbitPad.create(root.document, stage.rig); } catch (e) { report('orbitPad.start', e); }
     // Virtual joystick (bottom-left, shown at the first touch) so touch players can walk without a keyboard.
     try { if (SA.joystickView) SA.joystickView.create(root.document, stage.rig, root); } catch (e) { report('joystick.start', e); }
+    // Icon-only climb button: 🧗 next to a tree, ⬇️ while up one (same as Space / C).
+    var climbBtn = null;
+    try { if (SA.climbButton) climbBtn = SA.climbButton.create(root.document, stage.rig); } catch (e) { report('climbButton.start', e); }
     // Habitat sandbox: a big button + prop tray; saved props come back on reload. Never blocks the main loop.
     try {
       if (SA.sandbox && stage.props) {
@@ -78,6 +81,7 @@
       var dt = last === null ? 0 : Math.min((now - last) / 1000, 0.25);
       last = now;
       stage.render(dt);
+      if (climbBtn) { try { climbBtn.update(); } catch (e) { climbBtn = null; report('climbButton.update', e); } }
       if (hintFlow) { try { hintFlow.update(dt); } catch (e) { hintFlow = null; report('hintFlow.update', e); } }
       if (rerollWatch) { try { rerollWatch.update(dt); } catch (e) { rerollWatch = null; report('reroll.update', e); } }
       if (root.SAT && root.SAT.frame) { try { root.SAT.frame(dt); } catch (e) { /* telemetry never stops the loop */ } }

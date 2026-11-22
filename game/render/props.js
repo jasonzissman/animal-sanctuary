@@ -3,7 +3,8 @@
  *   props.add(record)           builds the prop for { id, prop, x, z } from its data `builder` key and drops it on the ground
  *   props.remove(placedId)      removes it (geometry disposed)
  *   props.count()               how many props are placed
- *   props.bind(handlers)        sandbox taps: handlers { active(), selected(), onGround({x,z}), onPropTap(placedId) }.
+ *   props.refreshGhost()        shows the ghost at the last known mouse position (tray selection); no-op when unknown/touch
+ *   props.bind(handlers)       sandbox taps: handlers { active(), selected(), onGround({x,z}), onPropTap(placedId) }.
  *                               A tap (not a drag, so camera orbit still works) on a placed prop with nothing selected
  *                               removes it; any other tap sends the terrain point under the finger to onGround.
  * Props are low-poly flat-shaded primitives, parameterised by data (SA.data 'props'): builders are keyed by `builder`.
@@ -144,9 +145,19 @@
       ghost.show(id, pv);
     }
 
+    // Last mouse position over the canvas (kept after the pointer leaves for the tray; forgotten on touch), so picking a
+    // prop from the tray can show its ghost straight away. SA.ghostRefresh.decide (pure) says whether to.
+    var lastPt = null;
+    function remember(e) { lastPt = !e.pointerType || e.pointerType === 'mouse' ? { x: e.clientX, y: e.clientY } : null; }
+    function refreshGhost() {
+      if (!SA.ghostRefresh) return;
+      var d = SA.ghostRefresh.decide({ active: !!(handlers && handlers.active()), selected: handlers && handlers.selected(), last: lastPt });
+      if (d.show) showGhost(d.x, d.y);
+    }
+
     var canvas = opts.canvas;
-    canvas.addEventListener('pointerdown', function (e) { tracker.down(e.pointerId, e.clientX, e.clientY); showGhost(e.clientX, e.clientY); });
-    canvas.addEventListener('pointermove', function (e) { tracker.move(e.pointerId, e.clientX, e.clientY); showGhost(e.clientX, e.clientY); });
+    canvas.addEventListener('pointerdown', function (e) { remember(e); tracker.down(e.pointerId, e.clientX, e.clientY); showGhost(e.clientX, e.clientY); });
+    canvas.addEventListener('pointermove', function (e) { remember(e); tracker.move(e.pointerId, e.clientX, e.clientY); showGhost(e.clientX, e.clientY); });
     canvas.addEventListener('pointerup', function (e) {
       var t = tracker.up(e.pointerId, e.clientX, e.clientY);
       if (t) tap(t.x, t.y);
@@ -158,7 +169,7 @@
     return {
       group: group, add: add, remove: remove, count: function () { return group.children.length; },
       bind: function (h) { handlers = h; }, tap: tap,
-      ghostGroup: ghost ? ghost.group : null, hideGhost: hideGhost, ghostVisible: function () { return !!ghost && ghost.visible(); }
+      ghostGroup: ghost ? ghost.group : null, hideGhost: hideGhost, refreshGhost: refreshGhost, ghostVisible: function () { return !!ghost && ghost.visible(); }
     };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

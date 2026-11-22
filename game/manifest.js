@@ -73,6 +73,7 @@ globalThis.SA_MANIFEST = {
     'game/data/props.js',
     'game/habitat.js',
     'game/prop-avoid.js',
+    'game/ghost-refresh.js',
     'game/sandbox.js',
     'game/ui/sandbox-view.js',
     'game/render/props.js',

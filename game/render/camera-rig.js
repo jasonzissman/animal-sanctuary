@@ -185,7 +185,11 @@
         }
         focus = C.clampState({ x: x, z: z, dist: state.dist }, B); glide = true;
       },
-      getState: function () { return { x: state.x, z: state.z, dist: state.dist, yaw: state.yaw, pitch: state.pitch }; },
+      getState: function () {
+        var r = { x: state.x, z: state.z, dist: state.dist, yaw: state.yaw, pitch: state.pitch };
+        if (chase) r.lookY = C.DEFAULTS.lookY;   // the chase camera looks at about animal height, not the ground
+        return r;
+      },
     };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

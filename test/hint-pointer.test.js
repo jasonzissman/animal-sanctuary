@@ -223,3 +223,15 @@ test('hint flow: passes the window size so the arrow clears the controls', () =>
   const [px, py] = toPx({ w: 1024, h: 768 }, r);
   for (const rc of SA.hintPointer.controlRects({ w: 1024, h: 768 })) assert.ok(!hits(px, py, rc));
 });
+
+test('locate: a chase camera (lookY) sees the point it looks at as centred, and the arrow turns to a target behind the player', () => {
+  const SA = load();
+  const chase = { x: -9, z: 4, dist: 7, yaw: 0, pitch: 16, lookY: 1 };
+  const centred = SA.hintPointer.locate({ x: -9, y: 1, z: 4 }, chase, 16 / 9);
+  assert.equal(centred.visible, true);
+  assert.ok(Math.abs(centred.ex) < 1e-6 && Math.abs(centred.ey) < 1e-6, 'aimed at animal height');
+  const behind = SA.hintPointer.locate({ x: -9, y: 0, z: 40 }, chase, 16 / 9);   // behind the camera
+  assert.equal(behind.visible, false);
+  assert.ok(Number.isFinite(behind.angle) && Math.abs(behind.ex) <= 1 && Math.abs(behind.ey) <= 1);
+  assert.equal(SA.hintPointer.locate({ x: 0, z: 0 }, { ...chase, lookY: NaN }, 1).visible, false, 'junk lookY falls back safely');
+});

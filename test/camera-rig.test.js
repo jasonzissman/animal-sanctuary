@@ -269,3 +269,23 @@ test('chase: orbiting during a care focus stops the focus pitch ease so the chil
   frames(rig, 60);
   assert.equal(rig.getState().pitch, p);
 });
+
+test('chase: getState carries lookY (animal height) so the hint arrow aims where the camera looks; classic mode has none', () => {
+  const { rig, SA } = chaseRig();
+  assert.equal(rig.getState().lookY, SA.camera.DEFAULTS.lookY);
+  assert.equal(make().rig.getState().lookY, undefined);
+});
+
+test('chase: an easter-egg reveal swings the camera to the creature, then hands back to the player view (player never moves)', () => {
+  const { rig } = chaseRig();
+  const p0 = rig.getPlayer();
+  rig.focusOn(p0.x + 12, p0.z - 12, rig.getState().dist);   // what SA.unlockFlow does
+  frames(rig, 60);
+  const s = rig.getState();
+  assert.ok(Math.hypot(s.x - (p0.x + 12), s.z - (p0.z - 12)) < 1, 'camera looks at the creature');
+  assert.deepEqual([rig.getPlayer().x, rig.getPlayer().z], [p0.x, p0.z], 'the avatar stayed put');
+  rig.release();
+  frames(rig, 200);
+  const back = rig.getState(), t = rig.getPlayer();
+  assert.ok(Math.hypot(back.x - t.x, back.z - t.z) < 4, 'chase camera is back near the player');
+});

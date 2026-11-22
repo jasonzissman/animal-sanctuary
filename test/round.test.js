@@ -272,3 +272,15 @@ test('rounds fall back to every animal when the camera biome has fewer than 3', 
   for (let i = 0; i < 40; i++) seen.add(SA.data.get('animals', game.start().answerId).biome);
   assert.ok(seen.size > 1, 'targets come from more than the small biome');
 });
+
+test('biomeForRig follows the walking player, not the chase camera target, and falls back to the camera state', () => {
+  const SA = loadGame([...FILES, 'game/map.js']);
+  // The chase camera looks ahead of the avatar: the player is still in bosque while the camera target is already in selva.
+  const chase = { getPlayer: () => ({ x: -10 }), getState: () => ({ x: 20 }) };
+  assert.equal(SA.round.biomeForRig(chase), 'bosque');
+  assert.equal(SA.round.biomeForRig({ getPlayer: () => ({ x: 70 }) }), 'desierto');
+  assert.equal(SA.round.biomeForRig({ getPlayer: () => null, getState: () => ({ x: 20 }) }), 'selva');
+  assert.equal(SA.round.biomeForRig({ getState: () => ({ x: -60 }) }), 'montana');
+  assert.equal(SA.round.biomeForRig(null), null);
+  assert.equal(SA.round.biomeForRig({}), null);
+});

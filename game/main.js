@@ -31,7 +31,7 @@
       };
     } catch (e) { report('unlocks.start', e); }
     var game = null;
-    try { game = SA.round.create({ biome: function () { return SA.round.biomeForX(stage.rig.getState().x); } });
+    try { game = SA.round.create({ biome: function () { return SA.round.biomeForRig(stage.rig); } });
       ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx, biomeFx: stage.biomeGlow,
         onProgress: function () { if (unlocks) unlocks.check(); }, game: game }); } catch (e) { report('prompt.start', e); }
     // Gentle arrow toward the target animal when it is off-screen after ~10 s (counts as a hint when tapped).
@@ -42,7 +42,7 @@
     try {
       if (game && ctl && SA.reroll) {
         rerollWatch = SA.reroll.createWatcher({ game: game,
-          biome: function () { return SA.round.biomeForX(stage.rig.getState().x); },
+          biome: function () { return SA.round.biomeForRig(stage.rig); },
           canReroll: function () { return ctl.canReroll() && !SA.picking.isPaused(); },
           onReroll: function () { ctl.reroll(); } });
       }

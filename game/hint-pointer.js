@@ -29,9 +29,10 @@
     var D = SA.camera.DEFAULTS, fov = (opts && opts.fovDeg) || D.fovDeg;
     var edge = (opts && opts.edge) || EDGE;
     var a = finite(aspect, 1) > 0 ? finite(aspect, 1) : 1;
+    var lookY = Math.max(0, Math.min(3, finite(cam && cam.lookY, 0)));   // chase camera aims at animal height, not the ground
     cam = SA.camera.clampState(cam || {}, SA.map.BOUNDS);   // junk camera numbers become a valid state
     var P = SA.camera.position(cam);
-    var T = { x: finite(cam.x, 0), y: 0, z: finite(cam.z, 0) };
+    var T = { x: finite(cam.x, 0), y: lookY, z: finite(cam.z, 0) };
     var fx = T.x - P.x, fy = T.y - P.y, fz = T.z - P.z, fl = Math.sqrt(fx * fx + fy * fy + fz * fz) || 1;
     fx /= fl; fy /= fl; fz /= fl;
     var rx = -fz, rz = fx, rl = Math.sqrt(rx * rx + rz * rz) || 1;      // right = forward x worldUp

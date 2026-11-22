@@ -38,6 +38,15 @@
     return SA.map && typeof x === 'number' && isFinite(x) ? SA.map.biomeAt(x) : null;
   }
 
+  /** Biome id where the player stands (third person); falls back to the camera target when the rig has no player.
+   * The chase camera looks a few metres ahead of the avatar, so its target would flip biomes too early. */
+  function biomeForRig(rig) {
+    var p = rig && typeof rig.getPlayer === 'function' ? rig.getPlayer() : null;
+    if (p) return biomeForX(p.x);
+    var s = rig && typeof rig.getState === 'function' ? rig.getState() : null;
+    return biomeForX(s && s.x);
+  }
+
   function create(opts) {
     opts = opts || {};
     var rng = opts.rng || SA.clues.makeRng(Date.now());
@@ -147,5 +156,5 @@
   }
 
   SA.round = { TYPES: TYPES, MIN_BIOME_ANIMALS: MIN_BIOME_ANIMALS, candidatesForBiome: candidatesForBiome,
-    biomeForX: biomeForX, create: create };
+    biomeForX: biomeForX, biomeForRig: biomeForRig, create: create };
 })(typeof window !== 'undefined' ? window : globalThis);

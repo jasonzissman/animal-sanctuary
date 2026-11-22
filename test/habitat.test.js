@@ -566,3 +566,17 @@ test('render ghost: star cue shows only when the prop is unaffordable; missing T
   assert.equal(g2.visible(), true, 'still shows the red ghost');
   assert.equal(g2.starVisible(), false);
 });
+
+test('rayToGround works with a low chase-camera ray: a pointed spot ahead of the player is hit, the sky is not', () => {
+  const SA = setup();
+  // Chase camera 7 units from the look-at point at pitch 16 (what SA.camera.position gives; inlined: camera.js is not loaded here).
+  const t16 = (16 * Math.PI) / 180, h = 7 * Math.cos(t16);
+  const cam = { x: -9, y: 7 * Math.sin(t16), z: 8 + h };
+  const target = { x: -7, z: -2 };
+  const y = SA.map.groundHeight(target.x, target.z);
+  const len = Math.hypot(target.x - cam.x, y - cam.y, target.z - cam.z);
+  const dir = { x: (target.x - cam.x) / len, y: (y - cam.y) / len, z: (target.z - cam.z) / len };
+  const hit = SA.habitat.rayToGround(cam, dir);
+  assert.ok(Math.hypot(hit.x - target.x, hit.z - target.z) < 0.05);
+  assert.equal(SA.habitat.rayToGround(cam, { x: 0, y: 0.2, z: -1 }), null, 'a tap on the sky places nothing');
+});

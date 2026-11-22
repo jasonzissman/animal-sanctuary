@@ -96,6 +96,10 @@
     try {
       if (SA.albumView) SA.albumView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); } });
     } catch (e) { report('album.start', e); }
+    // Station menu hook (AS-0146): the door opens SA.station.open(); this is the placeholder card until the customizer (AS-0144).
+    try {
+      if (SA.stationMenuView) SA.stationMenuView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); } });
+    } catch (e) { report('station.menu', e); }
     // Grown-up drawer (press-and-hold gear, an item of the 🎒 menu). Never blocks the main loop.
     var menuView = null;
     try { if (SA.settingsView) SA.settingsView.create(root.document, { onOpen: function () { if (menuView) menuView.used('settings'); } }); }

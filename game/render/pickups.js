@@ -98,6 +98,9 @@
       return got;
     }
 
-    return { group: group, world: world, update: update, collectNear: collectNear, collectSpot: collectSpot };
+    /** The model node of a find (what the Space-target outline wraps), or null. */
+    function nodeFor(spot) { var n = spot && nodes[spot.id]; return n ? n.model : null; }
+
+    return { group: group, world: world, update: update, collectNear: collectNear, collectSpot: collectSpot, nodeFor: nodeFor };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

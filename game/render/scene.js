@@ -74,7 +74,8 @@
     scene.add(props.group);
     if (props.ghostGroup) scene.add(props.ghostGroup);
 
-    var trees = decor.children.filter(function (o) { return o.userData && o.userData.tree; }).map(function (o) {
+    var treeNodes = decor.children.filter(function (o) { return o.userData && o.userData.tree; });
+    var trees = treeNodes.map(function (o) {
       return { x: o.position.x, z: o.position.z, y: o.position.y, scale: o.scale.y, kind: o.userData.kind };
     });
     // Collectable finds (SA.pickups): fruit up in the canopies, rocks/flowers/leaves on the ground, fish on the banks.
@@ -83,6 +84,12 @@
     // The one Space key: acts on the single chosen target (aim part > tree/pickup in reach), see game/space-use.js.
     var spaceUse = SA.spaceUse ? SA.spaceUse.create({ getPlayer: rig.getPlayer, trees: function () { return trees; }, picking: picking, rig: rig,
       pickups: pickups ? pickups.world : null, collect: pickups ? pickups.collectSpot : function () { return null; }, root: root }) : null;
+    // The one outline: whatever spaceUse chose (part, tree or pickup) glows, nothing else (AS-0101).
+    var outline = spaceUse && SA.render.createTargetOutline ? SA.render.createTargetOutline(THREE, { getTarget: spaceUse.target, nodeFor: function (kind, ref) {
+      if (kind === 'part') return ref && ref.mesh || null;
+      if (kind === 'tree') { var i = trees.indexOf(ref); return i < 0 ? null : treeNodes[i]; }
+      return kind === 'pickup' && pickups ? pickups.nodeFor(ref) : null;
+    } }) : null;
     // Wanderers also keep out of the spawn circle, so the player never starts beside (or has to wait for) an animal.
     var spawnZone = SA.player && SA.player.spawnZone ? [SA.player.spawnZone()] : [];
     var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid.concat(spawnZone), trees: trees });
@@ -119,7 +126,7 @@
       scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize,
       animals: animals, treeTap: treeTap, onTreeTap: null,
       avatar: avatar, pickups: pickups, spaceUse: spaceUse,
-      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (reachCue) reachCue.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
+      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (reachCue) reachCue.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
     };
     return stageApi;
   };

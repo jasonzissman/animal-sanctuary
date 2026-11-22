@@ -75,6 +75,9 @@ current; when your change sets or changes something future tickets must follow, 
   climbs) and `render/pickups.js` have no Space key. `spaceUse.target()` is what the outline (AS-0101 slice 2) should glow.
 - **You always see what Space will hit.** Whatever Space would act on right now (an animal part, a climbable tree, a
   pickup) is the one object with a bright outline; nothing else has it. No outline means Space does nothing.
+  Built (AS-0108): `render/target-outline.js` draws a warm yellow, gently pulsing back-face shell (one shared material, no
+  per-frame allocation) on `spaceUse.target()` only; it is also the climbable-tree cue, so never add a second highlight.
+  Mouse hover glow is separate.
 - **Care is physical and silly.** Brush fur, wash with the sponge, bandage, rub *la barriga*, feed by hand, tug a leaf
   off a tangled wing so the bird can fly. The wrong tool or part gets a funny reaction plus the Spanish words, never
   a penalty.

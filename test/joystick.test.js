@@ -88,7 +88,13 @@ test('view: hidden until a touch, then bottom-left; dragging drives rig.setStick
   assert.ok(/left:\d+px;bottom:\d+px/.test(pad.style.cssText));
   assert.ok(+/width:(\d+)px/.exec(pad.style.cssText)[1] >= 100, 'big thumb target');
   assert.ok(pad.attrs['aria-label']);
-  assert.equal(pad.children[0].textContent.length <= 2, true, 'icon only');
+  const knob = pad.children[0];
+  assert.ok(/^<svg[^>]*viewBox/.test(knob.innerHTML), 'knob shows an inline SVG arrow cross');
+  assert.equal((knob.innerHTML.match(/<polygon/g) || []).length, 4, 'four arrowheads');
+  assert.ok(!/[^\x00-\x7F]/.test(knob.innerHTML), 'no emoji or other non-ASCII glyphs');
+  assert.ok(!/https?:|href|<image|url\(/.test(knob.innerHTML.replace('http://www.w3.org/2000/svg', '')), 'no network or image assets');
+  assert.ok(!knob.textContent, 'no text glyph');
+  assert.ok(/width:68px;height:68px/.test(knob.style.cssText), 'knob size unchanged');
 
   win.l.pointerdown({ pointerType: 'mouse' });
   assert.equal(pad.style.display, 'none');

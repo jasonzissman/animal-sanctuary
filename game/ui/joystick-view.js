@@ -9,6 +9,13 @@
 
   var BASE = 136, KNOB = 68, RADIUS = (BASE - KNOB) / 2 + 12;   // px; the knob travels a little past the rim
 
+  // Four-way arrow cross drawn inline (no emoji/fonts/files, so it looks the same on every classroom device).
+  var CROSS_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" ' +
+    'focusable="false" style="display:block;pointer-events:none"><g fill="#24543a">' +
+    '<rect x="10.75" y="5" width="2.5" height="14" rx="1"/><rect x="5" y="10.75" width="14" height="2.5" rx="1"/>' +
+    '<polygon points="12,1 7.5,6.5 16.5,6.5"/><polygon points="12,23 7.5,17.5 16.5,17.5"/>' +
+    '<polygon points="1,12 6.5,7.5 6.5,16.5"/><polygon points="23,12 17.5,7.5 17.5,16.5"/></g></svg>';
+
   var BOTTOM = 252;   // px above the bottom edge (was 84, which touched the hotbar; 132 still met the 5-food feed tray at 768px)
 
   function create(doc, rig, win) {
@@ -30,7 +37,7 @@
     knob.style.cssText = 'position:absolute;left:' + (BASE - KNOB) / 2 + 'px;top:' + (BASE - KNOB) / 2 + 'px;width:' + KNOB + 'px;height:' + KNOB + 'px;' +
       'border-radius:50%;background:rgba(255,248,214,.9);border:.1em solid #24543a;box-shadow:0 .1em .4em rgba(0,0,0,.3);' +
       'display:grid;place-items:center;font:700 1.6rem system-ui,sans-serif;color:#24543a;pointer-events:none;';
-    knob.textContent = '🚶';
+    knob.innerHTML = CROSS_SVG;
     pad.appendChild(knob);
     doc.body.appendChild(pad);
 
@@ -72,5 +79,5 @@
     return { show: show, release: release, element: pad };
   }
 
-  SA.joystickView = { create: create };
+  SA.joystickView = { create: create, CROSS_SVG: CROSS_SVG };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -4,7 +4,8 @@
  *       player  { x, z, y? }   y = height the player stands at (0 on the ground; raised when up a tree)
  *       animal  { x, z, y? }   y = height of the animal's feet (raised for birds/monkeys in a canopy)
  *       part    { y? }|null    optional world height of the tapped part; defaults to the animal's own height + MID_HEIGHT
- *       opts    { horizontal?, vertical? } override the generous defaults
+ *       opts    { horizontal?, vertical?, ignoreHeight? } override the generous defaults; ignoreHeight skips the height
+ *               check (canopy perchers until the player can climb: standing under the tree is enough)
  *   SA.reach.check(...) -> { ok, dist, dy }   the numbers behind canReach
  *   SA.reach.cue() -> { es: '¡Acércate!', icon: '🚶' }   the friendly get-closer cue (never a wrong pick)
  *   SA.reach.onFar(cb) -> unsubscribe;  SA.reach.notifyFar(info) tells listeners (cue UI, hint arrow) a tap was too far.
@@ -28,7 +29,7 @@
     var dist = Math.sqrt(dx * dx + dz * dz);
     var partY = part && typeof part.y === 'number' && isFinite(part.y) ? part.y : num(animal.y, 0) + MID_HEIGHT;
     var dy = Math.abs(partY - (num(player.y, 0) + REACH_UP));
-    return { ok: dist <= H && dy <= V, dist: dist, dy: dy };
+    return { ok: dist <= H && (dy <= V || !!(opts && opts.ignoreHeight)), dist: dist, dy: dy };
   }
 
   function canReach(player, animal, part, opts) { return check(player, animal, part, opts).ok; }

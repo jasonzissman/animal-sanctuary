@@ -40,6 +40,9 @@ current; when your change sets or changes something future tickets must follow, 
   (72px slots, count badge, ringed equipped slot). Digits 0-9 belong to the hotbar; don't bind them elsewhere.
   Name chip (AS-0103): equipping shows a chip above the bar (icon + "el cepillo") and speaks `item:<id>` via
   `SA.audio.say`; unequipping hides it. `SA.hotbar.nameChip(id)` is the pure lookup (item data/vocab, no special cases).
+  Item in hand (AS-0104): every item needs a spec in `game/data/hand-models.js` (kind `handmodels`: boxes, cylinders,
+  spheres, cones, flat colours, validated; a test fails if an item has none). `SA.render.createHandItem` builds it on the
+  avatar's right arm and swaps/removes it as `SA.inventory.equipped()` changes. It is never part of any pick volume.
 - **Forgiving aim.** The nearest in-reach part within a generous radius highlights and stays highlighted, so being a
   few pixels off the feet still counts. A 7-year-old should never fight the aim.
 - **You always see what Space will hit.** Whatever Space would act on right now (an animal part, a climbable tree, a

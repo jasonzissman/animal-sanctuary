@@ -2,7 +2,7 @@
  * Pointer events cover mouse AND touch. One pointer drag orbits (left/right = yaw, up/down = pitch); a
  * shift- or right/middle-button drag pans; two pointers pinch (zoom) and drag together (pan).
  * A press that never travels past the tap threshold does nothing, so tapping an animal never turns the view.
- * Keys: arrows/WASD pan, hold Shift to run, Q/E rotate, R/F tilt, wheel zooms. Everything is clamped by SA.camera.
+ * Keys: arrows/WASD pan, hold Shift to run, Q/T rotate, R/F tilt, wheel zooms. Everything is clamped by SA.camera.
  * Third person only (one camera, always the chase camera): the avatar walks, the camera chases it. There is no
  * overhead, close-up or focus view; to draw attention somewhere glideTo() turns the player toward it.
  * hooks.canOrbit(event) -> false lets a press start something else (e.g. rubbing a muddy part) without orbiting.
@@ -16,7 +16,8 @@
     ArrowLeft: [-1, 0], a: [-1, 0], A: [-1, 0], ArrowRight: [1, 0], d: [1, 0], D: [1, 0],
     ArrowUp: [0, -1], w: [0, -1], W: [0, -1], ArrowDown: [0, 1], s: [0, 1], S: [0, 1],
   };
-  var ORBIT_KEYS = { q: [-1, 0], Q: [-1, 0], e: [1, 0], E: [1, 0], r: [0, 1], R: [0, 1], f: [0, -1], F: [0, -1] };
+  // E is the "use" key (AS-0111, SA.spaceUse) so it no longer orbits: swing right is T now (Q left, R/F tilt); drag and the pad also orbit.
+  var ORBIT_KEYS = { q: [-1, 0], Q: [-1, 0], t: [1, 0], T: [1, 0], r: [0, 1], R: [0, 1], f: [0, -1], F: [0, -1] };
 
   SA.render.createCameraRig = function (THREE, canvas, camera, initial, hooks) {
     var C = SA.camera, B = SA.map.BOUNDS;
@@ -121,7 +122,7 @@
     function keyOf(k) { return k && k.length === 1 ? k.toLowerCase() : k; }
     function onKeyDown(e) {
       run = !!e.shiftKey;
-      // C climbs up when next to a tree and down when up one (Space goes through SA.spaceUse); otherwise it does nothing here.
+      // C climbs up when next to a tree and down when up one (E / Enter go through SA.spaceUse); otherwise it does nothing here.
       if ((e.key === 'c' || e.key === 'C') &&!e.ctrlKey && !e.metaKey && !e.altKey && SA.climb.prompt(player, trees())) {
         e.preventDefault();
         if (!e.repeat) toggleClimb();

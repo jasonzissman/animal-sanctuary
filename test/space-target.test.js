@@ -100,50 +100,77 @@ function dispatcher({ part = null, player = P(0, 0), trees = [], spots = [], cli
   return { d, calls, press, listeners };
 }
 
-test('Space uses the aim part and never also grabs a find or climbs', () => {
-  const { calls, press } = dispatcher({ part: { part: 'orejas' }, trees: [{ x: 1, z: 0, name: 't' }], spots: [{ x: 0, z: 1, id: 'f' }] });
-  assert.equal(press(), 1);
-  assert.deepEqual(calls, ['use']);
+const USE = 'e';
+
+test('key mapping: E (any case) and Enter use; Space, movement, digits and modified keys do not', () => {
+  const is = (key, extra = {}) => SA.spaceUse.isUseKey({ key, ...extra });
+  for (const k of ['e', 'E', 'Enter']) assert.equal(is(k), true, k);
+  assert.equal(is('x', { code: 'KeyE' }), true);
+  assert.equal(is('x', { code: 'NumpadEnter' }), true);
+  for (const k of [' ', 'Spacebar', 'ArrowUp', 'w', 'a', 's', 'd', 'c', 'q', 't', 'Shift', 'Escape', 'Tab', '1', '9']) assert.equal(is(k), false, k);
+  assert.equal(is('x', { code: 'Space' }), false);
+  assert.equal(is('e', { ctrlKey: true }), false);
+  assert.equal(is('Enter', { metaKey: true }), false);
+  assert.equal(is('e', { altKey: true }), false);
+  assert.equal(SA.spaceUse.isUseKey(null), false);
 });
 
-test('Space collects exactly the chosen pickup, or climbs exactly the chosen tree', () => {
+test('E / Enter use the aim part and never also grab a find or climb', () => {
+  for (const k of ['e', 'E', 'Enter']) {
+    const { calls, press } = dispatcher({ part: { part: 'orejas' }, trees: [{ x: 1, z: 0, name: 't' }], spots: [{ x: 0, z: 1, id: 'f' }] });
+    assert.equal(press(k), 1, k);
+    assert.deepEqual(calls, ['use']);
+  }
+});
+
+test('Space no longer uses, climbs or collects anything and is never swallowed', () => {
+  const h = dispatcher({ part: { part: 'cola' }, trees: [{ x: 2, z: 0, name: 'near' }], spots: [{ x: 0, z: 1, id: 'f' }] });
+  assert.equal(h.press(' '), 0);
+  assert.equal(h.press('x', { code: 'Space' }), 0);
+  const up = dispatcher({ player: P(0, 0, 0, { climb: 'canopy' }), climbPrompt: 'down' });
+  assert.equal(up.press(' '), 0);
+  assert.deepEqual(h.calls.concat(up.calls), []);
+});
+
+test('E collects exactly the chosen pickup, or climbs exactly the chosen tree', () => {
   let h = dispatcher({ spots: [{ x: 0, z: 1, id: 'f' }, { x: 0, z: 2, id: 'g' }] });
-  h.press();
+  h.press(USE);
   assert.deepEqual(h.calls, ['collect:f']);
   h = dispatcher({ trees: [{ x: 2, z: 0, name: 'near' }] });
-  h.press();
+  h.press(USE);
   assert.deepEqual(h.calls, ['climb:near']);
   h = dispatcher({ trees: [{ x: 2, z: 0, name: 'tree' }], spots: [{ x: 0, z: 1, id: 'f' }] });
-  h.press();
+  h.press('Enter');
   assert.equal(h.calls.length, 1, 'one action only');
 });
 
-test('Space with nothing in reach does nothing and is not swallowed; holding it does not repeat', () => {
+test('E with nothing in reach does nothing and is not swallowed; holding it does not repeat', () => {
   const h = dispatcher({ trees: [{ x: 50, z: 0 }] });
-  assert.equal(h.press(), 0);
+  assert.equal(h.press(USE), 0);
   assert.deepEqual(h.calls, []);
   const h2 = dispatcher({ spots: [{ x: 0, z: 1, id: 'f' }] });
-  assert.equal(h2.press(' ', { repeat: true }), 1);
+  assert.equal(h2.press(USE, { repeat: true }), 1);
   assert.deepEqual(h2.calls, [], 'auto-repeat does not act twice');
 });
 
-test('up a tree with nothing else in reach, Space climbs down; a part still wins there', () => {
+test('up a tree with nothing else in reach, E climbs down; a part still wins there', () => {
   const up = P(0, 0, 0, { climb: 'canopy' });
   let h = dispatcher({ player: up, climbPrompt: 'down' });
-  assert.equal(h.press(), 1);
+  assert.equal(h.press(USE), 1);
   assert.deepEqual(h.calls, ['down']);
   h = dispatcher({ player: up, climbPrompt: 'down', part: { part: 'pico' } });
-  h.press();
+  h.press('Enter');
   assert.deepEqual(h.calls, ['use']);
 });
 
-test('movement keys, modified Space and typing in a field are never touched', () => {
+test('movement keys, modified E and typing in a field or on a button are never touched', () => {
   const h = dispatcher({ part: { part: 'cola' }, spots: [{ x: 0, z: 1, id: 'f' }] });
-  for (const k of ['ArrowUp', 'ArrowLeft', 'w', 'a', 's', 'd', 'c', 'Escape', 'Enter', '1']) assert.equal(h.press(k), 0, k);
-  assert.equal(h.press(' ', { ctrlKey: true }), 0);
-  assert.equal(h.press(' ', { target: { tagName: 'INPUT' } }), 0);
+  for (const k of ['ArrowUp', 'ArrowLeft', 'w', 'a', 's', 'd', 'c', 'Escape', '1', ' ']) assert.equal(h.press(k), 0, k);
+  assert.equal(h.press(USE, { ctrlKey: true }), 0);
+  assert.equal(h.press(USE, { target: { tagName: 'INPUT' } }), 0);
+  assert.equal(h.press('Enter', { target: { tagName: 'BUTTON' } }), 0, 'Enter on a focused button presses that button');
   assert.deepEqual(h.calls, []);
-  assert.equal(h.press('x', { code: 'Space' }), 1, 'code Space also counts');
+  assert.equal(h.press('x', { code: 'KeyE' }), 1, 'code KeyE also counts');
 });
 
 test('use() (button path) acts on the same single target and reports whether it did anything', () => {

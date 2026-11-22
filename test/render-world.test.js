@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = [
   'game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-  'game/map.js', 'game/camera.js', 'game/render/world.js', 'game/render/decor-dry.js', 'game/render/decor.js',
+  'game/map.js', 'game/camera.js', 'game/player.js', 'game/render/world.js', 'game/render/decor-dry.js', 'game/render/decor.js',
 ];
 
 function load() {
@@ -46,6 +46,15 @@ test('buildDecor places trees, rocks and flowers deterministically on dry ground
   assert.equal(da.children.length, db.children.length);
   assert.equal(da.children[0].position.x, db.children[0].position.x);
   for (const o of da.children) assert.ok(!a.SA.map.isWater(o.position.x, o.position.z));
+});
+
+test('buildDecor leaves the spawn circle clear of trees, rocks and flowers', () => {
+  const ctx = load();
+  const decor = ctx.SA.render.buildDecor(ctx.THREE);
+  const P = ctx.SA.player, s = P.spawn();
+  for (const o of decor.children) {
+    assert.ok(Math.hypot(o.position.x - s.x, o.position.z - s.z) >= P.SPAWN_CLEAR, `decor at ${o.position.x}, ${o.position.z}`);
+  }
 });
 
 test('buildDecor puts cacti in the desierto and snowy pines and peaks in the montaña', () => {

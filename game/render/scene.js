@@ -74,13 +74,15 @@
     // Collectable finds (SA.pickups): fruit up in the canopies, rocks/flowers/leaves on the ground, fish on the banks.
     var pickups = SA.render.createPickups && SA.pickups ? SA.render.createPickups(THREE, { getPlayer: rig.getPlayer, trees: trees, avoid: avoid, seed: 80, container: container }) : null;
     if (pickups) scene.add(pickups.group);
-    var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid, trees: trees });
+    // Wanderers also keep out of the spawn circle, so the player never starts beside (or has to wait for) an animal.
+    var spawnZone = SA.player && SA.player.spawnZone ? [SA.player.spawnZone()] : [];
+    var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid.concat(spawnZone), trees: trees });
     // Placed props (this session and restored from the save) join the decor in the wander avoid list. The save is
     // already updated when the sandbox calls add/remove, so the list is rebuilt from SA.habitat.list().
     function refreshAvoid() {
       if (SA.propAvoid && SA.habitat) {
         obstacleProps = SA.propAvoid.points(SA.habitat.list());
-        ambient.setAvoid(avoid.concat(obstacleProps));
+        ambient.setAvoid(avoid.concat(spawnZone, obstacleProps));
       }
     }
     ['add', 'remove'].forEach(function (k) {

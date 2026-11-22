@@ -49,6 +49,8 @@
     } catch (e) { report('reroll.start', e); }
     // Icon-only rotate/tilt buttons so touch players can orbit the camera (same path as Q/E/R/F).
     try { if (SA.orbitPad) SA.orbitPad.create(root.document, stage.rig); } catch (e) { report('orbitPad.start', e); }
+    // Virtual joystick (bottom-left, shown at the first touch) so touch players can walk without a keyboard.
+    try { if (SA.joystickView) SA.joystickView.create(root.document, stage.rig, root); } catch (e) { report('joystick.start', e); }
     // Habitat sandbox: a big button + prop tray; saved props come back on reload. Never blocks the main loop.
     try {
       if (SA.sandbox && stage.props) {

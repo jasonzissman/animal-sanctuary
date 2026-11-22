@@ -1,0 +1,70 @@
+/* SA.joystickView.create(doc, rig, win): icon-only virtual joystick, bottom-left, for touch players.
+ * Dragging the knob calls rig.setStick(x, y) (unit disc, +y down); releasing recentres it. The pad stays hidden on
+ * mouse/keyboard devices and appears at the first touch anywhere. Only the pad itself catches pointer events, so
+ * animals and parts stay pickable. Vector maths lives in SA.joystick (pure, tested). No-op without a DOM.
+ */
+(function (root) {
+  'use strict';
+  var SA = root.SA;
+
+  var BASE = 136, KNOB = 68, RADIUS = (BASE - KNOB) / 2 + 12;   // px; the knob travels a little past the rim
+
+  function create(doc, rig, win) {
+    var none = { show: function () {}, release: function () {} };
+    if (!doc || typeof doc.createElement !== 'function' || !doc.body || !rig || !SA.joystick) return none;
+    var activeId = null, cx = 0, cy = 0;
+
+    var pad = doc.createElement('div');
+    pad.setAttribute('aria-label', 'Caminar');
+    pad.style.cssText = 'position:fixed;left:16px;bottom:84px;z-index:4;display:none;width:' + BASE + 'px;height:' + BASE + 'px;' +
+      'border-radius:50%;background:rgba(255,248,214,.45);border:.1em solid #24543a;touch-action:none;user-select:none;' +
+      '-webkit-user-select:none;pointer-events:auto;';
+    pad.style.display = 'none';   // hidden until the first touch
+    var knob = doc.createElement('div');
+    knob.style.cssText = 'position:absolute;left:' + (BASE - KNOB) / 2 + 'px;top:' + (BASE - KNOB) / 2 + 'px;width:' + KNOB + 'px;height:' + KNOB + 'px;' +
+      'border-radius:50%;background:rgba(255,248,214,.9);border:.1em solid #24543a;box-shadow:0 .1em .4em rgba(0,0,0,.3);' +
+      'display:grid;place-items:center;font:700 1.6rem system-ui,sans-serif;color:#24543a;pointer-events:none;';
+    knob.textContent = '🚶';
+    pad.appendChild(knob);
+    doc.body.appendChild(pad);
+
+    function setKnob(x, y) { knob.style.transform = 'translate(' + Math.round(x * RADIUS) + 'px,' + Math.round(y * RADIUS) + 'px)'; }
+    function drive(e) {
+      var v = SA.joystick.vector(e.clientX - cx, e.clientY - cy, RADIUS);
+      rig.setStick(v.x, v.y);
+      setKnob(v.x, v.y);
+    }
+    function release() {
+      activeId = null;
+      if (rig.setStick) rig.setStick(0, 0);
+      setKnob(0, 0);
+    }
+    function show() { pad.style.display = 'block'; }
+
+    pad.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      if (activeId !== null) return;
+      activeId = e.pointerId;
+      // The stick is relative to the pad centre, so the thumb never has to hit one exact spot.
+      var r = pad.getBoundingClientRect ? pad.getBoundingClientRect() : null;
+      cx = r ? r.left + r.width / 2 : e.clientX; cy = r ? r.top + r.height / 2 : e.clientY;
+      if (pad.setPointerCapture) { try { pad.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ } }
+      drive(e);
+    });
+    pad.addEventListener('pointermove', function (e) { if (e.pointerId === activeId) drive(e); });
+    var up = function (e) { if (e.pointerId === activeId) release(); };
+    pad.addEventListener('pointerup', up);
+    pad.addEventListener('pointercancel', up);
+    pad.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+    win = win || root;
+    if (typeof win.addEventListener === 'function') {
+      // Capture phase: the canvas may keep the pointer, but we still hear the very first finger.
+      win.addEventListener('pointerdown', function (e) { if (SA.joystick.isTouch(e.pointerType)) show(); }, true);
+      win.addEventListener('blur', release);
+    }
+    return { show: show, release: release, element: pad };
+  }
+
+  SA.joystickView = { create: create };
+})(typeof window !== 'undefined' ? window : globalThis);

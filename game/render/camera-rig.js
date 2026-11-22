@@ -29,6 +29,7 @@
     var pointers = {};            // id -> { x, y, sx, sy, mode, moved }
     var held = {};                // key -> true
     var padYaw = 0, padPitch = 0; // on-screen rotate/tilt buttons (-1..1): the same axes as Q/E and F/R
+    var stickX = 0, stickY = 0;   // on-screen joystick (unit disc, +y down): walks the player like the arrow keys
     var pinchDist = 0, mid = null;
     var glide = false;            // true while `focus` is a glideTo that ends by itself
     var focus = null;            // { x, z, dist, pitch? }: while set the camera eases there; only orbit input is accepted
@@ -125,7 +126,7 @@
     canvas.addEventListener('wheel', onWheel, { passive: false });
     root.addEventListener('keydown', onKeyDown);
     root.addEventListener('keyup', onKeyUp);
-    root.addEventListener('blur', function () { held = {}; pointers = {}; padYaw = 0; padPitch = 0; });
+    root.addEventListener('blur', function () { held = {}; pointers = {}; padYaw = 0; padPitch = 0; stickX = 0; stickY = 0; });
 
     return {
       /** Call once per frame (dt in seconds). */
@@ -143,14 +144,16 @@
         if (ayaw || apitch) orbitWith(function (s) { return C.orbitByKeys(s, ayaw, apitch, dt, B); });
         if (chase) {
           var before = player;
-          player = SA.player.step(player, { forward: az < 0, back: az > 0, left: ax < 0, right: ax > 0 }, dt, obstacles());
+          var J = SA.joystick ? SA.joystick.toInput({ x: stickX, y: stickY }) : { forward: 0, back: 0, left: 0, right: 0 };
+          player = SA.player.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
+            left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right }, dt, obstacles());
           moving = Math.hypot(player.x - before.x, player.z - before.z) > 1e-4 || player.heading !== before.heading;
           if (!focus && saved) {   // care task over: ease the zoom and tilt back to the ground-level chase view
             state = C.easeToward(state, { x: state.x, z: state.z, dist: saved.dist, pitch: saved.pitch }, dt, 3, B);
             if (Math.abs(state.dist - saved.dist) < 0.05 && Math.abs(state.pitch - saved.pitch) < 0.5) saved = null;
           }
           if (!focus) {
-            offset = C.decayOffset(offset, az < 0, dt);
+            offset = C.decayOffset(offset, az < 0 || J.forward > 0, dt);
             state = C.chaseFollow(state, player, offset, dt, B);
           }
         }
@@ -160,6 +163,11 @@
       getPlayer: function () { return player ? { x: player.x, z: player.z, heading: player.heading, moving: moving } : null; },
       /** On-screen buttons hold yaw/pitch axes (-1, 0, 1); update() runs them through the same clamped orbitByKeys path as the keys. */
       setOrbitAxes: function (yaw, pitch) { padYaw = yaw > 0 ? 1 : yaw < 0 ? -1 : 0; padPitch = pitch > 0 ? 1 : pitch < 0 ? -1 : 0; },
+      /** The on-screen joystick (unit disc, +y down). Third person only; update() feeds it to SA.player.step with the keys. */
+      setStick: function (x, y) {
+        var c = function (v) { return typeof v === 'number' && isFinite(v) ? Math.max(-1, Math.min(1, v)) : 0; };
+        stickX = c(x); stickY = c(y);
+      },
       /** Ease in on a ground point (care tasks); pan/zoom are ignored until release(), orbit still works. */
       focusOn: function (x, z, dist) {
         glide = false;

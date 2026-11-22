@@ -24,7 +24,8 @@
     // hooks.chase = { obstacles() -> [[x, z, r], ...] }: WASD/arrows walk the SA.player avatar (up/down = walk,
     // left/right = turn), the camera follows from behind, Q/E/R/F and drags swing it round the player, and pan gestures
     // (shift/right drag, two fingers) walk the player so touch screens can still move.
-    var player = SA.player.spawn(), moving = false, offset = 0;   // offset: swing from directly behind (deg)
+    // hooks.chase.trees() -> [{ x, z, y?, scale?, kind? }]: the climbable trees (SA.climb); the player state carries y and climb.
+    var player = SA.climb.step(SA.player.spawn(), {}, 0), moving = false, offset = 0, camY = 0;   // offset: swing from directly behind (deg)
     var state = C.chaseStart(player, B);
     var pointers = {};            // id -> { x, y, sx, sy, mode, moved }
     var held = {};                // key -> true
@@ -45,8 +46,8 @@
 
     function apply() {
       var p = C.position(state);
-      camera.position.set(p.x, p.y, p.z);
-      camera.lookAt(state.x, C.DEFAULTS.lookY, state.z);   // look at about animal height
+      camera.position.set(p.x, p.y + camY, p.z);   // camY: the chase camera rises with the player up a tree
+      camera.lookAt(state.x, C.DEFAULTS.lookY + camY, state.z);   // look at about animal height
     }
     function obstacles() { return hooks && hooks.chase && hooks.chase.obstacles ? hooks.chase.obstacles() : []; }
     // Orbit input swings the offset around the player.
@@ -54,9 +55,16 @@
       var r = fn({ x: state.x, z: state.z, dist: state.dist, yaw: offset, pitch: state.pitch });
       offset = r.yaw; state = { x: state.x, z: state.z, dist: state.dist, yaw: state.yaw, pitch: r.pitch };
     }
+    function trees() { return hooks && hooks.chase && hooks.chase.trees ? hooks.chase.trees() : []; }
     function panWith(dx, dy) {
+      if (player.climb) return;   // up a tree you walk with the keys / stick only
       var m = C.panByPixels({ x: player.x, z: player.z, dist: state.dist, yaw: state.yaw, pitch: state.pitch }, dx, dy, viewH(), B);
-      player = SA.player.step({ x: m.x, z: m.z, heading: player.heading }, {}, 0, obstacles());
+      player = SA.climb.step({ x: m.x, z: m.z, heading: player.heading }, {}, 0, obstacles());
+    }
+    /** Climb up when next to a tree, down when up one (the climb button, Space and C). Returns the new prompt. */
+    function toggleClimb() {
+      player = SA.climb.toggle(player, trees());
+      return SA.climb.prompt(player, trees());
     }
 
     function modeFor(e) {
@@ -103,6 +111,12 @@
     }
     function isKey(k) { return KEYS[k] || ORBIT_KEYS[k]; }
     function onKeyDown(e) {
+      // Space / C climb up when next to a tree and down when up one; otherwise they do nothing here.
+      if ((e.key === ' ' || e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey && !e.altKey && SA.climb.prompt(player, trees())) {
+        e.preventDefault();
+        if (!e.repeat) toggleClimb();
+        return;
+      }
       if (e.ctrlKey || e.metaKey || e.altKey || !isKey(e.key)) return;
       held[e.key] = true; e.preventDefault();
     }
@@ -130,15 +144,19 @@
         if (ayaw || apitch) orbitWith(function (s) { return C.orbitByKeys(s, ayaw, apitch, dt, B); });
         var before = player;
         var J = SA.joystick ? SA.joystick.toInput({ x: stickX, y: stickY }) : { forward: 0, back: 0, left: 0, right: 0 };
-        player = SA.player.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
+        player = SA.climb.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
           left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right }, dt, obstacles());
+        camY += (player.y - camY) * (1 - Math.exp(-5 * Math.min(dt, 0.1)));
         moving = Math.hypot(player.x - before.x, player.z - before.z) > 1e-4 || player.heading !== before.heading;
         offset = C.decayOffset(offset, az < 0 || J.forward > 0, dt);
         state = C.chaseFollow(state, player, offset, dt, B);
         apply();
       },
-      /** The avatar's { x, z, heading } and whether it moved this frame. */
-      getPlayer: function () { return { x: player.x, z: player.z, heading: player.heading, moving: moving }; },
+      /** The avatar's { x, z, y, heading, climb } (climb: null | 'up' | 'canopy' | 'down') and whether it moved this frame. */
+      getPlayer: function () { return { x: player.x, z: player.z, y: player.y || 0, heading: player.heading, moving: moving, climb: player.climb ? player.climb.mode : null }; },
+      /** 'up' | 'down' | null: which climb button to show right now (the icon-only UI polls this each frame). */
+      climbPrompt: function () { return SA.climb.prompt(player, trees()); },
+      toggleClimb: toggleClimb,
       /** On-screen buttons hold yaw/pitch axes (-1, 0, 1); update() runs them through the same clamped orbitByKeys path as the keys. */
       setOrbitAxes: function (yaw, pitch) { padYaw = yaw > 0 ? 1 : yaw < 0 ? -1 : 0; padPitch = pitch > 0 ? 1 : pitch < 0 ? -1 : 0; },
       /** The on-screen joystick (unit disc, +y down). update() feeds it to SA.player.step with the keys. */
@@ -149,7 +167,7 @@
       /** Turn the player toward a ground point (hint arrow, easter-egg reveal); the chase camera swings round with
        *  them. The camera never leaves the player. */
       glideTo: function (x, z) {
-        if (isFinite(x) && isFinite(z)) player = { x: player.x, z: player.z, heading: Math.atan2(x - player.x, z - player.z) };
+        if (isFinite(x) && isFinite(z)) player = { x: player.x, z: player.z, heading: Math.atan2(x - player.x, z - player.z), y: player.y, climb: player.climb };
         offset = 0;
       },
       getState: function () {

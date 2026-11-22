@@ -48,7 +48,7 @@
       animals.children.forEach(function (g) { if (!(g.userData && g.userData.perched)) list.push([g.position.x, g.position.z, ANIMAL_R]); });
       return list;
     }
-    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, null, { chase: { obstacles: obstacles }, canOrbit: function (e) {
+    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, null, { chase: { obstacles: obstacles, trees: function () { return trees; } }, canOrbit: function (e) {
       return !(SA.picking.hasRubTarget() && picking && SA.picking.isRubTarget(picking.pickAt(e.clientX, e.clientY)));
     } });
     var avatar = SA.render.createAvatar(THREE);

@@ -11,7 +11,7 @@ function make(hooks) {
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
   ctx.addEventListener = (t, f) => { keys[t] = f; };
-  for (const f of ['game/sa.js', 'game/map.js', 'game/camera.js', 'game/player.js', 'game/picking.js', 'game/render/camera-rig.js']) {
+  for (const f of ['game/sa.js', 'game/map.js', 'game/camera.js', 'game/player.js', 'game/perch.js', 'game/climb.js', 'game/picking.js', 'game/render/camera-rig.js']) {
     vm.runInContext(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'), ctx, { filename: f });
   }
   const placed = { pos: null, look: null };

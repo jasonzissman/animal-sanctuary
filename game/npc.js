@@ -3,7 +3,7 @@
  * when the player comes near.
  *
  *   SA.npc.scientist()                -> { id: 'scientist', x, z, heading, nearRadius, farRadius } the fixed post in front of the station,
- *                                        beside the door (heading PI = facing -z, out toward where the kid spawns); computed once
+ *                                        beside the door (heading PI = facing -z, out toward the kid, who spawns straight in front of her facing her, AS-0212); computed once
  *   SA.npc.mode(prev, dist, cfg?)     -> 'wave' | 'idle': wave once dist <= nearRadius, back to idle only beyond farRadius
  *                                        (the gap stops flicker at the edge); prev is the previous mode
  *   SA.npc.create(cfg?)               -> a tracker { update(dt, player) -> { mode, wave, t }, state() }
@@ -26,7 +26,7 @@
   function scientist() {
     if (!post) {
       var L = SA.station.layout();
-      post = { id: 'scientist', x: L.cx + 1.9, z: L.door.z - L.wallT / 2 - 0.9, heading: Math.PI, nearRadius: NEAR, farRadius: FAR };
+      post = { id: 'scientist', x: L.scientist.x, z: L.scientist.z, heading: Math.PI, nearRadius: NEAR, farRadius: FAR };
     }
     return post;
   }

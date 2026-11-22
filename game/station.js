@@ -7,11 +7,11 @@
  *         window: { x, z, width, height, y }   in the front wall, beside the door
  *         roof:   { y, overhang, thickness }, dish: { x, y, z, radius }   satellite dish on the roof, antenna: { x, y, z, height }
  *         sign:   { text: 'Estación', icon: 'atom', x, y, z }              over the door
- *         bench:  { x, z, w, d },  crates: [{ x, z, size }],  walls: [box], spawn: { x, z, heading } }
+ *         bench:  { x, z, w, d },  crates: [{ x, z, size }],  walls: [box], scientist: { x, z } (her post), spawn: { x, z, heading } }
  *     a box is { x0, x1, z0, z1, y0, y1 } in world units. Door and window are gaps/openings; the walls leave the doorway open.
  *   SA.station.collisionBoxes()    -> [box] the solid parts at ground level: the wall pieces (doorway left open) and the crates
  *   SA.station.obstacles()         -> [[x, z, r], ...] those boxes as circle chains for SA.player.step / SA.camera.clearPath
- *   SA.station.spawn()             -> { x, z, heading } just outside the door, facing out (heading PI = looking toward -z)
+ *   SA.station.spawn()             -> { x, z, heading } outside the door, straight in front of the scientist's post, facing her and the station (heading 0 = looking toward +z)
  *   SA.station.inFootprint(x, z, pad?) true within pad of the building, bench and crates (decor and animals keep out)
  *   SA.station.avoidPoints()       -> [[x, z], ...] sparse points across the footprint for placement code that spaces by distance
  *   SA.station.climbTarget()       -> the station as a generic SA.climb target (AS-0194), plain data:
@@ -26,6 +26,7 @@
 
   var HALF_W = 3.2, HALF_D = 2.6, WALL_H = 2.9, WALL_T = 0.5, DOOR_W = 2.2, DOOR_H = 2.1;
   var SPAWN_GAP = 2.6;   // spawn this far in front of the front wall's outer face
+  var SCI_X = 1.7, SCI_GAP = 0.9;   // the scientist's post: this far right of the door's centre line, this far in front of the front wall's outer face
   var cached = null;
 
   function box(x0, x1, z0, z1, y0, y1) { return { x0: x0, x1: x1, z0: z0, z1: z1, y0: y0, y1: y1 }; }
@@ -78,7 +79,10 @@
       sign: { text: 'Estación', icon: 'atom', x: cx, y: y0 + DOOR_H + 0.5, z: fz - t - 0.05 },
       bench: { x: cx - 2.1, z: fz - t - 0.55, w: 1.7, d: 0.55 },
       crates: crates, walls: walls,
-      spawn: { x: cx, z: fz - t - SPAWN_GAP, heading: Math.PI },
+      // The scientist's post (SA.npc reads it). The kid spawns straight in front of her, looking at her (heading 0 = +z, toward
+      // the building), so she fills the view with the doorway just left of her (AS-0212).
+      scientist: { x: cx + SCI_X, z: fz - t - SCI_GAP },
+      spawn: { x: cx + SCI_X, z: fz - t - SPAWN_GAP, heading: 0 },
     };
   }
 

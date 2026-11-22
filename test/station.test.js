@@ -60,14 +60,14 @@ test('collision boxes leave the doorway open and the walls closed', () => {
   }
 });
 
-test('the spawn is just outside the door, clear of walls, looking out, on dry land', () => {
+test('the spawn is just outside the door, clear of walls, facing the scientist and the station, on dry land', () => {
   const sp = S.spawn();
   assert.deepEqual(sp, SA.player.spawn(), 'SA.player.spawn() is the station spawn');
   assert.ok(sp.z < L.door.z, 'outside: further from the building than the front wall');
-  assert.ok(Math.abs(sp.x - L.door.x) < 1e-9, 'in front of the door');
+  assert.ok(Math.abs(sp.x - L.door.x) < L.halfW, 'in front of the building');
   assert.ok(L.door.z - sp.z <= 4, 'close to the door');
-  // Facing out: the heading's forward vector points the way the door faces.
-  assert.ok(Math.abs(Math.sin(sp.heading) - L.facing.x) < 1e-9 && Math.abs(Math.cos(sp.heading) - L.facing.z) < 1e-9);
+  // Facing in (AS-0212): the heading's forward vector points toward the building, opposite to the way the door faces.
+  assert.ok(Math.abs(Math.sin(sp.heading) + L.facing.x) < 1e-9 && Math.abs(Math.cos(sp.heading) + L.facing.z) < 1e-9);
   assert.equal(SA.map.biomeAt(sp.x), 'bosque');
   assert.ok(!SA.map.isWater(sp.x, sp.z));
   for (const [x, z, r] of S.obstacles()) assert.ok(Math.hypot(sp.x - x, sp.z - z) > r + SA.player.RADIUS, 'spawn not wedged');
@@ -76,7 +76,7 @@ test('the spawn is just outside the door, clear of walls, looking out, on dry la
 test('the player is stopped by every wall but walks through the doorway', () => {
   const obs = S.obstacles(), sp = S.spawn();
   // Straight in through the door, deep into the room.
-  let s = walk({ ...sp, heading: 0 }, { forward: true }, 1.6, obs);   // the kid spawns facing out; turn around to go in
+  let s = walk({ x: L.door.x, z: sp.z, heading: 0 }, { forward: true }, 1.6, obs);   // from the spot in front of the door
   assert.ok(s.z > L.door.z + 0.5, `walked in through the door (z ${s.z.toFixed(2)} vs wall ${L.door.z})`);
   s = walk(s, { forward: true }, 3, obs);
   assert.ok(s.z < L.cz + L.halfD, 'the back wall stops them inside');

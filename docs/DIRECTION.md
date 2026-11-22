@@ -19,7 +19,8 @@ current; when your change sets or changes something future tickets must follow, 
   care, menus) switches the keyboard to controlling something else, and there is never an "Escape to unlock". The
   mouse or a tap clicks on things (body parts, items); E/Enter uses the equipped item, Space jumps.
 - **Hold Shift to run (AS-0094).** Shift (either side) is a held modifier, never a mode: while it is down, moving forward
-  uses `SA.player.RUN_SPEED` (7, about 1.8x `SPEED`) via `input.run`; backing up stays at `BACK_SPEED`. The touch joystick
+  uses `SA.player.RUN_SPEED` (10, 2.5x `SPEED`; AS-0110) via `input.run`; backing up stays at `BACK_SPEED`. `SA.player.step`
+  sub-steps each move to at most `RADIUS` long so running (or a slow frame) never tunnels through thin obstacles. The touch joystick
   runs when pushed forward to its outer edge (`SA.joystick.RUN_AT`). Bounds, soft collisions, water and reach apply
   unchanged; the avatar's stride plays faster (`rig.getPlayer().running`). Shift triggers nothing else.
 - **Keys for a 7-year-old (AS-0111, AS-0112).** Arrows/WASD walk, Shift runs (about 2.5x, AS-0110), **Space jumps**,

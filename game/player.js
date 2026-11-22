@@ -9,6 +9,7 @@
  *               run: true moves forward at RUN_SPEED instead of SPEED (backing up stays at BACK_SPEED).
  *     dt        seconds (clamped to 0.1 so a stalled tab cannot teleport the player)
  *     obstacles [[x, z, radius], ...] circles for animals and placed props (same shape as SA.propAvoid.points)
+ * The move is sub-stepped (each piece at most RADIUS long) so running or a slow frame never tunnels through a thin obstacle.
  * Obstacles push the player out along the line from their centre (so walking into one slides around it) and the
  * result is clamped to SA.map.BOUNDS. Never stuck: if the player starts overlapping obstacles (wedged between two trees
  * and an animal) and the plain push-out would pin them in place, they may still move so they do not go deeper into
@@ -28,7 +29,7 @@
   var SA = root.SA;
 
   var SPEED = 4;          // world units / second: a brisk kid-friendly walk
-  var RUN_SPEED = 7;      // while input.run (Shift held / joystick at its edge): about 1.8x SPEED
+  var RUN_SPEED = 10;     // while input.run (Shift held / joystick at its edge): 2.5x SPEED
   var BACK_SPEED = 2.4;   // backing up is slower (and never faster, even while running)
   var TURN_RATE = 2.4;    // radians / second
   var RADIUS = 0.6;       // player body circle, added to each obstacle radius
@@ -109,22 +110,27 @@
     input = input || {};
     var h = num(state.heading, 0), p = { x: num(state.x, SPAWN.x), z: num(state.z, SPAWN.z) };
     dt = Math.max(0, Math.min(MAX_DT, num(dt, 0)));
-    var p0 = { x: p.x, z: p.z };
     var fwd = axis(input.forward) - axis(input.back), side = axis(input.right) - axis(input.left);
-    var fx = Math.sin(h), fz = Math.cos(h);
+    var fx = Math.sin(h), fz = Math.cos(h), dx = 0, dz = 0;
     if (input.strafe) {
       // Seen from behind the player, right = (-cos h, sin h) = (-fz, fx) (heading 0 faces +z, so right is -x).
       var sv = input.run ? RUN_SPEED : SPEED;
-      p.x += (-fz * side) * sv * dt; p.z += (fx * side) * sv * dt;
+      dx += (-fz * side) * sv * dt; dz += (fx * side) * sv * dt;
     } else {
       h -= side * TURN_RATE * dt;   // right = clockwise seen from above = decreasing heading
       fx = Math.sin(h); fz = Math.cos(h);
     }
     var v = fwd > 0 ? (input.run ? RUN_SPEED : SPEED) : BACK_SPEED;   // run only speeds up going forward
-    p.x += fx * fwd * v * dt;
-    p.z += fz * fwd * v * dt;
-    clampToMap(p);
-    p = resolve(p0, p, obstacles || [], fx, fz);   // only solid obstacles and the map edge stop the player; water and dips never do
+    dx += fx * fwd * v * dt;
+    dz += fz * fwd * v * dt;
+    // Sub-step: no single move is longer than RADIUS, so a fast run or a long (low frame rate) frame cannot hop over a
+    // thin obstacle. Each sub-step is clamped to the map and resolved against the obstacles on its own.
+    var n = Math.max(1, Math.ceil(Math.hypot(dx, dz) / RADIUS - 1e-9)), obs = obstacles || [];
+    for (var i = 0; i < n; i++) {
+      var q = { x: p.x + dx / n, z: p.z + dz / n };
+      clampToMap(q);
+      p = resolve(p, q, obs, fx, fz);   // only solid obstacles and the map edge stop the player; water and dips never do
+    }
     var TAU = Math.PI * 2;
     h = h - TAU * Math.floor(h / TAU);   // keep heading in [0, 2π)
     return { x: p.x, z: p.z, heading: h };

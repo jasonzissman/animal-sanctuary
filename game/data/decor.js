@@ -5,6 +5,8 @@
  *   id      lowercase ASCII key; the builder in game/render/decor.js tags its mesh with userData.decor = id
  *   solid   true = blocks the player (trees, rocks, cacti, peaks); false = soft, the player walks straight through
  *   radius  how far from the centre it keeps the player out (world units, > 0 and <= 6); required only when solid
+ *   height  optional, solid only (AS-0176): top of the item at scale 1 (world units, 0 < h <= 3); the placed scale multiplies it.
+ *           A low item (rocks) only blocks a player whose jump lift is below it; no height = always blocks (trees, cacti, peaks)
  */
 (function (root) {
   'use strict';
@@ -18,17 +20,20 @@
       fail('radius', 'a solid decor item needs a radius in (0, 6]');
     }
     if (!d.solid && d.radius !== undefined) fail('radius', 'a soft (non-solid) decor item has no radius');
+    if (d.height !== undefined && (!d.solid || typeof d.height !== 'number' || !isFinite(d.height) || d.height <= 0 || d.height > 3)) {
+      fail('height', 'only a solid item may have a height, a number in (0, 3]');
+    }
   }
 
   SA.data.defineKind('decor', validateDecor);
   SA.data.register('decor', [
     { id: 'pino', solid: true, radius: 1 },
     { id: 'jungle', solid: true, radius: 1 },
-    { id: 'roca', solid: true, radius: 1 },
+    { id: 'roca', solid: true, radius: 1, height: 0.8 },
     { id: 'flor', solid: false },
     { id: 'cactus', solid: true, radius: 0.8 },
     { id: 'pinonieve', solid: true, radius: 1 },
-    { id: 'rocaarena', solid: true, radius: 1 },
+    { id: 'rocaarena', solid: true, radius: 1, height: 0.75 },
     { id: 'pico', solid: true, radius: 2.5 }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

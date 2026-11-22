@@ -9,7 +9,10 @@
  *               S/Down = back. left/right TURN the player; with strafe: true they side-step instead.
  *               run: true moves forward at RUN_SPEED instead of SPEED (backing up stays at BACK_SPEED).
  *     dt        seconds (clamped to 0.1 so a stalled tab cannot teleport the player)
- *     obstacles [[x, z, radius], ...] circles for animals and placed props (same shape as SA.propAvoid.points)
+ *     input.lift  optional jump lift above the ground (SA.jump); obstacles with a 4th number h (low rocks, AS-0176) are ignored
+ *               while lift + CLEAR_MARGIN >= h, so one jump clears a normal rock and the biggest need more height
+ *     obstacles [[x, z, radius(, height)], ...] circles for animals and placed props (same shape as SA.propAvoid.points)
+ *   SA.player.floorAt(x, z, obstacles, lift) -> lift of the low solid under the player (0 = ground), for SA.jump.step's floor
  * The move is sub-stepped (each piece at most RADIUS long) so running or a slow frame never tunnels through a thin obstacle.
  * Obstacles push the player out along the line from their centre (so walking into one slides around it) and the
  * result is clamped to SA.map.BOUNDS. Never stuck: if the player starts overlapping obstacles (wedged between two trees
@@ -38,6 +41,7 @@
   var EDGE = 0.5;         // stay this far inside the map bounds
   var SPAWN_CLEAR = 5;    // nothing seeded (decor, animals) within this distance of the spawn at load
   var SLACK = 0.02;       // overlap smaller than this is just float noise from the last push-out
+  var CLEAR_MARGIN = 0.1; // a jump this close to a low solid's top still clears it (and steps up onto it)
   var SPAWN = { x: -9, z: 14, heading: Math.PI };   // bosque, dry land, facing the map centre (-z)
 
   /** Where the game starts: just outside the research station's door (SA.station, AS-0145), else the fixed fallback above. */
@@ -50,6 +54,23 @@
     var B = SA.map.BOUNDS;
     p.x = Math.max(B.minX + EDGE, Math.min(B.maxX - EDGE, p.x));
     p.z = Math.max(B.minZ + EDGE, Math.min(B.maxZ - EDGE, p.z));
+  }
+
+  /** True when a player lifted `lift` above the ground passes over obstacle o (it has a height h and lift is within the margin of it). */
+  function cleared(o, lift) { return o.length > 3 && o[3] > 0 && lift + CLEAR_MARGIN >= o[3]; }
+
+  /**
+   * Lift of the highest low solid the player stands over at (x, z) (0 = the ground): an obstacle counts while the player is
+   * over its blocking circle and clears it. SA.jump.step(..., floor) lands on it, so a jump never ends inside a rock.
+   */
+  function floorAt(x, z, obstacles, lift) {
+    var best = 0, list = obstacles || [];
+    for (var i = 0; i < list.length; i++) {
+      var o = list[i];
+      if (!valid(o) || !cleared(o, num(lift, 0)) || o[3] <= best) continue;
+      if (Math.hypot(x - o[0], z - o[1]) < o[2] + RADIUS) best = o[3];
+    }
+    return best;
   }
 
   function valid(o) { return o && isFinite(o[0]) && isFinite(o[1]) && o[2] > 0; }
@@ -130,7 +151,8 @@
     dz += fz * fwd * v * dt;
     // Sub-step: no single move is longer than RADIUS, so a fast run or a long (low frame rate) frame cannot hop over a
     // thin obstacle. Each sub-step is clamped to the map and resolved against the obstacles on its own.
-    var n = Math.max(1, Math.ceil(Math.hypot(dx, dz) / RADIUS - 1e-9)), obs = obstacles || [];
+    var n = Math.max(1, Math.ceil(Math.hypot(dx, dz) / RADIUS - 1e-9)), obs = obstacles || [], lift = num(input.lift, 0);
+    if (lift > 0) obs = obs.filter(function (o) { return !cleared(o, lift); });   // hopping over low solids
     for (var i = 0; i < n; i++) {
       var q = { x: p.x + dx / n, z: p.z + dz / n };
       clampToMap(q);
@@ -145,6 +167,6 @@
   function inSpawnZone(x, z, pad) { var S = spawnPoint(); return Math.hypot(x - S.x, z - S.z) < SPAWN_CLEAR + (pad || 0); }
   function spawnZone() { var S = spawnPoint(); return [S.x, S.z, SPAWN_CLEAR]; }
 
-  SA.player = { step: step, heightAt: heightAt, spawn: spawn, SPEED: SPEED, RUN_SPEED: RUN_SPEED, BACK_SPEED: BACK_SPEED, TURN_RATE: TURN_RATE, RADIUS: RADIUS,
+  SA.player = { step: step, floorAt: floorAt, CLEAR_MARGIN: CLEAR_MARGIN, heightAt: heightAt, spawn: spawn, SPEED: SPEED, RUN_SPEED: RUN_SPEED, BACK_SPEED: BACK_SPEED, TURN_RATE: TURN_RATE, RADIUS: RADIUS,
     SPAWN_CLEAR: SPAWN_CLEAR, inSpawnZone: inSpawnZone, spawnZone: spawnZone };
 })(typeof window !== 'undefined' ? window : globalThis);

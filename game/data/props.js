@@ -10,6 +10,7 @@
  *   biomes    biome ids (see game/data/biomes.js) where it may be placed
  *   where     'land' (dry ground only) or 'shore' (on or beside water, e.g. a bridge)
  *   radius    keep-clear distance (world units) from the prop centre that wandering animals respect (SA.propAvoid)
+ *   height    optional, solid only (AS-0176): top of the placed prop in world units; a jump above it clears it (rock only)
  *   solid     true = also blocks the walking player (same radius); false = soft, the player walks through (flores)
  */
 (function (root) {
@@ -33,6 +34,9 @@
     if (typeof p.radius !== 'number' || !isFinite(p.radius) || p.radius <= 0 || p.radius > 6) fail('radius', 'must be a number in (0, 6]');
     if (WHERE.indexOf(p.where) < 0) fail('where', 'must be one of ' + WHERE.join(', '));
     if (typeof p.solid !== 'boolean') fail('solid', 'must be true (blocks the walking player) or false (walk through)');
+    if (p.height !== undefined && (!p.solid || typeof p.height !== 'number' || !isFinite(p.height) || p.height <= 0 || p.height > 3)) {
+      fail('height', 'only a solid prop may have a height, a number in (0, 3]');
+    }
   }
 
   function prop(id, icon, es, en, cost, builder, biomes, where, radius, solid) {
@@ -48,6 +52,7 @@
     prop('puente', '🌉', 'el puente', 'bridge', 3, 'bridge', ['bosque'], 'shore', 2.2, true)
   ];
 
+  props.forEach(function (p) { if (p.id === 'roca') p.height = 0.9; });   // a placed rock is low enough to hop over
   SA.data.defineKind('props', validateProp);
   SA.data.register('props', props);
   SA.data.register('vocab', props.map(function (p) {

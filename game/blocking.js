@@ -6,9 +6,12 @@
  *
  *   SA.blocking.decorRadius(id)         -> blocking radius (0 = soft); unknown/missing id -> DEFAULT_RADIUS (safe: blocks)
  *   SA.blocking.animalRadius(animalId)  -> blocking radius from the animal's size trait (0 = walk through)
- *   SA.blocking.solidProps(records)     -> [[x, z, radius], ...] for the solid placed props only (needs SA.propAvoid)
- *   SA.blocking.obstacles({ decor, animals, props }) -> the [[x, z, r], ...] list SA.player.step takes
- *       decor   [{ x, z, decor? }]   animals [{ x, z, animalId?, perched? }]   props  placed-prop records
+ *   SA.blocking.decorHeight(id, scale?) -> top of a low decor item (data height x placed scale), or 0 = always blocks
+ *   SA.blocking.solidProps(records)     -> [[x, z, radius(, height)], ...] for the solid placed props only (needs SA.propAvoid)
+ *   SA.blocking.obstacles({ decor, animals, props }) -> the [[x, z, r(, h)], ...] list SA.player.step takes. A 4th number h
+ *       (AS-0176) marks a low solid: a player whose jump lift is within a small margin of h passes over it and may land on top.
+ *       Trees, cacti, peaks, ponds, bridges and animals have no h, so they always block.
+ *       decor   [{ x, z, decor?, scale? }]   animals [{ x, z, animalId?, perched? }]   props  placed-prop records
  *       (or propPoints: the cached result of solidProps, so a per-frame caller need not re-read the save)
  */
 (function (root) {
@@ -22,6 +25,13 @@
     return d.solid ? d.radius : 0;
   }
 
+  /** Top of a low decor item (data `height` x placed scale); 0 for anything without a height (always blocks). */
+  function decorHeight(id, scale) {
+    var d = typeof id === 'string' ? SA.data.get('decor', id) : null;
+    if (!d || !d.solid || typeof d.height !== 'number') return 0;
+    return d.height * (typeof scale === 'number' && isFinite(scale) && scale > 0 ? scale : 1);
+  }
+
   function animalRadius(animalId) {
     var a = typeof animalId === 'string' ? SA.data.get('animals', animalId) : null;
     var r = a && SA.animals.BLOCK_RADIUS[a.traits.size];
@@ -33,7 +43,7 @@
     (records || []).forEach(function (r) {
       var def = r && typeof r.prop === 'string' ? SA.data.get('props', r.prop) : null;
       if (!def || def.solid === false) return;
-      SA.propAvoid.points([r]).forEach(function (p) { out.push(p); });
+      SA.propAvoid.points([r]).forEach(function (p) { out.push(typeof def.height === 'number' ? p.concat([def.height]) : p); });
     });
     return out;
   }
@@ -42,7 +52,9 @@
     var list = [];
     (src.decor || []).forEach(function (d) {
       var r = decorRadius(d.decor);
-      if (r > 0) list.push([d.x, d.z, r]);
+      if (r <= 0) return;
+      var h = decorHeight(d.decor, d.scale);
+      list.push(h > 0 ? [d.x, d.z, r, h] : [d.x, d.z, r]);
     });
     (src.propPoints || solidProps(src.props)).forEach(function (p) { list.push(p); });
     (src.animals || []).forEach(function (a) {
@@ -53,5 +65,5 @@
     return list;
   }
 
-  SA.blocking = { DEFAULT_RADIUS: DEFAULT_RADIUS, decorRadius: decorRadius, animalRadius: animalRadius, solidProps: solidProps, obstacles: obstacles };
+  SA.blocking = { DEFAULT_RADIUS: DEFAULT_RADIUS, decorRadius: decorRadius, decorHeight: decorHeight, animalRadius: animalRadius, solidProps: solidProps, obstacles: obstacles };
 })(typeof window !== 'undefined' ? window : globalThis);

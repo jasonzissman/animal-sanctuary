@@ -51,7 +51,7 @@
     // animals are soft (SA.blocking reads that from data), so the player walks straight through them.
     function obstacles() {
       return stationWalls.concat(SA.blocking.obstacles({
-        decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor }; }),
+        decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor, scale: o.scale ? o.scale.x : 1 }; }),
         propPoints: solidPropPoints,
         animals: animals.children.map(function (g) {
           var u = g.userData || {};

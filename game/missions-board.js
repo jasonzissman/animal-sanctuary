@@ -50,7 +50,7 @@
   }
 
   // The hook the intro conversation (AS-0142) ends with: open the station on the Misiones board, point at the next card (mission 1 on
-  // a fresh save) and run the scientist's intro for it, whose "Empezar" starts it. Returns { ok, id?, reason? }. The board view
+  // a fresh save) and run the scientist's intro for it, whose "¡Vamos!" starts it. Returns { ok, id?, reason? }. The board view
   // (ui/missions-board-view.js) replaces this no-op once it is mounted; without a DOM it stays { ok: false, reason: 'no-board' }.
   function pointAndStartFirst() { return { ok: false, reason: 'no-board' }; }
 

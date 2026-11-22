@@ -48,11 +48,12 @@
 
     function startNow(id) {
       var r = SA.missions.start(id);
-      if (r && r.ok) closeMenu(); else { talk = null; render(); }   // busy (another one is running): just refresh, nothing breaks
+      talk = null;   // the start card is done either way: a later E / Enter in the world must never reach it
+      if (r && r.ok) closeMenu(); else render();   // busy (another one is running): just refresh, nothing breaks
     }
 
     function tapCard(c) {
-      if (c.state === 'next' && D && !SA.missions.active()) { beginTalk(c.id); return; }   // the scientist introduces a new mission (speaking its lines) before Empezar starts it
+      if (c.state === 'next' && D && !SA.missions.active()) { beginTalk(c.id); return; }   // the scientist introduces a new mission (speaking its lines) before ¡Vamos! starts it
       say(c.speak);
       if (c.state === 'locked' || c.state === 'active') return;   // active: its Continuar / Abandonar buttons do the work
       startNow(c.id);                                            // a done card replays at once
@@ -106,7 +107,8 @@
       return node;
     }
 
-    // The scientist's intro: one picture card per line (icon + short phrase), a Replay button, then Siguiente / Empezar.
+    // The scientist's intro: ONE picture card (mission icon, title, one short line) and one big button: ¡Vamos! starts at once.
+    // 🔊 replays the line; ✕ goes back to the board. Enter / E press the button too (capture phase, only while the card shows).
     function renderTalk() {
       var v = D.view(talk);
       clear(talkBox);
@@ -114,16 +116,27 @@
       talkBox.appendChild(el('div', 'font-size:2.4rem;line-height:1;', '🧑‍🔬'));
       var pic = el('div', 'display:flex;flex-direction:column;align-items:center;gap:.2em;padding:.5em 1em;background:#fff;' +
         'border:.12em solid #24543a;border-radius:.8em;min-width:min(60vw,260px);max-width:100%;text-align:center;');
-      pic.appendChild(el('div', 'font-size:4.5rem;line-height:1;', v.line.icon));
-      pic.appendChild(el('div', 'font-size:1.5rem;overflow-wrap:anywhere;', v.line.es));
+      pic.appendChild(el('div', 'font-size:4.5rem;line-height:1;', v.icon || v.line.icon));
+      pic.appendChild(el('div', 'font-size:1.1rem;overflow-wrap:anywhere;', v.title));
+      pic.appendChild(el('div', 'font-size:1.6rem;overflow-wrap:anywhere;', v.line.es));
+      if (v.line.en && english()) pic.appendChild(el('div', 'font-size:.9rem;font-weight:400;', v.line.en));
       talkBox.appendChild(pic);
       var row = el('div', 'display:flex;flex-wrap:wrap;gap:12px;justify-content:center;');
       row.appendChild(button('🔊 Otra vez', sayLine));
-      row.appendChild(button(v.last ? '▶️ ' + v.label : v.label + ' ➡️', function () {
-        if (v.last) { say(v.label); startNow(talk.id); return; }
-        talk = D.advance(talk); render(); sayLine();
-      }));
+      row.appendChild(button('✕', function () { talk = null; render(); }));
+      row.appendChild(button('▶️ ' + v.label, startTalk));
       talkBox.appendChild(row);
+    }
+    function startTalk() { if (!talk) return; var id = talk.id; say(D.VAMOS); startNow(id); }
+
+    if (doc.addEventListener) {
+      doc.addEventListener('keydown', function (e) {
+        if (!talk || !e || (e.key !== 'Enter' && e.key !== 'e' && e.key !== 'E')) return;
+        if (SA.station && SA.station.isOpen && !SA.station.isOpen()) { talk = null; return; }   // card not on screen: leave the key to the world
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+        startTalk();
+      }, true);
     }
 
     // The celebration: once after a mission is finished, the scientist cheers (SFX + short phrase) and points at the new card.
@@ -168,7 +181,7 @@
       cards.forEach(function (c) { grid.appendChild(cardEl(c, L)); });
     }
 
-    // Hook for the intro conversation (AS-0142): open the board, point at the next card and run its intro; Empezar starts it.
+    // Hook for the intro conversation (AS-0142): open the board, point at the next card and run its intro card; ¡Vamos! starts it.
     SA.missionsBoard.pointAndStartFirst = function () {
       if (SA.missions.active()) return { ok: false, reason: 'busy' };
       var next = SA.missions.next();
@@ -181,6 +194,7 @@
 
     render(false);
     if (SA.station && SA.station.onOpen) SA.station.onOpen(function () { render(true); });
+    if (SA.station && SA.station.onClose) SA.station.onClose(function () { talk = null; });   // closing the station (Esc, ✕, start) drops the start card
     return { render: function () { render(false); }, element: grid };
   }
 

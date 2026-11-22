@@ -6,7 +6,7 @@ const FILES = ['game/sa.js', 'game/data-registry.js', 'game/save.js', 'game/data
 const plain = (o) => JSON.parse(JSON.stringify(o));
 
 const row = (n, lines = 3) => ({ id: 'm' + n, n, es: 'Misión ' + n, en: 'Mission ' + n, icon: '⭐',
-  intro: Array.from({ length: lines }, (_, i) => ({ es: 'Línea ' + (i + 1) + '.', icon: '🙂' })),
+  intro: { es: 'Línea ' + lines + '.', icon: '🙂' },
   steps: [{ kind: 'find' }], reward: { stars: 1 } });
 
 function setup(count = 3) {
@@ -19,43 +19,43 @@ function setup(count = 3) {
   return { SA, rows, missions, dlg, finish };
 }
 
-test('the shipped missions have 2-3 short intro lines, each with a picture', () => {
+test('the shipped missions have ONE intro line of at most 4 words, with a picture', () => {
   const SA = loadGame(FILES);
   const all = SA.data.all('missions');
   assert.ok(all.length >= 1);
   for (const m of all) {
-    assert.ok(m.intro.length >= 2 && m.intro.length <= 3, m.id);
-    for (const l of m.intro) {
-      assert.ok(l.es.split(/\s+/).length <= 6, l.es);
-      assert.ok(l.icon);
-    }
+    assert.equal(Array.isArray(m.intro), false, m.id);
+    assert.ok(m.intro.es.split(/\s+/).length <= 4, m.intro.es);
+    assert.ok(m.intro.icon);
+    assert.ok(m.intro.en, 'English toggle text');
   }
+  assert.equal(all[0].intro.es, '¡Ayuda al cerdito!');
 });
 
-test('begin / view / advance walk the lines and end on a start button', () => {
+test('begin -> view is one card with the start button only (no next step)', () => {
   const { SA, rows } = setup();
   const D = SA.missionsDialogue;
-  let s = D.begin(rows[0]);
-  const seen = [];
-  for (let i = 0; i < 5; i++) {
-    const v = D.view(s);
-    seen.push([v.index, v.line.es, v.button, v.label, v.last]);
-    s = D.advance(s);
-  }
-  assert.deepEqual(seen.slice(0, 3), [
-    [0, 'Línea 1.', 'next', 'Siguiente', false],
-    [1, 'Línea 2.', 'next', 'Siguiente', false],
-    [2, 'Línea 3.', 'start', 'Empezar', true]]);
-  assert.equal(seen[4][0], 2, 'stays on the last line');
-  assert.equal(D.view(D.begin(rows[0])).total, 3);
+  const v = D.view(D.begin(rows[0]));
+  assert.deepEqual(plain(v), { id: 'm1', title: 'Misión 1', icon: '⭐', line: { es: 'Línea 3.', icon: '🙂' }, button: 'start', label: '¡Vamos!' });
+  assert.equal(D.advance, undefined);
+  assert.equal(D.SIGUIENTE, undefined);
+  assert.equal(D.EMPEZAR, undefined);
 });
 
-test('a row without lines (or no row) has no talk', () => {
+test('a row without a line (or no row) has no talk', () => {
   const { SA } = setup();
   assert.equal(SA.missionsDialogue.begin({ id: 'x', intro: [] }), null);
+  assert.equal(SA.missionsDialogue.begin({ id: 'x' }), null);
   assert.equal(SA.missionsDialogue.begin(null), null);
   assert.equal(SA.missionsDialogue.view(null), null);
-  assert.equal(SA.missionsDialogue.advance(null), null);
+});
+
+test('no start or finish prompt in the game steps through lines with Siguiente', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+    e.name === 'vendor' ? [] : e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith('.js') ? [path.join(d, e.name)] : []);
+  for (const f of walk('game')) assert.doesNotMatch(fs.readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ''), /Siguiente/, f);
 });
 
 test('nothing to celebrate on a fresh save', () => {

@@ -12,6 +12,9 @@
  *           A new target must be inside the radius. The current target is kept while it is still a candidate and within
  *           LEAVE x radius, unless another candidate is closer than SWITCH x its distance. Nobody close = no target.
  *       aim.target() -> the current candidate | null;  aim.clear()
+ *   SA.aim.partsActive(animalId, careTask) -> bool (AS-0128): body parts are individually aimable (glow, chip, name speech) ONLY while a
+ *       care/help task (SA.care current task: clean, heal, feed, a rescue mission's help step) is active ON THAT animal. With no task, or a
+ *       task on another animal, the animal is ONE target (whole-animal outline, Use/tap acts on the animal, no part is named).
  * Generous on purpose: a 7-year-old should never fight the aim.
  */
 (function (root) {
@@ -81,5 +84,9 @@
     return { update: update, target: function () { return current; }, clear: function () { current = null; } };
   }
 
-  SA.aim = { RADIUS: RADIUS, TOUCH_SCALE: TOUCH_SCALE, LEAVE: LEAVE, SWITCH: SWITCH, SLACK_MAX: SLACK_MAX, nearest: nearest, create: create };
+  function partsActive(animalId, careTask) {
+    return typeof animalId === 'string' && !!animalId && !!careTask && !careTask.done && careTask.animalId === animalId;
+  }
+
+  SA.aim = { partsActive: partsActive, RADIUS: RADIUS, TOUCH_SCALE: TOUCH_SCALE, LEAVE: LEAVE, SWITCH: SWITCH, SLACK_MAX: SLACK_MAX, nearest: nearest, create: create };
 })(typeof window !== 'undefined' ? window : globalThis);

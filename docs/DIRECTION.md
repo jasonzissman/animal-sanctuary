@@ -278,6 +278,11 @@ current; when your change sets or changes something future tickets must follow, 
   (fruit on canopy branches via `SA.perch.spots`, so you climb for it) and handles collect + respawn; `game/render/pickups.js`
   draws them (item model, bob, sparkle). Walking into one or pressing Space next to one adds it to `SA.inventory`, with pop
   SFX and the spoken name. Keep new finds as data rules, not special cases.
+- **Parts only matter while helping (AS-0128).** Body parts (patas, nariz, cola…) glow, show their chip and speak their name ONLY while a
+  care/help task (clean, heal, feed, a rescue mission's help step) is active on THAT animal. Otherwise every animal is ONE target: the Space
+  outline wraps the whole animal, Use/tap emits `{ animalId, item? }` with no `part`, nothing glows. Pure rule `SA.aim.partsActive(animalId,
+  careTask)`; `SA.careFlow` calls `SA.picking.setActiveTask(task)` on offer and `(null)` on finish; `render/picking.js` gives whole-animal
+  hits `{ part: null, mesh: body, node: group }`. Code reading a pick must treat a missing `part` as "the animal" (default `'cuerpo'`).
 - **Forgiving aim.** The nearest in-reach part within a generous radius highlights and stays highlighted, so being a
   few pixels off the feet still counts. A 7-year-old should never fight the aim. Built (AS-0081): `SA.aim` (game/aim.js,
   pure) = `nearest(pointer, candidates, {touch})` + `create()` sticky target with hysteresis (acquire 48px, ×1.5 for touch,

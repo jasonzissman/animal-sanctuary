@@ -18,6 +18,9 @@
  * - Click feedback (SA.clickOutcome): a click that picks nothing (empty ground, sky, the player's own avatar, which is never a
  *   pick volume so it never blocks) shows opts.clickFx.ripple(x, y) and, when an animal is on screen but out of reach, the
  *   opts.reachCue "¡Acércate!". Gentle only: nothing is emitted, nothing counts as a miss.
+ * - AS-0128: parts exist as targets ONLY while a care/help task is active on that animal (SA.picking.partsActive, rule SA.aim.partsActive).
+ *   Otherwise the animal is ONE target: pickAt/aim give { animalId, part: null, mesh: its body, node: the group } (the Space outline wraps
+ *   `node`), nothing glows, no chip, no part speech, and SA.picking.emit carries { animalId, item? } with no part.
  * Returns { update(dt), pickAt(clientX, clientY) -> {animalId, part, ...}|null, target() -> {animalId, part, mesh}|null, useTarget() -> bool }. Call update(dt) every frame.
  */
 (function (root) {
@@ -56,7 +59,24 @@
       var hit = SA.animalPlan.choosePick(raycaster.intersectObjects(volumes(), false));
       if (!hit) return null;
       var u = hit.object.userData;
+      if (!partsOn(u.animalId)) return wholeHit(u.animalId);
       return { animalId: u.animalId, part: u.part, index: u.index, side: u.side || null, mesh: visibleMesh(u) };
+    }
+
+    // AS-0128: parts are individually pickable only while a care/help task is active on that animal; otherwise it is ONE target.
+    function partsOn(animalId) { return !!SA.picking.partsActive && SA.picking.partsActive(animalId); }
+
+    // The whole animal as a target: no part (so no glow, chip or part speech); `mesh` (its body, for reach and aim position) and
+    // `node` (the animal group, what the Space outline wraps) are only for the renderer.
+    function wholeHit(animalId) {
+      var g = animals.getObjectByName(animalId), body = null;
+      if (!g) return null;
+      g.children.forEach(function (m) {
+        var u = m.userData || {};
+        if (u.pick || !u.part || m.geometry === undefined) return;
+        if (!body || u.part === 'cuerpo') body = m;
+      });
+      return body ? { animalId: animalId, part: null, index: 0, side: null, mesh: body, node: g } : null;
     }
 
     function visibleMesh(u) {
@@ -190,9 +210,11 @@
     }
 
     function nudgeCloser(hit) {
-      tapped.forEach(function (t) { if (t.mesh !== hit.mesh) setGlow(t.mesh, restLevel(t.mesh)); });
-      tapped = [{ mesh: hit.mesh, left: GLOW_SECONDS }];
-      setGlow(hit.mesh, 2);
+      if (hit.part) {   // a whole animal (no task) never glows a part
+        tapped.forEach(function (t) { if (t.mesh !== hit.mesh) setGlow(t.mesh, restLevel(t.mesh)); });
+        tapped = [{ mesh: hit.mesh, left: GLOW_SECONDS }];
+        setGlow(hit.mesh, 2);
+      }
       if (opts.reachCue) opts.reachCue.show();
       SA.reach.notifyFar({ animalId: hit.animalId, part: hit.part });
     }
@@ -216,6 +238,20 @@
       camera.updateMatrixWorld();
       animals.children.forEach(function (g) {
         if (g.visible === false) return;
+        var gid = g.name || (g.userData && g.userData.animalId);
+        if (!partsOn(gid)) {            // no task here: the whole animal is ONE candidate (AS-0128)
+          var whole = wholeHit(gid);
+          if (whole && inReach(whole)) {
+            whole.mesh.getWorldPosition(pv);
+            var wd = camera.position.distanceTo(pv);
+            pv.project(camera);
+            if (pv.z <= 1 && pv.z >= -1) out.push({
+              id: gid + ':*', hit: whole, x: r.left + (pv.x * 0.5 + 0.5) * r.width, y: r.top + (-pv.y * 0.5 + 0.5) * r.height,
+              r: partRadiusPx(whole.mesh, wd, r.height), direct: !!(direct && direct.animalId === gid),
+            });
+          }
+          return;
+        }
         g.children.forEach(function (m) {
           var u = m.userData;
           if (!u || u.pick || !u.part || m.visible === false) return;
@@ -246,7 +282,7 @@
       var t = null;
       if (SA.picking.isPaused && SA.picking.isPaused()) aim.clear();
       else t = aim.update(pointer || centre(), candidates(pointer));
-      setHover(t ? t.hit.mesh : null);
+      setHover(t && t.hit.part ? t.hit.mesh : null);   // only a part (during a task) glows; a whole animal gets the Space outline
     }
 
     function targetHit() { var t = aim && aim.target(); return t ? t.hit : null; }
@@ -269,6 +305,11 @@
     function select(hit) {
       if (!hit || !hit.mesh) return;
       if (!inReach(hit)) { nudgeCloser(hit); return; }
+      var heldItem = SA.inventory && SA.inventory.equipped ? SA.inventory.equipped() : null;
+      if (!hit.part) {   // the whole animal: no glow, chip or part name; the loops get { animalId, item? }
+        SA.picking.emit({ animalId: hit.animalId, item: heldItem || undefined });
+        return;
+      }
       var def = SA.data.get('parts', hit.part);
       tapped.forEach(function (t) { if (t.mesh !== hit.mesh) setGlow(t.mesh, restLevel(t.mesh)); });
       tapped = [{ mesh: hit.mesh, left: GLOW_SECONDS }];

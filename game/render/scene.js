@@ -71,6 +71,9 @@
     var trees = decor.children.filter(function (o) { return o.userData && o.userData.tree; }).map(function (o) {
       return { x: o.position.x, z: o.position.z, y: o.position.y, scale: o.scale.y, kind: o.userData.kind };
     });
+    // Collectable finds (SA.pickups): fruit up in the canopies, rocks/flowers/leaves on the ground, fish on the banks.
+    var pickups = SA.render.createPickups && SA.pickups ? SA.render.createPickups(THREE, { getPlayer: rig.getPlayer, trees: trees, avoid: avoid, seed: 80, container: container }) : null;
+    if (pickups) scene.add(pickups.group);
     var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid, trees: trees });
     // Placed props (this session and restored from the save) join the decor in the wander avoid list. The save is
     // already updated when the sandbox calls add/remove, so the list is rebuilt from SA.habitat.list().
@@ -103,8 +106,8 @@
     stageApi = {
       scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize,
       animals: animals, treeTap: treeTap, onTreeTap: null,
-      avatar: avatar,
-      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); if (handItem) handItem.update(); picking.update(dt); if (reachCue) reachCue.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
+      avatar: avatar, pickups: pickups,
+      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (reachCue) reachCue.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
     };
     return stageApi;
   };

@@ -53,6 +53,16 @@
     scene.add(props.group);
 
     var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid });
+    // Placed props (this session and restored from the save) join the decor in the wander avoid list. The save is
+    // already updated when the sandbox calls add/remove, so the list is rebuilt from SA.habitat.list().
+    function refreshAvoid() {
+      if (SA.propAvoid && SA.habitat) ambient.setAvoid(avoid.concat(SA.propAvoid.points(SA.habitat.list())));
+    }
+    ['add', 'remove'].forEach(function (k) {
+      var orig = props[k];
+      props[k] = function () { var r = orig.apply(props, arguments); refreshAvoid(); return r; };
+    });
+    refreshAvoid();
     var fx = SA.render.createRoundFx({ animals: animals });
     var biomeGlow = SA.render.createBiomeGlow ? SA.render.createBiomeGlow(THREE, { scene: scene }) : null;
     var careFx = SA.render.createCareFx(THREE, { animals: animals, rig: rig, ambient: ambient });

@@ -9,6 +9,7 @@
  *   builder   key of the procedural low-poly builder in game/render/props.js (data, not code)
  *   biomes    biome ids (see game/data/biomes.js) where it may be placed
  *   where     'land' (dry ground only) or 'shore' (on or beside water, e.g. a bridge)
+ *   radius    keep-clear distance (world units) from the prop centre that wandering animals respect (SA.propAvoid)
  */
 (function (root) {
   'use strict';
@@ -28,20 +29,21 @@
     p.biomes.forEach(function (b, i) {
       if (!SA.data.get('biomes', b)) fail('biomes[' + i + ']', 'unknown biome ' + JSON.stringify(b));
     });
+    if (typeof p.radius !== 'number' || !isFinite(p.radius) || p.radius <= 0 || p.radius > 6) fail('radius', 'must be a number in (0, 6]');
     if (WHERE.indexOf(p.where) < 0) fail('where', 'must be one of ' + WHERE.join(', '));
   }
 
-  function prop(id, icon, es, en, cost, builder, biomes, where) {
-    return { id: id, icon: icon, name: { es: es, en: en }, cost: cost, builder: builder, biomes: biomes, where: where };
+  function prop(id, icon, es, en, cost, builder, biomes, where, radius) {
+    return { id: id, icon: icon, name: { es: es, en: en }, cost: cost, builder: builder, biomes: biomes, where: where, radius: radius };
   }
 
   var both = ['bosque', 'selva'];
   var props = [
-    prop('flores', '🌼', 'las flores', 'flowers', 1, 'flowers', both, 'land'),
-    prop('roca', '🪨', 'la roca', 'rock', 1, 'rock', ['bosque', 'selva', 'desierto', 'montana'], 'land'),
-    prop('arbol', '🌳', 'el árbol', 'tree', 2, 'tree', both, 'land'),
-    prop('charca', '💧', 'la charca', 'pond', 3, 'pond', both, 'land'),
-    prop('puente', '🌉', 'el puente', 'bridge', 3, 'bridge', ['bosque'], 'shore')
+    prop('flores', '🌼', 'las flores', 'flowers', 1, 'flowers', both, 'land', 1.2),
+    prop('roca', '🪨', 'la roca', 'rock', 1, 'rock', ['bosque', 'selva', 'desierto', 'montana'], 'land', 1.5),
+    prop('arbol', '🌳', 'el árbol', 'tree', 2, 'tree', both, 'land', 1.5),
+    prop('charca', '💧', 'la charca', 'pond', 3, 'pond', both, 'land', 2.4),
+    prop('puente', '🌉', 'el puente', 'bridge', 3, 'bridge', ['bosque'], 'shore', 2.2)
   ];
 
   SA.data.defineKind('props', validateProp);

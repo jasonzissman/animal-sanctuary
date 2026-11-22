@@ -1,16 +1,18 @@
 /* SA.wander: pure, seeded ambient movement for one animal (no THREE, no DOM; unit-tested in node:vm).
  * Needs SA.map (bounds, biomeAt, water, rng).
  *
- *   var w = SA.wander.create({ id?, movement, biome, home: {x, z}, seed, radius?, avoid?: [[x,z],...] })
+ *   var w = SA.wander.create({ id?, movement, biome, home: {x, z}, seed, radius?, avoid?: [[x,z,r?],...] })
  *   w.update(dt) -> { x, z, heading, lift, moving, hop }   advances the walk/pause state machine
  *       heading is the rotation.y that points the animal (+z forward) along its path; lift is extra height above the
  *       ground (hops for 'salta', a gentle float for 'vuela'); moving is false while paused, turning or held.
  *   w.hold(seconds?)  stop moving (seconds omitted = until release()); renewed taps keep the longest hold
  *   w.release()       let the animal wander again
+ *   w.setAvoid(list)  replace the avoid points at any time (e.g. when a prop is placed or removed)
  *   w.state()         current { x, z, heading, lift, moving, mode, held }
  *
  * The animal stays inside its biome (SA.map.biomeAt, a margin from the border and the map edge), within `radius` of
- * home, off the water and clear of `avoid` points. Movement trait only changes the style/speed (never an animal id).
+ * home, off the water and clear of `avoid` points (each keeps clear by its optional radius r, default 1.3; an animal that
+ * already stands inside one may still walk out of it). Movement trait only changes the style/speed (never an animal id).
  * `others` (optional function -> [[x,z],...], the other animals' current positions) and `minSeparation` (default 2) make
  * target selection softly avoid other animals; if every candidate is too close it takes the one with most clearance.
  * Speed is capped at MAX_SPEED world units/second so a 7-year-old can always tap it.
@@ -25,7 +27,8 @@
   var MAX_SPEED = 1.8;          // hard cap, world units per second (the map is 80 wide; animals are ~1 unit big)
   var MAX_DT = 0.1;
   var MIN_SEPARATION = 2;       // wander targets stay at least this far from other animals (soft: see pickTarget)
-  var EDGE = 1.5;              // keep this far from the biome border and the map edge
+  var AVOID_RADIUS = 1.3;       // default keep-clear distance of an avoid point without its own radius
+  var EDGE = 1.5;             // keep this far from the biome border and the map edge
   var STYLES = {                // speed = average walking speed; hop = hop height (0: none); float = hover height
     salta: { speed: 0.9, turn: 3.5, pause: [1.2, 3.2], hop: 0.55, hopRate: 1.6, float: 0 },
     nada: { speed: 0.8, turn: 2.5, pause: [1.5, 4], hop: 0, hopRate: 0, float: 0 },
@@ -64,13 +67,18 @@
     var s = { x: home.x, z: home.z, heading: rand() * Math.PI * 2 - Math.PI, mode: 'pause', timer: 0.5 + rand() * 2 };
     var target = null, held = 0, phase = 0, t = 0, lift = 0;
 
-    function allowed(x, z) {
-      if (x < B.minX + EDGE || x > B.maxX - EDGE || z < B.minZ + EDGE || z > B.maxZ - EDGE) return false;
-      if (M.biomeAt(x - EDGE) !== biome || M.biomeAt(x + EDGE) !== biome) return false;
-      if (M.groundHeight(x, z) < M.WATER_LEVEL + 0.45) return false;
-      for (var i = 0; i < avoid.length; i++) if (Math.hypot(avoid[i][0] - x, avoid[i][1] - z) < 1.3) return false;
+    function clearOfAvoid(x, z) {
+      for (var i = 0; i < avoid.length; i++) if (Math.hypot(avoid[i][0] - x, avoid[i][1] - z) < (avoid[i][2] || AVOID_RADIUS)) return false;
       return true;
     }
+
+    function inBounds(x, z) {
+      if (x < B.minX + EDGE || x > B.maxX - EDGE || z < B.minZ + EDGE || z > B.maxZ - EDGE) return false;
+      if (M.biomeAt(x - EDGE) !== biome || M.biomeAt(x + EDGE) !== biome) return false;
+      return M.groundHeight(x, z) >= M.WATER_LEVEL + 0.45;
+    }
+
+    function allowed(x, z) { return inBounds(x, z) && clearOfAvoid(x, z); }
 
     function pause() {
       s.mode = 'pause';
@@ -102,7 +110,8 @@
       if (style.hop) v *= 1.5 * Math.sin(Math.PI * (phase % 1));
       var step = Math.min(v * dt, MAX_SPEED * dt, dist);
       var nx = s.x + (dx / dist) * step, nz = s.z + (dz / dist) * step;
-      if (!allowed(nx, nz)) return pause();
+      // An animal a new prop landed on may walk out of it (only the avoid zone is waived, never water or edges).
+      if (!allowed(nx, nz) && !(inBounds(nx, nz) && !clearOfAvoid(s.x, s.z))) return pause();
       s.x = nx; s.z = nz;
     }
 
@@ -143,6 +152,7 @@
         else if (held !== Infinity) held = Math.max(held, seconds);
       },
       release: function () { held = 0; },
+      setAvoid: function (list) { avoid = list || []; },
       state: function () { return { x: s.x, z: s.z, heading: s.heading, lift: lift, moving: s.mode === 'walk' && !held, mode: s.mode, held: held > 0 }; },
     };
   }

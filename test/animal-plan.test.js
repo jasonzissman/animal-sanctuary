@@ -198,3 +198,30 @@ test('plan: big masses get a 1.0x pick volume, small parts 1.6x, and pick volume
   assert.deepEqual(Array.from(beak.pickSize), Array.from(beak.size, (n) => n * 1.6));
   near(beak.pickVolume, 0.35 * 0.3 * 1.1 * 1.6 ** 3);
 });
+
+test('pupils: the plan carries the data pupil colour; the renderer adds it as a non-pickable child of the eye', () => {
+  const ctx = vm.createContext({ console });
+  ctx.window = ctx;
+  ctx.self = ctx;
+  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/animals.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+  }
+  const { SA, THREE } = ctx;
+  for (const a of SA.data.all('animals')) {
+    const specs = SA.animalPlan.plan(a);
+    const eyes = specs.filter((s) => s.part === 'ojos');
+    assert.ok(eyes.length && eyes.every((s) => s.pupil), `${a.id} eyes have a pupil in the plan`);
+    assert.ok(specs.filter((s) => s.part !== 'ojos').every((s) => s.pupil === null), a.id);
+  }
+  const group = SA.render.buildAnimals(THREE);
+  for (const g of group.children) {
+    const eyeMeshes = g.children.filter((m) => !m.userData.pick && m.userData.part === 'ojos');
+    assert.equal(eyeMeshes.length, 2, g.name);
+    for (const e of eyeMeshes) {
+      assert.equal(e.children.length, 1, `${g.name} eye has one pupil child`);
+      assert.equal(e.children[0].userData.pupil, true);
+      assert.ok(e.children[0].position.z > 0.25, 'pupil sits in front of the eye');
+    }
+    assert.ok(g.userData.pickVolumes.every((v) => v.userData.part && !v.userData.pupil), 'pupils are not pick targets');
+  }
+});

@@ -13,6 +13,9 @@
   var SA = root.SA;
   SA.render = SA.render || {};
 
+  var PUPIL_SIZE = 0.6;       // pupil diameter, as a fraction of the part's unit sphere
+  var PUPIL_FORWARD = 0.3;    // pupil centre in front of the part centre, so it pokes out of the front surface
+
   function unitGeometry(THREE, builder) {
     if (builder === 'box') return new THREE.BoxGeometry(1, 1, 1);
     if (builder === 'sphere') return new THREE.SphereGeometry(0.5, 10, 8);
@@ -48,6 +51,15 @@
         mesh.position.set(spec.position[0], spec.position[1], spec.position[2]);
         mesh.rotation.set(spec.rotation[0], spec.rotation[1], spec.rotation[2]);
         tag(mesh, spec);
+        if (spec.pupil) {
+          // A child of the part mesh (unit-sphere space, so it follows the part's scale and reactions); never a pick target.
+          var pmat = mats[spec.pupil] || (mats[spec.pupil] = new THREE.MeshLambertMaterial({ color: spec.pupil, flatShading: true }));
+          var pupil = new THREE.Mesh(geos.pupil || (geos.pupil = unitGeometry(THREE, 'sphere')), pmat);
+          pupil.scale.set(PUPIL_SIZE, PUPIL_SIZE, PUPIL_SIZE);
+          pupil.position.set(0, 0, PUPIL_FORWARD);
+          pupil.userData = { animalId: spec.animalId, pupil: true };
+          mesh.add(pupil);
+        }
         var pick = new THREE.Mesh(pickGeo, pickMat);
         pick.scale.set(spec.pickSize[0], spec.pickSize[1], spec.pickSize[2]);
         pick.position.copy(mesh.position);

@@ -188,6 +188,7 @@
     var dotsEl = el('div', 'padding:.1em .6em;background:#fff8d6;border:.1em solid #24543a;border-radius:1em;letter-spacing:.2em;');
     var foodsEl = el('div', 'display:flex;gap:.4em;');
     trayEl.appendChild(dotsEl); trayEl.appendChild(foodsEl);
+    toastEl.setAttribute('data-sa-message', '1'); trayEl.setAttribute('data-sa-message', '1');   // the hotbar chip yields to these
     doc.body.appendChild(trayEl);
     var foodBtns = {}, feedIcon = '', feedCount = 0, feedItems = null;
     bar.addEventListener('click', function () { if (handlers.replay) handlers.replay(); });

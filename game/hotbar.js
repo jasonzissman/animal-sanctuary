@@ -7,6 +7,7 @@
  * - tapSlot(n) -> result: equips that slot, or unequips when it is already in hand.
  * - nameChip(id) -> { id, key, text, icon } | null: the item's Spanish name with article ('el cepillo'), the vocab key to
  *   speak ('item:<id>') and its icon; null for no/unknown item. Data-driven (items.js / vocab), never special-cased.
+ * - chipVisible({ sinceEquip, messageShown }) -> bool (CHIP_MS = 1500): the name chip shows ~1.5 s after an equip, never over a message.
  * - signature() -> string that changes whenever the slots, counts or equipped item change (cheap per-frame change check).
  * result = { action: 'equip' | 'unequip' | 'none', id: string|null }. 'none' = nothing changed (empty slot, bad key).
  */
@@ -59,9 +60,21 @@
     return { id: it.id, key: key, text: v ? v.es : it.name.es, icon: it.icon };
   }
 
+  // AS-0121: the name chip is a short confirmation, not a permanent label. It shows for CHIP_MS after the player equips an item
+  // (sinceEquip = ms since then; null/undefined = never equipped this session, e.g. the item restored from the save) and never
+  // while another message (toast, animal name, part label, feed tray...) is on screen: messages always win.
+  var CHIP_MS = 1500;
+  function chipVisible(st) {
+    st = st || {};
+    var t = st.sinceEquip;
+    if (typeof t !== 'number' || t !== t || t < 0 || t >= CHIP_MS) return false;
+    return !st.messageShown;
+  }
+
   function signature() {
     return slots().map(function (s) { return s.id + ':' + s.count + (s.equipped ? '*' : ''); }).join('|');
   }
 
-  SA.hotbar = { MAX_SLOTS: MAX_SLOTS, slots: slots, slotItem: slotItem, pressKey: pressKey, tapSlot: tapSlot, nameChip: nameChip, signature: signature };
+  SA.hotbar = { MAX_SLOTS: MAX_SLOTS, slots: slots, slotItem: slotItem, pressKey: pressKey, tapSlot: tapSlot, nameChip: nameChip, signature: signature,
+    CHIP_MS: CHIP_MS, chipVisible: chipVisible };
 })(typeof window !== 'undefined' ? window : globalThis);

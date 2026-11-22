@@ -16,6 +16,7 @@
     function build() {
       el = root.document.createElement('div');
       el.setAttribute('aria-live', 'polite');
+      el.setAttribute('data-sa-message', '1');
       el.style.cssText = 'position:fixed;z-index:3;pointer-events:none;box-sizing:border-box;justify-content:center;overflow:hidden;' +
         'display:none;align-items:center;gap:.4em;padding:0 .8em;background:#fff;color:#24543a;' +
         'border:.1em solid #24543a;border-radius:1em;box-shadow:0 .15em .6em rgba(0,0,0,.3);' +

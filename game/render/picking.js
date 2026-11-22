@@ -35,7 +35,7 @@
     var hovered = null;               // visible mesh currently under the mouse
     var tapped = [];                  // { mesh, left }
     var playing = [];                 // { mesh, reaction, t, base }
-    var chip = null, chipLeft = 0;
+    var chip = null, chipLeft = 0, chipHit = null;   // chipHit = the picked part the bubble names
 
     function volumes() {
       var out = [];
@@ -103,6 +103,15 @@
       p.mesh.rotation.copy(p.base.rot);
       p.mesh.scale.copy(p.base.scale);
     }
+
+    // The bubble's gate (SA.picking.labelVisible): a real, visible animal within reach; the avatar is never in `animals`.
+    function chipCtx(hit) {
+      var g = animals.getObjectByName(hit.animalId), u = g && g.userData || {};
+      var walking = !opts.getPlayer || !!opts.getPlayer();   // a walking game with no player yet has nothing in reach
+      return { exists: !!g, visible: !g || g.visible !== false, avatar: !!u.avatar, inReach: walking && !!hit.mesh && inReach(hit) };
+    }
+
+    function hideChip() { chipHit = null; chipLeft = 0; if (chip) chip.style.display = 'none'; }
 
     function showChip(label) {
       if (!chip) {
@@ -240,7 +249,7 @@
       react(hit.mesh, def ? def.reaction : 'wobble');
       var settings = (SA.save && SA.save.get && SA.save.get().settings) || {};
       var label = SA.picking.labelFor(hit.animalId, hit.part, !!settings.english);
-      if (label) showChip(label);
+      if (label && SA.picking.labelVisible(hit, chipCtx(hit))) { chipHit = hit; showChip(label); }
       SA.picking.speakPart(hit.part);
       var item = SA.inventory && SA.inventory.equipped ? SA.inventory.equipped() : null;
       SA.picking.emit({ animalId: hit.animalId, part: hit.part, item: item || undefined });
@@ -300,8 +309,9 @@
         });
         if (chipLeft > 0) {
           chipLeft -= dt;
-          if (chipLeft <= 0 && chip) chip.style.display = 'none';
-        }
+          // Gone when the timer ends or the picked part is no longer a valid target (walked out of reach, animal hidden).
+          if (chipLeft <= 0 || !chipHit || !SA.picking.labelVisible(chipHit, chipCtx(chipHit))) hideChip();
+        } else if (chip && chip.style.display !== 'none') hideChip();
       },
     };
   };

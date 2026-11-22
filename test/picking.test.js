@@ -48,6 +48,22 @@ test('onPick delivers { animalId, part }, can unsubscribe, and survives a throwi
   assert.throws(() => SA.picking.onPick('nope'));
 });
 
+test('labelVisible: the part bubble shows only for a part of a real, visible, in-reach animal', () => {
+  const SA = loadGame(LOGIC);
+  const ok = { exists: true, visible: true, inReach: true };
+  const hit = { animalId: 'conejo', part: 'cuerpo' };
+  assert.equal(SA.picking.labelVisible(hit, ok), true);
+  assert.equal(SA.picking.labelVisible(null, ok), false, 'no target at game start');
+  assert.equal(SA.picking.labelVisible(hit, undefined), false);
+  assert.equal(SA.picking.labelVisible({ animalId: 'conejo' }, ok), false, 'no part');
+  assert.equal(SA.picking.labelVisible({ part: 'cuerpo' }, ok), false, 'no animal');
+  assert.equal(SA.picking.labelVisible(hit, { ...ok, inReach: false }), false, 'out of reach');
+  assert.equal(SA.picking.labelVisible(hit, { ...ok, exists: false }), false, 'animal gone');
+  assert.equal(SA.picking.labelVisible(hit, { ...ok, visible: false }), false, 'hidden animal');
+  assert.equal(SA.picking.labelVisible(hit, { ...ok, avatar: true }), false, 'never the player avatar');
+  assert.equal(SA.picking.labelVisible({ animalId: 'player', part: 'cuerpo' }, ok), false);
+});
+
 test('labelFor gives the Spanish label + icon, English only when asked', () => {
   const SA = loadGame(LOGIC);
   const es = SA.picking.labelFor('conejo', 'cola', false);

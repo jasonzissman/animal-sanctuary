@@ -121,11 +121,12 @@
       for (var t = 0; t < 400; t++) {
         var x = strip.centerX + (rand() * 2 - 1) * 14, z = -6 + rand() * 20;
         if (M.biomeAt(x) !== a.biome || M.groundHeight(x, z) < M.WATER_LEVEL + 0.45) continue;
-        var ok = !(SA.player && SA.player.inSpawnZone(x, z, 1)), i;   // never start next to the spawn (clear radius + 1)
+        var nearStation = SA.station && SA.station.inFootprint(x, z, 1.5);   // keep the research station's footprint clear too
+        var ok = !(SA.player && SA.player.inSpawnZone(x, z, 1)) && !nearStation, i;   // never start next to the spawn (clear radius + 1)
         for (i = 0; i < spots.length && ok; i++) ok = Math.hypot(spots[i][0] - x, spots[i][1] - z) >= 4.5;
         for (i = 0; i < avoid.length && ok; i++) ok = Math.hypot(avoid[i][0] - x, avoid[i][1] - z) >= 2.4;
         if (ok) { best = [x, z]; break; }
-        if (!best && !(SA.player && SA.player.inSpawnZone(x, z, 1))) best = [x, z];
+        if (!best && !nearStation && !(SA.player && SA.player.inSpawnZone(x, z, 1))) best = [x, z];
       }
       best = best || [strip.centerX, 4];
       spots.push(best);

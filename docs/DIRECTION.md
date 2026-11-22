@@ -19,6 +19,12 @@ current; when your change sets or changes something future tickets must follow, 
   up on its own so birds and monkeys are on screen; on open ground it eases back to normal. Still one camera, no
   button to learn (`SA.camera.frameAbove` in `game/camera-frame.js`: extra distance, lower pitch, higher look-at, small fov
   widening, eased ~0.5 s; a drag overrides it; `hooks.chase.above()` supplies perched animals). Space jumps everywhere, including in a canopy (AS-0115).
+- **The game starts at a research station (AS-0141, slice 1 = AS-0145).** A small low-poly building (door, window, roof, dish, antenna,
+  "Estación" sign with an atom icon, bench, crates) stands on the flattest dry ground by the bosque/selva border; the kid spawns just outside
+  the door looking out. `SA.station` (game/station.js, pure) is the one source: `layout()`, `collisionBoxes()` (doorway left open),
+  `obstacles()` (those boxes as circle chains, appended to the player's obstacle list in scene.js), `spawn()` (what `SA.player.spawn()`
+  returns when the module is loaded) and `inFootprint()` (decor and animal placement keep out). `game/render/station.js` builds the model
+  from flat primitives (the sign letters are boxes, no textures). Later slices put the scientist and briefing in/at the station.
 - **Movement has sound (AS-0118 to AS-0120).** Soft footsteps (quicker when running, splashy in water, leafy in a
   canopy), a hop and a landing thump, a splash entering water, a rustle while climbing. Short, quiet, never spammy; mute silences all.
 - **Uncluttered screen, nothing overlaps (AS-0147 to AS-0149).** All HUD positions come from one pure layout (SA.hud),

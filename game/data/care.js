@@ -34,10 +34,14 @@
     ['{count}', '{food}', '{animal}'].forEach(function (k) {
       if (typeof t.prompt !== 'string' || t.prompt.indexOf(k) < 0) fail('prompt', 'must contain "' + k + '"');
     });
+    if (t.prompt.indexOf('{count} {food}') < 0) fail('prompt', 'must contain "{count} {food}" together');
     ['minCount', 'maxCount', 'easyMax'].forEach(function (f) {
       if (!Number.isInteger(t[f]) || t[f] < 1 || t[f] > 5) fail(f, 'must be an integer from 1 to 5');
     });
     if (t.minCount > t.easyMax || t.easyMax > t.maxCount) fail('easyMax', 'must be between minCount and maxCount');
+    if (!Number.isInteger(t.challengeMax) || t.challengeMax < t.maxCount || t.challengeMax > 10) fail('challengeMax', 'must be an integer from maxCount to 10');
+    if (!Number.isInteger(t.pairMax) || t.pairMax < t.minCount || t.pairMax > 5) fail('pairMax', 'must be an integer from minCount to 5');
+    if (typeof t.pairChance !== 'number' || t.pairChance < 0 || t.pairChance > 1) fail('pairChance', 'must be a number from 0 to 1');
     ['trayMatching', 'trayOther'].forEach(function (f) {
       if (!Number.isInteger(t[f]) || t[f] < 0 || t[f] > 4) fail(f, 'must be an integer from 0 to 4');
     });
@@ -51,8 +55,10 @@
       parts: ['patas', 'caparazon', 'cola', 'alas', 'pico', 'orejas'] },
     // Feed: {count} is a number word (una/un for 1), {food} the plural noun, {animal} "al conejo" / "a la tortuga".
     // minCount..easyMax counts at scaffold level 1, minCount..maxCount from level 2. The tray holds the asked food,
-    // trayMatching other foods the animal eats and trayOther foods it does not eat.
+    // trayMatching other foods the animal eats and trayOther foods it does not eat. Challenge level (scaffold 3+) counts
+    // minCount..challengeMax, and with chance pairChance asks for two different foods ("dos fresas y una zanahoria"),
+    // each minCount..pairMax.
     { id: 'alimentar', kind: 'alimentar', prompt: 'Dale {count} {food} {animal}', chance: 0.5,
-      minCount: 1, easyMax: 3, maxCount: 5, trayMatching: 1, trayOther: 2 }
+      minCount: 1, easyMax: 3, maxCount: 5, challengeMax: 8, pairMax: 4, pairChance: 0.5, trayMatching: 1, trayOther: 2 }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

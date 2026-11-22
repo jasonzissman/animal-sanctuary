@@ -74,6 +74,11 @@
   // 0 covers a snake's legs (animal traits.legs runs 0..8); clue counts of parts start at 1.
   ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'].forEach(function (w, i) { add('number', String(i), w); });
 
+  // Number words that agree with a noun in prompts ("un plátano", "una fresa"), and the "y" of two-food asks.
+  add('number', 'un', 'un');
+  add('number', 'una', 'una');
+  add('phrase', 'y', 'y');
+
   add('phrase', 'muybien', '¡Muy bien!');
   add('phrase', 'otravez', '¡Otra vez!');
   add('phrase', 'dondeesta', '¿Dónde está?');

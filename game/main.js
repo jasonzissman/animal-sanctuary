@@ -148,6 +148,8 @@
     function loop(now) {
       var dt = last === null ? 0 : Math.min((now - last) / 1000, 0.25);
       last = now;
+      // A fragile carried thing wobbles when the kid jumps (SA.carry, AS-0231); hand-item.js draws the wobble in stage.render.
+      if (SA.carry) { try { SA.carry.update(dt, stage.rig.getPlayer()); } catch (e) { SA.carry = null; report('carry.update', e); } }
       stage.render(dt);
       if (hotbar) { try { hotbar.update(); } catch (e) { hotbar = null; report('hotbar.update', e); } }
       if (useBtn) { try { useBtn.update(); } catch (e) { useBtn = null; report('useButton.update', e); } }

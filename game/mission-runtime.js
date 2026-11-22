@@ -96,12 +96,27 @@
       return r;
     }
 
+    // 'carry' is met while the item is held (a fragile one is flagged so a jump wobbles it, never fails the step); 'deliver' when
+    // the held item is brought within range of its target and dropped there (SA.carry, AS-0231).
+    function carrying(s, player, locate) {
+      var c = opts.carry || SA.carry;
+      if (!c) return { status: 'none' };
+      if (s.kind === 'carry') {
+        if (!c.holds(s.item)) return { status: 'none' };
+        if (s.fragile) c.mark(s.item, true);
+        return report({ type: 'carried', item: s.item });
+      }
+      var got = c.deliver(player, s, locate);
+      return got ? report({ type: 'delivered', item: got.item, to: got.to }) : { status: 'none' };
+    }
+
     function update(player) {
       var locate = opts.locate || api.locate;
       if (!player || !locate) return { status: 'none' };
       var a;
       try { a = missions().active(); } catch (e) { return { status: 'none' }; }
       var s = a && a.stepData;
+      if (s && (s.kind === 'carry' || s.kind === 'deliver')) return carrying(s, player, locate);
       if (!s || (s.kind !== 'goTo' && s.kind !== 'find')) return { status: 'none' };
       var id = s.kind === 'goTo' ? s.place : s.target;
       var at = locate(id);

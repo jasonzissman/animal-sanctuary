@@ -23,8 +23,10 @@
     function release() { held = {}; push(); }
 
     var wrap = doc.createElement('div');
-    wrap.style.cssText = 'position:fixed;right:12px;bottom:72px;z-index:4;display:grid;gap:8px;pointer-events:none;' +
-      'grid-template-columns:repeat(2,' + SIZE + 'px);';
+    // The 2x2 block's rect comes from SA.hud ('orbitPad'); each button is half of it minus the gap.
+    wrap.style.cssText = 'position:fixed;z-index:4;display:grid;gap:8px;pointer-events:none;box-sizing:border-box;' +
+      'grid-template-columns:repeat(2,' + SIZE + 'px);align-content:start;justify-content:start;';
+    var btns = [];
     SA.orbitButtons.BUTTONS.forEach(function (def) {
       var b = doc.createElement('button');
       b.type = 'button';
@@ -41,9 +43,14 @@
       b.addEventListener('pointercancel', up);
       b.addEventListener('pointerleave', up);
       b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-      wrap.appendChild(b);
+      wrap.appendChild(b); btns.push(b);
     });
     doc.body.appendChild(wrap);
+    if (SA.hudPlace) SA.hudPlace.register('orbitPad', wrap, { reserve: true, onPlace: function (r) {
+      var s = Math.floor((r.width - 8) / 2);
+      wrap.style.gridTemplateColumns = 'repeat(2,' + s + 'px)';
+      btns.forEach(function (b) { b.style.width = s + 'px'; b.style.height = s + 'px'; });
+    } });
     if (typeof root.addEventListener === 'function') root.addEventListener('blur', release);
     return { release: release, element: wrap };
   }

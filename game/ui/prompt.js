@@ -400,7 +400,8 @@
         var colors = ['#ff6b6b', '#ffd93d', '#6bcB77', '#4d96ff', '#c77dff'];
         for (var i = 0; i < 28; i++) {
           var c = el('div', 'position:fixed;z-index:6;pointer-events:none;width:14px;height:14px;border-radius:3px;' +
-            'top:30%;left:' + (20 + Math.random() * 60) + '%;background:' + colors[i % colors.length] + ';');
+            'top:' + Math.round(viewport().height * 0.3) + 'px;left:' + Math.round(viewport().width * (0.2 + Math.random() * 0.6)) + 'px;' +
+            'background:' + colors[i % colors.length] + ';');
           doc.body.appendChild(c);
           if (typeof c.animate === 'function') {
             c.animate([{ transform: 'translate(0,0) rotate(0deg)', opacity: 1 },

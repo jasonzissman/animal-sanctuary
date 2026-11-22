@@ -16,8 +16,6 @@
     '<polygon points="12,1 7.5,6.5 16.5,6.5"/><polygon points="12,23 7.5,17.5 16.5,17.5"/>' +
     '<polygon points="1,12 6.5,7.5 6.5,16.5"/><polygon points="23,12 17.5,7.5 17.5,16.5"/></g></svg>';
 
-  var BOTTOM = 252;   // px above the bottom edge (was 84, which touched the hotbar; 132 still met the 5-food feed tray at 768px)
-
   function create(doc, rig, win) {
     var none = { show: function () {}, release: function () {} };
     if (!doc || typeof doc.createElement !== 'function' || !doc.body || !rig || !SA.joystick) return none;
@@ -29,21 +27,29 @@
     // tray (top edge ~125px) and the centred feed tray (bottom:96px, up to ~245px high, ~535px wide with 5 foods, so its left
     // edge is ~118px at 768px wide). The pad spans 252..388px from the bottom, so at 600px tall it stays below the prompt bar
     // (top 12..~90px).
-    pad.style.cssText = 'position:fixed;left:16px;bottom:' + BOTTOM + 'px;z-index:4;display:none;width:' + BASE + 'px;height:' + BASE + 'px;' +
+    // The rect (size and place) comes from SA.hud ('joystick'): it clears the stars badge, the hotbar and the tray slot.
+    pad.style.cssText = 'position:fixed;z-index:4;display:none;box-sizing:border-box;' +
       'border-radius:50%;background:rgba(255,248,214,.45);border:.1em solid #24543a;touch-action:none;user-select:none;' +
       '-webkit-user-select:none;pointer-events:auto;';
     pad.style.display = 'none';   // hidden until the first touch
     var knob = doc.createElement('div');
-    knob.style.cssText = 'position:absolute;left:' + (BASE - KNOB) / 2 + 'px;top:' + (BASE - KNOB) / 2 + 'px;width:' + KNOB + 'px;height:' + KNOB + 'px;' +
-      'border-radius:50%;background:rgba(255,248,214,.9);border:.1em solid #24543a;box-shadow:0 .1em .4em rgba(0,0,0,.3);' +
-      'display:grid;place-items:center;font:700 1.6rem system-ui,sans-serif;color:#24543a;pointer-events:none;';
+    knob.style.cssText = 'position:absolute;border-radius:50%;background:rgba(255,248,214,.9);border:.1em solid #24543a;' +
+      'box-shadow:0 .1em .4em rgba(0,0,0,.3);display:grid;place-items:center;font:700 1.6rem system-ui,sans-serif;color:#24543a;' +
+      'pointer-events:none;box-sizing:border-box;';
     knob.innerHTML = CROSS_SVG;
     pad.appendChild(knob);
     doc.body.appendChild(pad);
+    var radius = RADIUS;
+    if (SA.hudPlace) SA.hudPlace.register('joystick', pad, { reserve: true, onPlace: function (r) {
+      var k = Math.round(r.width / 2), s = knob.style;
+      s.width = k + 'px'; s.height = k + 'px'; s.left = Math.round((r.width - k) / 2) + 'px'; s.top = Math.round((r.height - k) / 2) + 'px';
+      radius = (r.width - k) / 2 + 12;
+    } });
+    else { pad.style.left = '0px'; pad.style.top = '0px'; pad.style.width = BASE + 'px'; pad.style.height = BASE + 'px'; knob.style.width = KNOB + 'px'; knob.style.height = KNOB + 'px'; }
 
-    function setKnob(x, y) { knob.style.transform = 'translate(' + Math.round(x * RADIUS) + 'px,' + Math.round(y * RADIUS) + 'px)'; }
+    function setKnob(x, y) { knob.style.transform = 'translate(' + Math.round(x * radius) + 'px,' + Math.round(y * radius) + 'px)'; }
     function drive(e) {
-      var v = SA.joystick.vector(e.clientX - cx, e.clientY - cy, RADIUS);
+      var v = SA.joystick.vector(e.clientX - cx, e.clientY - cy, radius);
       rig.setStick(v.x, v.y);
       setKnob(v.x, v.y);
     }
@@ -52,7 +58,7 @@
       if (rig.setStick) rig.setStick(0, 0);
       setKnob(0, 0);
     }
-    function show() { pad.style.display = 'block'; }
+    function show() { pad.style.display = 'block'; if (SA.hudPlace) SA.hudPlace.refresh(); }
 
     pad.addEventListener('pointerdown', function (e) {
       e.preventDefault();

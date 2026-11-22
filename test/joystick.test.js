@@ -77,7 +77,7 @@ const el = (tag) => ({ tag, style: {}, children: [], l: {}, attrs: {}, appendChi
 const ev = (o) => ({ pointerId: 1, clientX: 84, clientY: 468, preventDefault() {}, ...o });
 
 test('view: hidden until a touch, then bottom-left; dragging drives rig.setStick and release recentres', () => {
-  const SA = loadGame(['game/sa.js', 'game/joystick.js', 'game/ui/joystick-view.js']);
+  const SA = loadGame(['game/sa.js', 'game/hud.js', 'game/ui/hud-place.js', 'game/joystick.js', 'game/ui/joystick-view.js']);
   assert.doesNotThrow(() => SA.joystickView.create(null, {}).release());
   const body = el('body'), doc = { createElement: el, body };
   const win = { l: {}, addEventListener(t, f) { this.l[t] = f; } };
@@ -85,8 +85,10 @@ test('view: hidden until a touch, then bottom-left; dragging drives rig.setStick
   SA.joystickView.create(doc, { setStick: (x, y) => calls.push([x, y]) }, win);
   const pad = body.children[0];
   assert.equal(pad.style.display, 'none', 'mouse/keyboard devices never see it');
-  assert.ok(/left:\d+px;bottom:\d+px/.test(pad.style.cssText));
-  assert.ok(+/width:(\d+)px/.exec(pad.style.cssText)[1] >= 100, 'big thumb target');
+  const jr = SA.hudPlace.layout().joystick;
+  assert.deepEqual([pad.style.left, pad.style.top], [jr.left + 'px', jr.top + 'px'], 'placed by SA.hud, bottom-left');
+  assert.ok(jr.left < 200 && jr.top > 400);
+  assert.ok(parseInt(pad.style.width, 10) >= 100, 'big thumb target');
   assert.ok(pad.attrs['aria-label']);
   const knob = pad.children[0];
   assert.ok(/^<svg[^>]*viewBox/.test(knob.innerHTML), 'knob shows an inline SVG arrow cross');
@@ -94,7 +96,7 @@ test('view: hidden until a touch, then bottom-left; dragging drives rig.setStick
   assert.ok(!/[^\x00-\x7F]/.test(knob.innerHTML), 'no emoji or other non-ASCII glyphs');
   assert.ok(!/https?:|href|<image|url\(/.test(knob.innerHTML.replace('http://www.w3.org/2000/svg', '')), 'no network or image assets');
   assert.ok(!knob.textContent, 'no text glyph');
-  assert.ok(/width:68px;height:68px/.test(knob.style.cssText), 'knob size unchanged');
+  assert.equal(knob.style.width, '68px', 'knob is half the pad');
 
   win.l.pointerdown({ pointerType: 'mouse' });
   assert.equal(pad.style.display, 'none');

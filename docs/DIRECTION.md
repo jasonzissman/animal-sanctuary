@@ -66,7 +66,12 @@ current; when your change sets or changes something future tickets must follow, 
   `game/hud.js` (AS-0150) is that layout: `SA.hud.layout({width,height}, visibleIds)` returns a rect for every HUD id from named zones
   (topLeft, topRight, transient strip, bottomCenter/Left/Right, floating); sizes live in its data table (regular and compact for
   phones). New HUD elements add an id and size there, never a fixed CSS offset. `game/ui/prompt.js` is migrated (pill/bar, stars
-  under it, toast, snapshot card, feed tray; re-laid out on resize); the other HUD modules still use their own offsets until migrated.
+  under it, toast, snapshot card, feed tray; re-laid out on resize). AS-0151 migrated the rest of `game/ui/` through
+  `game/ui/hud-place.js` (`SA.hudPlace.register(id, el, {reserve, onPlace})`, `refresh()` after a show/hide, re-run on resize):
+  🏡/📖/⚙️ stack in the top-right column, hotbar and name chip, joystick, orbit pad, use/jump/climb sit in their zones, the sandbox
+  prop tray uses the `feedTray` slot and its messages the `toast` slot, and the roaming hint arrow is nudged clear of every rect
+  (`SA.hud.nudge`). A test greps `game/ui/*.js` for numeric top/left/right/bottom on `position:fixed` elements: add a new HUD
+  element as an id + size in `hud.js` and register it, never a CSS offset.
 - **Messages always win (AS-0121).** No HUD element may cover a message, animal name or part label. The equipped-item
   name chip only flashes for ~1.5 s on equip and hides while a message shows; the highlighted hotbar slot is the lasting cue.
 - **No modes: keys always move the player.** Arrow keys/WASD only ever walk the player; nothing (finding an animal,

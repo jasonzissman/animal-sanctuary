@@ -15,21 +15,25 @@
     var shown;   // undefined until the first update so the button is explicitly hidden
     var b = doc.createElement('button');
     b.type = 'button';
-    b.style.cssText = 'position:fixed;right:12px;bottom:200px;z-index:4;display:none;width:72px;height:72px;margin:0;padding:0;' +
+    b.style.cssText = 'position:fixed;z-index:4;display:none;margin:0;padding:0;' +   // rect from SA.hud ('climb')
       'border-radius:50%;border:.1em solid #24543a;background:rgba(255,248,214,.92);font:700 2.2rem system-ui,sans-serif;' +
       'cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 .1em .4em rgba(0,0,0,.3);pointer-events:auto;';
     b.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); rig.toggleClimb(); });
     b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     doc.body.appendChild(b);
+    if (SA.hudPlace) SA.hudPlace.register('climb', b, { reserve: true, onPlace: function (r) { b.style.fontSize = Math.round(r.height * 0.4) + 'px'; } });
 
     function update() {
       var p = rig.climbPrompt();
       if (p === shown) return;
       shown = p;
-      if (!p) { b.style.display = 'none'; return; }
-      b.textContent = ICONS[p].icon;
-      b.setAttribute('aria-label', ICONS[p].label);
-      b.style.display = 'block';
+      if (!p) b.style.display = 'none';
+      else {
+        b.textContent = ICONS[p].icon;
+        b.setAttribute('aria-label', ICONS[p].label);
+        b.style.display = 'block';
+      }
+      if (SA.hudPlace) SA.hudPlace.refresh();
     }
     return { update: update, element: b };
   }

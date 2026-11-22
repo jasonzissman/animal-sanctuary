@@ -117,7 +117,7 @@ test('hint arrow: DOM button is positioned from NDC and taps call back; no DOM i
   const a = SA.hintArrow.create(doc, () => taps++);
   a.show(1, 0, 0);
   assert.equal(made[0].style.display, 'block');
-  assert.match(made[0].style.left, /100%/);
+  assert.match(made[0].style.left, /^\d+px$/);   // NDC x = 1 is the right screen edge (pixels, no fixed CSS offsets)
   a.hide();
   assert.equal(made[0].style.display, 'none');
   made[0].listeners.click();

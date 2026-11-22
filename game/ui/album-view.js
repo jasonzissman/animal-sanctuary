@@ -28,8 +28,9 @@
     }
     function say(key) { if (key && SA.audio && SA.audio.say) SA.audio.say(key); }
 
-    var opener = el('button', BTN + 'position:fixed;right:12px;top:170px;z-index:5;width:76px;height:76px;font-size:2.6rem;', '📖');
+    var opener = el('button', BTN + 'position:fixed;z-index:5;font-size:2.6rem;', '📖');   // rect from SA.hud ('album')
     opener.type = 'button';
+    if (SA.hudPlace) SA.hudPlace.register('album', opener, { reserve: true, onPlace: function (r) { opener.style.fontSize = Math.round(r.height * 0.34) + 'px'; } });
     opener.setAttribute('aria-label', 'Álbum');
     var page = el('div', 'position:fixed;inset:0;z-index:10;display:none;flex-direction:column;background:rgba(36,84,58,.94);' +
       'padding:12px;box-sizing:border-box;overflow:auto;');

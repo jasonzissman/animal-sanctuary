@@ -79,6 +79,7 @@ globalThis.SA_MANIFEST = {
     'game/render/round-fx.js',
     'game/render/biome-glow.js',
     'game/hud.js',
+    'game/ui/hud-place.js',
     'game/level-cue.js',
     'game/ui/prompt.js',
     'game/unlock-flow.js',

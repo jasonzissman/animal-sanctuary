@@ -5,7 +5,7 @@
   'use strict';
   var SA = root.SA;
 
-  var CSS = 'position:fixed;z-index:3;display:none;width:72px;height:72px;margin:0;padding:0;border-radius:50%;' +
+  var CSS = 'position:fixed;z-index:3;display:none;margin:0;padding:0;border-radius:50%;' +
     'border:.1em solid #24543a;background:rgba(255,248,214,.85);color:#24543a;font:700 2.2rem system-ui,sans-serif;' +
     'cursor:pointer;opacity:.9;touch-action:manipulation;box-shadow:0 .1em .5em rgba(0,0,0,.3);';
 
@@ -19,10 +19,15 @@
     b.addEventListener('click', function () { if (onTap) onTap(); });
     doc.body.appendChild(b);
     return {
+      // The arrow follows the camera, so its spot is computed per frame: the point for (ex, ey) on screen, then nudged by
+      // SA.hud so it stays on-screen and never sits on another HUD element. Its size is the hud size table's.
       show: function (ex, ey, angle) {
         b.style.display = 'block';
-        b.style.left = 'calc(' + ((ex + 1) * 50) + '% - 36px)';
-        b.style.top = 'calc(' + ((1 - ey) * 50) + '% - 36px)';
+        var hp = SA.hudPlace, vp = hp ? hp.viewport() : { width: 1280, height: 800 };
+        var size = SA.hud ? SA.hud.SIZES[SA.hud.mode(vp)].hintArrow[0] : 72;
+        var r = { left: Math.round((ex + 1) / 2 * vp.width - size / 2), top: Math.round((1 - ey) / 2 * vp.height - size / 2), width: size, height: size };
+        if (hp && SA.hud) r = hp.nudge(r);
+        b.style.left = r.left + 'px'; b.style.top = r.top + 'px'; b.style.width = size + 'px'; b.style.height = size + 'px';
         b.style.transform = 'rotate(' + (-angle) + 'rad)';
       },
       hide: function () { b.style.display = 'none'; },

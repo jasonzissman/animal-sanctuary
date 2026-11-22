@@ -146,9 +146,13 @@ current; when your change sets or changes something future tickets must follow, 
   a tree *during the climb up/down animation*; standing in the canopy (`climb.mode === 'canopy'`, AS-0115) you can hop on top of the tree
   too: the lift sits on the canopy standing `y`, lands back on it, never drops you off, and starting a climb down ends the hop. The rig reads Space (also Shift+Space; not on a focused button/input) and exposes `getPlayer().lift`; takeoff plays
   `SA.audio.sfx('hop')`; the avatar squashes/stretches.
+  **Double jump (AS-0126):** `SA.jump` state has `jumps` (0..`MAX_JUMPS` = 2). A fresh press (released since the last takeoff, the same armed
+  rule) while airborne with `jumps < 2` resets `vy` to a full takeoff speed from the current height and emits `event: 'double'` (rig plays
+  `SA.audio.sfx('hop2')`, the same boing an octave higher). A third press does nothing until landing; landing and `cancel` reset `jumps`;
+  `allowed=false` blocks both; holding Space never chains. Still only a `lift`, never a climb for reach.
   **Touch jump button (AS-0114):** `game/ui/jump-button.js` is a round icon-only ⬆️ button (84 px, above the use button; appears at the first
-  touch like the joystick) that calls `rig.jump()`, a fresh Space press with the same rule (grounded only, one hop per landing, no buffering
-  in the air, none during the climb animation).
+  touch like the joystick) that calls `rig.jump()`, a fresh Space press with the same rule (one tap hops, a second tap in the air double
+  jumps, no buffering once both are used, none during the climb animation).
   **Low solids (AS-0176):** an obstacle tuple may carry a 4th number `[x, z, r, h]` (data `height` on decor/props x the placed scale:
   rocks only). `SA.player.step` ignores it while `input.lift + CLEAR_MARGIN (0.1) >= h`, so one hop clears a normal rock and the
   biggest (about scale > 1.6) need the double jump. `SA.player.floorAt` gives the top under the avatar and `SA.jump.step(..., floor)`

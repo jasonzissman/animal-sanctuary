@@ -16,6 +16,22 @@ test('cueFor maps up/down/null (and junk) to cue ids', () => {
   assert.equal(sfxFor(null), null);
 });
 
+test('burstPlan starts on the star badge and every star stays on-screen at touch-sized viewports', () => {
+  const plan = loadGame(FILES).levelCue.burstPlan();
+  assert.equal(plan.stars.length, 6);
+  // Star badge: fixed left:12px;bottom:12px, roughly 110x50. The burst box must start inside it.
+  const cx = plan.left + plan.size / 2, cy = plan.bottom + plan.size / 2;
+  assert.ok(cx >= 12 && cx <= 122 && cy >= 12 && cy <= 62, 'burst starts on the badge');
+  for (const [w, h] of [[1024, 768], [1280, 720]]) {
+    for (const s of plan.stars) {
+      const left = plan.left + s.dx, bottom = plan.bottom - s.dy;      // dy < 0 moves up
+      assert.ok(left >= 0 && left + plan.size <= w, `x on-screen at ${w}x${h}`);
+      assert.ok(bottom >= 0 && bottom + plan.size <= h, `y on-screen at ${w}x${h}`);
+    }
+  }
+  assert.ok(plan.stars.every((s) => s.dy < 0), 'stars fly upward, away from the bottom edge');
+});
+
 function setup(levelChange, withAudio = true) {
   const SA = loadGame(FILES);
   const sfx = [], cues = [];

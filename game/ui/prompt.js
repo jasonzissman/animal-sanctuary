@@ -275,12 +275,12 @@
           root.setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, ms + 100);
         }
         if (cue === 'star-burst') {
-          for (var i = 0; i < 6; i++) {
-            var a = (i / 6) * Math.PI * 2;
-            puff('⭐', 'left:90px;bottom:40px;font-size:2.2rem;',
+          var plan = SA.levelCue.burstPlan();      // pure placement: starts on the star badge, fans up and right (on-screen)
+          plan.stars.forEach(function (s) {
+            puff('⭐', 'left:' + plan.left + 'px;bottom:' + plan.bottom + 'px;font-size:2.2rem;line-height:1;',
               { transform: 'translate(0,0) scale(.4)', opacity: 1 },
-              { transform: 'translate(' + Math.round(Math.cos(a) * 110) + 'px,' + Math.round(Math.sin(a) * -110) + 'px) scale(1.1)', opacity: 0 }, 900);
-          }
+              { transform: 'translate(' + s.dx + 'px,' + s.dy + 'px) scale(1.1)', opacity: 0 }, 900);
+          });
         } else if (cue === 'soft-sparkle' && typeof replayBtn.animate === 'function') {
           replayBtn.animate([{ boxShadow: '0 0 0 0 rgba(255,217,61,0)' }, { boxShadow: '0 0 14px 6px rgba(255,217,61,.8)' },
             { boxShadow: '0 0 0 0 rgba(255,217,61,0)' }], { duration: 1200 });

@@ -40,6 +40,7 @@ globalThis.SA_MANIFEST = {
     'game/reach.js',
     'game/perch.js',
     'game/climb.js',
+    'game/jump.js',
     'game/render/reach-cue.js',
     'game/click-outcome.js',
     'game/render/click-fx.js',

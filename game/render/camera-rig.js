@@ -2,7 +2,7 @@
  * Pointer events cover mouse AND touch. One pointer drag orbits (left/right = yaw, up/down = pitch); a
  * shift- or right/middle-button drag pans; two pointers pinch (zoom) and drag together (pan).
  * A press that never travels past the tap threshold does nothing, so tapping an animal never turns the view.
- * Keys: arrows/WASD pan, hold Shift to run, Q/T rotate, R/F tilt, wheel zooms. Everything is clamped by SA.camera.
+ * Keys: arrows/WASD pan, hold Shift to run, Space hops (SA.jump: a vertical `lift` only, never a climb), Q/T rotate, R/F tilt, wheel zooms. Everything is clamped by SA.camera.
  * Third person only (one camera, always the chase camera): the avatar walks, the camera chases it. There is no
  * overhead, close-up or focus view; to draw attention somewhere glideTo() turns the player toward it.
  * hooks.canOrbit(event) -> false lets a press start something else (e.g. rubbing a muddy part) without orbiting.
@@ -34,6 +34,8 @@
     var stickX = 0, stickY = 0;   // on-screen joystick (unit disc, +y down): walks the player like the arrow keys
     var pinchDist = 0, mid = null;
     var isRunning = false;        // moved forward at run speed this frame (the avatar plays a faster stride)
+    var jumpHeld = false;       // Space held (SA.jump needs a release between hops)
+    var hop = SA.jump ? SA.jump.create() : null;   // { lift, vy, air, ... }: the avatar is drawn at y + lift; reach still uses y
     var run = false;            // Shift held: the avatar runs (SA.player RUN_SPEED) while moving forward
     var clearK = 1;             // smoothed fraction (0..1) of the camera's reach kept by SA.camera.clearPath
 
@@ -120,8 +122,16 @@
     // Shift (either side) = run. Holding it turns "w" into "W", so letters are stored lower-case: releasing Shift before
     // the letter must not leave the old key stuck. Shift itself does nothing else (the key event is left alone).
     function keyOf(k) { return k && k.length === 1 ? k.toLowerCase() : k; }
+    // Space hops (Shift+Space too: a running jump). A focused button/input keeps its own Space; Ctrl/Meta/Alt combos are not ours.
+    function isSpace(e) { return !!e && (e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space'); }
+    function isJumpKey(e) {
+      if (!isSpace(e) || e.ctrlKey || e.metaKey || e.altKey) return false;
+      var t = e.target && e.target.tagName;
+      return !(t === 'BUTTON' || t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || t === 'A');
+    }
     function onKeyDown(e) {
       run = !!e.shiftKey;
+      if (isJumpKey(e)) { e.preventDefault(); jumpHeld = true; if (hop && !e.repeat && !hop.air) hop.armed = true; return; }   // a fresh press (not key auto-repeat) re-arms on the ground   // preventDefault: Space must not scroll the page
       // C climbs up when next to a tree and down when up one (E / Enter go through SA.spaceUse); otherwise it does nothing here.
       if ((e.key === 'c' || e.key === 'C') &&!e.ctrlKey && !e.metaKey && !e.altKey && SA.climb.prompt(player, trees())) {
         e.preventDefault();
@@ -131,7 +141,10 @@
       if (e.ctrlKey || e.metaKey || e.altKey || !isKey(e.key)) return;
       held[keyOf(e.key)] = true; e.preventDefault();
     }
-    function onKeyUp(e) { run = !!e.shiftKey; delete held[keyOf(e.key)]; }
+    function onKeyUp(e) {
+      if (isSpace(e)) jumpHeld = false;
+      run = !!e.shiftKey; delete held[keyOf(e.key)];
+    }
 
     canvas.style.touchAction = 'none';
     canvas.addEventListener('pointerdown', onDown);
@@ -142,7 +155,7 @@
     canvas.addEventListener('wheel', onWheel, { passive: false });
     root.addEventListener('keydown', onKeyDown);
     root.addEventListener('keyup', onKeyUp);
-    root.addEventListener('blur', function () { held = {}; run = false; pointers = {}; padYaw = 0; padPitch = 0; stickX = 0; stickY = 0; });
+    root.addEventListener('blur', function () { held = {}; run = false; jumpHeld = false; pointers = {}; padYaw = 0; padPitch = 0; stickX = 0; stickY = 0; });
 
     return {
       /** Call once per frame (dt in seconds). */
@@ -158,6 +171,10 @@
         var running = (run && az < 0) || !!J.run;   // Shift only speeds up walking forward; the stick runs at its edge
         player = SA.climb.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
           left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running }, dt, obstacles());
+        if (hop) {   // the hop is a lift on top of the ground height; there is no hopping while climbing
+          hop = player.climb ? SA.jump.cancel(hop) : SA.jump.step(hop, { jump: jumpHeld }, dt);
+          if (hop.event === 'takeoff' && SA.audio && SA.audio.sfx) SA.audio.sfx('hop');
+        }
         camY += (player.y - camY) * (1 - Math.exp(-5 * Math.min(dt, 0.1)));
         moving = Math.hypot(player.x - before.x, player.z - before.z) > 1e-4 || player.heading !== before.heading;
         isRunning = moving && running;
@@ -168,8 +185,12 @@
         clearK = C.easeClearance(clearK, kept, dt);
         apply();
       },
-      /** The avatar's { x, z, y, heading, climb } (climb: null | 'up' | 'canopy' | 'down') and whether it moved this frame. */
-      getPlayer: function () { return { x: player.x, z: player.z, y: player.y || 0, heading: player.heading, moving: moving, running: isRunning, climb: player.climb ? player.climb.mode : null }; },
+      /** The avatar's { x, z, y, heading, climb } (climb: null | 'up' | 'canopy' | 'down'), whether it moved this frame, and the
+       *  hop: `lift` (height above y; y itself, which SA.reach uses, never includes it) and `jump` ('takeoff' | 'land' | null). */
+      getPlayer: function () {
+        return { x: player.x, z: player.z, y: player.y || 0, heading: player.heading, moving: moving, running: isRunning,
+          climb: player.climb ? player.climb.mode : null, lift: hop ? hop.lift : 0, jump: hop ? hop.event : null };
+      },
       /** 'up' | 'down' | null: which climb button to show right now (the icon-only UI polls this each frame). */
       climbPrompt: function () { return SA.climb.prompt(player, trees()); },
       toggleClimb: toggleClimb,

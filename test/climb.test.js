@@ -198,8 +198,9 @@ test('rig: C does nothing (and is not swallowed) away from a tree', () => {
   const rig = ctx.window.SA.render.createCameraRig({}, { style: {}, clientHeight: 600, addEventListener() {} }, camera, null, {});
   let prevented = 0;
   keys.keydown({ key: 'c', preventDefault() { prevented++; } });
-  keys.keydown({ key: ' ', preventDefault() { prevented++; } });
   assert.equal(prevented, 0);
+  keys.keydown({ key: ' ', preventDefault() { prevented++; } });   // Space is the jump key now (AS-0113), never a climb
+  assert.equal(rig.climbPrompt(), null);
   assert.equal(rig.climbPrompt(), null);
 });
 

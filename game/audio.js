@@ -19,6 +19,8 @@
   var RECIPES = {
     chime: arp([880, 1318.5], 0.11, 0.5, 0.28),
     boing: [{ w: 'sine', f: 420, f2: 130, t: 0, d: 0.45, g: 0.35, wob: 18 }, { w: 'triangle', f: 210, f2: 65, t: 0, d: 0.45, g: 0.2 }],
+    // Soft hop on takeoff: a short rising "boing" (gentler and higher than the falling wrong-pick boing).
+    hop: [{ w: 'sine', f: 260, f2: 520, t: 0, d: 0.22, g: 0.18, wob: 14 }, { w: 'triangle', f: 130, f2: 260, t: 0, d: 0.22, g: 0.08 }],
     pop: [{ w: 'sine', f: 600, f2: 200, t: 0, d: 0.09, g: 0.35 }, { n: 1, hp: 2500, t: 0, d: 0.03, g: 0.12 }],
     splash: [{ n: 1, lp: 1800, hp: 300, t: 0, d: 0.5, g: 0.3 }, { n: 1, hp: 3000, t: 0.08, d: 0.3, g: 0.12 },
              { w: 'sine', f: 300, f2: 700, t: 0, d: 0.12, g: 0.15 }],

@@ -5,6 +5,7 @@ import { loadGame } from './helpers/vm.js';
 // Minimal stub THREE: just enough scene-graph to build and animate the kid avatar (no WebGL).
 function node() {
   return { children: [], position: { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } }, rotation: { x: 0, y: 0, z: 0 },
+    scale: { x: 1, y: 1, z: 1, set(x, y, z) { this.x = x; this.y = y; this.z = z; } },
     add(c) { this.children.push(c); } };
 }
 const THREE = {

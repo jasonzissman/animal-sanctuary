@@ -29,6 +29,13 @@ current; when your change sets or changes something future tickets must follow, 
   Implemented (AS-0111): `SA.spaceUse.isUseKey(e)` (game/space-use.js) is the one key map (E/e/Enter/KeyE; modified keys,
   Space and focused buttons/inputs never). Space does nothing there, so jump (AS-0112) can own it. E no longer orbits the
   camera: swing left/right is **Q / T** (R/F tilt). There is no keyboard hint on screen; touch keeps the big use button.
+- **Space hops (AS-0113, slice 1 of AS-0112).** `SA.jump` (game/jump.js, pure) is a vertical `lift` on top of walking: about 1.2 units
+  high, 0.6 s in the air, simple gravity. It never touches x/z, so a jump while walking or running keeps its momentum and trees and
+  rocks still block in the air. It is **not a climb**: `lift` is kept apart from the player's standing `y` (which `SA.reach` and the
+  chase camera use), so a hop never reaches canopy animals; the avatar is drawn at `y + lift` and lands exactly back on the terrain.
+  One hop per press: a held Space does not chain (the rig re-arms only on a fresh, non-repeat keydown or after release); no hopping up
+  a tree. The rig reads Space (also Shift+Space; not on a focused button/input) and exposes `getPlayer().lift`; takeoff plays
+  `SA.audio.sfx('hop')`; the avatar squashes/stretches. A touch jump button is the next slice.
 - **Walk on any hard ground (AS-0109).** Only solid obstacles and the map edge block the player. Water and dips never
   do: the player wades in and may go under the surface for a moment, the camera stays above it. This overrides the
   water soft-wall / nearestDry notes below; animals still avoid water.

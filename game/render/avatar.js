@@ -1,7 +1,8 @@
 /* SA.render.createAvatar(THREE) -> { group, update(dt, player) }: the procedural low-poly kid the player walks around as.
  * Built from boxes, a sphere and flat materials only. update() puts it at player { x, z, heading, moving, running? } (heading in
  * radians, forward = (sin, cos) on x/z), and while `moving` plays a run bob and an opposite arm/leg swing; it eases
- * back to a standing pose when stopped. The group sits at player.y (terrain height) with feet at its origin.
+ * back to a standing pose when stopped. player.lift (SA.jump, height above y) raises it for a hop, with a squash-and-stretch
+ * (crouch at takeoff and landing, stretch while rising) on the body. The group sits at player.y (terrain height) with feet at its origin.
  */
 (function (root) {
   'use strict';
@@ -39,11 +40,13 @@
     var eyeL = box(0.06, 0.06, 0.04, 0x222222, -0.09, 1.38, 0.24), eyeR = box(0.06, 0.06, 0.04, 0x222222, 0.09, 1.38, 0.24);
     var legL = limb(0.18, 0.5, 0.2, 0x3a5fa8, -0.13, 0.52, 0), legR = limb(0.18, 0.5, 0.2, 0x3a5fa8, 0.13, 0.52, 0);
     var armL = limb(0.14, 0.45, 0.16, 0xf2c9a0, -0.33, 1.04, 0), armR = limb(0.14, 0.45, 0.16, 0xf2c9a0, 0.33, 1.04, 0);
+    var squash = 0, squashV = 0, prevAir = false, prevLift = 0;   // squash < 0 = squashed flat, > 0 = stretched tall (a spring toward 0)
     var phase = 0, amount = 0, climbPhase = 0, lift = 0;   // amount eases 0..1 so the swing blends in and out
 
     function update(dt, player) {
       if (!player) return;
-      group.position.set(player.x, player.y || 0, player.z);
+      var hop = player.lift || 0, air = hop > 0;   // SA.jump lift above the standing height
+      group.position.set(player.x, (player.y || 0) + hop, player.z);
       group.rotation.y = player.heading || 0;
       dt = Math.max(0, Math.min(0.1, dt || 0));
       amount += ((player.moving ? 1 : 0) - amount) * Math.min(1, dt * 12);
@@ -58,6 +61,15 @@
       legL.rotation.x = -s * SWING * (1 - lift) + c * 0.9; legR.rotation.x = s * SWING * (1 - lift) - c * 0.9;
       body.rotation.x = 0.25 * lift;
       body.position.y = Math.abs(Math.cos(phase)) * BOB * amount;
+      // Squash-and-stretch on a hop: a crouch kick at takeoff and at landing, a springy return, and a stretch while rising.
+      if (air && !prevAir) squashV -= 7;
+      if (!air && prevAir) squashV -= 9;
+      var vy = dt > 0 ? (hop - prevLift) / dt : 0;
+      var want = air ? Math.max(-0.1, Math.min(0.25, vy * 0.035)) : 0;
+      squashV += (-160 * (squash - want) - 16 * squashV) * dt;
+      squash = Math.max(-0.4, Math.min(0.3, squash + squashV * dt));
+      body.scale.set(1 - squash * 0.5, 1 + squash, 1 - squash * 0.5);
+      prevAir = air; prevLift = hop;
     }
     return { group: group, update: update, parts: { head: head, armL: armL, armR: armR, legL: legL, legR: legR, eyes: [eyeL, eyeR] } };
   };

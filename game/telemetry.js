@@ -4,6 +4,8 @@
  * to the optional local receiver on 127.0.0.1:5100. An event leaves the queue only when the receiver lists its id
  * in `accepted`. If the receiver is down (a classroom) everything stays queued (capped, oldest dropped), flushes
  * back off exponentially and nothing is thrown. No names or identifiers: `sid` is random per page load.
+ * Classroom build: scripts/bundle.js sets window.SA_CLASSROOM = true before this file loads. Then flush() never
+ * touches the network (no fetch, no flush timer); events still queue locally.
  * Pure logic: no THREE, no DOM beyond optional window/document hooks, so it loads in node:vm for tests.
  */
 (function (root) {
@@ -91,6 +93,7 @@
   function flush(opts) {
     var unloading = !!(opts && opts.unloading);
     try {
+      if (root.SA_CLASSROOM) return Promise.resolve(false); // classroom build: no network at all
       if (inFlight || !queue.length || typeof root.fetch !== 'function') return Promise.resolve(false);
       if (clock() < retryAt) return Promise.resolve(false); // receiver known to be down: stay quiet
       var batch = queue.slice(0, unloading ? UNLOAD_BATCH : BATCH);
@@ -134,7 +137,7 @@
     track('session.start', {});
     if (typeof root.setInterval === 'function') {
       timers.push(root.setInterval(tick, TICK_MS));
-      timers.push(root.setInterval(function () { flush(); }, FLUSH_MS));
+      if (!root.SA_CLASSROOM) timers.push(root.setInterval(function () { flush(); }, FLUSH_MS));
     }
     return sid;
   }

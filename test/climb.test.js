@@ -205,12 +205,12 @@ test('rig: C does nothing (and is not swallowed) away from a tree', () => {
 });
 
 test('climb button shows the right icon and toggles through the rig', () => {
-  const SA2 = loadGame(['game/sa.js', 'game/ui/climb-button.js']);
+  const SA2 = loadGame(['game/sa.js', 'game/touch.js', 'game/ui/climb-button.js']);
   const made = [];
   const doc = { body: { appendChild() {} }, createElement: () => { const el = { style: {}, attrs: {}, on: {}, setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(t, f) { this.on[t] = f; } }; made.push(el); return el; } };
   let prompt = null, toggled = 0;
   const rig = { climbPrompt: () => prompt, toggleClimb: () => { toggled++; } };
-  const view = SA2.climbButton.create(doc, rig);
+  const view = SA2.climbButton.create(doc, rig, { matchMedia: () => ({ matches: true }) });   // a coarse pointer = touch
   view.update();
   assert.equal(made[0].style.display, 'none');
   prompt = 'up'; view.update();

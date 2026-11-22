@@ -19,11 +19,7 @@
   function create(doc, picking, win) {
     var none = { update: function () {}, element: null };
     if (!doc || typeof doc.createElement !== 'function' || !doc.body || !picking || !picking.target) return none;
-    var touch = false;
-    try { touch = !!(win && win.matchMedia && win.matchMedia('(pointer: coarse)').matches); } catch (e) { touch = false; }
-    if (win && win.addEventListener) {
-      win.addEventListener('pointerdown', function (e) { if (e.pointerType === 'touch') touch = true; }, true);
-    }
+    var touch = SA.touch ? SA.touch.get(win) : null;   // shared: coarse pointer, or the first touch / pen pointerdown
     var shown = null, icon = null;
     var b = doc.createElement('button');
     b.type = 'button';
@@ -37,7 +33,7 @@
     if (SA.hudPlace) SA.hudPlace.register('use', b, { reserve: true, onPlace: function (r) { b.style.fontSize = Math.round(r.height * 0.31) + 'px'; } });
 
     function update() {
-      var want = touch && !!picking.target();
+      var want = !!touch && SA.touch.visible(touch.is(), !!picking.target());   // touch only, and only while it can act
       if (want !== shown) { shown = want; b.style.display = want ? 'block' : 'none'; if (SA.hudPlace) SA.hudPlace.refresh(); }
       if (!want) return;
       var ic = iconFor(SA.inventory && SA.inventory.equipped ? SA.inventory.equipped() : null);

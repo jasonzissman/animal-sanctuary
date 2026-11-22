@@ -164,7 +164,7 @@ test('rig.jump() hops exactly like Space: one hop per landing, none in the air',
 });
 
 test('jump button: big round icon-only button, shown at the first touch, taps call rig.jump', () => {
-  const SA = loadGame(['game/sa.js', 'game/ui/jump-button.js']);
+  const SA = loadGame(['game/sa.js', 'game/touch.js', 'game/ui/jump-button.js']);
   const made = [];
   const doc = { body: { appendChild() {} }, createElement: () => { const el = { style: {}, attrs: {}, on: {}, setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(t, f) { this.on[t] = f; } }; made.push(el); return el; } };
   const win = { addEventListener(t, f) { win[t] = f; } };

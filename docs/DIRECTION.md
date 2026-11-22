@@ -75,7 +75,11 @@ current; when your change sets or changes something future tickets must follow, 
   2x2 grid under it of sound (mute), 🏡 habitat, 📖 album and ⚙️ settings (still press-and-hold). Those four buttons keep their
   own views and `SA.hud` slots (`audioUi`, `sandbox`, `album`, `settings`, always reserved) and are only shown while the menu is
   open; it closes on an outside tap, Escape or after habitat/album/settings is used; M toggles mute without opening it. A new
-  rarely used button goes into this menu (add an `SA.menu.ITEMS` entry), not onto the always-visible HUD. Hotbar and name chip, joystick, orbit pad, use/jump/climb sit in their zones, the sandbox
+  rarely used button goes into this menu (add an `SA.menu.ITEMS` entry), not onto the always-visible HUD.
+  Touch controls only on touch (AS-0196, `game/touch.js`, pure): `SA.touch.get(win)` is true on `(pointer: coarse)` or after the
+  first touch/pen pointerdown (a mouse never counts). The joystick, orbit pad and jump button show only then; the climb and use
+  buttons also need to be able to act (`SA.touch.visible(touch, canAct)`: something climbable in reach / a usable target). E, C and
+  Space never depend on the buttons. With mouse and keyboard only pill, stars, hotbar and the 🎒 menu are visible. Hotbar and name chip, joystick, orbit pad, use/jump/climb sit in their zones, the sandbox
   prop tray uses the `feedTray` slot and its messages the `toast` slot, and the roaming hint arrow is nudged clear of every rect
   (`SA.hud.nudge`). A test greps `game/ui/*.js` for numeric top/left/right/bottom on `position:fixed` elements: add a new HUD
   element as an id + size in `hud.js` and register it, never a CSS offset.

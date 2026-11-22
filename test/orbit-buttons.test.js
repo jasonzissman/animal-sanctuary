@@ -27,7 +27,7 @@ test('combine: opposite buttons cancel, different axes add, junk is ignored', ()
 });
 
 test('orbit pad: buttons are >= 44px, hold sets axes on the rig, release clears them, no DOM is a no-op', () => {
-  const SA = loadGame(['game/sa.js', 'game/hud.js', 'game/ui/hud-place.js', 'game/orbit-buttons.js', 'game/ui/orbit-pad.js']);
+  const SA = loadGame(['game/sa.js', 'game/hud.js', 'game/ui/hud-place.js', 'game/touch.js', 'game/orbit-buttons.js', 'game/ui/orbit-pad.js']);
   assert.doesNotThrow(() => SA.orbitPad.create(null, {}).release());
   const el = (tag) => ({ tag, style: {}, children: [], l: {}, attrs: {}, appendChild(c) { this.children.push(c); },
     addEventListener(t, f) { this.l[t] = f; }, setAttribute(k, v) { this.attrs[k] = v; } });

@@ -68,6 +68,10 @@ current; when your change sets or changes something future tickets must follow, 
   **Touch jump button (AS-0114):** `game/ui/jump-button.js` is a round icon-only ⬆️ button (84 px, above the use button; appears at the first
   touch like the joystick) that calls `rig.jump()`, a fresh Space press with the same rule (grounded only, one hop per landing, no buffering
   in the air, none during the climb animation).
+  **Low solids (AS-0176):** an obstacle tuple may carry a 4th number `[x, z, r, h]` (data `height` on decor/props x the placed scale:
+  rocks only). `SA.player.step` ignores it while `input.lift + CLEAR_MARGIN (0.1) >= h`, so one hop clears a normal rock and the
+  biggest (about scale > 1.6) need the double jump. `SA.player.floorAt` gives the top under the avatar and `SA.jump.step(..., floor)`
+  lands/stands on it (and falls when you walk off), so a jump never ends inside a rock. No height (trees, cacti, peaks, ponds, animals) = always blocks.
 - **Walk on any hard ground (AS-0109).** Only solid obstacles and the map edge block the player. Water and dips never
   do: the player wades in and may go under the surface for a moment, the camera stays above it. This overrides the
   water soft-wall / nearestDry notes below; animals still avoid water.

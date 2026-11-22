@@ -6,10 +6,12 @@
  * The avatar is drawn at y + lift; it lands exactly back on y (the terrain under the new spot).
  *
  *   SA.jump.create()                          -> { lift, vy, air, armed, event }  (on the ground, armed)
- *   SA.jump.step(state, input, dt, allowed?)  -> new state (the input state is never mutated)
+ *   SA.jump.step(state, input, dt, allowed?, floor?)  -> new state (the input state is never mutated)
  *     input    { jump }  truthy while Space is held. A takeoff needs the key to have been released since the last one,
  *              so holding Space never chains hops (and never re-jumps in the air); it must be pressed again.
  *     allowed  false blocks a takeoff (e.g. up a tree); an airborne hop just continues.
+ *     floor    optional lift of the surface under the avatar (a low rock's top, AS-0176; SA.player.floorAt): it lands on it
+ *              (and stands there), steps up onto it, and walking off its edge makes it fall back down. 0 = the ground.
  *     event    'takeoff' | 'land' | null: what happened this step (for the boing SFX and the squash-and-stretch)
  *   SA.jump.cancel(state)                     -> a grounded state (keeps `armed` so a held key does not re-jump)
  * Constants: HEIGHT (peak, world units), DURATION (seconds in the air), GRAVITY, TAKEOFF_SPEED (derived: a symmetric arc).
@@ -27,12 +29,15 @@
 
   function create() { return { lift: 0, vy: 0, air: false, armed: true, event: null }; }
 
-  function step(state, input, dt, allowed) {
+  function step(state, input, dt, allowed, floor) {
     var s = state || create();
     var want = !!(input && input.jump);
     dt = typeof dt === 'number' && isFinite(dt) ? Math.max(0, Math.min(MAX_DT, dt)) : 0;
     var lift = s.lift || 0, vy = s.vy || 0, air = !!s.air, armed = s.armed !== false, event = null;
+    floor = typeof floor === 'number' && isFinite(floor) && floor > 0 ? floor : 0;
     if (!want) armed = true;
+    if (!air && lift < floor) lift = floor;                      // stepped up onto a low solid
+    if (!air && lift > floor + 1e-6) { air = true; vy = 0; }    // walked off its edge: fall
     if (!air && want && armed && allowed !== false) {
       air = true; vy = TAKEOFF_SPEED; armed = false; event = 'takeoff';
     }
@@ -41,7 +46,7 @@
       lift += vy * h - 0.5 * GRAVITY * h * h;
       vy -= GRAVITY * h;
       dt -= h;
-      if (lift <= 0 && vy < 0) { lift = 0; vy = 0; air = false; event = event === 'takeoff' ? 'takeoff' : 'land'; break; }
+      if (lift <= floor && vy < 0) { lift = floor; vy = 0; air = false; event = event === 'takeoff' ? 'takeoff' : 'land'; break; }
     }
     return { lift: lift, vy: vy, air: air, armed: armed, event: event };
   }

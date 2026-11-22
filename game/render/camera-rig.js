@@ -184,7 +184,7 @@
         });
         ayaw += padYaw; apitch += padPitch;
         if (ayaw || apitch) orbitWith(function (s) { return C.orbitByKeys(s, ayaw, apitch, dt, B); });
-        var before = player;
+        var before = player, obs = obstacles();   // one list per frame: walking, the hop's landing surface and the camera share it
         var J = SA.joystick ? SA.joystick.toInput({ x: stickX, y: stickY }) : { forward: 0, back: 0, left: 0, right: 0, run: false };
         if (turn) {   // the eased glideTo turn: walking input (or a climb) hands control straight back, from the current heading
           if (ax || az || J.forward || J.back || J.left || J.right || player.climb) turn = null;
@@ -196,9 +196,10 @@
         }
         var running = (run && az < 0) || !!J.run;   // Shift only speeds up walking forward; the stick runs at its edge
         player = SA.climb.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
-          left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running }, dt, obstacles());
+          left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running, lift: hop ? hop.lift : 0 }, dt, obs);
         if (hop) {   // the hop is a lift on top of the standing height (ground or canopy); none during the climb up/down animation
-          hop = climbing() ? SA.jump.cancel(hop) : SA.jump.step(hop, { jump: jumpHeld || jumpTap }, dt);
+          hop = climbing() ? SA.jump.cancel(hop) : SA.jump.step(hop, { jump: jumpHeld || jumpTap }, dt, true,
+            player.climb ? 0 : SA.player.floorAt(player.x, player.z, obs, hop.lift));   // lands / stands on a low rock
           jumpTap = false;
           if (hop.event === 'takeoff' && SA.audio && SA.audio.sfx) SA.audio.sfx('hop');
         }
@@ -215,7 +216,7 @@
           frame = C.easeFrame(frame, dragging ? C.NO_FRAME : C.frameAbove(player, above), dt, 6);
         }
         var want = C.position(framed()), full = Math.hypot(want.x - player.x, want.z - player.z);
-        var kept = full > 1e-6 ? C.clearPath(player, want, player.climb ? [] : obstacles()) / full : 1;   // up a tree: nothing in the way
+        var kept = full > 1e-6 ? C.clearPath(player, want, player.climb ? [] : obs) / full : 1;   // up a tree: nothing in the way
         clearK = C.easeClearance(clearK, kept, dt);
         apply();
       },

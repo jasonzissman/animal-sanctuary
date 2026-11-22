@@ -311,7 +311,10 @@ current; when your change sets or changes something future tickets must follow, 
   (`render/photo-capture.js`: renders a frame, crops round the animal) and keeps it in IndexedDB (`SA.photoStore`, db `santuario_photos`).
   The save holds ids/dates only: `save.album[animalId] = { date, pics: [{ id, date }] }` (save v5; v4 date-only albums migrate without
   loss). `SA.albumPics.keep` keeps the first picture ever plus the newest 3 per species and reports the rest for deletion. No IndexedDB or
-  a failing capture never affects the photo: it still counts for the album and badges. The album view that shows pictures is slice 2.
+  a failing capture never affects the photo: it still counts for the album and badges.
+  **Photobook view (AS-0237, slice 2):** a photographed album card shows its saved pictures (first + newest 3, read with
+  `SA.albumPics.load`, which skips missing ones) instead of the big icon; tap one for a larger overlay with a big ✕ and a 🔊, and a
+  🔊 next to the name says it via `SA.audio` (`animal:<id>`). No pictures or no storage = the plain icon card, and "found / total" is unchanged.
 - **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
   (hurt, stuck, hungry, tangled, scared: 1 task at beginner, 2 later) -> take its photo as proof it is OK ("¡Está bien!",
   saved to the album) -> next mission. Finding alone never ends a round. This supersedes "the photo answers the round" below.

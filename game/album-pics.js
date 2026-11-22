@@ -13,6 +13,8 @@
  *   SA.albumPics.shot(animalId, now?)   Promise<pictureId | null>, never rejects. Captures now, stores in the background and only then
  *                                       adds the entry to the save and deletes the dropped pictures (a failed store leaves the save alone).
  *   SA.albumPics.list(animalId)         the saved [{ id, date }] of a species (oldest first)
+ *   SA.albumPics.load(animalId, store?) Promise<[{ id, date, src }]>: those pictures read from the store (src = JPEG data URL); missing
+ *                                       ones are skipped, [] when the store is unavailable. Never rejects (AS-0237, the album view).
  */
 (function (root) {
   'use strict';
@@ -73,8 +75,24 @@
     }
   }
 
+  // The saved pictures of a species with their image data, oldest first. Entries whose picture is missing from the store (or a store
+  // that is unavailable) are skipped, so the album view falls back to the icon card. Never rejects.
+  function load(animalId, st) {
+    try {
+      st = st || store || SA.photoStore;
+      var pics = list(animalId);
+      if (!st || typeof st.get !== 'function' || !pics.length) return Promise.resolve([]);
+      return Promise.all(pics.map(function (p) {
+        try { return Promise.resolve(st.get(p.id)).then(function (d) { return typeof d === 'string' && d.indexOf('data:image/') === 0 ? { id: p.id, date: p.date, src: d } : null; }, function () { return null; }); }
+        catch (e) { return Promise.resolve(null); }
+      })).then(function (all) { return all.filter(Boolean); }, function () { return []; });
+    } catch (e) {
+      return Promise.resolve([]);
+    }
+  }
+
   SA.albumPics = {
-    NEWEST: NEWEST, keep: keep, cropRect: cropRect, list: list, shot: shot,
+    NEWEST: NEWEST, keep: keep, cropRect: cropRect, list: list, shot: shot, load: load,
     setCapture: function (fn) { capture = typeof fn === 'function' ? fn : null; },
     setStore: function (s) { store = s || null; }
   };

@@ -9,10 +9,6 @@
  *       A pointer that moved more than `threshold` px from where it went down is a drag, never a tap, and a
  *       second pointer (pinch) cancels the tap for everyone.
  *   SA.picking.labelFor(animalId, part, english) -> { es, en|null, icon } for the label chip.
- *   SA.picking.createCycler() -> { setItems(keys), next(), prev(), current(), index(), reset() }: keyboard cycling through
- *       an animal's part keys. next/prev wrap around; the first next() lands on item 0, the first prev() on the last.
- *   SA.picking.uniqueParts(list) -> part keys in first-seen order from [{ part }] (left/right ears become one stop).
- *   SA.picking.keyAction(key, shift) -> 'next'|'prev'|'select'|'exit'|null. Arrows/Tab cycle, Enter/Space select.
  *   SA.picking.speakPart(part) -> true when SA.audio.say('part:<key>') was called; does nothing without SA.audio.
  *   SA.picking.reactionPose(reaction, t) -> { rx, ry, rz, sx, sy, sz, py } offsets for t in [0, DURATION].
  */
@@ -96,38 +92,6 @@
     return { es: def.label.es, en: english ? def.label.en : null, icon: ICONS[part] || '🐾', animalId: animalId };
   }
 
-  function uniqueParts(list) {
-    var out = [];
-    (list || []).forEach(function (u) { if (u && u.part && out.indexOf(u.part) < 0) out.push(u.part); });
-    return out;
-  }
-
-  function createCycler() {
-    var items = [], i = -1;
-    return {
-      // Keeps the current stop when it is still in the new list, otherwise starts over.
-      setItems: function (keys) {
-        var cur = i >= 0 ? items[i] : null;
-        items = (keys || []).slice();
-        i = cur ? items.indexOf(cur) : -1;
-      },
-      next: function () { if (!items.length) return null; i = (i + 1) % items.length; return items[i]; },
-      prev: function () { if (!items.length) return null; i = i < 0 ? items.length - 1 : (i - 1 + items.length) % items.length; return items[i]; },
-      current: function () { return i >= 0 ? items[i] : null; },
-      index: function () { return i; },
-      reset: function () { i = -1; },
-    };
-  }
-
-  var KEY_ACTIONS = {
-    ArrowRight: 'next', ArrowDown: 'next', ArrowLeft: 'prev', ArrowUp: 'prev',
-    Enter: 'select', ' ': 'select', Spacebar: 'select', Escape: 'exit',
-  };
-  function keyAction(key, shift) {
-    if (key === 'Tab') return shift ? 'prev' : 'next';
-    return Object.prototype.hasOwnProperty.call(KEY_ACTIONS, key) ? KEY_ACTIONS[key] : null;
-  }
-
   function speakPart(part) {
     if (!part || !SA.audio || typeof SA.audio.say !== 'function') return false;
     SA.audio.say('part:' + part);
@@ -159,6 +123,6 @@
 
   SA.picking = {
     DRAG_THRESHOLD: DRAG_THRESHOLD, DURATION: DURATION, ICONS: ICONS,
-    setRubTarget: setRubTarget, hasRubTarget: hasRubTarget, isRubTarget: isRubTarget, onPick: onPick, emit: emit, setPaused: setPaused, isPaused: function () { return paused; }, createTapTracker: createTapTracker, labelFor: labelFor, uniqueParts: uniqueParts, createCycler: createCycler, keyAction: keyAction, speakPart: speakPart, reactionPose: reactionPose,
+    setRubTarget: setRubTarget, hasRubTarget: hasRubTarget, isRubTarget: isRubTarget, onPick: onPick, emit: emit, setPaused: setPaused, isPaused: function () { return paused; }, createTapTracker: createTapTracker, labelFor: labelFor, speakPart: speakPart, reactionPose: reactionPose,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

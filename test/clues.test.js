@@ -115,7 +115,8 @@ test('when every unique clue was used recently, pickClue returns null instead of
   const SA = load();
   const only = animal('solo', [['cola', 1.5]]);
   const all = SA.clues.candidates([only], ['trait']);
-  assert.equal(all.length, 3);   // one animal in play: its size, colour and movement
+  // one animal in play: its size, colour and movement, plus the feminine/plural colour and size agreement clues
+  assert.equal(all.length, 6);
   const state = { animals: [only], types: ['trait'], recent: all.slice(0, 2).map((c) => c.key) };
   const clue = SA.clues.pickClue(state, () => 0);
   assert.ok(!state.recent.includes(clue.key));

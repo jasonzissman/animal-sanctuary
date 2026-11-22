@@ -84,6 +84,9 @@
     withPart: { key: 'phrase:buscaanimalcon', es: 'Busca el animal con' },
     that: { key: 'phrase:buscaanimalque', es: 'Busca el animal que' },
     plain: { key: 'phrase:buscaanimal', es: 'Busca el animal' },
+    creature: { key: 'phrase:buscalacriatura', es: 'Busca la criatura' },
+    creatures: { key: 'phrase:buscalascriaturas', es: 'Busca las criaturas' },
+    animals: { key: 'phrase:buscalosanimales', es: 'Busca los animales' },
     touch: { key: 'phrase:toca', es: 'Toca' }
   };
 
@@ -98,6 +101,15 @@
     { id: 'trait-size', type: 'trait', lead: lead.plain, trait: 'size', values: ['pequeño', 'mediano', 'grande'] },
     { id: 'trait-color', type: 'trait', lead: lead.plain, trait: 'color',
       values: ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul'] },
+    // Agreement templates: the generic noun in the lead declares gender/number, so the clue engine speaks the matching
+    // colour/size form ("la criatura verde", "los animales verdes", "las criaturas pequeñas"). Generic nouns keep the
+    // data free of animal ids; the engine still picks the one animal in play that fits.
+    { id: 'trait-color-f', type: 'trait', lead: lead.creature, trait: 'color', gender: 'f', number: 'sg',
+      values: ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul'] },
+    { id: 'trait-color-mpl', type: 'trait', lead: lead.animals, trait: 'color', gender: 'm', number: 'pl',
+      values: ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul'] },
+    { id: 'trait-size-fpl', type: 'trait', lead: lead.creatures, trait: 'size', gender: 'f', number: 'pl',
+      values: ['pequeño', 'mediano', 'grande'] },
     { id: 'touch-part', type: 'touchPart', lead: lead.touch,
       parts: ['cabeza', 'orejas', 'ojos', 'hocico', 'pico', 'cola', 'patas', 'alas', 'caparazon', 'cuernos', 'aletas',
         'plumas', 'nariz', 'joroba'] }

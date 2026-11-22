@@ -15,7 +15,7 @@
       return;
     }
     // Scout & Spot starts right away; a failure here must never stop the render loop.
-    try { SA.prompt.start({ doc: root.document, fx: stage.fx }); } catch (e) {
+    try { SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx }); } catch (e) {
       if (root.SAT) root.SAT.track('error', { message: String(e && e.message).slice(0, 200), source: 'prompt.start', line: 0, stack: String(e && e.stack).slice(0, 500) });
     }
     var last = null;

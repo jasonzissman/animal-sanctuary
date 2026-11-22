@@ -31,7 +31,15 @@
       return r;
     }
 
+    var care = o.care || null;      // optional SA.careFlow: a care task may follow a correct pick
+
+    function afterCelebration(animalId) {
+      if (care && care.offer(animalId)) return;
+      begin();
+    }
+
     function onPick(p) {
+      if (care && care.active()) return care.onPick(p);
       var res = game.pick(p);
       if (res.status === 'wrong') {
         sfx('boing');
@@ -46,12 +54,16 @@
         var vocab = SA.vocab && SA.vocab.get('animal:' + res.animalId);
         view.toast('¡Muy bien! ⭐' + (vocab ? ' ' + vocab.es : ''));
         say('animal:' + res.animalId);
-        later(begin, NEXT_MS);
+        later(function () { afterCelebration(res.animalId); }, NEXT_MS);
       }
       return res;
     }
 
-    function replay() { var r = game.current(); if (r) say(r.clue.text); }
+    function replay() {
+      if (care && care.active()) { care.replay(); return; }
+      var r = game.current();
+      if (r) say(r.clue.text);
+    }
 
     function hint() {
       var r = game.hint();
@@ -70,7 +82,7 @@
   function createView(doc, handlers) {
     var noop = function () {};
     if (!doc || typeof doc.createElement !== 'function' || !doc.body) {
-      return { showRound: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop };
+      return { showRound: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop };
     }
     handlers = handlers || {};
     function el(tag, css, text) {
@@ -114,6 +126,12 @@
         hintBtn.style.display = r.hintShown ? 'none' : '';
         if (r.hintShown) setIcon(r.icon, true); else setIcon('❓', false);
       },
+      showCare: function (r) {      // care prompt: short text + tool icon (never a silhouette), no hint button
+        text.textContent = r.text;
+        starsEl.textContent = '⭐ ' + r.stars;
+        hintBtn.style.display = 'none';
+        setIcon(r.icon, false);
+      },
       showHint: function () { hintBtn.style.display = 'none'; setIcon(current, true); },
       celebrate: function (r) { setIcon(r.icon, false); starsEl.textContent = '⭐ ' + r.stars; hintBtn.style.display = 'none'; },
       clear: function () { text.textContent = ''; },
@@ -148,6 +166,7 @@
     };
   }
 
+  // o.careFx (optional): the 3D care effects (SA.render.createCareFx); enables the care loop.
   function start(o) {
     o = o || {};
     var ctl = null;
@@ -155,7 +174,13 @@
       hint: function () { if (ctl) ctl.hint(); },
       replay: function () { if (ctl) ctl.replay(); },
     });
-    ctl = createController({ game: o.game || SA.round.create(), view: view, fx: o.fx, audio: o.audio, later: o.later });
+    var careFlow = o.care || null;
+    if (!careFlow && o.careFx !== undefined && SA.careFlow && SA.care) {
+      careFlow = SA.careFlow.create({ care: SA.care.create(), view: view, fx: o.careFx, audio: o.audio, later: o.later,
+        onDone: function () { if (ctl) ctl.begin(); } });
+    }
+    ctl = createController({ game: o.game || SA.round.create(), view: view, fx: o.fx, audio: o.audio, later: o.later,
+      care: careFlow });
     SA.picking.onPick(ctl.onPick);
     ctl.begin();
     return ctl;

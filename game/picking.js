@@ -40,6 +40,14 @@
     });
   }
 
+  // Rubbing: while a care task is active, dragging a pressed pointer over the target part counts as a rub.
+  var rubTarget = null;
+  function setRubTarget(animalId, part) { rubTarget = animalId && part ? { animalId: animalId, part: part } : null; }
+  function hasRubTarget() { return !!rubTarget; }
+  function isRubTarget(hit) {
+    return !!(rubTarget && hit && hit.animalId === rubTarget.animalId && hit.part === rubTarget.part);
+  }
+
   function createTapTracker(opts) {
     var threshold = (opts && opts.threshold) || DRAG_THRESHOLD;
     var active = {}, count = 0, spoiled = false;
@@ -102,6 +110,6 @@
 
   SA.picking = {
     DRAG_THRESHOLD: DRAG_THRESHOLD, DURATION: DURATION, ICONS: ICONS,
-    onPick: onPick, emit: emit, createTapTracker: createTapTracker, labelFor: labelFor, reactionPose: reactionPose,
+    setRubTarget: setRubTarget, hasRubTarget: hasRubTarget, isRubTarget: isRubTarget, onPick: onPick, emit: emit, createTapTracker: createTapTracker, labelFor: labelFor, reactionPose: reactionPose,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

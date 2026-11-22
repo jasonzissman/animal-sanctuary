@@ -6,7 +6,7 @@ import { loadGame } from './helpers/vm.js';
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js'];
 const part = () => ({ part: 'cuerpo', color: '#aabbcc', scale: 1, count: 1, offset: [0, 0, 0] });
 const good = () => ({
-  id: 'zorro', name: { es: 'zorro', en: 'fox', gender: 'm' }, biome: 'bosque',
+  id: 'zorro', name: { es: 'zorro', en: 'fox', gender: 'm' }, icon: '🦊', biome: 'bosque',
   traits: { size: 'mediano', color: 'naranja', movement: 'corre', diet: 'omnívoro', legs: 4 },
   parts: [part()], easterEgg: false,
 });
@@ -111,6 +111,16 @@ test('validator rejects other bad animals naming the field', () => {
     const a = good();
     mutate(a);
     assert.throws(() => SA.data.register('animals', [a]), re);
+  }
+});
+
+test('every animal has a validated non-empty icon; a missing or empty icon is rejected naming the animal', () => {
+  const SA = loadGame(FILES);
+  for (const a of SA.data.all('animals')) assert.ok(typeof a.icon === 'string' && a.icon.trim(), `${a.id} icon`);
+  for (const bad of [undefined, '', '  ', 5, null]) {
+    const a = good();
+    if (bad === undefined) delete a.icon; else a.icon = bad;
+    assert.throws(() => SA.data.register('animals', [a]), /id "zorro", field "icon": must be a short non-empty emoji string/);
   }
 });
 

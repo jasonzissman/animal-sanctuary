@@ -195,7 +195,9 @@ test('view is a harmless no-op without a DOM', () => {
   const { SA } = setup();
   const v = SA.prompt.createView(null);
   assert.doesNotThrow(() => { v.showRound(); v.celebrate(); v.confetti(); v.toast('x'); v.shake(); v.clear(); v.showHint(); });
-  assert.equal(SA.prompt.ICONS.conejo, '🐰');
+  assert.equal(SA.prompt.iconFor('conejo'), '🐰');
+  assert.equal(SA.prompt.iconFor('nope'), '🐾');
+  assert.equal(SA.prompt.ICONS, undefined);
 });
 
 test('round fx: wobble moves an animal and always returns it to rest', () => {

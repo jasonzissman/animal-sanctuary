@@ -14,8 +14,11 @@
   var NEXT_MS = 2200;      // celebration time before the next clue
   var AUTO_HINT_MS = 20000;  // stuck this long on a round: reveal the hint automatically
 
-  var ICONS = { conejo: '🐰', pato: '🦆', tortuga: '🐢', mono: '🐵', tucan: '🦜', rana: '🐸', raton: '🐭' };
-  function iconFor(animalId) { return ICONS[animalId] || '🐾'; }
+  // The icon lives in the animal's data (validated `icon` field); '🐾' only covers an id that is not registered.
+  function iconFor(animalId) {
+    var a = SA.data && SA.data.get('animals', animalId);
+    return (a && a.icon) || '🐾';
+  }
 
   function createController(o) {
     var game = o.game, view = o.view, fx = o.fx, audio = o.audio || SA.audio;
@@ -246,5 +249,5 @@
     return ctl;
   }
 
-  SA.prompt = { NEXT_MS: NEXT_MS, AUTO_HINT_MS: AUTO_HINT_MS, ICONS: ICONS, createController: createController, createView: createView, start: start };
+  SA.prompt = { NEXT_MS: NEXT_MS, AUTO_HINT_MS: AUTO_HINT_MS, iconFor: iconFor, createController: createController, createView: createView, start: start };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -38,8 +38,9 @@ test('first load returns defaults and writes nothing', () => {
     version: 4, stars: 0, unlockedAnimals: [], placedProps: [],
     rounds: { completed: 0, streak: 0 },
     settings: { muted: false, english: false, scaffold: 1 }, stats: { unlocks: {} },
-    inventory: { items: KIT, equipped: null }, introSeen: false,
+    inventory: { items: KIT, equipped: null },
   });
+  assert.equal('introSeen' in s, false, 'the retired intro flag is not written for new saves');
   assert.equal(storage._m.size, 0);
 });
 
@@ -183,9 +184,29 @@ test('v1 save migrates to v2: stats.unlocks added, everything else kept', () => 
   assert.equal(s.version, 4);
   assert.deepEqual(s.stats, { parts: { orejas: { taps: 3, misses: 1 } }, unlocks: {} });
   assert.deepEqual(s.inventory, { items: KIT, equipped: null });
-  const { inventory, introSeen, ...rest } = s;
+  const { inventory, ...rest } = s;
   assert.deepEqual({ ...rest, version: 1, stats: old.stats }, old);
   assert.equal(storage.getItem(CORRUPT), null);
+});
+
+test('introSeen (retired, AS-0213): saves that have it load unchanged, older saves do not gain it, junk is dropped, a bad read is never wiped', () => {
+  const kept = plain(setup({ storage: fakeStorage({ [KEY]: JSON.stringify({ version: 4, stars: 3, introSeen: true }) }) }).save.load());
+  assert.equal(kept.introSeen, true);
+  assert.equal(kept.stars, 3);
+  const falseToo = plain(setup({ storage: fakeStorage({ [KEY]: JSON.stringify({ version: 4, introSeen: false }) }) }).save.load());
+  assert.equal(falseToo.introSeen, false);
+  const v3 = plain(setup({ storage: fakeStorage({ [KEY]: JSON.stringify({ version: 3, stars: 5 }) }) }).save.load());
+  assert.equal(v3.version, 4);
+  assert.equal(v3.stars, 5);
+  assert.equal('introSeen' in v3, false);
+  const junk = plain(setup({ storage: fakeStorage({ [KEY]: JSON.stringify({ version: 4, introSeen: 'yes', stars: 2 }) }) }).save.load());
+  assert.equal('introSeen' in junk, false);
+  assert.equal(junk.stars, 2);
+  const bad = fakeStorage({ [KEY]: '{nope' });
+  assert.equal(setup({ storage: bad }).save.load().stars, 0);
+  assert.equal(bad.getItem(CORRUPT), '{nope', 'an unreadable save is copied aside, not wiped');
+  // A fresh save still has la cámara.
+  assert.ok(plain(setup().save.load()).inventory.items.some((i) => i.id === 'camara'));
 });
 
 test('stats.unlocks keeps valid counts, drops junk, and survives a reload', () => {

@@ -2,8 +2,8 @@
  *
  * Shape: { version, stars, unlockedAnimals, placedProps, rounds: {completed, streak},
  *          settings: {muted, english, scaffold}, stats, inventory }.
- *          introSeen = true once the scientist's intro conversation was played or skipped (v4, AS-0202). New saves: false;
- *          saves from before v4 migrate to true (those players already started, so it never auto-plays for them).
+ *          introSeen: retired (AS-0202 added it, AS-0213 replaced the first-run intro with a hello on every load). New saves do not
+ *          have it; a save that already has it keeps it unchanged (a harmless boolean nothing reads).
  *          missions = { done: [id], active: null | { id, step, seed, replay }, celebrated?: [id] } (AS-0177, SA.missions; AS-0198 celebrated; absent until used).
  *          album = { '<animalId>': 'YYYY-MM-DD' }: first-photo date per photographed animal (SA.album; no image data).
  *          inventory = { items: [{ id, count }], equipped: id|null } (added in v3; an array so removals persist
@@ -42,8 +42,7 @@
       rounds: { completed: 0, streak: 0 },
       settings: { muted: false, english: false, scaffold: 1 },
       stats: { unlocks: {} },
-      inventory: startingInventory(),
-      introSeen: false
+      inventory: startingInventory()
     };
   }
 
@@ -71,9 +70,8 @@
       old.version = 3;
       return old;
     },
-    // v4 adds introSeen. An existing save already started playing, so the scientist's intro must not auto-play for it.
+    // v4 once added introSeen for the retired first-run intro (AS-0213: nothing reads it any more). Keep the version; leave the data alone.
     3: function (old) {
-      old.introSeen = true;
       old.version = 4;
       return old;
     }
@@ -130,7 +128,7 @@
       });
     }
     out.inventory = normalizeInventory(s.inventory);
-    out.introSeen = typeof s.introSeen === 'boolean' ? s.introSeen : d.introSeen;
+    if (s.introSeen !== undefined && typeof s.introSeen !== 'boolean') delete out.introSeen;   // retired flag: kept only when it is a boolean
     if (s.album !== undefined) out.album = normalizeAlbum(s.album);   // optional, like photos: absent until the first photo
     if (s.missions !== undefined) out.missions = normalizeMissions(s.missions);   // optional: absent until the first mission starts
     return out;

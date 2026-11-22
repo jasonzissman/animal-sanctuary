@@ -1,10 +1,8 @@
-/* SA.scientistView.create(doc, o) -> { element, isOpen(), open(source), close(), replayIntro() }: the scientist's reminder card (DOM only).
+/* SA.scientistView.create(doc, o) -> { element, isOpen(), open(source), close() }: the scientist's reminder card (DOM only).
  *   o.onToggle(isOpen)   optional, e.g. main.js pauses picking while it shows.
- *   o.onReplayIntro()    called after the card closes when the kid taps 💬: plays the whole intro conversation again
- *                        (SA.introView start(true); a replay never starts a mission).
  * Opens when SA.npc.talk() fires (E / Enter on the outlined scientist, or a tap on her). It shows the picture cards from
  * SA.scientistTalk.reminder() (🧑‍🔬, the one-line general mission, then the current mission and step, or "pick a mission at the
- * board"), speaks them one after the other (SA.audio.say), and has a big 🔊 Replay, a 💬 replay-the-intro button and ✕.
+ * board"), speaks them one after the other (SA.audio.say), and has a big 🔊 Replay and ✕.
  * It only talks: it never starts a mission. No-op without a DOM.
  */
 (function (root) {
@@ -15,7 +13,7 @@
     'cursor:pointer;touch-action:manipulation;min-height:72px;min-width:72px;padding:0 .8em;margin:0;';
 
   function create(doc, o) {
-    var none = { element: null, isOpen: function () { return false; }, open: function () { return false; }, close: function () {}, replayIntro: function () {} };
+    var none = { element: null, isOpen: function () { return false; }, open: function () { return false; }, close: function () {} };
     if (!doc || typeof doc.createElement !== 'function' || !doc.body || !SA.npc || !SA.npc.onTalk || !SA.scientistTalk) return none;
     o = o || {};
     function el(tag, css, text) {
@@ -69,10 +67,6 @@
     }
 
     function close() { show(false); }
-    function replayIntro() {
-      close();
-      try { if (o.onReplayIntro) o.onReplayIntro(); } catch (e) { if (root.SAT && root.SAT.error) { try { root.SAT.error('scientist.replayIntro', e); } catch (x) { /* silent */ } } }
-    }
 
     function render() {
       clear(card);
@@ -88,7 +82,6 @@
       });
       var btns = el('div', 'display:flex;flex-wrap:wrap;gap:12px;justify-content:center;');
       btns.appendChild(button('🔊', 'Otra vez', speak));
-      btns.appendChild(button(talk.replay.icon, talk.replay.es, replayIntro));
       btns.appendChild(button('✕', 'Cerrar', close));
       card.appendChild(btns);
     }
@@ -109,7 +102,7 @@
     ['pointerdown', 'mousedown', 'touchstart'].forEach(function (ev) { shade.addEventListener(ev, function (e) { if (e && e.stopPropagation) e.stopPropagation(); }); });
     if (root.addEventListener) root.addEventListener('keydown', function (e) { if (opened && e && e.key === 'Escape') close(); });
 
-    return { element: shade, isOpen: function () { return opened; }, open: open, close: close, replayIntro: replayIntro };
+    return { element: shade, isOpen: function () { return opened; }, open: open, close: close };
   }
 
   SA.scientistView = { create: create };

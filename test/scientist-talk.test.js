@@ -4,8 +4,7 @@ import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js', 'game/save.js',
   'game/data/vocab.js', 'game/data/foods.js', 'game/data/items.js', 'game/inventory.js', 'game/map.js', 'game/station.js', 'game/npc.js',
-  'game/data/missions.js', 'game/missions.js', 'game/data/intro.js', 'game/intro-dialogue.js', 'game/scientist-talk.js',
-  'game/ui/intro-view.js', 'game/ui/scientist-view.js'];
+  'game/data/missions.js', 'game/missions.js', 'game/scientist-talk.js', 'game/ui/scientist-view.js'];
 const KEY = 'santuario_save_v1';
 
 function fakeStorage(initial = {}) {
@@ -116,10 +115,9 @@ const click = (n) => n.listeners.click({ stopPropagation() {}, target: n });
 function views(storage) {
   const SA = setup(storage), said = [];
   SA.audio = { say: (k, done) => { said.push({ k, done }); }, stopVoice() {} };
-  const toggles = [], replays = [];
-  const intro = SA.introView.create(fakeDom(), { auto: false });
-  const v = SA.scientistView.create(fakeDom(), { onToggle: (on) => toggles.push(on), onReplayIntro: () => { replays.push(1); intro.start(true); } });
-  return { SA, v, intro, said, toggles, replays };
+  const toggles = [];
+  const v = SA.scientistView.create(fakeDom(), { onToggle: (on) => toggles.push(on) });
+  return { SA, v, said, toggles };
 }
 
 test('using her speaks the one-line mission then the current mission, with picture cards and a Replay button', () => {
@@ -158,42 +156,18 @@ test('with no mission running it points to the board and never starts one', () =
   assert.equal(SA.missions.status('mama'), 'available');
 });
 
-test('the intro can be replayed from the scientist; a replay changes nothing in the save and never starts a mission', () => {
-  const st = fakeStorage();
-  const { SA, v, intro, replays } = views(st);
-  SA.save.update({ introSeen: true });
-  assert.equal(SA.introDialogue.shouldPlay(), false, 'it does not auto-play on later loads');
-  assert.equal(SA.introView.create(fakeDom(), {}).isOpen(), false);
-  intro.start();
-  assert.equal(intro.isOpen(), false, 'plain start() respects introSeen');
-  SA.npc.talk('use');
-  click(find(v.element, (n) => n.attrs['aria-label'] === 'La charla'));
-  assert.equal(v.isOpen(), false, 'the reminder card closes first');
-  assert.equal(replays.length, 1);
-  assert.equal(intro.isOpen(), true, 'the whole intro plays again');
-  const lines = SA.data.all('intro').length;
-  for (let i = 0; i < lines; i++) click(intro.element);
-  assert.equal(intro.isOpen(), false);
-  assert.equal(SA.missions.active(), null, 'finishing a replay never starts Mission 1');
-  assert.equal(SA.save.get().introSeen, true);
-  // Skipping a replay ends it the same way.
-  intro.start(true);
-  click(find(intro.element, (n) => n.attrs['aria-label'] === 'Saltar'));
-  assert.equal(intro.isOpen(), false);
-  assert.equal(SA.missions.active(), null);
-});
-
-test('a replay on a save whose intro was never seen still starts nothing and leaves the flag alone', () => {
-  const { SA, intro } = views();
-  intro.start(true);
-  click(find(intro.element, (n) => n.attrs['aria-label'] === 'Saltar'));
-  assert.equal(SA.save.get().introSeen, false);
-  assert.equal(SA.missions.active(), null);
-  // and the real first-run intro still works afterwards
-  intro.start();
-  click(find(intro.element, (n) => n.attrs['aria-label'] === 'Saltar'));
-  assert.equal(SA.save.get().introSeen, true);
-  assert.equal(SA.missions.active().id, 'mama');
+test('talking to her after the greeting still shows the reminder card (🔊 and ✕ only); the retired intro is gone', () => {
+  const { SA, v } = views();
+  assert.equal(SA.introView, undefined);
+  assert.equal(SA.introDialogue, undefined);
+  assert.equal(SA.npc.talk('use'), true);
+  assert.equal(v.isOpen(), true);
+  const labels = [];
+  const walk = (n) => { if (n.attrs && n.attrs['aria-label']) labels.push(n.attrs['aria-label']); n.children.forEach(walk); };
+  walk(v.element);
+  assert.deepEqual(labels, ['Otra vez', 'Cerrar']);
+  assert.equal(SA.scientistTalk.reminder().replay, undefined);
+  assert.equal(SA.missions.active(), null, 'she never starts a mission');
 });
 
 test('the card is a no-op without a DOM and closes on Escape or a tap outside', () => {

@@ -50,23 +50,23 @@ current; when your change sets or changes something future tickets must follow, 
   card (never a second overlay). `SA.missionsDialogue` (`missions-dialogue.js`, pure): `begin/view/advance` sequence the lines;
   `celebration()` / `markSeen()` give the one-time cheer (fanfare + "¡Lo lograste! ¡Nueva misión!") the first station visit after a
   mission is finished, pointing 👇 at the unlocked card; "seen" is `missions.celebrated: [id]` in the save, so replays never re-cheer.
-  **Scientist intro conversation (AS-0202, slice 1 of AS-0142):** on a new save (`introSeen` false in the save, v4; older saves migrate
-  to true so it never plays for them) a full-screen card plays 4 spoken lines (data `game/data/intro.js`, `{ es, icon, vocabKey }`,
-  vocab `phrase:intro*`): who you are, animals need help, busca / ayuda / foto, "¡Vamos a las misiones!". `SA.introDialogue`
-  (`intro-dialogue.js`, pure: `shouldPlay/begin/view/next/skip/finish`) is the state machine; `ui/intro-view.js` is the overlay (tap
-  = next line, one ⏭️ tap skips all, 🔊 replays, lines also move on by themselves after the voice). `finish()` sets `introSeen`, puts
-  la cámara back in the inventory if missing and starts the next mission (Mission 1) via `SA.missions.start`. After that, new
-  missions start only from the Misiones board.
+  **Scientist greeting on every load (AS-0213, replaces the AS-0202 first-run intro):** the long intro that started Mission 1 by
+  itself is retired (`SA.introDialogue`, `intro-view.js`, `data/intro.js` are gone). As soon as the world is shown (every load, not just
+  a new save) ONE card in the scientist's card style shows both lines at once: "¡Hola! Elige una misión en la estación." (🏠📋) and
+  "O explora y ayuda a los animales." (🧭🐾); vocab `phrase:saludo1/2` carry the English toggle text; `SA.audio.say` speaks line 1 then
+  line 2; 🔊 replays. It closes on ✕, Enter / E (swallowed so it does not also talk to her), a tap, or the moment the kid walks
+  (WASD / arrows, or moving more than ~0.35 away from where it opened). Never stepped through. The open/close rules are the pure
+  `SA.greeting` (`greeting.js`: `create() -> open/close/onKey/onTap/update`, tested in node:vm); `ui/greeting-view.js` is the overlay.
+  No mission starts by itself: missions are chosen at the board. A fresh save still has la cámara (the starting kit). `introSeen` in
+  the save is retired: new saves do not get it, existing saves keep it untouched (nothing reads it; no version bump).
   **Hook for the board (AS-0142):** `SA.missionsBoard.pointAndStartFirst()` opens the station, points at the next card
-  (mission 1 on a fresh save) and runs its intro; returns `{ ok, id }` or `{ ok:false, reason:'busy'|'none'|'no-board' }`. The
-  Scientist NPC slices (AS-0142 2/3, 3/3) may use it; the first-run intro does not (it starts Mission 1 directly).
+  (mission 1 on a fresh save) and runs its intro; returns `{ ok, id }` or `{ ok:false, reason:'busy'|'none'|'no-board' }`.
   **Using the scientist (AS-0204, slice 3/3 of AS-0142):** E / Enter (she is a second target in `SA.spaceUse`'s doors list, kind `'npc'`,
   `SA.npc.useTarget()`) or a tap on her invisible pick volume (`userData.scientist`, `render/scientist-tap.js`) calls `SA.npc.talk(source)`.
   `ui/scientist-view.js` shows a card and speaks it: the one-line mission "Ayuda a los animales: busca, ayuda, foto", then the current
   mission (title + icon) and the step it is on, or "Elige una misión en la estación" when none runs. Text comes from the pure
-  `SA.scientistTalk.reminder()` (`scientist-talk.js`, step kinds -> icon + vocab key). 🔊 replays it; 💬 closes the card and replays
-  the whole intro (`SA.introView` `start(true)`: it never calls `finish()`, so no flag change and no mission starts). She never starts
-  a mission: missions start only at the Misiones board.
+  `SA.scientistTalk.reminder()` (`scientist-talk.js`, step kinds -> icon + vocab key). 🔊 replays it, ✕ closes it (the old 💬
+  "replay the intro" button went away with the intro, AS-0213). She never starts a mission: missions start only at the Misiones board.
 - **Climb anything too steep to walk (AS-0163 to AS-0165).** Trees, mountain peaks and the station all climb the same way:
   face it -> outline -> E/Enter, or push forward 0.6 s. Tops are flat enough to stand and turn (peaks: a 2-3 unit summit);
   walk or jump off the edge to drop down safely. Climb targets are data; anything new that is too steep joins them.

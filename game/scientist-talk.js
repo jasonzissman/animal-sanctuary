@@ -5,8 +5,7 @@
  *       state: 'active' | 'choose' | 'done',   an active mission / pick one at the board / every built mission finished
  *       lines: [{ role: 'general'|'mission'|'step'|'board', es, icon, key }]   in the order they are spoken; key is a vocab key
  *              (or the Spanish text itself for a mission title) that SA.audio.say plays
- *       missionId: id | null,
- *       replay: { icon, es }   the button that plays the whole intro conversation again }
+ *       missionId: id | null }
  *   Line 1 is always the one-line general mission ("Ayuda a los animales: busca, ayuda, foto"). Then the current mission's title
  *   card (its icon) plus the step it is on (find / help / follow / photo ...), or "choose a mission at the board" when none runs.
  *   It only reads SA.missions (active / next); it never starts, advances or abandons anything: missions start only at the
@@ -19,7 +18,6 @@
   var GENERAL = { role: 'general', es: 'Ayuda a los animales: busca, ayuda, foto', icon: '🔍🩹📷', key: 'phrase:recuerdo' };
   var BOARD = { role: 'board', es: 'Elige una misión en la estación', icon: '📋', key: 'phrase:eligemision' };
   var ALL_DONE = { role: 'board', es: '¡Muy bien! Pronto, más misiones.', icon: '🌟', key: 'phrase:masmisiones' };
-  var REPLAY = { icon: '💬', es: 'La charla' };
   // One short spoken card per mission step kind (the runner's kinds, AS-0178). Unknown kinds just have no step line.
   var STEPS = {
     find: { es: '¡Busca!', icon: '🔍', key: 'phrase:busca' },
@@ -46,7 +44,7 @@
       try { nxt = m && m.next ? m.next() : null; } catch (e) { nxt = null; }
       if (nxt) { state = 'choose'; lines.push(copy(BOARD)); } else lines.push(copy(ALL_DONE));
     }
-    return { state: state, lines: lines, missionId: id, replay: { icon: REPLAY.icon, es: REPLAY.es } };
+    return { state: state, lines: lines, missionId: id };
   }
 
   SA.scientistTalk = { reminder: reminder, GENERAL: GENERAL, STEPS: STEPS };

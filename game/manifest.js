@@ -47,6 +47,8 @@ globalThis.SA_MANIFEST = {
     'game/render/ambient.js',
     'game/picking.js',
     'game/pick-sfx.js',
+    'game/key-hint.js',
+    'game/ui/key-hint-view.js',
     'game/render/picking.js',
     'game/render/tree-tap.js',
     'game/hint-stage.js',

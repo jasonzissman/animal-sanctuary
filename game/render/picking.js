@@ -32,7 +32,8 @@
     var playing = [];                 // { mesh, reaction, t, base }
     var chip = null, chipLeft = 0;
     var cycler = SA.picking.createCycler();
-    var kb = null;                    // { group, meshes, idle } while keyboard cycling; meshes = highlighted part's visible meshes
+    var keyHint = SA.keyHintView ? SA.keyHintView.create(root.document, container) : null;   // icon-only Enter/Space hint
+    var kb = null;                   // { group, meshes, idle } while keyboard cycling; meshes = highlighted part's visible meshes
 
     function volumes() {
       var out = [];
@@ -184,6 +185,7 @@
       cycler.setItems(SA.picking.uniqueParts(best.userData.pickVolumes.map(function (p) { return p.userData; })));
       cycler.reset();
       kb = { group: best, meshes: [], idle: 0 };
+      if (keyHint) keyHint.cycling();
       return true;
     }
 
@@ -199,6 +201,7 @@
     }
 
     function onKey(e) {
+      if (keyHint && !kb) keyHint.keydown(e);
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       var action = SA.picking.keyAction(e.key, e.shiftKey);
       if (!action) return;
@@ -225,7 +228,7 @@
     }
     if (root.addEventListener) root.addEventListener('keydown', onKey, true);   // capture: wins over the camera rig's arrow keys while cycling
 
-    canvas.addEventListener('pointerdown', function (e) { stopKeys(); rubLast = null; rubDist = 0; tracker.down(e.pointerId, e.clientX, e.clientY); });
+    canvas.addEventListener('pointerdown', function (e) { stopKeys(); if (keyHint) keyHint.pointer(); rubLast = null; rubDist = 0; tracker.down(e.pointerId, e.clientX, e.clientY); });
     canvas.addEventListener('pointermove', function (e) {
       tracker.move(e.pointerId, e.clientX, e.clientY);
       if (e.buttons && SA.picking.hasRubTarget()) rub(e);

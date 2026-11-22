@@ -30,6 +30,8 @@
     giggle: [{ w: 'sine', f: 700, f2: 1100, t: 0, d: 0.09, g: 0.25 }, { w: 'sine', f: 800, f2: 1250, t: 0.1, d: 0.09, g: 0.25 },
              { w: 'sine', f: 700, f2: 1150, t: 0.2, d: 0.12, g: 0.22 }],
     sparkle: arp([1568, 2093, 2637, 3136, 4186], 0.06, 0.25, 0.14),
+    // Soft bird-like call from a treetop (AS-0117): two quick rising peeps. sfx(name, volume) scales it with distance.
+    chirp: [{ w: 'sine', f: 1900, f2: 2700, t: 0, d: 0.1, g: 0.2 }, { w: 'sine', f: 2200, f2: 3100, t: 0.14, d: 0.12, g: 0.2 }],
     // Camera shutter: two quick clicks (open, close).
     shutter: [{ n: 1, hp: 1800, t: 0, d: 0.04, g: 0.3 }, { w: 'square', f: 1400, f2: 900, t: 0, d: 0.03, g: 0.08 },
               { n: 1, hp: 1200, t: 0.07, d: 0.06, g: 0.25 }, { w: 'square', f: 800, f2: 500, t: 0.07, d: 0.04, g: 0.07 }]
@@ -111,7 +113,7 @@
     return gn;
   }
 
-  function voice(v, now) {
+  function voice(v, now, vol) {
     var t0 = now + v.t, src, out;
     if (v.n) {
       src = ctx.createBufferSource();
@@ -132,18 +134,20 @@
         lfo.start(t0); lfo.stop(t0 + v.d + 0.05);
       }
     }
-    envelope(out, t0, v.d, v.g);
+    envelope(out, t0, v.d, v.g * vol);
     src.start(t0);
     src.stop(t0 + v.d + 0.05);
   }
 
   // Plays a named effect. Returns true if it was started; false (never throws) when locked, muted, unknown or unsupported.
-  function sfx(name) {
+  // `volume` (optional, 0..1, default 1) scales the effect, e.g. a faraway call.
+  function sfx(name, volume) {
     if (!ctx || !master || !RECIPES.hasOwnProperty(name) || isMuted()) return false;
+    var vol = typeof volume === 'number' && volume >= 0 && volume <= 1 ? volume : 1;
     try {
       if (ctx.state === 'suspended' && typeof ctx.resume === 'function') ctx.resume();
       var now = ctx.currentTime;
-      RECIPES[name].forEach(function (v) { voice(v, now); });
+      RECIPES[name].forEach(function (v) { voice(v, now, vol); });
       return true;
     } catch (e) {
       return false;

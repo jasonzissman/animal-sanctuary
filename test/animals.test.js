@@ -147,3 +147,23 @@ test('index.html loads biomes and animals after parts, in order', () => {
   const at = (s) => html.indexOf(`game/data/${s}.js`);
   assert.ok(at('parts') > 0 && at('parts') < at('biomes') && at('biomes') < at('animals'));
 });
+
+test('every animal eye has a data-defined pupil that contrasts with the eye colour', () => {
+  const SA = loadGame(FILES);
+  for (const a of SA.data.all('animals')) {
+    const eye = a.parts.find((p) => p.part === 'ojos');
+    assert.ok(eye, `${a.id} has eyes`);
+    assert.match(eye.pupil, /^#[0-9a-f]{6}$/i, `${a.id} pupil`);
+    assert.notEqual(eye.pupil.toLowerCase(), eye.color.toLowerCase(), a.id);
+  }
+});
+
+test('validator rejects a pupil that is not a colour or does not contrast with the part', () => {
+  const withPupil = (id, color, pupil) => { const a = good(); a.id = id; a.parts = [{ ...part(), color, pupil }]; return a; };
+  let SA = loadGame(FILES);
+  assert.doesNotThrow(() => SA.data.register('animals', [withPupil('zorroa', '#f4f4f4', '#111111')]));
+  SA = loadGame(FILES);
+  assert.throws(() => SA.data.register('animals', [withPupil('zorrob', '#f4f4f4', 'black')]), /pupil/);
+  SA = loadGame(FILES);
+  assert.throws(() => SA.data.register('animals', [withPupil('zorroc', '#222222', '#111111')]), /pupil/);
+});

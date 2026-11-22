@@ -14,6 +14,7 @@
  *   - position     [x,y,z] in animal space (+z is forward, +y up; the animal's left is +x)
  *   - rotation     [rx,ry,rz] radians (Euler XYZ)
  *   - side         'left' | 'right' | null (null when centred)
+ *   - pupil        '#rrggbb' | null: the data's pupil colour; the renderer adds a small sphere child in front of the part
  * Instances spread symmetrically using |offset.x| as half-width: 2 -> left/right, 4 -> 2x2 grid
  * (rows at +-1.2 * half-width in z), other counts -> evenly across [-w, +w].
  *
@@ -86,7 +87,7 @@
         var side = sign(x);
         var rz = !rx && entry.count > 1 && TILT[def.anchor] ? -side * TILT[def.anchor] : 0;
         out.push({
-          animalId: animal.id, part: entry.part, builder: builder, color: entry.color,
+          animalId: animal.id, part: entry.part, builder: builder, color: entry.color, pupil: entry.pupil || null,
           size: local.slice(), worldSize: world.slice(),
           pickSize: pickSize, pickVolume: pickSize[0] * pickSize[1] * pickSize[2],
           position: [x, entry.offset[1], entry.offset[2] + spot[1]],

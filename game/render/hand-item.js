@@ -54,7 +54,13 @@
     if (opts.hand) opts.hand.add(holder);
     var shownId = null, model = null;
 
+    var getWobble = opts.getWobble || function () { return SA.carry ? SA.carry.wobble() : null; };
+
     function update() {
+      // A fragile carried thing (SA.carry, AS-0231) wobbles in the fist after a jump: a gentle, funny shake, never a penalty.
+      var w = getWobble();
+      holder.rotation.x = HOLD.tilt + (w && w.active ? w.tilt : 0);
+      holder.rotation.z = w && w.active ? w.angle : 0;
       var id = getEquipped() || null;
       if (id === shownId) return;
       shownId = id;

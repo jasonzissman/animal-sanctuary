@@ -277,6 +277,13 @@ current; when your change sets or changes something future tickets must follow, 
   (talked scientist), `render/pickups.js` (collected), `ui/prompt.js` care `onDone` (helped), and `update(player)` each frame
   for `goTo` / reaching a `find` target through `SA.missionRuntime.locate(id) -> { x, z, r? }` (mission content sets it; `followed` is
   reported by the follower owner, AS-0173/0175). New event sources call `SA.missionRuntime.report`; never add engine code per mission.
+  **Carry and deliver (AS-0231, slice 3 of AS-0178):** `SA.carry` (`game/carry.js`, pure) is what the kid holds: `pickUp(id, {fragile?})`
+  (a known item is added + equipped so the hotbar and hand model show it; an animal id fills a carry slot), `holds(id)`, `drop()`,
+  `deliver(player, step, locate)`. `SA.missionRuntime.update` reports `carried` while a `carry` step's item is held (flagging it fragile
+  when the step says so) and `delivered` once a `deliver` step's held item is within `locate(to).r` (default 2.5) of its target, dropping it
+  there. A fragile thing wobbles after a jump (`SA.carry.update(dt, player)` in main.js reads the SA.jump `takeoff`/`double` event;
+  `wobble()` -> `{ active, angle, tilt }` is drawn by `render/hand-item.js`): a gentle shake, never a drop, fail or reset. Mission content
+  that needs a thing in hand calls `SA.carry.pickUp`; `locate(id)` resolves the deliver target like a goTo place.
 - **Proximity only (AS-0225, slice 2 of AS-0217): clue rounds and encounters never start or show unless their animal is near.**
   `SA.taskGate` (`game/task-gate.js`, pure wiring) is polled each frame by `main.js` (`ctl.updateTasks()`, after `SA.focus.update()`).
   With no round, it asks `SA.nearbyTask`; when an animal is near and in view it calls `missionFlow.begin(animalId)`, so

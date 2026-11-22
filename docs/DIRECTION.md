@@ -19,6 +19,10 @@ current; when your change sets or changes something future tickets must follow, 
   up on its own so birds and monkeys are on screen; on open ground it eases back to normal. Still one camera, no
   button to learn (`SA.camera.frameAbove` in `game/camera-frame.js`: extra distance, lower pitch, higher look-at, small fov
   widening, eased ~0.5 s; a drag overrides it; `hooks.chase.above()` supplies perched animals). Space jumps everywhere, including in a canopy (AS-0115).
+  **Never tilt away from a ground animal (AS-0216):** a Use target on the ground in reach (`hooks.chase.ground()`: animal part,
+  pickup, NPC) cancels the look-up; a perched animal counts only inside a ±50° forward cone and after ~0.6 s standing still
+  (`SA.camera.frameHold`; walking resets it at once); the look-at rises only enough to keep the player's feet and the animal
+  on screen. Canopy framing is unchanged.
 - **The game starts at a research station (AS-0141, slice 1 = AS-0145).** A small low-poly building (door, window, roof, dish, antenna,
   "Estación" sign with an atom icon, bench, crates) stands on the flattest dry ground by the bosque/selva border; the kid spawns just outside
   the door. **Spawn pose (AS-0212):** on every load the kid stands ~2.6 in front of the front wall, straight in front of the scientist's post

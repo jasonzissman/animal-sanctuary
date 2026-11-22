@@ -8,6 +8,8 @@
  * SA.turn, the short way round; any walking input cancels the turn).
  * Automatic framing (AS-0116, SA.camera.frameAbove): hooks.chase.above() -> [{ x, y, z }] perched animals; near one above the
  * player, or up a canopy, the chase camera eases back, lowers and looks higher (and widens the fov a little); a drag overrides.
+ * AS-0216: it only frames what the player faces, after ~0.6 s standing still, and never while hooks.chase.ground() is true (a
+ * Use target such as an animal or pickup is in reach on the ground).
  * hooks.canOrbit(event) -> false lets a press start something else (e.g. rubbing a muddy part) without orbiting.
  */
 (function (root) {
@@ -46,7 +48,8 @@
     var run = false;            // Shift held: the avatar runs (SA.player RUN_SPEED) while moving forward
     var clearK = 1;             // smoothed fraction (0..1) of the camera's reach kept by SA.camera.clearPath
     var frame = C.NO_FRAME || { weight: 0, addDist: 0, addPitch: 0, addLookY: 0, addFov: 0 };   // eased SA.camera.frameAbove offsets (AS-0116)
-    var autoTimer = null;       // SA.climb.autoStep push timer (AS-0157): pushing forward into a tree for AUTO_CLIMB_MS climbs it
+    var still = 0;              // seconds standing still (SA.camera.frameHold): the look-up waits ~0.6 s (AS-0216)
+    var autoTimer = null;      // SA.climb.autoStep push timer (AS-0157): pushing forward into a tree for AUTO_CLIMB_MS climbs it
     var turn = null;           // eased avatar turn from glideTo (SA.turn); any walking/turning input cancels it (AS-0089)
     var baseFov = typeof camera.fov === 'number' ? camera.fov : C.DEFAULTS.fovDeg, lastFov = baseFov;
 
@@ -246,7 +249,11 @@
         if (C.frameAbove) {
           var dragging = !!(ayaw || apitch) || ids().some(function (k) { return pointers[k].moved && pointers[k].mode === 'orbit'; });
           var above = hooks && hooks.chase && hooks.chase.above ? hooks.chase.above() : [];
-          frame = C.easeFrame(frame, dragging ? C.NO_FRAME : C.frameAbove(player, above), dt, 6);
+          // AS-0216: walking resets the wait at once; a usable ground target (hooks.chase.ground()) cancels the look-up.
+          still = C.frameHold(still, dt > 0 ? Math.hypot(player.x - before.x, player.z - before.z) / dt : 0, dt);
+          var ground = !!(hooks && hooks.chase && hooks.chase.ground && hooks.chase.ground());
+          frame = C.easeFrame(frame, dragging ? C.NO_FRAME : C.frameAbove(player, above, null,
+            { ground: ground, still: still, dist: state.dist, pitch: state.pitch, fov: baseFov }), dt, 6);
         }
         var want = C.position(framed()), full = Math.hypot(want.x - player.x, want.z - player.z);
         var kept = full > 1e-6 ? C.clearPath(player, want, player.climb ? [] : obs) / full : 1;   // up a tree: nothing in the way

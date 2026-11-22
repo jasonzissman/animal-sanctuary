@@ -73,7 +73,14 @@
       animals.children.forEach(function (g) { if (g.userData && g.userData.perched) out.push({ x: g.position.x, y: g.position.y, z: g.position.z }); });
       return out;
     }
-    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, { chase: { obstacles: obstacles, pricklies: pricklies, trees: function () { return climbables; }, above: perchedAnimals }, canOrbit: function (e) {
+    // A Use target on the ground in reach (an animal part, a pickup or NPC at about the player's height): the camera must not tilt away from it (AS-0216).
+    function groundTarget() {
+      var t = spaceUse && spaceUse.target();
+      if (!t) return false;
+      if (t.kind === 'part') return true;
+      return t.kind === 'pickup' && !!t.ref && (typeof t.ref.y !== 'number' || t.ref.y - (rig.getPlayer().y || 0) < SA.camera.FRAME_DEFAULTS.minAbove);
+    }
+    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, { chase: { obstacles: obstacles, pricklies: pricklies, trees: function () { return climbables; }, above: perchedAnimals, ground: groundTarget }, canOrbit: function (e) {
       return !(SA.picking.hasRubTarget() && picking && SA.picking.isRubTarget(picking.pickAt(e.clientX, e.clientY)));
     } });
     var avatar = SA.render.createAvatar(THREE);

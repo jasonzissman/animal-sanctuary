@@ -15,6 +15,9 @@ current; when your change sets or changes something future tickets must follow, 
   reveal). Care tasks do not touch the camera at all. The camera does not clip through trees, rocks or big animals:
   `SA.camera.clearPath(player, wantedCamPos, obstacles)` (same `[[x, z, r], ...]` list the player collides with) returns
   how far out the camera may sit (never below `minClear`), smoothed by `easeClearance` (pulls in fast, relaxes slowly).
+- **The chase camera shows what is above you (AS-0116).** Near tree animals or up in a canopy it eases back and tilts
+  up on its own so birds and monkeys are on screen; on open ground it eases back to normal. Still one camera, no
+  button to learn. Space jumps everywhere, including in a canopy (AS-0115).
 - **No modes: keys always move the player.** Arrow keys/WASD only ever walk the player; nothing (finding an animal,
   care, menus) switches the keyboard to controlling something else, and there is never an "Escape to unlock". The
   mouse or a tap clicks on things (body parts, items); E/Enter uses the equipped item, Space jumps.
@@ -158,3 +161,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: one visible Space target. Whatever Space would act on gets a distinct outline (AS-0101; folds in AS-0100).
 - 2026-11-22: clear spawn, never stuck (AS-0105); walk through flowers and small animals (AS-0106).
 - 2026-11-22: Space jumps, E/Enter uses (AS-0111, AS-0112); run about 2.5x (AS-0110); walk on any ground, water never blocks (AS-0109).
+- 2026-11-22: camera frames treetop animals automatically (AS-0116), jump in canopies (AS-0115), treetop tells (AS-0117).

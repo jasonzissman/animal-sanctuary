@@ -59,17 +59,17 @@ test('tapping a slot equips it, tapping it again unequips, other slots switch, b
 test('slots show counts, follow inventory changes and cap at nine', () => {
   const { SA } = setup();
   SA.inventory.add('platano', 3);
-  SA.inventory.add('flor', 2);
+  SA.inventory.add('roca', 2);
   const s = SA.hotbar.slots();
   assert.equal(s.length, 6);
-  assert.deepEqual(plain(s.slice(4).map((x) => [x.slot, x.id, x.count])),[[5, 'platano', 3], [6, 'flor', 2]]);
+  assert.deepEqual(plain(s.slice(4).map((x) => [x.slot, x.id, x.count])),[[5, 'platano', 3], [6, 'roca', 2]]);
   assert.equal(SA.hotbar.pressKey('5').id, 'platano');
   assert.equal(SA.hotbar.slots()[4].equipped, true);
   // using up the equipped item empties hands and the slot closes up
   SA.inventory.remove('platano', 3);
   assert.equal(SA.inventory.equipped(), null);
-  assert.equal(SA.hotbar.slotItem(5), 'flor');
-  for (const id of ['roca', 'fresa', 'zanahoria', 'pez', 'hoja']) SA.inventory.add(id);
+  assert.equal(SA.hotbar.slotItem(5), 'roca');
+  for (const id of ['platano', 'fresa', 'zanahoria', 'pez']) SA.inventory.add(id);
   assert.equal(SA.hotbar.slots().length, SA.hotbar.MAX_SLOTS);
   assert.equal(SA.hotbar.slotItem(10), null);
 });

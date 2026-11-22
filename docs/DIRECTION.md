@@ -151,8 +151,8 @@ current; when your change sets or changes something future tickets must follow, 
   silent. Easter-egg creatures only appear once photographed. `SA.album` (game/album.js, pure) reads/writes save `album: { animalId:
   'YYYY-MM-DD' }` (first-photo date, no images; `SA.photo.record` calls `SA.album.add`) and builds the cards from animal/part data
   (parts carry an optional `icon`); `game/ui/album-view.js` is the DOM page and pauses picking while open.
-- **Inventory and tools.** You start with *cámara, cepillo, esponja, venda* and find more (*plátanos, rocas, flores,
-  hojas, peces*). Equip an item from the hotbar (tap or 1-9) and use it with **Space, a mouse click or a tap** on
+- **Inventory and tools.** You start with *cámara, cepillo, esponja, venda* and find more (*plátanos, fresas, rocas, peces*;
+  no flor/hoja items: flowers are walk-through decor only; `SA.save` drops retired `flor`/`hoja` from old saves). Equip an item from the hotbar (tap or 1-9) and use it with **Space, a mouse click or a tap** on
   the highlighted part. Clicking and touching animals directly stays first-class.
   Model (AS-0078): items are data in `game/data/items.js` (kind tool|food|find, food ids reuse `foods.js`);
   `SA.inventory` (game/inventory.js, pure) does add/remove/count/list/equip/equipped over `SA.save` (save v3,
@@ -200,7 +200,7 @@ current; when your change sets or changes something future tickets must follow, 
   anything else is `wrong` with `reason` `tool|part` and `careFlow` toasts and speaks `item:<id>` then `part:<key>` (never a
   penalty). Hand feeding: Space with a food equipped calls `care.feed(food, true)` and removes it from `SA.inventory` only when
   accepted; the tray still feeds for free. New actions are table rows, not special cases. Only mammals have *pelo*/*barriga* so far.
-  Built (AS-0083): tangled wing. Action `desenredar` (empty hands on *las alas*, `tangled: true`, `gives: 'hoja'`, `say:
+  Built (AS-0083): tangled wing. Action `desenredar` (empty hands on *las alas*, `tangled: true`, no `gives` (the leaf just falls, AS-0154), `say:
   'phrase:yapuedevolar'`) + care task "Quita la hoja de las alas" (3 tugs, only animals with alas). While it runs
   `ambient.setTangled` makes the bird hop on the ground with drooping wings (no flying) and `care-fx` puts green leaf bits on
   one wing; the last tug calls `fx.fly` (`ambient.flyLoop`: a spinning circle in the air), adds the leaf to `SA.inventory`

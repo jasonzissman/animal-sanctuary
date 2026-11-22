@@ -42,9 +42,7 @@
     item('fresa', '🍓', 'la fresa', 'strawberry', 'f', 'food', true),
     item('zanahoria', '🥕', 'la zanahoria', 'carrot', 'f', 'food', true),
     item('pez', '🐟', 'el pez', 'fish', 'm', 'food', true),
-    item('roca', '🪨', 'la roca', 'rock', 'f', 'find', true),
-    item('flor', '🌸', 'la flor', 'flower', 'f', 'find', true),
-    item('hoja', '🍃', 'la hoja', 'leaf', 'f', 'find', true)
+    item('roca', '🪨', 'la roca', 'rock', 'f', 'find', true)
   ];
 
   SA.data.defineKind('items', validateItem);

@@ -22,6 +22,7 @@
   var VERSION = 3;
   var STARTING_KIT = ['camara', 'cepillo', 'esponja', 'venda'];
   var DEBOUNCE_MS = 500;
+  var RETIRED_ITEMS = { flor: true, hoja: true };   // removed collectibles (AS-0154): dropped from saved inventories
 
   var state = null;
   var dirty = false;
@@ -140,7 +141,7 @@
     var seen = {};
     var items = [];
     inv.items.forEach(function (it) {
-      if (!isObj(it) || typeof it.id !== 'string' || !/^[a-z]+$/.test(it.id) || seen[it.id]) return;
+      if (!isObj(it) || typeof it.id !== 'string' || !/^[a-z]+$/.test(it.id) || seen[it.id] || RETIRED_ITEMS[it.id]) return;
       var n = count(it.count, 0);
       if (n < 1) return;
       seen[it.id] = true;

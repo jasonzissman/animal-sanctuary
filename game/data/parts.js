@@ -9,6 +9,7 @@
  *   builder   primitive name (SA.parts.BUILDERS); an animal's part entry may override it with its own `builder`
  *   anchor    default attachment point (SA.parts.ANCHORS)
  *   reaction  reaction animation when tapped (SA.parts.REACTIONS)
+ *   icon      optional emoji shown beside the part in the photo album (SA.album); a missing icon falls back to a dot
  */
 (function (root) {
   'use strict';
@@ -43,14 +44,19 @@
     oneOf(p.builder, BUILDERS, 'builder');
     oneOf(p.anchor, ANCHORS, 'anchor');
     oneOf(p.reaction, REACTIONS, 'reaction');
+    if (p.icon !== undefined) text(p.icon, 'icon');
   }
 
   SA.parts = { BUILDERS: BUILDERS, ANCHORS: ANCHORS, REACTIONS: REACTIONS, ARTICLES: ARTICLES };
   SA.data.defineKind('parts', validatePart);
 
+  var ICONS = { cabeza: '🙂', cuerpo: '🧸', orejas: '👂', ojos: '👀', hocico: '🐽', pico: '🐤', cola: '〰️', patas: '🐾',
+    alas: '🪽', caparazon: '🐢', cuernos: '🐂', aletas: '🐟', plumas: '🪶', nariz: '👃', joroba: '🐫', mejillas: '😊',
+    pelo: '🧶', barriga: '🫃' };
+
   function part(key, es, en, gender, number, builder, anchor, reaction) {
     return { id: key, key: key, label: { es: es, en: en }, gender: gender, number: number,
-      builder: builder, anchor: anchor, reaction: reaction };
+      builder: builder, anchor: anchor, reaction: reaction, icon: ICONS[key] };
   }
 
   SA.data.register('parts', [

@@ -46,6 +46,11 @@ current; when your change sets or changes something future tickets must follow, 
   `take(game, pick)`. A shot plays SFX `shutter`, a white flash and a framed snapshot (icon + Spanish name) that slides in; a
   match is the normal celebration + star; a different animal gets "¡Qué foto! Pero busca…" (`phrase:quefoto`) and the clue
   is replayed, the round continues (counts a miss for adaptive difficulty, never a penalty).
+- **Photo album (AS-0085).** The 📖 button (right side, under 🏡) opens a page of cards, one per species: photographed = icon, Spanish
+  name and its body parts as icon chips (tap the card or a chip to hear it); not yet photographed = a dark "?" silhouette that stays
+  silent. Easter-egg creatures only appear once photographed. `SA.album` (game/album.js, pure) reads/writes save `album: { animalId:
+  'YYYY-MM-DD' }` (first-photo date, no images; `SA.photo.record` calls `SA.album.add`) and builds the cards from animal/part data
+  (parts carry an optional `icon`); `game/ui/album-view.js` is the DOM page and pauses picking while open.
 - **Inventory and tools.** You start with *cámara, cepillo, esponja, venda* and find more (*plátanos, rocas, flores,
   hojas, peces*). Equip an item from the hotbar (tap or 1-9) and use it with **Space, a mouse click or a tap** on
   the highlighted part. Clicking and touching animals directly stays first-class.

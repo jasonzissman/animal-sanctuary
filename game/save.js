@@ -2,6 +2,7 @@
  *
  * Shape: { version, stars, unlockedAnimals, placedProps, rounds: {completed, streak},
  *          settings: {muted, english, scaffold}, stats, inventory }.
+ *          album = { '<animalId>': 'YYYY-MM-DD' }: first-photo date per photographed animal (SA.album; no image data).
  *          inventory = { items: [{ id, count }], equipped: id|null } (added in v3; an array so removals persist
  *          through update()'s deep merge). New and migrated saves get the starting kit (STARTING_KIT).
  *          stats.unlocks = { '<target>|<biome>|<item>': taps } is easter-egg tap progress (added in v2).
@@ -109,6 +110,17 @@
       if (n > 0) out.stats.unlocks[k] = n;
     });
     out.inventory = normalizeInventory(s.inventory);
+    if (s.album !== undefined) out.album = normalizeAlbum(s.album);   // optional, like photos: absent until the first photo
+    return out;
+  }
+
+  // Album: lowercase animal ids mapped to a YYYY-MM-DD first-photo date; anything else is dropped.
+  function normalizeAlbum(a) {
+    var out = {};
+    if (!isObj(a)) return out;
+    Object.keys(a).forEach(function (id) {
+      if (/^[a-z0-9_-]+$/.test(id) && typeof a[id] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a[id])) out[id] = a[id];
+    });
     return out;
   }
 

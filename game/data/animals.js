@@ -125,10 +125,10 @@
     { id: 'pato', name: { es: 'pato', en: 'duck', gender: 'm' }, icon: '🦆', biome: 'bosque',
       traits: { size: 'mediano', color: 'amarillo', movement: 'nada', diet: 'omnívoro', legs: 2 },
       parts: [
-        p('cuerpo', '#f2d33c', 1, 1, [0, 0.75, 0]), p('cabeza', '#f2d33c', 0.55, 1, [0, 1.35, 0.5]),
-        p('pico', '#f08a24', [0.3, 0.2, 0.4], 1, [0, 1.3, 0.9]), p('alas', '#e0bd22', [0.1, 0.5, 0.7], 2, [0.6, 0.85, 0]),
-        p('patas', '#f08a24', [0.12, 0.4, 0.12], 2, [0.2, 0.2, 0.05]), p('cola', '#e0bd22', 0.25, 1, [0, 0.85, -0.6]),
-        eyes(0.13, [0.14, 1.42, 0.71])
+        p('cuerpo', '#f2d33c', 1, 1, [0, 0.75, 0]), p('cabeza', '#f2d33c', 0.55, 1, [0, 1.3, 0.4]),
+        p('pico', '#f08a24', [0.3, 0.2, 0.4], 1, [0, 1.25, 0.8]), p('alas', '#e0bd22', [0.1, 0.5, 0.7], 2, [0.5, 0.75, 0]),
+        p('patas', '#f08a24', [0.12, 0.4, 0.12], 2, [0.2, 0.2, 0.05]), p('cola', '#e0bd22', 0.25, 1, [0, 0.85, -0.55]),
+        eyes(0.13, [0.14, 1.37, 0.61])
       ], easterEgg: false },
     { id: 'tortuga', name: { es: 'tortuga', en: 'turtle', gender: 'f' }, icon: '🐢', biome: 'bosque',
       traits: { size: 'mediano', color: 'verde', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
@@ -140,10 +140,10 @@
     { id: 'mono', name: { es: 'mono', en: 'monkey', gender: 'm' }, icon: '🐵', biome: 'selva',
       traits: { size: 'mediano', color: 'marrón', movement: 'trepa', diet: 'omnívoro', legs: 4 },
       parts: [
-        p('cuerpo', '#8a5a34', 1, 1, [0, 0.8, 0]), p('cabeza', '#8a5a34', 0.65, 1, [0, 1.6, 0.3]),
-        { part: 'orejas', builder: 'sphere', color: '#e8b894', scale: [0.14, 0.28, 0.28], count: 2, offset: [0.38, 1.65, 0.28] }, p('hocico', '#e8b894', 0.25, 1, [0, 1.52, 0.6]),
+        p('cuerpo', '#8a5a34', 1, 1, [0, 0.8, 0]), p('cabeza', '#8a5a34', 0.65, 1, [0, 1.45, 0.3]),
+        { part: 'orejas', builder: 'sphere', color: '#e8b894', scale: [0.14, 0.28, 0.28], count: 2, offset: [0.3, 1.5, 0.3] }, p('hocico', '#e8b894', 0.25, 1, [0, 1.42, 0.6]),
         p('cola', '#6d4423', [0.12, 0.12, 1.8], 1, [0, 0.8, -0.9]), p('patas', '#6d4423', [0.2, 0.7, 0.2], 4, [0.3, 0.35, 0]),
-        eyes(0.14, [0.15, 1.68, 0.56])
+        eyes(0.14, [0.15, 1.53, 0.56])
       ], easterEgg: false },
     { id: 'tucan', name: { es: 'tucán', en: 'toucan', gender: 'm' }, icon: '🦜', biome: 'selva',
       traits: { size: 'mediano', color: 'negro', movement: 'vuela', diet: 'herbívoro', legs: 2 },
@@ -163,9 +163,9 @@
       traits: { size: 'grande', color: 'marrón', movement: 'corre', diet: 'herbívoro', legs: 4 },
       parts: [
         p('cuerpo', '#c99a5b', [1.1, 0.9, 1.9], 1, [0, 1.5, 0]), p('joroba', '#b8864a', 0.75, 1, [0, 2.15, -0.1]),
-        p('cabeza', '#c99a5b', 0.6, 1, [0, 2.2, 1.25]), p('hocico', '#a87a40', [0.3, 0.25, 0.3], 1, [0, 2.1, 1.6]),
-        p('orejas', '#a87a40', [0.15, 0.2, 0.15], 2, [0.2, 2.55, 1.15]), p('cola', '#a87a40', [0.1, 0.1, 0.5], 1, [0, 1.6, -1.1]),
-        p('patas', '#b8864a', [0.22, 1.4, 0.22], 4, [0.4, 0.7, 0]), eyes(0.1, [0.2, 2.3, 1.44])
+        p('cabeza', '#c99a5b', 0.7, 1, [0, 1.95, 1.0]), p('hocico', '#a87a40', [0.3, 0.25, 0.3], 1, [0, 1.88, 1.3]),
+        p('orejas', '#a87a40', [0.15, 0.2, 0.15], 2, [0.2, 2.3, 0.95]), p('cola', '#a87a40', [0.1, 0.1, 0.5], 1, [0, 1.6, -1.1]),
+        p('patas', '#b8864a', [0.22, 1.4, 0.22], 4, [0.4, 0.7, 0]), eyes(0.1, [0.2, 2.03, 1.25])
       ], easterEgg: false },
     { id: 'serpiente', name: { es: 'serpiente', en: 'snake', gender: 'f' }, icon: '🐍', biome: 'desierto',
       traits: { size: 'mediano', color: 'naranja', movement: 'repta', diet: 'carnívoro', legs: 0 },
@@ -176,18 +176,18 @@
     { id: 'cabra', name: { es: 'cabra', en: 'goat', gender: 'f' }, icon: '🐐', biome: 'montana',
       traits: { size: 'mediano', color: 'blanco', movement: 'trepa', diet: 'herbívoro', legs: 4 },
       parts: [
-        p('cuerpo', '#f2efe6', [0.9, 0.8, 1.3], 1, [0, 0.9, 0]), p('cabeza', '#f2efe6', 0.5, 1, [0, 1.4, 0.8]),
-        p('cuernos', '#8a7a62', [0.1, 0.4, 0.1], 2, [0.16, 1.8, 0.75]), p('orejas', '#d8d2c4', [0.3, 0.14, 0.1], 2, [0.3, 1.5, 0.75]),
-        p('hocico', '#d8d2c4', 0.2, 1, [0, 1.3, 1.1]), p('cola', '#d8d2c4', [0.15, 0.15, 0.45], 1, [0, 1.1, -0.8]),
-        p('patas', '#c8c2b4', [0.14, 0.75, 0.14], 4, [0.28, 0.375, 0]), eyes(0.09, [0.16, 1.5, 0.95])
+        p('cuerpo', '#f2efe6', [0.9, 0.8, 1.3], 1, [0, 0.9, 0]), p('cabeza', '#f2efe6', 0.55, 1, [0, 1.25, 0.62]),
+        p('cuernos', '#8a7a62', [0.1, 0.4, 0.1], 2, [0.16, 1.65, 0.58]), p('orejas', '#d8d2c4', [0.3, 0.14, 0.1], 2, [0.3, 1.3, 0.62]),
+        p('hocico', '#d8d2c4', 0.2, 1, [0, 1.21, 0.88]), p('cola', '#d8d2c4', [0.15, 0.15, 0.45], 1, [0, 1.15, -0.65]),
+        p('patas', '#c8c2b4', [0.14, 0.75, 0.14], 4, [0.28, 0.375, 0]), eyes(0.09, [0.16, 1.31, 0.82])
       ], easterEgg: false },
     { id: 'aguila', name: { es: 'águila', en: 'eagle', gender: 'f' }, icon: '🦅', biome: 'montana',
       traits: { size: 'grande', color: 'marrón', movement: 'vuela', diet: 'carnívoro', legs: 2 },
       parts: [
-        p('cuerpo', '#6b4a2b', 0.95, 1, [0, 0.9, 0]), p('cabeza', '#f4f1ea', 0.5, 1, [0, 1.5, 0.35]),
-        p('pico', '#f2b01e', [0.22, 0.2, 0.5], 1, [0, 1.45, 0.8]), p('alas', '#4e331b', [0.1, 0.9, 1.7], 2, [0.8, 1.0, 0]),
-        p('cola', '#f4f1ea', [0.4, 0.1, 0.7], 1, [0, 0.8, -0.8]), p('patas', '#f2b01e', [0.1, 0.55, 0.1], 2, [0.2, 0.275, 0]),
-        eyes(0.1, [0.14, 1.58, 0.53])
+        p('cuerpo', '#6b4a2b', 0.95, 1, [0, 0.9, 0]), p('cabeza', '#f4f1ea', 0.5, 1, [0, 1.42, 0.32]),
+        p('pico', '#f2b01e', [0.22, 0.2, 0.5], 1, [0, 1.37, 0.75]), p('alas', '#4e331b', [0.1, 0.9, 1.7], 2, [0.45, 1.0, 0]),
+        p('cola', '#f4f1ea', [0.4, 0.1, 0.7], 1, [0, 0.8, -0.75]), p('patas', '#f2b01e', [0.1, 0.55, 0.1], 2, [0.2, 0.275, 0]),
+        eyes(0.1, [0.14, 1.5, 0.49])
       ], easterEgg: false },
     // Easter egg #1 (original design): a blocky yellow mouse. Hidden until the player has 10 stars AND has tapped the
     // same tree of the forest 5 times. The condition is plain data (see game/unlocks.js).
@@ -196,11 +196,11 @@
       parts: [
         { part: 'cuerpo', builder: 'box', color: '#f6d63a', scale: [0.7, 0.6, 0.8], count: 1, offset: [0, 0.55, 0] },
         { part: 'cabeza', builder: 'box', color: '#f6d63a', scale: 0.55, count: 1, offset: [0, 1.05, 0.4] },
-        { part: 'orejas', builder: 'box', color: '#f6d63a', scale: [0.16, 0.9, 0.12], count: 2, offset: [0.2, 1.65, 0.35] },
+        { part: 'orejas', builder: 'box', color: '#f6d63a', scale: [0.16, 0.8, 0.12], count: 2, offset: [0.2, 1.62, 0.35] },
         { part: 'mejillas', color: '#ff7f98', scale: 0.15, count: 2, offset: [0.22, 0.98, 0.66] },
         eyes(0.1, [0.12, 1.15, 0.67]), p('hocico', '#5a3a2a', 0.09, 1, [0, 1.05, 0.7]),
         p('patas', '#e0b81c', [0.15, 0.35, 0.15], 4, [0.22, 0.175, 0]),
-        { part: 'cola', builder: 'zigzag', color: '#e0b81c', scale: [0.5, 1.2, 0.12], count: 1, offset: [0, 0.95, -0.5] }
+        { part: 'cola', builder: 'zigzag', color: '#e0b81c', scale: [0.5, 1.2, 0.12], count: 1, offset: [0, 0.95, -0.4] }
       ], easterEgg: true,
       unlock: { type: 'all', of: [
         { type: 'stars', min: 10 },

@@ -175,8 +175,8 @@ test('picking: eyes behind the first surface cannot be tapped through the back o
 
 test('picking: tiny parts of mono and tucan are reachable from the front', () => {
   const mono = pickerFor('mono');
-  assert.equal(mono([0.15, 1.68, 5], [0.15, 1.68, 0.56]).part, 'ojos');
-  assert.equal(mono([0, 1.52, 5], [0, 1.52, 0.6]).part, 'hocico');
+  assert.equal(mono([0.15, 1.53, 5], [0.15, 1.53, 0.56]).part, 'ojos');
+  assert.equal(mono([0, 1.42, 5], [0, 1.42, 0.6]).part, 'hocico');
   const tucan = pickerFor('tucan');
   assert.equal(tucan([2, 1.7, 4], [0.25, 1.58, 0.47]).part, 'ojos'); // the beak hides the eyes dead-on
   assert.equal(tucan([0, 1.45, 5], [0, 1.45, 0.9]).part, 'pico');

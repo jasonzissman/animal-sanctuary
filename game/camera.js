@@ -50,7 +50,8 @@
   /** Rotate a screen-relative ground move (right, down) into world x/z for the current yaw. */
   function groundMove(s, right, down) {
     var y = finite(s.yaw, 0) * RAD, c = Math.cos(y), n = Math.sin(y);
-    return { x: right * c - down * n, z: right * n + down * c };
+    // position() puts the camera at (sin yaw, cos yaw): screen-right is (cos, -sin), screen-down is (sin, cos).
+    return { x: right * c + down * n, z: -right * n + down * c };
   }
 
   function moved(s, x, z, dist) { return { x: x, z: z, dist: dist, yaw: s.yaw, pitch: s.pitch }; }
@@ -64,7 +65,7 @@
   function panByPixels(s, dx, dy, viewH, bounds, o) {
     o = o || DEFAULTS;
     var wpp = worldPerPixel(s.dist, o.fovDeg, viewH);
-    var sinT = Math.sin(clampPitch(s.pitch, o) * RAD);
+    var sinT = Math.max(0.35, Math.sin(clampPitch(s.pitch, o) * RAD));   // cap vertical-pan speed-up (~2.9x) at low angles
     var m = groundMove(s, -dx * wpp, -(dy * wpp) / sinT);
     return clampState(moved(s, s.x + m.x, s.z + m.z, s.dist), bounds, o);
   }

@@ -43,7 +43,7 @@
     var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, null, { canOrbit: function (e) {
       return !(SA.picking.hasRubTarget() && picking && SA.picking.isRubTarget(picking.pickAt(e.clientX, e.clientY)));
     } });
-    picking =SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container });
+    picking = SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container });
 
     var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid });
     var fx = SA.render.createRoundFx({ animals: animals });

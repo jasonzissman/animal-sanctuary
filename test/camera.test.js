@@ -117,12 +117,38 @@ test('position follows yaw and pitch: low pitch is near ground level, yaw swings
 });
 
 test('keyboard pan follows the yaw and stays inside the map; easing keeps the orbit', () => {
+  // At yaw 90 the camera sits at +x looking toward -x: screen-right is -z, screen-down (toward viewer) is +x.
   const rotated = C.panByKeys({ x: 0, z: 0, dist: 30, yaw: 90, pitch: 55 }, 1, 0, 0.5, B);
-  assert.ok(rotated.z > 0 && Math.abs(rotated.x) < 1e-9);
-  assert.equal(C.panByKeys({ x: 0, z: 0, dist: 30, yaw: 90, pitch: 55 }, 0, 1, 1e6, B).x, B.minX);
+  assert.ok(rotated.z < 0 && Math.abs(rotated.x) < 1e-9);
+  assert.equal(C.panByKeys({ x: 0, z: 0, dist: 30, yaw: 90, pitch: 55 }, 0, 1, 1e6, B).x, B.maxX);
   const eased = C.easeToward({ x: 0, z: 0, dist: 30, yaw: 70, pitch: 20 }, { x: 5, z: 5, dist: 20 }, 0.1, 4, B);
   assert.equal(eased.yaw, 70);
   assert.equal(eased.pitch, 20);
+});
+
+test('key and drag pans move along the camera screen axes at any yaw', () => {
+  for (const yaw of [0, 30, 90, 135, 180, -70]) {
+    const s = { x: 0, z: 0, dist: 30, yaw, pitch: 55 };
+    const p = C.position(s);
+    // Ground direction from camera to target is -(p - target); screen-down is toward the camera.
+    const dl = Math.hypot(p.x, p.z), down = { x: p.x / dl, z: p.z / dl };
+    // Screen-right is down rotated -90 degrees about the vertical: (x, z) -> (z, -x).
+    const right = { x: down.z, z: -down.x };
+    const dot = (a, b) => a.x * b.x + a.z * b.z;
+    const kr = C.panByKeys(s, 1, 0, 0.1, B);
+    assert.ok(dot(kr, right) > 0.5 && Math.abs(dot(kr, down)) < 1e-9, 'right key, yaw ' + yaw);
+    const kd = C.panByKeys(s, 0, 1, 0.1, B);
+    assert.ok(dot(kd, down) > 0.5 && Math.abs(dot(kd, right)) < 1e-9, 'down key, yaw ' + yaw);
+    // Dragging right pulls the ground right, so the target moves screen-left.
+    const dr = C.panByPixels(s, 50, 0, 600, B);
+    assert.ok(dot(dr, right) < 0 && Math.abs(dot(dr, down)) < 1e-9, 'drag right, yaw ' + yaw);
+  }
+});
+
+test('vertical drag pan speed is capped at low pitch', () => {
+  const top = C.panByPixels({ x: 0, z: 0, dist: 30, yaw: 0, pitch: 89 }, 0, 50, 600, B);
+  const low = C.panByPixels({ x: 0, z: 0, dist: 30, yaw: 0, pitch: 10 }, 0, 50, 600, B);
+  assert.ok(Math.abs(low.z) / Math.abs(top.z) < 3);
 });
 
 test('position sits behind and above the target', () => {

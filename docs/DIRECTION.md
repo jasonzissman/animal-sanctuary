@@ -16,6 +16,8 @@ current; when your change sets or changes something future tickets must follow, 
 - **No modes: keys always move the player.** Arrow keys/WASD only ever walk the player; nothing (finding an animal,
   care, menus) switches the keyboard to controlling something else, and there is never an "Escape to unlock". The
   mouse or a tap clicks on things (body parts, items); Space uses the equipped item.
+- **Soft things don't block.** The player walks through flowers, grass and small animals; only trees, rocks, ponds and
+  big animals block. You never start stuck or have to wait for an animal to move.
 - **Being close matters.** Inspecting, caring and photographing need the player within reach. Too far gives a
   friendly "¡Acércate!", never a wrong answer. Rule: `SA.reach.canReach(player, animal, part?)` (game/reach.js, player
   `y` is its standing height so climbing raises reach); `render/picking.js` gates every pick and rub through it and
@@ -76,3 +78,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: chase camera only. The care close-up ("on top of the player" view) is removed (AS ticket from Jason's playtest).
 - 2026-11-22: no keyboard lock-in. Part-cycling with arrows/Escape is removed (AS-0093); keys always move the player, mouse/tap picks parts.
 - 2026-11-22: one visible Space target. Whatever Space would act on gets a distinct outline (AS-0101; folds in AS-0100).
+- 2026-11-22: clear spawn, never stuck (AS-0105); walk through flowers and small animals (AS-0106).

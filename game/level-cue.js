@@ -21,5 +21,21 @@
     return Object.prototype.hasOwnProperty.call(SFX, cue) ? SFX[cue] : null;
   }
 
-  SA.levelCue = { cueFor: cueFor, sfxFor: sfxFor };
+  // Star-burst placement (CSS px). The star badge is fixed at left:12px;bottom:12px (about 110x50), so its centre is
+  // roughly (67, 37) from the bottom-left corner. Each star (a 2.2rem emoji, ~36px box) starts centred on the badge
+  // and fans out over the upper-right quarter only, so nothing ever leaves the left or bottom edge of the screen.
+  var BURST = { centerX: 67, centerBottom: 37, size: 36, count: 6, distance: 110, fromDeg: 10, toDeg: 100 };
+
+  // SA.levelCue.burstPlan() -> { left, bottom, size, stars: [{ dx, dy }] }
+  //   left/bottom: CSS offset of each star's box (start position); dx/dy: translate in CSS px (dy < 0 is up).
+  function burstPlan() {
+    var b = BURST, stars = [];
+    for (var i = 0; i < b.count; i++) {
+      var deg = b.fromDeg + (b.toDeg - b.fromDeg) * i / (b.count - 1), a = deg * Math.PI / 180;
+      stars.push({ dx: Math.round(Math.cos(a) * b.distance), dy: Math.round(-Math.sin(a) * b.distance) });
+    }
+    return { left: b.centerX - b.size / 2, bottom: b.centerBottom - b.size / 2, size: b.size, stars: stars };
+  }
+
+  SA.levelCue = { cueFor: cueFor, sfxFor: sfxFor, burstPlan: burstPlan };
 })(typeof window !== 'undefined' ? window : globalThis);

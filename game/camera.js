@@ -9,8 +9,10 @@
   var SA = root.SA;
 
   var DEFAULTS = {
-    minDist: 14, maxDist: 55, tiltDeg: 55, fovDeg: 45, keySpeed: 0.9, wheelK: 0.0012,
+    minDist: 4, maxDist: 55, tiltDeg: 55, fovDeg: 45, keySpeed: 0.9, wheelK: 0.0012,
     minPitch: 10, maxPitch: 89, yawPerPx: 0.3, pitchPerPx: 0.2, yawKeySpeed: 90, pitchKeySpeed: 45,
+    // Third-person chase camera: a few metres behind and slightly above the player, looking ahead at animal height.
+    chaseDist: 7, chasePitch: 16, lookAhead: 3, lookY: 1, followRate: 8, turnRate: 6, offsetDecay: 1.5,
   };
   var RAD = Math.PI / 180;
 
@@ -121,7 +123,45 @@
       s.dist + (target.dist - s.dist) * k), bounds, o);
   }
 
+  /** Shortest-way ease of an angle (degrees) toward `target`; frame-rate independent. */
+  function easeAngle(cur, target, dt, rate) {
+    var k = 1 - Math.exp(-(rate || 6) * Math.max(0, finite(dt, 0)));
+    return wrapYaw(finite(cur, 0) + wrapYaw(finite(target, 0) - finite(cur, 0)) * k);
+  }
+
+  /** Where a chase camera wants to look for player { x, z, heading (rad) }: a point ahead of them, seen from behind
+   * (yaw = heading + 180 deg) plus the player's swing `offset` in degrees (Q/E, drag). Returns { x, z, yaw }. */
+  function chaseTarget(p, offset, o) {
+    o = o || DEFAULTS;
+    var h = finite(p.heading, 0);
+    return { x: finite(p.x, 0) + Math.sin(h) * o.lookAhead, z: finite(p.z, 0) + Math.cos(h) * o.lookAhead,
+      yaw: wrapYaw(h / RAD + 180 + finite(offset, 0)) };
+  }
+
+  /** Camera state sitting exactly behind the player (no easing): used at start-up. */
+  function chaseStart(p, bounds, o) {
+    o = o || DEFAULTS;
+    var t = chaseTarget(p, 0, o);
+    return clampState({ x: t.x, z: t.z, dist: o.chaseDist, yaw: t.yaw, pitch: o.chasePitch }, bounds, o);
+  }
+
+  /** One smoothing step of the chase camera toward the player; keeps the current dist and pitch. */
+  function chaseFollow(s, p, offset, dt, bounds, o) {
+    o = o || DEFAULTS;
+    var t = chaseTarget(p, offset, o), k = 1 - Math.exp(-o.followRate * Math.max(0, finite(dt, 0)));
+    return clampState({ x: s.x + (t.x - s.x) * k, z: s.z + (t.z - s.z) * k, dist: s.dist,
+      yaw: easeAngle(s.yaw, t.yaw, dt, o.turnRate), pitch: s.pitch }, bounds, o);
+  }
+
+  /** Swing offset (degrees) drifts back behind the player while they walk, and is kept as-is while they stand. */
+  function decayOffset(offset, moving, dt, o) {
+    o = o || DEFAULTS;
+    var w = wrapYaw(offset);
+    return moving ? wrapYaw(w * Math.exp(-o.offsetDecay * Math.max(0, finite(dt, 0)))) : w;
+  }
+
   SA.camera = {
+    easeAngle: easeAngle, chaseTarget: chaseTarget, chaseStart: chaseStart, chaseFollow: chaseFollow, decayOffset: decayOffset,
     easeToward: easeToward, DEFAULTS: DEFAULTS, clampState: clampState, worldPerPixel: worldPerPixel, panByPixels: panByPixels,
     panByKeys: panByKeys, orbitByPixels: orbitByPixels, orbitByKeys: orbitByKeys, clampOrbit: clampOrbit,
     wrapYaw: wrapYaw, clampPitch: clampPitch, zoomByWheel: zoomByWheel, zoomByScale: zoomByScale, position: position,

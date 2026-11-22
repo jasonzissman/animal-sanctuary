@@ -65,7 +65,10 @@ current; when your change sets or changes something future tickets must follow, 
   instructions. Few icons: pill, stars, hotbar and one 🎒 menu; touch controls only on touch. When in doubt, remove an icon.
   `game/hud.js` (AS-0150) is that layout: `SA.hud.layout({width,height}, visibleIds)` returns a rect for every HUD id from named zones
   (topLeft, topRight, transient strip, bottomCenter/Left/Right, floating); sizes live in its data table (regular and compact for
-  phones). New HUD elements add an id and size there, never a fixed CSS offset. `game/ui/prompt.js` is migrated (pill/bar, stars
+  phones). New HUD elements add an id and size there, never a fixed CSS offset. AS-0148: the `prompt` rect is a small pill at top-left
+  (height <= 6% of the viewport, width <= 45%, capped at 480 px; sized in `hud.js`, not the SIZES table). Tapping the pill replays the
+  audio; it holds only the clue icon + short phrase (plus a plain 📷 badge when a photo is due): no replay, hint or camera buttons
+  (the hint still reveals itself after 20 s; la cámara is in the hotbar). `game/ui/prompt.js` is migrated (pill, stars
   under it, toast, snapshot card, feed tray; re-laid out on resize). AS-0151 migrated the rest of `game/ui/` through
   `game/ui/hud-place.js` (`SA.hudPlace.register(id, el, {reserve, onPlace})`, `refresh()` after a show/hide, re-run on resize):
   🏡/📖/⚙️ stack in the top-right column, hotbar and name chip, joystick, orbit pad, use/jump/climb sit in their zones, the sandbox

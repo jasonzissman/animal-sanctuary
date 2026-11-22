@@ -25,7 +25,7 @@
     // left/right = turn), the camera follows from behind, Q/E/R/F and drags swing it round the player, and pan gestures
     // (shift/right drag, two fingers) walk the player so touch screens can still move.
     // hooks.chase.trees() -> [{ x, z, y?, scale?, kind? }]: the climbable trees (SA.climb); the player state carries y and climb.
-    var player = SA.climb.step(SA.player.spawn(), {}, 0), moving = false, offset = 0, camY = 0;   // offset: swing from directly behind (deg)
+    var player = SA.climb.step(SA.player.spawn(), {}, 0), moving = false, offset = 0, camY = player.y;   // offset: swing from directly behind (deg)
     var state = C.chaseStart(player, B);
     var pointers = {};            // id -> { x, y, sx, sy, mode, moved }
     var held = {};                // key -> true
@@ -46,7 +46,8 @@
 
     function apply() {
       var p = C.position(state);
-      camera.position.set(p.x, p.y + camY, p.z);   // camY: the chase camera rises with the player up a tree
+      // camY: the chase camera rises with the player (up a tree, up a hill); it never dips below the terrain under it.
+      camera.position.set(p.x, SA.map.cameraHeight(p.y + camY, p.x, p.z), p.z);
       camera.lookAt(state.x, C.DEFAULTS.lookY + camY, state.z);   // look at about animal height
     }
     function obstacles() { return hooks && hooks.chase && hooks.chase.obstacles ? hooks.chase.obstacles() : []; }

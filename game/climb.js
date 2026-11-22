@@ -1,8 +1,8 @@
 /* SA.climb (also SA.player.climb): pure tree-climbing state machine for the walking player (no THREE, no DOM; node:vm tested).
  * Needs SA.map, SA.player and SA.perch (canopy heights per tree kind).
  *
- * Player state grows two fields: { x, z, heading, y, climb }.  y = height the player stands at (0 on the ground, the
- * canopy height up a tree: SA.reach compares it with perched animals). climb = null on the ground, else
+ * Player state grows two fields: { x, z, heading, y, climb }.  y = height the player stands at (the terrain height,
+ * SA.map.groundHeight, eased as they walk; the canopy height up a tree: SA.reach compares it with perched animals). climb = null on the ground, else
  * { mode: 'up'|'canopy'|'down', t, tree, from:{x,z,y}, to:{x,z,y}, safe:{x,z} } (plain data, never mutated).
  *
  *   SA.climb.nearest(state, trees)    -> the climbable tree { x, z, y?, scale?, kind? } within RANGE, or null
@@ -32,8 +32,8 @@
   function ease(k) { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); }
   function lerp(a, b, k) { return a + (b - a) * k; }
 
-  // Ground height under the avatar. The avatar stands at y = 0 for now; switch to SA.map.groundHeight when it follows terrain.
-  function groundAt() { return 0; }
+  // Ground height under the avatar: the single terrain source, SA.map.groundHeight.
+  function groundAt(x, z) { return SA.map.groundHeight(x, z); }
 
   function kindOf(tree) { var K = SA.perch && SA.perch.KINDS; return (K && (K[tree.kind] || K.jungle)) || { height: 4, radius: 0.8 }; }
   function scaleOf(tree) { return num(tree.scale, 1) > 0 ? num(tree.scale, 1) : 1; }
@@ -109,7 +109,8 @@
     var c = state.climb;
     if (!c) {
       var g = SA.player.step(state, input, dt, obstacles);
-      return { x: g.x, z: g.z, heading: g.heading, y: groundAt(g.x, g.z), climb: null };
+      // Feet follow the terrain, eased so slopes feel natural (no prior y, e.g. at spawn, snaps straight to the ground).
+      return { x: g.x, z: g.z, heading: g.heading, y: SA.map.followHeight(state.y, groundAt(g.x, g.z), dt), climb: null };
     }
     dt = Math.max(0, Math.min(MAX_DT, num(dt, 0)));
     if (c.mode === 'canopy') {

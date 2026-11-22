@@ -1,7 +1,7 @@
 /* SA.render.createAvatar(THREE) -> { group, update(dt, player) }: the procedural low-poly kid the player walks around as.
  * Built from boxes, a sphere and flat materials only. update() puts it at player { x, z, heading, moving } (heading in
  * radians, forward = (sin, cos) on x/z), and while `moving` plays a run bob and an opposite arm/leg swing; it eases
- * back to a standing pose when stopped. Feet are at y = 0 so the camera sees the kid from behind at ground level.
+ * back to a standing pose when stopped. The group sits at player.y (terrain height) with feet at its origin.
  */
 (function (root) {
   'use strict';

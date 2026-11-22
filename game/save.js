@@ -131,6 +131,7 @@
     if (s.introSeen !== undefined && typeof s.introSeen !== 'boolean') delete out.introSeen;   // retired flag: kept only when it is a boolean
     if (s.album !== undefined) out.album = normalizeAlbum(s.album);   // optional, like photos: absent until the first photo
     if (s.missions !== undefined) out.missions = normalizeMissions(s.missions);   // optional: absent until the first mission starts
+    if (s.rescues !== undefined) out.rescues = normalizeRescues(s.rescues);       // optional rescue log (AS-0235): absent until the first rescue
     return out;
   }
 
@@ -142,6 +143,19 @@
       if (/^[a-z0-9_-]+$/.test(id) && typeof a[id] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a[id])) out[id] = a[id];
     });
     return out;
+  }
+
+  // Rescue log (AS-0235): [{ kind, mission, animal?, key? }], newest last, capped at 200. kind is a lowercase word ('reunion').
+  function normalizeRescues(r) {
+    var ok = /^[a-z][a-z0-9-]*$/, out = [];
+    (Array.isArray(r) ? r : []).forEach(function (e) {
+      if (!isObj(e) || typeof e.kind !== 'string' || !ok.test(e.kind)) return;
+      var row = { kind: e.kind, mission: typeof e.mission === 'string' && ok.test(e.mission) ? e.mission : '' };
+      if (typeof e.animal === 'string' && ok.test(e.animal)) row.animal = e.animal;
+      if (typeof e.key === 'string' && e.key.length <= 40) row.key = e.key;
+      out.push(row);
+    });
+    return out.slice(-200);
   }
 
   // Missions (AS-0177): done = unique mission ids, active = null or { id, step, seed, replay } (one at a time).

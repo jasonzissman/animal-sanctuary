@@ -115,6 +115,12 @@
   // The pig's voice (animal.voice): the sow grunts, the piglet squeaks at a higher pitch (speech.js uses entry.pitch).
   add('phrase', 'oinc', 'Oinc, oinc', 'Oink oink');
   add('phrase', 'oincbebe', 'Oinc, oinc', 'Oink oink').pitch = BABY_PITCH;
+  // The family words of the reunion (SA.missionReunion, AS-0235), spoken in this order.
+  add('phrase', 'mama', 'la mamá', 'the mama');
+  add('phrase', 'cria', 'la cría', 'the baby animal');
+  add('phrase', 'bebe', 'el bebé', 'the baby');
+  add('phrase', 'familia', 'la familia', 'the family');
+  add('phrase', 'familiajunta', '¡La familia está junta!', 'The family is together!');
   add('phrase', 'acercate', '¡Acércate!', 'Come closer!');   // the reach cue (SA.reach.speakCue)
 
   SA.data.register('vocab', items);

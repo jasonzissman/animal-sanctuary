@@ -15,6 +15,7 @@
  *                      form SA.missionSpawn.sync takes). view = { following, x, z, heading, lift, moving, excited (0..1),
  *                      hop (true once: the happy hop), squeak (true when it should squeak now) }; null with no mission spawn
  *     view()           the last view
+ * view.reunion is true on the one frame the baby reaches mamá (SA.missionReunion.check, AS-0235; opts.reunion overrides it).
  * Following runs only while the 'follow' step is current; a reload on that step resumes it quietly (no hop, no tracking).
  * Telemetry: mission.babyFound { id }, mission.babyExcited { id } (first time per run it gets excited).
  */
@@ -39,6 +40,7 @@
     function spawn() { return opts.spawn || SA.missionSpawn; }
     function runtime() { return opts.runtime || SA.missionRuntime; }
     function follower() { return opts.follow || SA.follow; }
+    function reunionMod() { return opts.reunion === undefined ? SA.missionReunion : opts.reunion; }
     function track(type, fields) {
       try {
         if (opts.track) opts.track(type, fields);
@@ -98,6 +100,10 @@
         if (typeof solids === 'function') solids = solids();
         follower().stepAll([f], player, Array.isArray(solids) ? solids : [], dt);
       }
+      // Reached mamá (AS-0235): SA.missionReunion reports 'followed', logs the rescue and speaks; the view says `reunion` once
+      // so the renderer bursts hearts and nuzzles. The step moves on, so the baby stops following and stays beside her.
+      var reunion = false;
+      if (follow && reunionMod()) { try { reunion = reunionMod().check(f, cur.mama); } catch (e) { reunion = false; } }
       var near = excitement(dist(f, cur.mama));
       var squeak = false;
       if (pendingHop) squeak = true;
@@ -108,7 +114,7 @@
       } else if (squeakIn < 0) squeakIn = 0;
       if (pendingHop) squeakIn = SQUEAK_FAR;
       last = { following: true, x: f.x, z: f.z, heading: f.heading, lift: f.lift || 0, moving: !!f.moving, excited: near,
-        hop: pendingHop, squeak: squeak, pop: f.pop || null };
+        hop: pendingHop, squeak: squeak, pop: f.pop || null, reunion: reunion };
       pendingHop = false;
       return last;
     }

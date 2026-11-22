@@ -1,7 +1,8 @@
-/* SA.render.createCareFx(THREE, { animals, rig? }): the 3D side of a care task (procedural mud spots + sparkles).
- *   fx.show(task)        brown mud spots on every instance of task.part and the camera eases in on the animal
+/* SA.render.createCareFx(THREE, { animals }): the 3D side of a care task (procedural mud spots + sparkles).
+ * The camera is never moved: care happens from the chase camera behind the player.
+ *   fx.show(task)        brown mud spots on every instance of task.part
  *   fx.scrub(spotsLeft)  keeps only the first `spotsLeft` spots; each removed spot bursts into splash sparkles
- *   fx.hide()            removes any leftover spots and releases the camera
+ *   fx.hide()            removes any leftover spots
  *   opts.ambient         optional SA.render.createAmbient: the animal being cared for stands still until hide()
  *   fx.update(dt)        call every frame (animates the sparkle particles)
  * Spots are small flattened spheres added to the animal group (part meshes are non-uniformly scaled, so they are
@@ -13,10 +14,10 @@
   SA.render = SA.render || {};
 
   var MUD = 0x6b4423, MUD_DARK = 0x4d3019, SPARK = [0xffffff, 0xfff2a8, 0x9fdcff];
-  var ZOOM_DIST = 18, LIFE = 0.8;
+  var LIFE = 0.8;
 
   SA.render.createCareFx = function (THREE, opts) {
-    var animals = opts.animals, rig = opts.rig || null, ambient = opts.ambient || null, held = null;
+    var animals = opts.animals, ambient = opts.ambient || null, held = null;
     var geo = new THREE.SphereGeometry(1, 7, 5);
     var mats = [new THREE.MeshLambertMaterial({ color: MUD }), new THREE.MeshLambertMaterial({ color: MUD_DARK })];
     var scrapeMats = [new THREE.MeshLambertMaterial({ color: 0xd9534f }), new THREE.MeshLambertMaterial({ color: 0xb03a36 })];
@@ -56,7 +57,6 @@
         spots.push(spot);
       }
       if (ambient) { if (held) ambient.release(held); held = task.animalId; ambient.hold(held); }
-      if (rig && rig.focusOn) rig.focusOn(group.position.x, group.position.z, ZOOM_DIST);
       return true;
     }
 
@@ -98,7 +98,6 @@
     function hide() {
       clear();
       if (ambient && held) { ambient.release(held); held = null; }
-      if (rig && rig.release) rig.release();
     }
 
     function update(dt) {

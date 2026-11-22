@@ -416,7 +416,7 @@ test('care fx: heal draws a scrape then a bandage; a feed task only zooms the ca
   const { SA, THREE } = ctx;
   const animals = SA.render.buildAnimals(THREE, {});
   const calls = [];
-  const fx = SA.render.createCareFx(THREE, { animals, rig: { focusOn: () => calls.push('focus'), release: () => calls.push('release') } });
+  const fx = SA.render.createCareFx(THREE, { animals, rig: new Proxy({}, { get: (_, n) => () => calls.push(n) }) });
   const group = animals.getObjectByName('tucan');
   const before = group.children.length;
   assert.equal(fx.show({ kind: 'curar', animalId: 'tucan', part: 'alas', spots: 2 }), true);
@@ -430,6 +430,6 @@ test('care fx: heal draws a scrape then a bandage; a feed task only zooms the ca
   assert.equal(group.children.length, before);
   assert.equal(fx.show({ kind: 'alimentar', animalId: 'tucan', part: null }), true);
   assert.equal(fx.spotCount(), 0);
-  assert.deepEqual(calls.filter((c) => c === 'focus').length, 2);
+  assert.deepEqual(calls, [], 'no camera calls during care');
   fx.hide();
 });

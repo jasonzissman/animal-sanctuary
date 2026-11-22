@@ -85,7 +85,7 @@
     refreshAvoid();
     var fx = SA.render.createRoundFx({ animals: animals });
     var biomeGlow = SA.render.createBiomeGlow ? SA.render.createBiomeGlow(THREE, { scene: scene }) : null;
-    var careFx = SA.render.createCareFx(THREE, { animals: animals, rig: rig, ambient: ambient });
+    var careFx = SA.render.createCareFx(THREE, { animals: animals, ambient: ambient });
 
     function resize() {
       var w = container.clientWidth || root.innerWidth || 800;

@@ -10,7 +10,9 @@ current; when your change sets or changes something future tickets must follow, 
   the orbit keys and buttons now swing the camera around the player.
 - **One camera: the chase camera.** Everything happens from behind the player: finding animals, care, reveals. No
   overhead, close-up or focus views, and no camera that leaves the player. To draw attention to something, turn the
-  player and chase camera toward it.
+  player and chase camera toward it. In code: `SA.render.createCameraRig` is chase-only (the classic top-down mode,
+  `focusOn` and `release` are deleted); `rig.glideTo(x, z)` turns the player toward a point (hint arrow, easter-egg
+  reveal). Care tasks do not touch the camera at all.
 - **No modes: keys always move the player.** Arrow keys/WASD only ever walk the player; nothing (finding an animal,
   care, menus) switches the keyboard to controlling something else, and there is never an "Escape to unlock". The
   mouse or a tap clicks on things (body parts, items); Space uses the equipped item.

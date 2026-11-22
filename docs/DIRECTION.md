@@ -32,6 +32,9 @@ current; when your change sets or changes something future tickets must follow, 
 - **Inventory and tools.** You start with *cámara, cepillo, esponja, venda* and find more (*plátanos, rocas, flores,
   hojas, peces*). Equip an item from the hotbar (tap or 1-9) and use it with **Space, a mouse click or a tap** on
   the highlighted part. Clicking and touching animals directly stays first-class.
+  Model (AS-0078): items are data in `game/data/items.js` (kind tool|food|find, food ids reuse `foods.js`);
+  `SA.inventory` (game/inventory.js, pure) does add/remove/count/list/equip/equipped over `SA.save` (save v3,
+  `inventory: { items: [{id, count}], equipped }`; new and old saves get the starting kit, nothing equipped).
 - **Forgiving aim.** The nearest in-reach part within a generous radius highlights and stays highlighted, so being a
   few pixels off the feet still counts. A 7-year-old should never fight the aim.
 - **Care is physical and silly.** Brush fur, wash with the sponge, bandage, rub *la barriga*, feed by hand, tug a leaf

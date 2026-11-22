@@ -72,6 +72,8 @@ globalThis.SA_MANIFEST = {
     'game/ui/joystick-view.js',
     'game/ui/climb-button.js',
     'game/data/foods.js',
+    'game/data/items.js',
+    'game/inventory.js',
     'game/data/care.js',
     'game/care.js',
     'game/render/care-fx.js',

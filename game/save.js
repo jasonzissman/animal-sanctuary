@@ -1,7 +1,9 @@
 /* SA.save: persistent progress under localStorage key `santuario_save_v1` (see CLAUDE.md "Persistence").
  *
  * Shape: { version, stars, unlockedAnimals, placedProps, rounds: {completed, streak},
- *          settings: {muted, english, scaffold}, stats }.
+ *          settings: {muted, english, scaffold}, stats, inventory }.
+ *          inventory = { items: [{ id, count }], equipped: id|null } (added in v3; an array so removals persist
+ *          through update()'s deep merge). New and migrated saves get the starting kit (STARTING_KIT).
  *          stats.unlocks = { '<target>|<biome>|<item>': taps } is easter-egg tap progress (added in v2).
  * - A bad read NEVER wipes a save: unparseable / unknown-version data is copied to `santuario_save_v1_corrupt`
  *   and the game starts from defaults.
@@ -16,7 +18,8 @@
 
   var KEY = 'santuario_save_v1';
   var CORRUPT_KEY = 'santuario_save_v1_corrupt';
-  var VERSION = 2;
+  var VERSION = 3;
+  var STARTING_KIT = ['camara', 'cepillo', 'esponja', 'venda'];
   var DEBOUNCE_MS = 500;
 
   var state = null;
@@ -33,8 +36,13 @@
       placedProps: [],
       rounds: { completed: 0, streak: 0 },
       settings: { muted: false, english: false, scaffold: 1 },
-      stats: { unlocks: {} }
+      stats: { unlocks: {} },
+      inventory: startingInventory()
     };
+  }
+
+  function startingInventory() {
+    return { items: STARTING_KIT.map(function (id) { return { id: id, count: 1 }; }), equipped: null };
   }
 
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -49,6 +57,12 @@
       if (!isObj(old.stats)) old.stats = {};
       if (!isObj(old.stats.unlocks)) old.stats.unlocks = {};
       old.version = 2;
+      return old;
+    },
+    // v3 adds the inventory with the starting kit (camera, brush, sponge, bandage). Everything else is kept.
+    2: function (old) {
+      old.inventory = startingInventory();
+      old.version = 3;
       return old;
     }
   };
@@ -94,7 +108,25 @@
       var n = count(un[k], 0);
       if (n > 0) out.stats.unlocks[k] = n;
     });
+    out.inventory = normalizeInventory(s.inventory);
     return out;
+  }
+
+  // Valid items only (lowercase id, whole count >= 1, no duplicates); equipped must be an owned item or null.
+  // A missing/non-object inventory gets the starting kit; an empty items array is kept (the player gave it all away).
+  function normalizeInventory(inv) {
+    if (!isObj(inv) || !Array.isArray(inv.items)) return startingInventory();
+    var seen = {};
+    var items = [];
+    inv.items.forEach(function (it) {
+      if (!isObj(it) || typeof it.id !== 'string' || !/^[a-z]+$/.test(it.id) || seen[it.id]) return;
+      var n = count(it.count, 0);
+      if (n < 1) return;
+      seen[it.id] = true;
+      items.push({ id: it.id, count: n });
+    });
+    var eq = typeof inv.equipped === 'string' && seen[inv.equipped] ? inv.equipped : null;
+    return { items: items, equipped: eq };
   }
 
   function storage() {
@@ -213,6 +245,7 @@
     KEY: KEY,
     CORRUPT_KEY: CORRUPT_KEY,
     VERSION: VERSION,
+    STARTING_KIT: STARTING_KIT.slice(),
     DEBOUNCE_MS: DEBOUNCE_MS,
     defaults: defaults,
     migrations: migrations,

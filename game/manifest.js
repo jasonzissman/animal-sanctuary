@@ -1,0 +1,68 @@
+// Single ordered list of the game's script files (dependency order).
+// index.html's <script src="game/..."> tags and the classroom bundler must follow this list;
+// test/manifest.test.js fails if index.html and this list differ in content or order.
+//
+// To add a script:
+//   1. Add its path (relative to the repo root, forward slashes) HERE, after everything it depends on.
+//   2. Add the matching <script src="..."></script> tag to index.html at the same position.
+//   3. Run `npm test` (test/manifest.test.js checks both, and that the file exists).
+//
+// This file is metadata for tools and tests only: index.html does NOT load it, so the game still
+// runs from file:// with plain classic script tags. It needs no THREE or DOM; load it in Node with
+// node:vm and read `SA_MANIFEST.scripts`. Keep it JSON-like (string literals only).
+// Inline <script> blocks in index.html (e.g. the SAT.startSession() call) are not listed here.
+globalThis.SA_MANIFEST = {
+  scripts: [
+    'game/vendor/three.min.js',
+    'game/sa.js',
+    'game/data-registry.js',
+    'game/data/parts.js',
+    'game/data/biomes.js',
+    'game/data/animals.js',
+    'game/data/vocab.js',
+    'game/data/clues.js',
+    'game/clues.js',
+    'game/data/clue-levels.js',
+    'game/clue-levels.js',
+    'game/save.js',
+    'game/unlocks.js',
+    'game/scaffold.js',
+    'game/telemetry.js',
+    'game/audio.js',
+    'game/audio-ui.js',
+    'game/speech.js',
+    'game/map.js',
+    'game/camera.js',
+    'game/render/world.js',
+    'game/render/decor-dry.js',
+    'game/render/decor.js',
+    'game/animal-plan.js',
+    'game/render/zigzag.js',
+    'game/render/animals.js',
+    'game/render/camera-rig.js',
+    'game/wander.js',
+    'game/render/ambient.js',
+    'game/picking.js',
+    'game/render/picking.js',
+    'game/render/tree-tap.js',
+    'game/round.js',
+    'game/render/round-fx.js',
+    'game/ui/prompt.js',
+    'game/unlock-flow.js',
+    'game/data/foods.js',
+    'game/data/care.js',
+    'game/care.js',
+    'game/render/care-fx.js',
+    'game/ui/care-flow.js',
+    'game/data/props.js',
+    'game/habitat.js',
+    'game/sandbox.js',
+    'game/ui/sandbox-view.js',
+    'game/render/props.js',
+    'game/stats.js',
+    'game/settings.js',
+    'game/ui/settings-view.js',
+    'game/render/scene.js',
+    'game/main.js',
+  ],
+};

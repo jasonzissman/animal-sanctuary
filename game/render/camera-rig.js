@@ -45,7 +45,8 @@
     var run = false;            // Shift held: the avatar runs (SA.player RUN_SPEED) while moving forward
     var clearK = 1;             // smoothed fraction (0..1) of the camera's reach kept by SA.camera.clearPath
     var frame = C.NO_FRAME || { weight: 0, addDist: 0, addPitch: 0, addLookY: 0, addFov: 0 };   // eased SA.camera.frameAbove offsets (AS-0116)
-    var turn = null;            // eased avatar turn from glideTo (SA.turn); any walking/turning input cancels it (AS-0089)
+    var autoTimer = null;       // SA.climb.autoStep push timer (AS-0157): pushing forward into a tree for AUTO_CLIMB_MS climbs it
+    var turn = null;           // eased avatar turn from glideTo (SA.turn); any walking/turning input cancels it (AS-0089)
     var baseFov = typeof camera.fov === 'number' ? camera.fov : C.DEFAULTS.fovDeg, lastFov = baseFov;
 
     function viewH() { return canvas.clientHeight || 600; }
@@ -197,8 +198,13 @@
           }
         }
         var running = (run && az < 0) || !!J.run;   // Shift only speeds up walking forward; the stick runs at its edge
-        player = SA.climb.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
-          left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running, lift: hop ? hop.lift : 0 }, dt, obs);
+        var walk = { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
+          left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running, lift: hop ? hop.lift : 0 };
+        player = SA.climb.step(player, walk, dt, obs);
+        if (SA.climb.autoStep) {   // pushing forward into a trunk for 0.6 s starts the same climb as C / E
+          autoTimer = SA.climb.autoStep(autoTimer, before, player, walk, trees(), dt * 1000);
+          if (autoTimer.climb) { player = SA.climb.start(player, autoTimer.tree); autoTimer = null; }
+        }
         if (SA.prick && !player.climb) {   // a cactus bounces the player back (AS-0156): walking is overridden for ~0.25 s
           var pricklies = hooks && hooks.chase && hooks.chase.pricklies ? hooks.chase.pricklies() : [];
           prick = SA.prick.step(prick, player, pricklies, obs, dt);
@@ -240,6 +246,8 @@
       /** 'up' | 'down' | null: which climb button to show right now (the icon-only UI polls this each frame). */
       climbPrompt: function () { return SA.climb.prompt(player, trees()); },
       toggleClimb: toggleClimb,
+      /** { tree, progress 0..1 } while the player pushes into a climbable trunk (the filling ring), else null. */
+      autoClimb: function () { return autoTimer && autoTimer.tree && autoTimer.progress > 0 ? { tree: autoTimer.tree, progress: autoTimer.progress } : null; },
       /** The touch jump button: a fresh Space press. Only a grounded avatar hops (no buffering in the air, none up a tree). */
       jump: function () {
         if (!hop || hop.air || climbing()) return false;

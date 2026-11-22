@@ -4,6 +4,7 @@
   'use strict';
   var SA = root.SA = root.SA || {};
   var GESTURES = ['pointerdown', 'touchstart', 'mousedown', 'keydown'];
+  var muteBtn = null;
 
   function paint(btn) {
     var muted = SA.audio.isMuted();
@@ -41,10 +42,14 @@
       paint(btn);
       SA.audio.sfx('pop');
     });
+    muteBtn = btn;
     var host = target || doc.body;
     if (host && typeof host.appendChild === 'function') host.appendChild(btn);
     return btn;
   }
 
-  SA.audioUI = { mount: mount, hookGestures: hookGestures };
+  // Repaints the mute button after the mute state changed elsewhere (e.g. the grown-up drawer).
+  function refresh() { if (muteBtn) paint(muteBtn); }
+
+  SA.audioUI = { mount: mount, hookGestures: hookGestures, refresh: refresh };
 })(typeof window !== 'undefined' ? window : globalThis);

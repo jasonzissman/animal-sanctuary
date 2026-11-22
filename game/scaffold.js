@@ -57,6 +57,13 @@
   SA.scaffold = {
     MIN_LEVEL: MIN_LEVEL, MAX_LEVEL: MAX_LEVEL, STREAK: STREAK, QUICK_SECONDS: QUICK_SECONDS, SLOW_SECONDS: SLOW_SECONDS,
     classify: classify, create: create,
-    record: function (result) { if (!shared) shared = create(); return shared.record(result); }
+    record: function (result) {
+      if (!shared) shared = create();
+      // A grown-up pinned the difficulty (settings.difficulty other than 'auto'): never adapt it.
+      var pinned = false;
+      try { var d = SA.save.get().settings.difficulty; pinned = !!d && d !== 'auto'; } catch (e) { pinned = false; }
+      if (pinned) return { level: shared.level(), change: null };
+      return shared.record(result);
+    }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

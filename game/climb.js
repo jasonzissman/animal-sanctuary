@@ -220,7 +220,8 @@
     if (!c) {
       var g = SA.player.step(state, input, dt, obstacles);
       // Feet follow the terrain, eased so slopes feel natural (no prior y, e.g. at spawn, snaps straight to the ground).
-      return { x: g.x, z: g.z, heading: g.heading, y: SA.map.followHeight(state.y, groundAt(g.x, g.z), dt), climb: null };
+      // On a peak's slope the feet never lag below the visible rock (AS-0214: followHeight may trail the ground by up to 0.5).
+      return aboveRock({ x: g.x, z: g.z, heading: g.heading, y: SA.map.followHeight(state.y, groundAt(g.x, g.z), dt), climb: null });
     }
     dt = Math.max(0, Math.min(MAX_DT, num(dt, 0)));
     var n = c.target;
@@ -239,8 +240,8 @@
         return copy(state, { x: c.to.x, z: c.to.z, y: n.topY, heading: heading, land: { x: c.to.x, z: c.to.z, y: n.topY, kind: n.kind },
           climb: { mode: n.kind === 'tree' ? 'canopy' : 'top', t: 1, dur: c.dur, tree: c.tree, target: n, from: c.from, to: c.to, safe: c.safe } });
       }
-      return copy(state, { x: lerp(c.from.x, c.to.x, k), z: lerp(c.from.z, c.to.z, k), y: lerp(c.from.y, c.to.y, k) + ASSIST_ARC * Math.sin(Math.PI * t),
-        heading: heading, climb: next });
+      return copy(state, aboveRock({ x: lerp(c.from.x, c.to.x, k), z: lerp(c.from.z, c.to.z, k), y: lerp(c.from.y, c.to.y, k) + ASSIST_ARC * Math.sin(Math.PI * t),
+        heading: heading, climb: next }));
     }
     if (t >= 1) {
       if (c.mode === 'up') {
@@ -253,10 +254,19 @@
       return out;
     }
     if (c.fall) {   // gravity-like arc: drops slowly then quickly while drifting out to the landing spot
-      return copy(state, { x: lerp(c.from.x, c.to.x, ease(t)), z: lerp(c.from.z, c.to.z, ease(t)), y: lerp(c.from.y, c.to.y, t * t), heading: heading, climb: next });
+      return copy(state, aboveRock({ x: lerp(c.from.x, c.to.x, ease(t)), z: lerp(c.from.z, c.to.z, ease(t)), y: lerp(c.from.y, c.to.y, t * t), heading: heading, climb: next }));
     }
-    var m = c.mode === 'up' ? move : ease(Math.min(1, t * 1.5));
-    return copy(state, { x: lerp(c.from.x, c.to.x, m), z: lerp(c.from.z, c.to.z, m), y: lerp(c.from.y, c.to.y, k), heading: heading, climb: next });
+    // A peak is climbed ALONG its side (AS-0214): the slide to the centre takes the whole climb, so the feet follow the cone up (y never
+    // below the visible rock), instead of a quick slide in and a vertical rise inside it. Trees and buildings keep the quick slide.
+    var m = n.kind === 'peak' ? k : c.mode === 'up' ? move : ease(Math.min(1, t * 1.5));
+    return copy(state, aboveRock({ x: lerp(c.from.x, c.to.x, m), z: lerp(c.from.z, c.to.z, m), y: lerp(c.from.y, c.to.y, k), heading: heading, climb: next }));
+  }
+
+  /** AS-0214: lift a mid-air / mid-climb pose to the visible rock surface under it (SA.peaks.moundY), so no animation frame is inside a peak. */
+  function aboveRock(s) {
+    var m = SA.peaks && SA.peaks.moundY ? SA.peaks.moundY(s.x, s.z) : -Infinity;
+    if (m > s.y) s.y = m;
+    return s;
   }
 
   // ---- Auto-climb (AS-0157): keep pushing forward into a climb target and you climb it. Pure timer, the rig feeds it each frame. ----

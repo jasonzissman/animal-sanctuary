@@ -76,6 +76,10 @@ current; when your change sets or changes something future tickets must follow, 
   `SA.peaks.targets()` gives the `kind: 'peak'` climb targets and decor draws a flat-topped grey cone over each mound (solid 'pico').
   scene.js builds ONE `climbables` list (trees + peaks) for the camera rig (E/C/auto-climb), the Space chooser/outline and the ring;
   the rig tracks the walk-off landing as `SAT.track('climb.land', { kind, y })`. New steep things: add a data row, no engine branch.
+  **Stay on the surface (AS-0214):** the terrain mound IS the drawn 8-sided cone (`SA.peaks.moundY` / `surfaceY`, PAD wider than the old
+  straight mound; the renderer draws it 0.02 wider again so nothing z-fights). Every climb animation frame (up, down button, walk-off fall,
+  landing-assist hop) and every walking frame is lifted to `moundY` (`aboveRock` in `game/climb.js`), a peak's climb slides along its side
+  over the whole climb, and the chase camera's height is lifted by `SA.peaks.cameraY` so it and its sight line never pass through a peak.
   Built (AS-0194): `SA.station.climbTarget()` is the `kind: 'building'` target (wall footprint, flat rect roof at topY) and joins
   `climbables` (trees + peaks + station). The Space chooser measures reach with `SA.climb.edgeDistance` for every kind, and the
   outline finds a target's node by `userData.climbId === target.id` (peaks, station), so no kind-specific branches remain.

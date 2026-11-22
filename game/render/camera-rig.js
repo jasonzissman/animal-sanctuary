@@ -5,6 +5,8 @@
  * Keys: arrows/WASD pan, hold Shift to run, Space hops (SA.jump: a vertical `lift` only, never a climb), Q/T rotate, R/F tilt, wheel zooms. Everything is clamped by SA.camera.
  * Third person only (one camera, always the chase camera): the avatar walks, the camera chases it. There is no
  * overhead, close-up or focus view; to draw attention somewhere glideTo() turns the player toward it.
+ * Automatic framing (AS-0116, SA.camera.frameAbove): hooks.chase.above() -> [{ x, y, z }] perched animals; near one above the
+ * player, or up a canopy, the chase camera eases back, lowers and looks higher (and widens the fov a little); a drag overrides.
  * hooks.canOrbit(event) -> false lets a press start something else (e.g. rubbing a muddy part) without orbiting.
  */
 (function (root) {
@@ -39,6 +41,8 @@
     var jumpTap = false;        // the on-screen jump button was tapped: one frame of "Space pressed" (same one-hop-per-landing rule)
     var run = false;            // Shift held: the avatar runs (SA.player RUN_SPEED) while moving forward
     var clearK = 1;             // smoothed fraction (0..1) of the camera's reach kept by SA.camera.clearPath
+    var frame = C.NO_FRAME || { weight: 0, addDist: 0, addPitch: 0, addLookY: 0, addFov: 0 };   // eased SA.camera.frameAbove offsets (AS-0116)
+    var baseFov = typeof camera.fov === 'number' ? camera.fov : C.DEFAULTS.fovDeg, lastFov = baseFov;
 
     function viewH() { return canvas.clientHeight || 600; }
     function ids() { return Object.keys(pointers); }
@@ -51,13 +55,21 @@
       return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     }
 
+    // The orbit state with the automatic "look up" framing added: farther, a little lower, never past the pitch limits.
+    function framed() {
+      return { x: state.x, z: state.z, dist: state.dist + frame.addDist, yaw: state.yaw, pitch: C.clampPitch(state.pitch + frame.addPitch) };
+    }
     function apply() {
-      var p = C.position(state);
+      var p = C.position(framed());
       // Pull the camera in along the line from the player when a tree/prop/big animal would be between them (or around it).
       var px = player.x + (p.x - player.x) * clearK, pz = player.z + (p.z - player.z) * clearK;
       // camY: the chase camera rises with the player (up a tree, up a hill); it never dips below the terrain under it.
       camera.position.set(px, SA.map.cameraHeight(p.y + camY, px, pz), pz);
-      camera.lookAt(state.x, C.DEFAULTS.lookY + camY, state.z);   // look at about animal height
+      camera.lookAt(state.x, C.DEFAULTS.lookY + frame.addLookY + camY, state.z);   // look at about animal height (higher near treetops)
+      if (typeof camera.fov === 'number' && Math.abs(baseFov + frame.addFov - lastFov) > 0.01) {
+        lastFov = baseFov + frame.addFov; camera.fov = lastFov;
+        if (camera.updateProjectionMatrix) camera.updateProjectionMatrix();
+      }
     }
     function obstacles() { return hooks && hooks.chase && hooks.chase.obstacles ? hooks.chase.obstacles() : []; }
     // Orbit input swings the offset around the player.
@@ -184,7 +196,14 @@
         isRunning = moving && running;
         offset = C.decayOffset(offset, az < 0 || J.forward > 0, dt);
         state = C.chaseFollow(state, player, offset, dt, B);
-        var want = C.position(state), full = Math.hypot(want.x - player.x, want.z - player.z);
+        // Automatic framing: perched animals above / being up a canopy pull the camera back and tilt it up; a drag or the
+        // orbit keys override it (the offsets ease to 0), then it eases back in. Open ground eases to the normal chase view.
+        if (C.frameAbove) {
+          var dragging = !!(ayaw || apitch) || ids().some(function (k) { return pointers[k].moved && pointers[k].mode === 'orbit'; });
+          var above = hooks && hooks.chase && hooks.chase.above ? hooks.chase.above() : [];
+          frame = C.easeFrame(frame, dragging ? C.NO_FRAME : C.frameAbove(player, above), dt, 6);
+        }
+        var want = C.position(framed()), full = Math.hypot(want.x - player.x, want.z - player.z);
         var kept = full > 1e-6 ? C.clearPath(player, want, player.climb ? [] : obstacles()) / full : 1;   // up a tree: nothing in the way
         clearK = C.easeClearance(clearK, kept, dt);
         apply();
@@ -222,7 +241,8 @@
       },
       getState: function () {
         // lookY: the chase camera looks at about animal height, not the ground
-        return { x: state.x, z: state.z, dist: state.dist, yaw: state.yaw, pitch: state.pitch, lookY: C.DEFAULTS.lookY };
+        var e = framed();
+        return { x: e.x, z: e.z, dist: e.dist, yaw: e.yaw, pitch: e.pitch, lookY: C.DEFAULTS.lookY + frame.addLookY };
       },
     };
   };

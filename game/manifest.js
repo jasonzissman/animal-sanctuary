@@ -43,6 +43,7 @@ globalThis.SA_MANIFEST = {
     'game/render/zigzag.js',
     'game/render/animals.js',
     'game/render/camera-rig.js',
+    'game/render/avatar.js',
     'game/wander.js',
     'game/gait.js',
     'game/render/ambient.js',

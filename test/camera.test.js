@@ -189,3 +189,82 @@ test('map: four biome strips, dry dunes and snowy peaks, river and pond are wate
   const a = M.rng(1), b = M.rng(1);
   assert.equal(a(), b());
 });
+
+// ---- third-person chase camera ----
+const hdg = (deg) => deg * Math.PI / 180;
+
+test('chaseTarget looks ahead of the player and sits behind them (yaw = heading + 180)', () => {
+  const t = C.chaseTarget({ x: 0, z: 0, heading: 0 }, 0);
+  assert.ok(Math.abs(t.x) < 1e-9 && Math.abs(t.z - C.DEFAULTS.lookAhead) < 1e-9, 'heading 0 faces +z');
+  assert.equal(t.yaw, 180);
+  const e = C.chaseTarget({ x: 5, z: 5, heading: hdg(90) }, 30);   // facing +x, swung 30 degrees
+  assert.ok(Math.abs(e.x - (5 + C.DEFAULTS.lookAhead)) < 1e-9 && Math.abs(e.z - 5) < 1e-9);
+  assert.ok(Math.abs(e.yaw - C.wrapYaw(270 + 30)) < 1e-9);
+  assert.equal(C.chaseTarget({}, NaN).yaw, 180, 'junk gives a valid target');
+});
+
+test('chaseStart puts the camera a few metres behind the player, slightly above ground', () => {
+  const p = { x: 0, z: 0, heading: hdg(40) };
+  const s = C.chaseStart(p, B);
+  const cam = C.position(s);
+  const fwd = { x: Math.sin(p.heading), z: Math.cos(p.heading) };
+  const behind = -((cam.x - p.x) * fwd.x + (cam.z - p.z) * fwd.z);
+  assert.ok(behind > 2 && behind < 8, 'behind by ' + behind);
+  assert.ok(cam.y > 1 && cam.y < 4, 'height ' + cam.y);
+  assert.equal(s.dist, C.DEFAULTS.chaseDist);
+});
+
+test('chaseFollow eases toward the player, never overshoots, and is frame-rate independent', () => {
+  const p = { x: 10, z: 10, heading: 0 };
+  const goal = C.chaseTarget(p, 0);
+  let s = C.chaseStart({ x: 0, z: 0, heading: 0 }, B);
+  const one = C.chaseFollow(s, p, 0, 0.1, B);
+  assert.ok(one.z > s.z && one.z < goal.z, 'moves part of the way');
+  let a = s, b = s;
+  for (let i = 0; i < 10; i++) a = C.chaseFollow(a, p, 0, 0.1, B);
+  for (let i = 0; i < 100; i++) b = C.chaseFollow(b, p, 0, 0.01, B);
+  assert.ok(Math.abs(a.x - b.x) < 1e-6 && Math.abs(a.yaw - b.yaw) < 1e-6, 'same result for 1s at any frame rate');
+  for (let i = 0; i < 200; i++) s = C.chaseFollow(s, p, 0, 0.1, B);
+  assert.ok(Math.abs(s.x - goal.x) < 1e-3 && Math.abs(s.z - goal.z) < 1e-3);
+  assert.equal(C.chaseFollow(s, p, 0, 0, B).z, s.z, 'dt 0 stays put');
+  assert.equal(C.chaseFollow(s, p, 0, -5, B).z, s.z, 'negative dt stays put');
+});
+
+test('chaseFollow turns the shortest way round and keeps dist and pitch', () => {
+  const s = { x: 0, z: 0, dist: 9, yaw: 170, pitch: 20 };
+  const p = { x: 0, z: 0, heading: hdg(10) };   // wants yaw -170, which is 20 degrees away through 180
+  const n = C.chaseFollow(s, p, 0, 0.05, B);
+  assert.ok(n.yaw > 170 || n.yaw < -170, 'went through 180, not the long way: ' + n.yaw);
+  assert.equal(n.dist, 9);
+  assert.equal(n.pitch, 20);
+  assert.equal(C.easeAngle(0, 90, 1e6), 90);
+  assert.equal(C.easeAngle(NaN, NaN, NaN), 0);
+});
+
+test('chaseFollow stays inside the map and valid for extreme players', () => {
+  for (const v of [1e9, -1e9, NaN, Infinity]) {
+    const n = C.chaseFollow(C.chaseStart({ x: 0, z: 0, heading: 0 }, B), { x: v, z: v, heading: v }, v, 1, B);
+    assert.ok(n.x >= B.minX && n.x <= B.maxX && n.z >= B.minZ && n.z <= B.maxZ, 'in bounds for ' + v);
+    assert.ok(n.dist >= C.DEFAULTS.minDist && n.pitch >= C.DEFAULTS.minPitch && Number.isFinite(n.yaw));
+  }
+});
+
+test('decayOffset drifts back behind the walking player and holds still otherwise', () => {
+  assert.equal(C.decayOffset(90, false, 5), 90);
+  const d = C.decayOffset(90, true, 0.5);
+  assert.ok(d > 0 && d < 90);
+  assert.ok(Math.abs(C.decayOffset(90, true, 100)) < 1e-6);
+  assert.equal(C.decayOffset(450, false, 1), 90, 'wrapped');
+  assert.equal(C.decayOffset(NaN, true, 1), 0);
+});
+
+test('easeToward also eases pitch when the target has one, and ignores junk pitch', () => {
+  const s = { x: 0, z: 0, dist: 7, yaw: 0, pitch: 16 };
+  const a = C.easeToward(s, { x: 0, z: 0, dist: 7, pitch: 40 }, 0.1, 4, B);
+  assert.ok(a.pitch > 16 && a.pitch < 40);
+  let r = s;
+  for (let i = 0; i < 200; i++) r = C.easeToward(r, { x: 0, z: 0, dist: 7, pitch: 40 }, 0.05, 4, B);
+  assert.ok(Math.abs(r.pitch - 40) < 0.01);
+  assert.equal(C.easeToward(s, { x: 0, z: 0, dist: 7 }, 0.1, 4, B).pitch, 16, 'no pitch target keeps pitch');
+  assert.equal(C.easeToward(s, { x: 0, z: 0, dist: 7, pitch: NaN }, 0.1, 4, B).pitch, 16);
+});

@@ -3,6 +3,7 @@
  * shift- or right/middle-button drag pans; two pointers pinch (zoom) and drag together (pan).
  * A press that never travels past the tap threshold does nothing, so tapping an animal never turns the view.
  * Keys: arrows/WASD pan, Q/E rotate, R/F tilt, wheel zooms. Everything is clamped by SA.camera.
+ * hooks.chase = { obstacles } switches on third person (see below): the avatar walks, the camera chases it.
  * hooks.canOrbit(event) -> false lets a press start something else (e.g. rubbing a muddy part) without orbiting.
  */
 (function (root) {
@@ -19,13 +20,20 @@
   SA.render.createCameraRig = function (THREE, canvas, camera, initial, hooks) {
     var C = SA.camera, B = SA.map.BOUNDS;
     var threshold = (SA.picking && SA.picking.DRAG_THRESHOLD) || 10;
-    var state = C.clampState(initial || { x: 0, z: 5, dist: 40 }, B);
+    // hooks.chase = { obstacles() -> [[x, z, r], ...] } turns on the third-person mode: WASD/arrows walk the SA.player
+    // avatar (up/down = walk, left/right = turn), the camera follows from behind, Q/E/R/F and drags swing it round the
+    // player, and pan gestures (shift/right drag, two fingers) walk the player so touch screens can still move.
+    var chase = !!(hooks && hooks.chase);
+    var player = chase ? SA.player.spawn() : null, moving = false, offset = 0;   // offset: swing from directly behind (deg)
+    var state = chase ? C.chaseStart(player, B) : C.clampState(initial || { x: 0, z: 5, dist: 40 }, B);
     var pointers = {};            // id -> { x, y, sx, sy, mode, moved }
     var held = {};                // key -> true
     var padYaw = 0, padPitch = 0; // on-screen rotate/tilt buttons (-1..1): the same axes as Q/E and F/R
     var pinchDist = 0, mid = null;
     var glide = false;            // true while `focus` is a glideTo that ends by itself
-    var focus = null;            // { x, z, dist }: while set the camera eases there; only orbit input is accepted
+    var focus = null;            // { x, z, dist, pitch? }: while set the camera eases there; only orbit input is accepted
+    var saved = null;            // chase: { dist, pitch } from before a care focus, eased back to after release()
+    var FOCUS_PITCH = 40;        // chase: lift the camera a little for the care close-up
 
     function viewH() { return canvas.clientHeight || 600; }
     function ids() { return Object.keys(pointers); }
@@ -41,7 +49,19 @@
     function apply() {
       var p = C.position(state);
       camera.position.set(p.x, p.y, p.z);
-      camera.lookAt(state.x, 0, state.z);
+      camera.lookAt(state.x, chase ? C.DEFAULTS.lookY : 0, state.z);   // chase: look at about animal height
+    }
+    function obstacles() { return chase && hooks.chase.obstacles ? hooks.chase.obstacles() : []; }
+    // Orbit input swings the offset around the player (chase) or the state itself (focused on a care task / classic).
+    function orbitWith(fn) {
+      if (!chase || focus) { if (focus) focus.pitch = undefined; state = fn(state); return; }
+      var r = fn({ x: state.x, z: state.z, dist: state.dist, yaw: offset, pitch: state.pitch });
+      offset = r.yaw; state = { x: state.x, z: state.z, dist: state.dist, yaw: state.yaw, pitch: r.pitch };
+    }
+    function panWith(dx, dy) {
+      if (!chase) { state = C.panByPixels(state, dx, dy, viewH(), B); return; }
+      var m = C.panByPixels({ x: player.x, z: player.z, dist: state.dist, yaw: state.yaw, pitch: state.pitch }, dx, dy, viewH(), B);
+      player = SA.player.step({ x: m.x, z: m.z, heading: player.heading }, {}, 0, obstacles());
     }
 
     function modeFor(e) {
@@ -66,14 +86,14 @@
         }
         var dx = e.clientX - p.x, dy = e.clientY - p.y;
         p.x = e.clientX; p.y = e.clientY;
-        if (p.mode === 'orbit') state = C.orbitByPixels(state, dx, dy, B);
-        else if (p.mode === 'pan' && !focus) state = C.panByPixels(state, dx, dy, viewH(), B);
+        if (p.mode === 'orbit') orbitWith(function (s) { return C.orbitByPixels(s, dx, dy, B); });
+        else if (p.mode === 'pan' && !focus) panWith(dx, dy);
       } else if (n === 2) {
         p.x = e.clientX; p.y = e.clientY;
         var d = spread(), m = midpoint();
         if (!focus) {
           if (pinchDist > 0 && d > 0) state = C.zoomByScale(state, d / pinchDist, B);
-          if (mid) state = C.panByPixels(state, m.x - mid.x, m.y - mid.y, viewH(), B);
+          if (mid) panWith(m.x - mid.x, m.y - mid.y);
         }
         pinchDist = d; mid = m;
       }
@@ -118,18 +138,45 @@
           state = C.easeToward(state, focus, dt, 4, B);
           if (glide && Math.hypot(state.x - focus.x, state.z - focus.z) < 0.4) { focus = null; glide = false; }
         }
-        else if (ax || az) state = C.panByKeys(state, ax, az, dt, B);
+        else if (!chase && (ax || az)) state = C.panByKeys(state, ax, az, dt, B);
         ayaw += padYaw; apitch += padPitch;
-        if (ayaw || apitch) state = C.orbitByKeys(state, ayaw, apitch, dt, B);
+        if (ayaw || apitch) orbitWith(function (s) { return C.orbitByKeys(s, ayaw, apitch, dt, B); });
+        if (chase) {
+          var before = player;
+          player = SA.player.step(player, { forward: az < 0, back: az > 0, left: ax < 0, right: ax > 0 }, dt, obstacles());
+          moving = Math.hypot(player.x - before.x, player.z - before.z) > 1e-4 || player.heading !== before.heading;
+          if (!focus && saved) {   // care task over: ease the zoom and tilt back to the ground-level chase view
+            state = C.easeToward(state, { x: state.x, z: state.z, dist: saved.dist, pitch: saved.pitch }, dt, 3, B);
+            if (Math.abs(state.dist - saved.dist) < 0.05 && Math.abs(state.pitch - saved.pitch) < 0.5) saved = null;
+          }
+          if (!focus) {
+            offset = C.decayOffset(offset, az < 0, dt);
+            state = C.chaseFollow(state, player, offset, dt, B);
+          }
+        }
         apply();
       },
+      /** Third-person mode only: the avatar's { x, z, heading } and whether it moved this frame (null / false otherwise). */
+      getPlayer: function () { return player ? { x: player.x, z: player.z, heading: player.heading, moving: moving } : null; },
       /** On-screen buttons hold yaw/pitch axes (-1, 0, 1); update() runs them through the same clamped orbitByKeys path as the keys. */
       setOrbitAxes: function (yaw, pitch) { padYaw = yaw > 0 ? 1 : yaw < 0 ? -1 : 0; padPitch = pitch > 0 ? 1 : pitch < 0 ? -1 : 0; },
       /** Ease in on a ground point (care tasks); pan/zoom are ignored until release(), orbit still works. */
-      focusOn: function (x, z, dist) { glide = false; focus =C.clampState({ x: x, z: z, dist: dist }, B); },
+      focusOn: function (x, z, dist) {
+        glide = false;
+        if (chase && !saved) saved = { dist: state.dist, pitch: state.pitch };
+        focus = C.clampState({ x: x, z: z, dist: dist }, B);
+        if (chase) focus.pitch = FOCUS_PITCH;
+      },
       release: function () { focus = null; glide = false; },
       /** Ease the view over to a ground point keeping the zoom, then hand control back (arrow hint). */
-      glideTo: function (x, z) { focus = C.clampState({ x: x, z: z, dist: state.dist }, B); glide = true; },
+      glideTo: function (x, z) {
+        if (chase) {   // third person: turn the avatar toward the spot and the chase camera swings round with it
+          if (isFinite(x) && isFinite(z)) player = { x: player.x, z: player.z, heading: Math.atan2(x - player.x, z - player.z) };
+          offset = 0;
+          return;
+        }
+        focus = C.clampState({ x: x, z: z, dist: state.dist }, B); glide = true;
+      },
       getState: function () { return { x: state.x, z: state.z, dist: state.dist, yaw: state.yaw, pitch: state.pitch }; },
     };
   };

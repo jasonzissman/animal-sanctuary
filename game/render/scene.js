@@ -7,6 +7,7 @@
   SA.render = SA.render || {};
 
   var SKY = 0xbfe6f5;
+  var DECOR_R = 1, ANIMAL_R = 1.3;   // obstacle radii (world units) the walking avatar slides around
 
   SA.render.createStage = function (THREE, container) {
     var renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -40,9 +41,18 @@
     var camera = new THREE.PerspectiveCamera(SA.camera.DEFAULTS.fovDeg, 1, 0.5, 400);
     var picking, stageApi = {};
     // While a care task is rubbing a part, a drag that starts on that part rubs it instead of orbiting.
-    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, null, { canOrbit: function (e) {
+    // Third person: the player walks as a kid avatar; animals, decor and placed props push the avatar aside.
+    var obstacleProps = [];
+    function obstacles() {
+      var list = avoid.map(function (a) { return [a[0], a[1], DECOR_R]; }).concat(obstacleProps);
+      animals.children.forEach(function (g) { list.push([g.position.x, g.position.z, ANIMAL_R]); });
+      return list;
+    }
+    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, null, { chase: { obstacles: obstacles }, canOrbit: function (e) {
       return !(SA.picking.hasRubTarget() && picking && SA.picking.isRubTarget(picking.pickAt(e.clientX, e.clientY)));
     } });
+    var avatar = SA.render.createAvatar(THREE);
+    scene.add(avatar.group);
     picking = SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container });
 
     var treeTap = SA.render.createTreeTap(THREE, { canvas: renderer.domElement, camera: camera, decor: decor,
@@ -57,7 +67,10 @@
     // Placed props (this session and restored from the save) join the decor in the wander avoid list. The save is
     // already updated when the sandbox calls add/remove, so the list is rebuilt from SA.habitat.list().
     function refreshAvoid() {
-      if (SA.propAvoid && SA.habitat) ambient.setAvoid(avoid.concat(SA.propAvoid.points(SA.habitat.list())));
+      if (SA.propAvoid && SA.habitat) {
+        obstacleProps = SA.propAvoid.points(SA.habitat.list());
+        ambient.setAvoid(avoid.concat(obstacleProps));
+      }
     }
     ['add', 'remove'].forEach(function (k) {
       var orig = props[k];
@@ -82,7 +95,8 @@
     stageApi = {
       scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize,
       animals: animals, treeTap: treeTap, onTreeTap: null,
-      render: function (dt) { rig.update(dt); picking.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
+      avatar: avatar,
+      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); picking.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
     };
     return stageApi;
   };

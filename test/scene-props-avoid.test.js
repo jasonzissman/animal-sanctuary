@@ -8,7 +8,7 @@ const BASE = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game
   'game/data/vocab.js', 'game/map.js', 'game/save.js', 'game/data/props.js', 'game/habitat.js', 'game/prop-avoid.js'];
 
 function setup() {
-  const calls = [];
+  const calls = [], rigHooks = [];
   const propsApi = { group: {}, add() { return 'added'; }, remove() { return 'removed'; } };
   const noop = () => ({});
   const SA = loadGame([...BASE, (sa) => {    sa.camera = { DEFAULTS: { fovDeg: 50 } };
@@ -16,8 +16,9 @@ function setup() {
     sa.render = {
       buildWorld: noop,
       buildDecor: () => ({ children: [{ position: { x: 1, z: 2 } }] }),
-      buildAnimals: () => ({ children: [] }),
-      createCameraRig: noop, createPicking: noop, createTreeTap: noop, createRoundFx: noop, createCareFx: noop,
+      buildAnimals: () => ({ children: [{ position: { x: 7, z: 8 } }] }),
+      createCameraRig: (t, c, cam, init, hooks) => { rigHooks.push(hooks); return {}; },
+      createAvatar: () => ({ group: {}, update() {} }), createPicking: noop, createTreeTap: noop, createRoundFx: noop, createCareFx: noop,
       createProps: () => propsApi,
       createAmbient: () => ({ setAvoid(a) { calls.push(a); } }),
     };
@@ -34,7 +35,7 @@ function setup() {
     PerspectiveCamera: function () { return { updateProjectionMatrix: fn }; },
   };
   const stage = SA.render.createStage(THREE, { appendChild: fn, clientWidth: 400, clientHeight: 300 });
-  return { SA, stage, calls };
+  return { SA, stage, calls, rigHooks };
 }
 
 test('createStage seeds the avoid list with the decor points', () => {
@@ -63,4 +64,15 @@ test('props.remove drops the prop from the wander avoid list', () => {
   assert.equal(stage.props.remove(), 'removed', 'the original remove result is returned');
   assert.equal(calls.length, before + 1);
   assert.equal(JSON.stringify(calls.at(-1)), JSON.stringify([[1, 2]]));
+});
+
+test('the chase rig gets walk obstacles: decor, animals and placed props (refreshed on add)', () => {
+  const { SA, stage, rigHooks } = setup();
+  const obstacles = rigHooks[0].chase.obstacles;
+  assert.equal(JSON.stringify(obstacles()), JSON.stringify([[1, 2, 1], [7, 8, 1.3]]));
+  const res = SA.habitat.place('arbol', -5, 14);
+  stage.props.add();
+  const list = obstacles();
+  assert.equal(list.length, 3);
+  assert.equal(JSON.stringify(list[1]), JSON.stringify([res.prop.x, res.prop.z, SA.data.get('props', 'arbol').radius]));
 });

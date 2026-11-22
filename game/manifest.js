@@ -122,6 +122,7 @@ globalThis.SA_MANIFEST = {
     'game/missions.js',
     'game/focus.js',
     'game/nearby-task.js',
+    'game/task-gate.js',
     'game/mission-pill.js',
     'game/greeting.js',
     'game/scientist-talk.js',

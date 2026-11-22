@@ -4,7 +4,7 @@
  *   var m = SA.mission.create({ animals?, rng?, now?, level?, track?, biome? })   (same options as SA.round.create)
  *   SA.mission.supportedTasks(animal) -> [careTask]   the care tasks the animal really supports: a part task needs one of its
  *       parts (limpiar/curar patas.., cepillar pelo, acariciar barriga, desenredar alas), alimentar needs a diet that eats a food
- *   m.start() -> mission | null   { id, clue, answerId, answerIds, level, step: 'find', animalId: null, tasks: [], misses, hints, done }
+ *   m.start({ animalId? }) -> mission | null   (animalId: the clue fits that nearby animal, AS-0225; none: any clue)   { id, clue, answerId, answerIds, level, step: 'find', animalId: null, tasks: [], misses, hints, done }
  *   m.found(animalId) -> { status: 'ignored' | 'wrong' | 'found', ... }
  *       any animal in answerIds is right (the duck or the turtle for "nada"); 'found' sticks the mission to that animal and picks
  *       its help tasks: mission.tasks = [{ id, kind, action, done }] (ids are careTasks ids; start each with
@@ -69,13 +69,20 @@
       return a;
     }
 
-    function start() {
+    // A clue the nearby animal fits (SA.nearbyTask.pickClueFor), or the usual random clue when no animal is named.
+    function pickClue(animalId) {
+      if (animalId && SA.nearbyTask) return SA.nearbyTask.pickClueFor(animalId, cluesState, rng);
+      return SA.clues.pickClue(cluesState, rng);
+    }
+
+    function start(startOpts) {
+      var animalId = startOpts && typeof startOpts.animalId === 'string' ? startOpts.animalId : null;
       var biome = typeof opts.biome === 'function' ? opts.biome() : opts.biome;
       var list = animals();
       cluesState.animals = SA.round ? SA.round.candidatesForBiome(list, biome) : list;
       cluesState.level = levelNow();
-      var clue = SA.clues.pickClue(cluesState, rng);
-      if (!clue) { cluesState.recent = []; clue = SA.clues.pickClue(cluesState, rng); }
+      var clue = pickClue(animalId);
+      if (!clue) { cluesState.recent = []; clue = pickClue(animalId); }
       if (!clue) { m = null; return null; }
       SA.clues.remember(cluesState, clue);
       seq += 1;

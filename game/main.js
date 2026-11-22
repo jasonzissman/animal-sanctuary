@@ -34,7 +34,11 @@
     // The rescue mission (SA.mission, played by SA.missionFlow): find an animal that fits, help it, then la cámara photo.
     try { game = SA.mission.create({ biome: function () { return SA.round.biomeForRig(stage.rig); } });
       ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx, pin: stage.ambient, biomeFx: stage.biomeGlow,
-        onProgress: function () { if (unlocks) unlocks.check(); }, mission: game });
+        onProgress: function () { if (unlocks) unlocks.check(); }, mission: game,
+        // Small tasks appear only near their animal (AS-0225): the gate reads where the player and the visible animals are.
+        nearby: { player: function () { return stage.rig.getPlayer(); }, animals: function () {
+          return stage.animals.children.filter(function (g) { return g.visible; }).map(function (g) { return { id: g.name, x: g.position.x, z: g.position.z }; });
+        } } });
       game = ctl.game || game;      // the round-like adapter that hint arrow and biome reroll read
     } catch (e) { report('prompt.start', e); }
     // Gentle arrow toward the target animal when it is off-screen after ~10 s (counts as a hint when tapped).
@@ -139,6 +143,7 @@
       if (greeting && greeting.isOpen()) { try { greeting.update(stage.rig.getPlayer()); } catch (e) { greeting = null; report('greeting.update', e); } }
       if (climbBtn) { try { climbBtn.update(); } catch (e) { climbBtn = null; report('climbButton.update', e); } }
       if (SA.focus) { try { SA.focus.update(); } catch (e) { report('focus.update', e); } }
+      if (ctl && ctl.updateTasks) { try { ctl.updateTasks(); } catch (e) { ctl.updateTasks = null; report('taskGate.update', e); } }
       if (ctl && ctl.updatePill) { try { ctl.updatePill(); } catch (e) { ctl.updatePill = null; report('missionPill.update', e); } }
       if (hintFlow) { try { hintFlow.update(dt); } catch (e) { hintFlow = null; report('hintFlow.update', e); } }
       if (rerollWatch) { try { rerollWatch.update(dt); } catch (e) { rerollWatch = null; report('reroll.update', e); } }

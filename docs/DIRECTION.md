@@ -307,6 +307,11 @@ current; when your change sets or changes something future tickets must follow, 
   by task kind (clue gold, encounter sky blue; a new small task kind just passes its `kind`). Task hidden: vanishes quietly. Task `done`:
   vanishes with a small sparkle. One shared unlit material, meshes made once, nothing allocated per frame, no lights, not in the
   animals group or `pickVolumes` (raycast is a no-op), so it never blocks picking.
+- **Photobook pictures (AS-0236, slice 1 of AS-0218).** Every photo (`SA.photo.record`) also captures a ~240 px JPEG of the animal
+  (`render/photo-capture.js`: renders a frame, crops round the animal) and keeps it in IndexedDB (`SA.photoStore`, db `santuario_photos`).
+  The save holds ids/dates only: `save.album[animalId] = { date, pics: [{ id, date }] }` (save v5; v4 date-only albums migrate without
+  loss). `SA.albumPics.keep` keeps the first picture ever plus the newest 3 per species and reports the rest for deletion. No IndexedDB or
+  a failing capture never affects the photo: it still counts for the album and badges. The album view that shows pictures is slice 2.
 - **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
   (hurt, stuck, hungry, tangled, scared: 1 task at beginner, 2 later) -> take its photo as proof it is OK ("¡Está bien!",
   saved to the album) -> next mission. Finding alone never ends a round. This supersedes "the photo answers the round" below.

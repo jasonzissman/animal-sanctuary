@@ -35,7 +35,7 @@ test('first load returns defaults and writes nothing', () => {
   const { save, storage } = setup();
   const s = save.load();
   assert.deepEqual(plain(s), {
-    version: 4, stars: 0, unlockedAnimals: [], placedProps: [],
+    version: 5, stars: 0, unlockedAnimals: [], placedProps: [],
     rounds: { completed: 0, streak: 0 },
     settings: { muted: false, english: false, scaffold: 1 }, stats: { unlocks: {} },
     inventory: { items: KIT, equipped: null },
@@ -99,7 +99,7 @@ test('corrupt JSON is preserved under the _corrupt key and defaults are used', (
   assert.equal(storage.getItem(CORRUPT), '{not json');
   fire();
   assert.equal(storage.getItem(CORRUPT), '{not json');
-  assert.equal(JSON.parse(storage.getItem(KEY)).version, 4);
+  assert.equal(JSON.parse(storage.getItem(KEY)).version, 5);
 });
 
 test('non-object, unknown or future versions are kept as corrupt copies', () => {
@@ -117,7 +117,7 @@ test('unversioned legacy save is migrated, keeping data and filling defaults', (
   const storage = fakeStorage({ [KEY]: JSON.stringify({ stars: 4, extra: 'keep', rounds: { completed: 3 } }) });
   const { save } = setup({ storage });
   const s = save.load();
-  assert.equal(s.version, 4);
+  assert.equal(s.version, 5);
   assert.equal(s.stars, 4);
   assert.equal(s.extra, 'keep');
   assert.deepEqual(plain(s.rounds), { completed: 3, streak: 0 });
@@ -181,7 +181,7 @@ test('v1 save migrates to v2: stats.unlocks added, everything else kept', () => 
     settings: { muted: true, english: true, scaffold: 2 }, stats: { parts: { orejas: { taps: 3, misses: 1 } } }, extra: 'keep' };
   const storage = fakeStorage({ [KEY]: JSON.stringify(old) });
   const s = plain(setup({ storage }).save.load());
-  assert.equal(s.version, 4);
+  assert.equal(s.version, 5);
   assert.deepEqual(s.stats, { parts: { orejas: { taps: 3, misses: 1 } }, unlocks: {} });
   assert.deepEqual(s.inventory, { items: KIT, equipped: null });
   const { inventory, ...rest } = s;
@@ -196,7 +196,7 @@ test('introSeen (retired, AS-0213): saves that have it load unchanged, older sav
   const falseToo = plain(setup({ storage: fakeStorage({ [KEY]: JSON.stringify({ version: 4, introSeen: false }) }) }).save.load());
   assert.equal(falseToo.introSeen, false);
   const v3 = plain(setup({ storage: fakeStorage({ [KEY]: JSON.stringify({ version: 3, stars: 5 }) }) }).save.load());
-  assert.equal(v3.version, 4);
+  assert.equal(v3.version, 5);
   assert.equal(v3.stars, 5);
   assert.equal('introSeen' in v3, false);
   const junk = plain(setup({ storage: fakeStorage({ [KEY]: JSON.stringify({ version: 4, introSeen: 'yes', stars: 2 }) }) }).save.load());

@@ -34,7 +34,7 @@ test('add() records the first-photo date once and unknown ids are ignored', () =
   assert.equal(SA.album.add('conejo', new Date('2027-01-01T10:00:00Z')), false);
   assert.equal(SA.album.add('dragon'), false);
   assert.equal(SA.album.add(null), false);
-  assert.deepEqual(plain(SA.save.get().album), { conejo: '2026-11-22' });
+  assert.deepEqual(plain(SA.save.get().album), { conejo: { date: '2026-11-22', pics: [] } });
   assert.equal(SA.album.has('conejo'), true);
   assert.equal(SA.album.has('pato'), false);
 });
@@ -83,7 +83,7 @@ test('taking a photo with SA.photo.record adds the animal to the album', () => {
   SA.photo.record('pato');
   SA.photo.record('pato');
   assert.equal(SA.album.has('pato'), true);
-  assert.match(SA.save.get().album.pato, /^\d{4}-\d{2}-\d{2}$/);
+  assert.match(SA.save.get().album.pato.date, /^\d{4}-\d{2}-\d{2}$/);
   assert.equal(SA.album.entries().filter((e) => e.seen).length, 1);
 });
 
@@ -102,12 +102,12 @@ test('album state persists through the save and bad data is dropped on load', ()
   SA.album.add('tortuga', new Date('2026-11-22T00:00:00Z'));
   SA.save.flush();
   const raw = JSON.parse(mem.get(SA.save.KEY));
-  assert.deepEqual(raw.album, { tortuga: '2026-11-22' });
+  assert.deepEqual(raw.album, { tortuga: { date: '2026-11-22', pics: [] } });
   raw.album.mono = 'yesterday';
   raw.album['Bad Id'] = '2026-01-01';
   mem.set(SA.save.KEY, JSON.stringify(raw));
   const SA2 = loadGame(FILES, { localStorage: store });
-  assert.deepEqual(plain(SA2.save.get().album), { tortuga: '2026-11-22' });
+  assert.deepEqual(plain(SA2.save.get().album), { tortuga: { date: '2026-11-22', pics: [] } });
   assert.equal(SA2.album.has('tortuga'), true);
 });
 

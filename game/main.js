@@ -30,6 +30,12 @@
         if (SA.treeCue.shouldSparkle(unlocks.tapCount('tree', t.id, t.biome)) && stage.treeTap.sparkle) stage.treeTap.sparkle(t.id);
       };
     } catch (e) { report('unlocks.start', e); }
+    // Every photo of an animal also keeps a small picture in IndexedDB (AS-0236); the album view that shows them comes next.
+    try {
+      if (SA.albumPics && SA.render.createPhotoCapture) {
+        SA.albumPics.setCapture(SA.render.createPhotoCapture(root.THREE, { renderer: stage.renderer, scene: stage.scene, camera: stage.camera, animals: stage.animals }));
+      }
+    } catch (e) { report('photoCapture.start', e); }
     var game = null;
     // The rescue mission (SA.mission, played by SA.missionFlow): find an animal that fits, help it, then la cámara photo.
     try { game = SA.mission.create({ biome: function () { return SA.round.biomeForRig(stage.rig); } });

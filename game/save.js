@@ -7,7 +7,9 @@
  *          missions = { done: [id], active: null | { id, step, seed, replay }, celebrated?: [id] } (AS-0177, SA.missions; AS-0198 celebrated; absent until used).
  *          rescues = [{ kind, mission, animal?, key?, animalId?, need?, biome?, night?, date? }] one row per finished rescue (AS-0235, AS-0167;
  *          SA.rescueLog), badges = [id] earned badge ids (SA.badges). Both optional: absent until the first rescue / badge.
- *          album = { '<animalId>':'YYYY-MM-DD' }: first-photo date per photographed animal (SA.album; no image data).
+ *          album = { '<animalId>': { date: 'YYYY-MM-DD', pics: [{ id, date }] } } (v5, AS-0236): the first-photo date per photographed animal
+ *          plus the kept picture entries (first ever + newest 3, SA.albumPics). Ids/dates only: the JPEGs live in IndexedDB (SA.photoStore).
+ *          v4 saves had { '<animalId>':'YYYY-MM-DD' }; migrations[4] and normalize() turn that into { date, pics: [] } without loss.
  *          inventory = { items: [{ id, count }], equipped: id|null } (added in v3; an array so removals persist
  *          through update()'s deep merge). New and migrated saves get the starting kit (STARTING_KIT).
  *          stats.unlocks = { '<target>|<biome>|<item>': taps } is easter-egg tap progress (added in v2).
@@ -24,7 +26,7 @@
 
   var KEY = 'santuario_save_v1';
   var CORRUPT_KEY = 'santuario_save_v1_corrupt';
-  var VERSION = 4;
+  var VERSION = 5;
   var STARTING_KIT = ['camara', 'cepillo', 'esponja', 'venda'];
   var DEBOUNCE_MS = 500;
   var RETIRED_ITEMS = { flor: true, hoja: true, platano: true, zanahoria: true, pez: true };   // removed items (AS-0154 flor/hoja, AS-0155 other foods): dropped from saved inventories
@@ -75,6 +77,12 @@
     // v4 once added introSeen for the retired first-run intro (AS-0213: nothing reads it any more). Keep the version; leave the data alone.
     3: function (old) {
       old.version = 4;
+      return old;
+    },
+    // v5 (AS-0236): album rows become { date, pics } so a species can keep small pictures. Every found species and its date is kept.
+    4: function (old) {
+      if (old.album !== undefined) old.album = normalizeAlbum(old.album);
+      old.version = 5;
       return old;
     }
   };
@@ -138,12 +146,23 @@
     return out;
   }
 
-  // Album: lowercase animal ids mapped to a YYYY-MM-DD first-photo date; anything else is dropped.
+  // Album: lowercase animal ids mapped to { date: 'YYYY-MM-DD', pics: [{ id, date }] }. A bare 'YYYY-MM-DD' (the v4 shape) becomes
+  // { date, pics: [] }; anything else is dropped. Picture ids are short [a-z0-9_-] words; at most 4 are kept per species.
   function normalizeAlbum(a) {
     var out = {};
     if (!isObj(a)) return out;
+    var day = /^\d{4}-\d{2}-\d{2}$/, word = /^[a-z0-9_-]{1,40}$/;
     Object.keys(a).forEach(function (id) {
-      if (/^[a-z0-9_-]+$/.test(id) && typeof a[id] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a[id])) out[id] = a[id];
+      if (!/^[a-z0-9_-]+$/.test(id)) return;
+      var v = a[id];
+      if (typeof v === 'string') { if (day.test(v)) out[id] = { date: v, pics: [] }; return; }
+      if (!isObj(v) || typeof v.date !== 'string' || !day.test(v.date)) return;
+      var pics = [];
+      (Array.isArray(v.pics) ? v.pics : []).forEach(function (p) {
+        if (isObj(p) && typeof p.id === 'string' && word.test(p.id) && typeof p.date === 'string' && day.test(p.date) &&
+          !pics.some(function (q) { return q.id === p.id; })) pics.push({ id: p.id, date: p.date });
+      });
+      out[id] = { date: v.date, pics: pics.slice(-4) };
     });
     return out;
   }

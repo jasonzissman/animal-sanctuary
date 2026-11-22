@@ -88,7 +88,8 @@
   function createView(doc, handlers) {
     var noop = function () {};
     if (!doc || typeof doc.createElement !== 'function' || !doc.body) {
-      return { showRound: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop };
+      return { showRound: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop,
+        setStars: noop, setHidden: noop };
     }
     handlers = handlers || {};
     function el(tag, css, text) {
@@ -177,6 +178,12 @@
             { transform: 'translateY(0) rotate(0deg)' }], { duration: 600 });
         }
       },
+      setStars: function (n) { starsEl.textContent = '⭐ ' + n; },
+      setHidden: function (hide) {      // the habitat sandbox hides the prompt bar, star badge and feed tray while building
+        bar.style.visibility = hide ? 'hidden' : 'visible';
+        starsEl.style.visibility = hide ? 'hidden' : 'visible';
+        trayEl.style.visibility = hide ? 'hidden' : 'visible';
+      },
       showHint: function () { hintBtn.style.display = 'none'; setIcon(current, true); },
       celebrate: function (r) { setIcon(r.icon, false); starsEl.textContent = '⭐ ' + r.stars; hintBtn.style.display = 'none'; },
       clear: function () { text.textContent = ''; },
@@ -229,6 +236,9 @@
       care: careFlow });
     SA.picking.onPick(ctl.onPick);
     ctl.begin();
+    // Habitat sandbox hooks: hide/show the bar and refresh the star badge after spending or refunding.
+    ctl.setStars = view.setStars;
+    ctl.setHidden = view.setHidden;
     return ctl;
   }
 

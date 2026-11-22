@@ -105,6 +105,12 @@ test('validator rejects other bad animals naming the field', () => {
     [(a) => { a.parts[0].scale = [1, 'a', 1]; }, /field "parts\[0\]\.scale"/],
     [(a) => { a.parts[0].count = 0; }, /field "parts\[0\]\.count"/],
     [(a) => { a.parts[0].offset = [0, 0]; }, /field "parts\[0\]\.offset"/],
+    [(a) => { a.parts[0].rot = [0, 1]; }, /field "parts\[0\]\.rot"/],
+    [(a) => { a.parts[0].row = 0; }, /field "parts\[0\]\.row"/],
+    [(a) => { a.parts[0].also = 'x'; }, /field "parts\[0\]\.also"/],
+    [(a) => { a.parts[0].also = [null]; }, /field "parts\[0\]\.also\[0\]"/],
+    [(a) => { a.parts[0].also = [{ scale: 1, count: 1, offset: [0, 0, 0], color: 'red' }]; }, /field "parts\[0\]\.also\[0\]\.color"/],
+    [(a) => { a.parts[0].also = [{ scale: 0, count: 1, offset: [0, 0, 0] }]; }, /field "parts\[0\]\.also\[0\]\.scale"/],
     [(a) => { a.easterEgg = 'no'; }, /field "easterEgg"/],
   ];
   for (const [mutate, re] of cases) {

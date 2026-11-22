@@ -18,6 +18,10 @@
  * A parts[] entry may also set `pupil` ('#rrggbb'): a dark pupil sphere drawn in front of each instance, so eyes read as
  * eyes (it must contrast with the part colour). It is a child of the part mesh, so it is never separately pickable.
  * A parts[] entry may also set `builder` (a SA.parts.BUILDERS name) to draw its part with another primitive.
+ * A parts[] entry may also set `rot` [rx,ry,rz] radians (explicit tilt; replaces the automatic turn, and `scale` is then the
+ * mesh's own x/y/z size) and `row` (z half-spacing of the two rows of a count-4 part, so legs sit at the body's corners).
+ * `also: [{ scale, count, offset, rot?, row?, builder?, color? }]` adds extra meshes tagged with the SAME part key (a neck
+ * segment of the head, a knee bump on the legs); taps on them answer as that part. builder/color default to the entry's.
  */
 (function (root) {
   'use strict';
@@ -58,6 +62,20 @@
     if (seen[entry.part]) fail(f + '.part', 'duplicate part ' + JSON.stringify(entry.part));
     seen[entry.part] = true;
     if (!HEX.test(entry.color)) fail(f + '.color', 'must be a "#rrggbb" colour (got ' + JSON.stringify(entry.color) + ')');
+    validatePiece(entry, f);
+    if (entry.also !== undefined) {
+      if (!Array.isArray(entry.also)) fail(f + '.also', 'must be an array of extra pieces');
+      entry.also.forEach(function (x, j) {
+        var xf = f + '.also[' + j + ']';
+        if (!x || typeof x !== 'object') fail(xf, 'must be an object');
+        if (x.color !== undefined && !HEX.test(x.color)) fail(xf + '.color', 'must be a "#rrggbb" colour (got ' + JSON.stringify(x.color) + ')');
+        validatePiece(x, xf);
+      });
+    }
+  }
+
+  /** Shape shared by a part entry and its `also` extras: scale, builder, count, offset, and the optional rot / row. */
+  function validatePiece(entry, f) {
     if (Array.isArray(entry.scale)) vec3(entry.scale, f + '.scale', true);
     else if (!isNum(entry.scale) || entry.scale <= 0) fail(f + '.scale', 'must be a positive number or [x,y,z]');
     if (entry.pupil !== undefined) {
@@ -71,6 +89,8 @@
     }
     if (!Number.isInteger(entry.count) || entry.count < 1 || entry.count > 8) fail(f + '.count', 'must be an integer from 1 to 8');
     vec3(entry.offset, f + '.offset', false);
+    if (entry.rot !== undefined) vec3(entry.rot, f + '.rot', false);
+    if (entry.row !== undefined && (!isNum(entry.row) || entry.row <= 0)) fail(f + '.row', 'must be a positive number');
   }
 
   function validateAnimal(a) {
@@ -126,6 +146,17 @@
     return e;
   }
 
+  /** The camel's head with its S-curved neck: small elongated head tilted slightly down, then three cylinder segments (leaning
+   *  50, 15 and 55 degrees forward) joined by balls. Neck pieces are `also` extras, so tapping the neck answers as la cabeza. */
+  function cabezaCuello() {
+    var C = '#d2a86a', D = Math.PI / 180;
+    function seg(w, len, deg, y, z) { return { scale: [w, len, w], count: 1, offset: [0, y, z], rot: [deg * D, 0, 0], builder: 'cylinder' }; }
+    function ball(d, y, z) { return { scale: d, count: 1, offset: [0, y, z], builder: 'sphere' }; }
+    return { part: 'cabeza', color: C, scale: [0.4, 0.38, 0.66], count: 1, offset: [0, 3.7, 2.2], rot: [0.25, 0, 0],
+      also: [seg(0.38, 0.8, 50, 2.357, 1.106), ball(0.4, 2.614, 1.413), seg(0.3, 0.8, 15, 3.0, 1.517),
+        ball(0.32, 3.387, 1.62), seg(0.26, 0.5, 55, 3.53, 1.825)] };
+  }
+
   SA.data.register('animals', [
     { id: 'conejo', name: { es: 'conejo', en: 'rabbit', gender: 'm' }, icon: '🐰', biome: 'bosque',
       traits: { size: 'pequeño', color: 'gris', movement: 'salta', diet: 'herbívoro', legs: 4 },
@@ -177,11 +208,22 @@
     { id: 'camello', name: { es: 'camello', en: 'camel', gender: 'm' }, icon: '🐫', biome: 'desierto',
       traits: { size: 'grande', color: 'marrón', movement: 'corre', diet: 'herbívoro', legs: 4 },
       parts: [
-        p('cuerpo', '#c99a5b', [1.1, 0.9, 1.9], 1, [0, 1.5, 0]), p('joroba', '#b8864a', 0.75, 1, [0, 2.15, -0.1]),
-        p('cabeza', '#c99a5b', 0.7, 1, [0, 1.95, 1.0]), p('hocico', '#a87a40', [0.3, 0.25, 0.3], 1, [0, 1.88, 1.3]),
-        p('orejas', '#a87a40', [0.15, 0.2, 0.15], 2, [0.2, 2.3, 0.95]), p('cola', '#a87a40', [0.1, 0.1, 0.5], 1, [0, 1.6, -1.1]),
-        p('patas', '#b8864a', [0.22, 1.4, 0.22], 4, [0.4, 0.7, 0]), eyes(0.1, [0.2, 2.03, 1.25]),
-        p('pelo', '#d6ab6a', [0.7, 0.2, 1.0], 1, [0, 1.98, -0.4]), p('barriga', '#e0c08a', [0.8, 0.45, 0.9], 1, [0, 0.9, 0.3])
+        // Long horizontal oval body on tall thin legs; one hump sitting ON the back; an S-curved neck (3 segments + joint
+        // balls, all part "cabeza") rises forward from the chest to a small, long-snouted head held high.
+        p('cuerpo', '#d2a86a', [1.1, 1.0, 2.1], 1, [0, 1.95, 0]), p('joroba', '#c0925a', [0.8, 0.75, 0.9], 1, [0, 2.55, -0.1]),
+        cabezaCuello(),
+        p('hocico', '#b8895a', [0.28, 0.26, 0.4], 1, [0, 3.55, 2.5]),
+        p('orejas', '#b8895a', [0.13, 0.13, 0.13], 2, [0.15, 3.9, 2.0]),
+        { part: 'cola', color: '#b89058', scale: [0.09, 0.9, 0.09], count: 1, offset: [0, 1.77, -1.11], rot: [0.3, 0, 0],
+          also: [{ scale: [0.2, 0.28, 0.2], count: 1, offset: [0, 1.34, -1.25], color: '#7a5530', builder: 'sphere' }] },
+        { part: 'patas', color: '#b8864a', scale: [0.17, 1.85, 0.17], count: 4, offset: [0.32, 0.925, 0], row: 0.7, builder: 'cylinder',
+          also: [
+            { scale: [0.24, 0.24, 0.3], count: 4, offset: [0.32, 0.8, 0.06], row: 0.7, color: '#a8794a', builder: 'sphere' },   // knees
+            { scale: [0.3, 0.1, 0.44], count: 4, offset: [0.32, 0.05, 0.07], row: 0.7, color: '#8f6a3c', builder: 'box' }       // wide flat feet
+          ] },
+        eyes(0.1, [0.17, 3.76, 2.28]),
+        p('pelo', '#d6ab6a', [0.4, 0.14, 0.5], 1, [0, 2.9, -0.1]),
+        p('barriga', '#d2a86a', [0.7, 0.3, 1.0], 1, [0, 1.65, 0.1])   // same colour as the body and tucked inside it: not a visible pale blob
       ], easterEgg: false },
     { id: 'serpiente', name: { es: 'serpiente', en: 'snake', gender: 'f' }, icon: '🐍', biome: 'desierto',
       traits: { size: 'mediano', color: 'naranja', movement: 'repta', diet: 'carnívoro', legs: 0 },

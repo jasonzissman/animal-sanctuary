@@ -27,7 +27,8 @@ test('plan: every real animal expands from data alone, with sane numbers', () =>
   const SA = loadGame(DATA);
   for (const a of SA.data.all('animals')) {
     const specs = SA.animalPlan.plan(a);
-    assert.equal(specs.length, a.parts.reduce((n, p) => n + p.count, 0), a.id);
+    const meshes = (p) => p.count + (p.also || []).reduce((n, x) => n + x.count, 0);
+    assert.equal(specs.length, a.parts.reduce((n, p) => n + meshes(p), 0), a.id);
     for (const s of specs) {
       assert.equal(s.animalId, a.id);
       assert.ok(SA.parts.BUILDERS.includes(s.builder));
@@ -82,6 +83,53 @@ test('plan: a missing part definition fails with a clear error; custom defs are 
   assert.deepEqual(Array.from(SA.animalPlan.plan(five, [def]), (s) => s.position[0]), [-0.5, 0, 0.5]);
 });
 
+test('plan: `rot` replaces the auto turn, `row` spreads count-4 rows, `also` pieces share the part key with unique indexes', () => {
+  const SA = loadGame(DATA);
+  const a = {
+    id: 'x', parts: [
+      { part: 'patas', color: '#445566', scale: [0.2, 1, 0.2], count: 4, offset: [0.3, 0.5, 0], row: 0.9,
+        also: [{ scale: [0.3, 0.1, 0.4], count: 4, offset: [0.3, 0.05, 0], row: 0.9, color: '#112233', builder: 'box' }] },
+      { part: 'cola', color: '#778899', scale: [0.1, 0.8, 0.1], count: 1, offset: [0, 1, -1], rot: [0.3, 0, 0] },
+      { part: 'cabeza', color: '#aabbcc', scale: 0.5, count: 1, offset: [0, 2, 1], also: [{ scale: 0.3, count: 1, offset: [0, 1.5, 0.8] }] },
+    ],
+  };
+  const specs = SA.animalPlan.plan(a);
+  const legs = specs.filter((s) => s.part === 'patas');
+  assert.equal(legs.length, 8);
+  assert.deepEqual(Array.from(legs, (s) => s.index), [0, 1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual([...new Set(legs.slice(0, 4).map((s) => Math.abs(s.position[2])))], [0.9]);
+  assert.equal(legs[4].builder, 'box');
+  assert.equal(legs[4].color, '#112233');
+  assert.equal(legs[0].color, '#445566');
+  const tail = specs.find((s) => s.part === 'cola');
+  assert.deepEqual(Array.from(tail.rotation), [0.3, 0, 0]);
+  assert.deepEqual(Array.from(tail.size), [0.1, 0.8, 0.1], 'rot keeps the size as given (no axis swap)');
+  const neck = specs.filter((s) => s.part === 'cabeza')[1];
+  assert.equal(neck.builder, 'sphere', 'an extra inherits the part builder');
+  assert.equal(neck.color, '#aabbcc', 'and the part colour');
+});
+
+test('camello: long forward neck, head held high, hump on the back, thin legs with knees and flat feet', () => {
+  const SA = loadGame(DATA);
+  const specs = SA.animalPlan.plan(SA.data.get('animals', 'camello'));
+  const of = (k) => specs.filter((s) => s.part === k);
+  const body = of('cuerpo')[0], hump = of('joroba')[0], head = of('cabeza')[0];
+  const top = (s) => s.position[1] + s.size[1] / 2, bottom = (s) => s.position[1] - s.size[1] / 2;
+  assert.ok(of('cabeza').length >= 4, 'head plus 2-3 neck segments');
+  assert.ok(head.position[1] > body.position[1] + 1.5 && head.position[2] > body.position[2] + 1.5, 'head high and forward');
+  assert.ok(bottom(hump) < top(body) && top(hump) > top(body), 'hump sits on the back, overlapping the body (no gap)');
+  const legs = of('patas').filter((s) => s.builder === 'cylinder');
+  assert.equal(legs.length, 4);
+  for (const l of legs) assert.ok(l.size[0] <= 0.2 && l.size[1] > 1.5, 'thin and long');
+  assert.equal(of('patas').filter((s) => s.builder === 'sphere').length, 4, 'knee bumps');
+  const feet = of('patas').filter((s) => s.builder === 'box');
+  assert.equal(feet.length, 4);
+  for (const f of feet) assert.ok(f.size[0] > legs[0].size[0] && f.size[1] < 0.2, 'wide flat feet');
+  const belly = of('barriga')[0];
+  assert.equal(belly.color, body.color, 'barriga is not a separate pale blob');
+  for (const k of ['cuerpo', 'joroba', 'cabeza', 'hocico', 'orejas', 'cola', 'patas', 'pelo', 'barriga', 'ojos']) assert.ok(of(k).length, k);
+});
+
 test('placements: deterministic, in the right biome, dry, spaced and clear of decor', () => {
   const SA = loadGame(DATA);
   const animals = SA.data.all('animals');
@@ -112,7 +160,7 @@ test('buildAnimals: groups per animal; every part mesh and pick volume carries u
     const animal = SA.data.get('animals', g.userData.animalId);
     const parts = g.children.filter((m) => !m.userData.pick);
     const picks = g.children.filter((m) => m.userData.pick);
-    assert.equal(parts.length, animal.parts.reduce((n, p) => n + p.count, 0));
+    assert.equal(parts.length, animal.parts.reduce((n, p) => n + p.count + (p.also || []).reduce((m, x) => m + x.count, 0), 0));
     assert.equal(picks.length, parts.length);
     assert.equal(g.userData.pickVolumes.length, picks.length);
     for (const m of g.children) {

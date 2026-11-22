@@ -120,10 +120,13 @@ test('tapping the middle of the screen picks the part, glows it, reacts, shows t
   const s = stage(false);
   const picks = [];
   s.SA.picking.onPick((p) => picks.push(p));
+  const said = [];
+  s.SA.audio = { say: (k) => said.push(k) };
   const hit = s.picking.pickAt(400, 300);
   assert.ok(hit && hit.mesh, 'ray hits a pick volume');
   s.handlers.pointerdown(ev(400, 300));
   s.handlers.pointerup(ev(402, 301));
+  assert.deepEqual(said, ['part:' + hit.part], 'tapping a part speaks its Spanish label');
   assert.deepEqual(picks.map((p) => ({ ...p })), [{ animalId: hit.animalId, part: hit.part }]);
   assert.notEqual(hit.mesh.material, hit.mesh.userData.baseMaterial, 'glowing material swapped in');
   assert.ok(hit.mesh.material.emissiveIntensity > 0);

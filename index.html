@@ -23,6 +23,8 @@
   <!-- Content data: biomes, then animals (cross-checked against parts and biomes). -->
   <script src="game/data/biomes.js"></script>
   <script src="game/data/animals.js"></script>
+  <!-- Vocabulary manifest (kind "vocab"): every speakable key with its Spanish text and optional clip. -->
+  <script src="game/data/vocab.js"></script>
   <!-- Save manager (SA.save): santuario_save_v1 with migration and in-memory fallback. -->
   <script src="game/save.js"></script>
   <!-- Telemetry client (window.SAT): queues events locally, flushes only if the local receiver is running. -->
@@ -30,6 +32,8 @@
   <!-- Audio (SA.audio): procedural Web Audio SFX, unlocked on first gesture, persistent mute button. -->
   <script src="game/audio.js"></script>
   <script src="game/audio-ui.js"></script>
+  <!-- SA.audio.say(key): clip or Spanish speechSynthesis fallback. -->
+  <script src="game/speech.js"></script>
   <script>if (window.SAT) window.SAT.startSession();</script>
   <!-- World layout and camera math (pure), then rendering (the only code touching THREE), then the entry point. -->
   <script src="game/map.js"></script>

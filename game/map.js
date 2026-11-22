@@ -17,6 +17,7 @@
   var WATER_LEVEL = -0.3;
   var RIVER = { centerX: -20, wiggle: 3, freq: 0.14, halfWidth: 2.6 };
   var POND = { x: 22, z: 10, radius: 5 };
+  var FORD = { z: 19, halfLen: 2.5, level: 0.15 };   // river crossing (dry ground at this height across the river)
 
   function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
   function smooth(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
@@ -58,6 +59,9 @@
     h -= 2.2 * smooth((span - dr) / 2.5);
     var dp = Math.sqrt((x - POND.x) * (x - POND.x) + (z - POND.z) * (z - POND.z));
     h -= 2.2 * smooth((POND.radius + 2 - dp) / 2.5);
+    // The ford: a shallow, dry stretch of the river so the walking player (who cannot enter water) can cross it.
+    var wz = smooth((FORD.halfLen + 1.5 - Math.abs(z - FORD.z)) / 1.5) * smooth((span + 1.5 - dr) / 1.5);
+    if (wz > 0) h += (FORD.level - h) * wz;
     return h + mountainHeight(x, z) + duneHeight(x, z);
   }
 
@@ -98,7 +102,7 @@
   }
 
   SA.map = {
-    BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND,
+    BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND, FORD: FORD,
     clamp: clamp, biomeAt: biomeAt, riverX: riverX, groundHeight: groundHeight, followHeight: followHeight, cameraHeight: cameraHeight, isWater: isWater, nearWater: nearWater, rng: rng,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

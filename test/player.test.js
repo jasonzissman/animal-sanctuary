@@ -70,11 +70,11 @@ test('the player is clamped to the map bounds on every side', () => {
   const B = SA.map.BOUNDS;
   const E = walk({ x: 0, z: 0, heading: Math.PI / 2 }, { forward: true }, 60);
   assert.ok(E.x <= B.maxX && E.x > B.maxX - 1);
-  const W = walk({ x: 0, z: 0, heading: -Math.PI / 2 }, { forward: true }, 60);
+  const W = walk({ x: -30, z: -15, heading: -Math.PI / 2 }, { forward: true }, 60);   // dry row; water blocks the way from x = 0
   assert.ok(W.x >= B.minX && W.x < B.minX + 1);
-  const N = walk({ x: 0, z: 0, heading: 0 }, { forward: true }, 30);
+  const N = walk({ x: -50, z: 0, heading: 0 }, { forward: true }, 30);   // montaña: dry along the whole column
   assert.ok(N.z <= B.maxZ && N.z > B.maxZ - 1);
-  const S = walk({ x: 0, z: 0, heading: Math.PI }, { forward: true }, 30);
+  const S = walk({ x: -50, z: 0, heading: Math.PI }, { forward: true }, 30);
   assert.ok(S.z >= B.minZ && S.z < B.minZ + 1);
   const out = P.step({ x: 999, z: -999, heading: 0 }, {}, DT);
   assert.ok(out.x <= B.maxX && out.z >= B.minZ);
@@ -148,9 +148,82 @@ test('wedged player ends up clear of the obstacles it walked out of', () => {
   for (const o of obstacles) assert.ok(Math.hypot(s.x - o[0], s.z - o[1]) >= o[2] + P.RADIUS - 0.03);
 });
 
+// ---- terrain height and water (AS-0077)
+test('heightAt returns SA.map.groundHeight', () => {
+  for (const [x, z] of [[0, 0], [-9, 14], [22, 10], [-60, 3]]) assert.equal(P.heightAt(x, z), SA.map.groundHeight(x, z));
+});
+
+test('starting in water moves to the nearest dry point, even with no input', () => {
+  const wetPt = { x: SA.map.riverX(0), z: 0, heading: 0 };
+  assert.ok(SA.map.isWater(wetPt.x, wetPt.z));
+  const s = P.step(wetPt, {}, 0);
+  assert.ok(!SA.map.isWater(s.x, s.z));
+  assert.ok(Math.hypot(s.x - wetPt.x, s.z - wetPt.z) < 6, 'moved only to the nearby shore');
+  const pond = P.step({ x: 22, z: 10, heading: 0 }, { forward: true }, DT);
+  assert.ok(!SA.map.isWater(pond.x, pond.z));
+  const n = P.nearestDry(-9, 14);
+  near(n.x, -9); near(n.z, 14);
+});
+
+test('walking at the river never enters water and slides along the shore', () => {
+  for (const heading of [Math.PI / 2, Math.PI / 4, (3 * Math.PI) / 4]) {
+    let s = { x: SA.map.riverX(0) - 9, z: 0, heading };
+    let moved = 0;
+    for (let t = 0; t < 6; t += DT) {
+      const n = P.step(s, { forward: true }, DT);
+      assert.ok(!SA.map.isWater(n.x, n.z), `wet at ${n.x},${n.z}`);
+      moved += Math.hypot(n.x - s.x, n.z - s.z);
+      s = n;
+    }
+    assert.ok(moved > 3, 'kept moving (slid) rather than freezing');
+  }
+});
+
+test('walking around the pond from every side never ends in water', () => {
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+    let s = { x: 22 + Math.cos(a) * 12, z: 10 + Math.sin(a) * 8, heading: Math.atan2(-Math.cos(a), -Math.sin(a)) };
+    for (let t = 0; t < 8; t += DT) {
+      s = P.step(s, { forward: true }, DT);
+      assert.ok(!SA.map.isWater(s.x, s.z), `wet at ${s.x},${s.z}`);
+    }
+  }
+});
+
+test('water: false skips the shore rule (canopy walking)', () => {
+  const wetPt = { x: SA.map.riverX(0), z: 0, heading: 0 };
+  const s = P.step(wetPt, {}, 0, [], { water: false });
+  near(s.x, wetPt.x); near(s.z, wetPt.z);
+});
+
 test('standing on top of two obstacles the player escapes; a free player is still blocked by a tree', () => {
   const s = walk({ x: 0, z: 0, heading: 0 }, { forward: true }, 2, [[0, 0, 1], [0.1, 0, 1]]);
   assert.ok(Math.hypot(s.x, s.z) > 1.5);
   const t = walk({ x: 0, z: -5, heading: 0 }, { forward: true }, 3, [[0, 0, 1]]);
   assert.ok(Math.hypot(t.x, t.z) >= 1 + P.RADIUS - 0.03);
+});
+
+test('the map stays reachable on foot: water blocks, but a ford crosses the river', () => {
+  const B = SA.map.BOUNDS, STEP = 1, W = Math.round((B.maxX - B.minX) / STEP) + 1, H = Math.round((B.maxZ - B.minZ) / STEP) + 1;
+  const ix = (x) => Math.round((x - B.minX) / STEP), iz = (z) => Math.round((z - B.minZ) / STEP);
+  const dry = (i, j) => !SA.map.isWater(B.minX + i * STEP, B.minZ + j * STEP);
+  const s = P.spawn(), seen = new Set([ix(s.x) + ',' + iz(s.z)]), queue = [[ix(s.x), iz(s.z)]];
+  while (queue.length) {
+    const [i, j] = queue.pop();
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const a = i + di, b = j + dj, k = a + ',' + b;
+      if (a < 0 || b < 0 || a >= W || b >= H || seen.has(k) || !dry(a, b)) continue;
+      seen.add(k); queue.push([a, b]);
+    }
+  }
+  for (const [x, z] of [[-60, 0], [-60, -15], [-45, -15], [60, 0], [20, -15]]) {
+    if (dry(ix(x), iz(z))) assert.ok(seen.has(ix(x) + ',' + iz(z)), `(${x}, ${z}) reachable`);
+  }
+  assert.ok(!SA.map.isWater(SA.map.riverX(SA.map.FORD.z), SA.map.FORD.z), 'the ford is dry');
+});
+
+test('the player can walk across the ford from the east bank to the west bank', () => {
+  const z = SA.map.FORD.z;
+  const s = walk({ x: SA.map.riverX(z) + 9, z, heading: -Math.PI / 2 }, { forward: true }, 5);
+  assert.ok(s.x < SA.map.riverX(z) - 3, `crossed: ${s.x}`);
+  assert.ok(!SA.map.isWater(s.x, s.z));
 });

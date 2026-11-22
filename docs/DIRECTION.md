@@ -88,6 +88,12 @@ current; when your change sets or changes something future tickets must follow, 
   the animal gives a soft `chirp` (`SA.audio.sfx('chirp', volume)`, quieter with distance) while the player is within
   `SA.treetopTell.NEAR` (16 m), and a round shadow sits on the ground under it. Pure seeded timing in
   `game/treetop-tell.js`; thin THREE layer in `game/render/treetop-tell.js`. No text, no per-frame allocation.
+- **A rich, varied world (AS-0129 to AS-0140).** Map ~2x area. Detailed but light: varied ground colours, grass, bushes,
+  several tree kinds, moving water, faceted rocks, soft shadows. Each biome has character (forest paths, streams and fallen
+  logs to jump; desert dunes, arch, oasis; mountain trail, waterfall; jungle giant trees, vines, waterfall). Keep adding
+  variety with discretion: fun, never cluttered, ~60 fps (instancing, auto quality).
+- **Lots of animals.** Several of each species (3-5) spread around each biome, and >= 5 species per biome. Any instance
+  counts for its species.
 - **Animals look like the real animal (AS-0127).** Low-poly but recognisable: real proportions and silhouette (neck, legs,
   head shape), parts attached with no floating gaps, no pale blobs. A kid should name it without the label.
 - **Parts light up only while helping (AS-0128).** Outside a care/help task an animal is one whole target: no part glow,
@@ -186,3 +192,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: any matching animal counts (AS-0122); rescue missions: find, help 1-2 times, photo proof (AS-0123 to AS-0125).
 - 2026-11-22: double jump: Space again in mid-air (AS-0126).
 - 2026-11-22: realistic animals, starting with the camel (AS-0127); parts light up only while helping (AS-0128).
+- 2026-11-22: higher-fidelity world, 2x map, biome landmarks, detailed avatar/animals, more animals and species (AS-0129 to AS-0140).

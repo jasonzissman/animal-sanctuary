@@ -120,13 +120,80 @@ test('buildAnimals: groups per animal; every part mesh and pick volume carries u
     }
     for (const p of picks) assert.equal(p.visible, false);
   }
-  // A ray aimed at an invisible pick volume hits it (so tiny parts are easy to tap).
-  const bunny = group.children.find((g) => g.userData.animalId === 'conejo');
+});
+
+function pickerFor(animalId) {
+  const ctx = vm.createContext({ console });
+  ctx.window = ctx;
+  ctx.self = ctx;
+  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/animals.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+  }
+  const { SA, THREE } = ctx;
+  const group = SA.render.buildAnimals(THREE);
+  const g = group.children.find((c) => c.userData.animalId === animalId);
   group.updateMatrixWorld(true);
-  const eye = bunny.userData.pickVolumes.find((p) => p.userData.part === 'ojos');
-  const target = eye.getWorldPosition(new THREE.Vector3());
-  const ray = new THREE.Raycaster(target.clone().add(new THREE.Vector3(0.1, 0.05, 0.1)), new THREE.Vector3(-0.1, -0.05, -0.1).normalize());
-  const hits = ray.intersectObjects(bunny.userData.pickVolumes, false);
-  assert.ok(hits.length > 0);
-  assert.equal(hits[0].object.userData.animalId, 'conejo');
+  // Cast from outside the animal: origin and direction are given in the animal's own frame (+z = its front).
+  return (from, to) => {
+    const o = g.localToWorld(new THREE.Vector3(...from));
+    const t = g.localToWorld(new THREE.Vector3(...to));
+    const ray = new THREE.Raycaster(o, t.sub(o).normalize());
+    const hits = ray.intersectObjects(g.userData.pickVolumes, false);
+    const naive = hits[0] && hits[0].object.userData.part;
+    const hit = SA.animalPlan.choosePick(hits);
+    return { naive, part: hit && hit.object.userData.part, id: hit && hit.object.userData.animalId, n: hits.length };
+  };
+}
+
+test('picking: small parts win over the cabeza/cuerpo boxes around them (conejo)', () => {
+  const pick = pickerFor('conejo');
+  // From the camera side, straight at each eye, the snout, the tail and the front/back legs.
+  assert.equal(pick([0.17, 1.08, 5], [0.17, 1.08, 0.77]).part, 'ojos');
+  assert.equal(pick([-0.17, 1.08, 5], [-0.17, 1.08, 0.77]).part, 'ojos');
+  assert.equal(pick([0, 0.96, 5], [0, 0.96, 0.84]).part, 'hocico');
+  assert.equal(pick([0, 0.5, -5], [0, 0.5, -0.55]).part, 'cola');
+  // A ray from the side first crosses the head box (a nearest-hit pick would say cabeza), then meets the eye.
+  const oblique = pick([3, 1.08, 0.77], [0.17, 1.08, 0.77]);
+  assert.equal(oblique.naive, 'cabeza');
+  assert.equal(oblique.part, 'ojos');
+  // From the side and from below the legs beat the body.
+  const side = pick([5, 0.18, 0.336], [0.28, 0.18, 0.336]);
+  assert.equal(side.part, 'patas');
+  assert.equal(pick([0.28, -5, 0.336], [0.28, 0.18, 0.336]).part, 'patas');
+  // Plain head and body taps still pick the head and body, and carry the animal id.
+  assert.equal(pick([0.3, 1.3, 5], [0.3, 1.3, 0.5]).part, 'cabeza');
+  const body = pick([0, 0.9, -5], [0, 0.9, 0]);
+  assert.equal(body.part, 'cuerpo');
+  assert.equal(body.id, 'conejo');
+});
+
+test('picking: eyes behind the first surface cannot be tapped through the back of the head', () => {
+  const pick = pickerFor('conejo');
+  assert.equal(pick([0.17, 1.08, -5], [0.17, 1.08, 0.2]).part, 'cabeza');
+});
+
+test('picking: tiny parts of mono and tucan are reachable from the front', () => {
+  const mono = pickerFor('mono');
+  assert.equal(mono([0.15, 1.68, 5], [0.15, 1.68, 0.56]).part, 'ojos');
+  assert.equal(mono([0, 1.52, 5], [0, 1.52, 0.6]).part, 'hocico');
+  const tucan = pickerFor('tucan');
+  assert.equal(tucan([2, 1.7, 4], [0.25, 1.58, 0.47]).part, 'ojos'); // the beak hides the eyes dead-on
+  assert.equal(tucan([0, 1.45, 5], [0, 1.45, 0.9]).part, 'pico');
+});
+
+test('choosePick: empty hits give null; hits without a pick volume fall back to the nearest', () => {
+  const SA = loadGame(DATA);
+  assert.equal(SA.animalPlan.choosePick([]), null);
+  const h = [{ distance: 1, object: { userData: {} } }];
+  assert.equal(SA.animalPlan.choosePick(h), h[0]);
+});
+
+test('plan: big masses get a 1.0x pick volume, small parts 1.6x, and pick volumes follow rotation', () => {
+  const SA = loadGame(DATA);
+  const specs = SA.animalPlan.plan(SA.data.get('animals', 'conejo'));
+  const body = specs.find((s) => s.part === 'cuerpo');
+  near(body.pickSize[0], 1.0);
+  const beak = SA.animalPlan.plan(SA.data.get('animals', 'tucan')).find((s) => s.part === 'pico');
+  assert.deepEqual(Array.from(beak.pickSize), Array.from(beak.size, (n) => n * 1.6));
+  near(beak.pickVolume, 0.35 * 0.3 * 1.1 * 1.6 ** 3);
 });

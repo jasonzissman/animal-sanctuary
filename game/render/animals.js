@@ -3,8 +3,9 @@
  * (userData { animalId }), each holding visible part meshes and invisible pick volumes.
  *
  * Every part mesh AND its pick volume carry userData { animalId, part, side?, index }; pick volumes also have
- * pick: true and are ~1.6x the part (visible=false, but THREE's Raycaster still hits them).
- * animalGroup.userData.pickVolumes lists them, so picking raycasts only those (never the whole scene).
+ * pick: true, pickVolume (box volume) and are ~1.6x the part, or 1.0x for big masses (visible=false, but THREE's
+ * Raycaster still hits them). animalGroup.userData.pickVolumes lists them, so picking raycasts only those (never
+ * the whole scene); pass the hits to SA.animalPlan.choosePick(hits) so small parts beat the head/body around them.
  * opts.avoid = [[x,z],...] keeps animals clear of decor.
  */
 (function (root) {
@@ -49,9 +50,11 @@
         var pick = new THREE.Mesh(pickGeo, pickMat);
         pick.scale.set(spec.pickSize[0], spec.pickSize[1], spec.pickSize[2]);
         pick.position.copy(mesh.position);
+        pick.rotation.set(spec.rotation[0], spec.rotation[1], spec.rotation[2]);
         pick.visible = false;
         tag(pick, spec);
         pick.userData.pick = true;
+        pick.userData.pickVolume = spec.pickVolume;
         g.add(mesh, pick);
         g.userData.pickVolumes.push(pick);
       });

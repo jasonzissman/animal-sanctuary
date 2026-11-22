@@ -7,6 +7,8 @@
  *   traits    { size, color, movement, diet, legs }   values from SA.animals.SIZES / COLORS / ...
  *             color is the masculine/base Spanish colour word; the clue engine inflects it for gender.
  *   parts     [{ part: <registered part key>, color: '#rrggbb', scale: n | [x,y,z], count: int, offset: [x,y,z] }]
+ *             count > 1 spreads instances symmetrically: offset.x is the HALF-WIDTH of the spread (not a position),
+ *             e.g. count 2 -> x = -offset.x and +offset.x; count 4 -> a 2x2 grid; offset y/z are shared.
  *   easterEgg boolean (false for real animals)
  */
 (function (root) {

@@ -260,6 +260,12 @@ current; when your change sets or changes something future tickets must follow, 
   'Toma una foto' 📷). `SA.missionPill` (`game/mission-pill.js`, pure) is polled by `main.js` after `SA.focus.update()`: it calls
   `view.showStep` and speaks the line via `SA.audio.say` on every step change; Replay 🔊 repeats it. When the mission ends the focus
   rule calls `ctl.begin()` and the pill shows its free-roam text again. A new mission's steps must each have a `line`.
+- **Small tasks show only near their animal (AS-0217; slice 1 = AS-0224, pure logic only, not wired in yet).** `SA.nearbyTask`
+  (`game/nearby-task.js`, after `focus.js`): `create().update({ player, animals, tasks })` returns the one task to show
+  `{ kind, taskId, animalId, dist }` or null. A clue (`fits(animal)`) starts when a fitting animal is within `NEAR` (8 m) and roughly
+  in view (75° half-angle; < 2.5 m always counts); an encounter (`animalId`) shows while its animal is within `NEAR`. Once shown it
+  stays until `NEAR + HIDE_SLACK` (2 m): hiding never fails the task and it can return. Nothing shows while `SA.focus` says a story
+  mission runs. `pickClueFor(animal, state, rng)` picks a clue that animal fits; `answerIds` lists every fitting animal (AS-0122).
 - **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
   (hurt, stuck, hungry, tangled, scared: 1 task at beginner, 2 later) -> take its photo as proof it is OK ("¡Está bien!",
   saved to the album) -> next mission. Finding alone never ends a round. This supersedes "the photo answers the round" below.

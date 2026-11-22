@@ -112,28 +112,56 @@
     return best || hits[0];
   }
 
+  /** Radius of a circle around the animal's origin that holds all its (enlarged) pick volumes. Rotation-safe: it uses
+   *  each box's half-diagonal, so the animal's heading never matters. 0 when the parts are unknown. */
+  function pickRadius(animal) {
+    var r = 0;
+    try {
+      plan(animal).forEach(function (s) {
+        var half = 0.5 * Math.sqrt(s.pickSize[0] * s.pickSize[0] + s.pickSize[1] * s.pickSize[1] + s.pickSize[2] * s.pickSize[2]);
+        r = Math.max(r, Math.hypot(s.position[0], s.position[2]) + half);
+      });
+    } catch (e) { r = 0; }
+    return r;
+  }
+
+  var MIN_CENTRE = 4.5;       // preferred centre distance between two animals, on top of the hard body gap
+
+  /** Spots keep SA.spacing.GAP between body radii AND stay clear of each other's pick volumes (centre distance >=
+   *  the sum of the pick radii), so a tap never lands on two animals. Herds (several animals per species and biome)
+   *  go through the same rule. If a crowded biome has no free spot the one with the most clearance is used. */
   function placements(animals, opts) {
     var M = SA.map, avoid = (opts && opts.avoid) || [];
     var rand = M.rng(7);
     var spots = [], result = {};
     animals.forEach(function (a) {
-      var best = null, strip = M.biomeRange(a.biome) || { centerX: 0 };
-      for (var t = 0; t < 400; t++) {
-        var x = strip.centerX + (rand() * 2 - 1) * 14, z = -6 + rand() * 20;
+      var best = null, bestRoom = -Infinity, strip = M.biomeRange(a.biome) || { centerX: 0 };
+      var me = { r: SA.spacing ? SA.spacing.bodyRadius(a) : 0, pick: pickRadius(a) };
+      var gap = SA.spacing ? SA.spacing.GAP : 0;
+      var half = strip.hi === undefined ? 14 : (strip.hi - strip.lo) / 2 - 3;   // the whole strip (the map is 2x since AS-0129), minus a margin
+      for (var t = 0; t < 800; t++) {
+        var x = strip.centerX + (rand() * 2 - 1) * half, z = -18 + rand() * 36;
         if (M.biomeAt(x) !== a.biome || M.groundHeight(x, z) < M.WATER_LEVEL + 0.45) continue;
-        var nearStation = SA.station && SA.station.inFootprint(x, z, 1.5);   // keep the research station's footprint clear too
-        var ok = !(SA.player && SA.player.inSpawnZone(x, z, 1)) && !nearStation, i;   // never start next to the spawn (clear radius + 1)
-        for (i = 0; i < spots.length && ok; i++) ok = Math.hypot(spots[i][0] - x, spots[i][1] - z) >= 4.5;
-        for (i = 0; i < avoid.length && ok; i++) ok = Math.hypot(avoid[i][0] - x, avoid[i][1] - z) >= 2.4;
-        if (ok) { best = [x, z]; break; }
-        if (!best && !nearStation && !(SA.player && SA.player.inSpawnZone(x, z, 1))) best = [x, z];
+        if (SA.station && SA.station.inFootprint(x, z, 1.5)) continue;   // keep the research station's footprint clear too
+        if (SA.player && SA.player.inSpawnZone(x, z, 1)) continue;       // never start next to the spawn (clear radius + 1)
+        var room = Infinity, near = Infinity, i, d;   // room: worst clearance beyond the required distance; near: nearest centre
+        for (i = 0; i < spots.length; i++) {
+          d = Math.hypot(spots[i][0] - x, spots[i][1] - z);
+          room = Math.min(room, d - Math.max(me.r + spots[i][2] + gap, me.pick + spots[i][3]));
+          near = Math.min(near, d);
+        }
+        var clear = true;
+        for (i = 0; i < avoid.length && clear; i++) clear = Math.hypot(avoid[i][0] - x, avoid[i][1] - z) >= 2.4;
+        if (clear && room >= 0 && near >= MIN_CENTRE) { best = [x, z]; bestRoom = Infinity; break; }
+        var score = (clear ? 0 : -1000) + Math.min(room, near - MIN_CENTRE);
+        if (score > bestRoom) { best = [x, z]; bestRoom = score; }
       }
       best = best || [strip.centerX, 4];
-      spots.push(best);
+      spots.push([best[0], best[1], me.r, me.pick]);
       result[a.id] = { x: best[0], z: best[1], y: M.groundHeight(best[0], best[1]), rotY: (rand() - 0.5) * 1.2 };
     });
     return result;
   }
 
-  SA.animalPlan = { PICK_SCALE: PICK_SCALE, BIG_PICK_SCALE: BIG_PICK_SCALE, plan: plan, choosePick: choosePick, placements: placements };
+  SA.animalPlan = { PICK_SCALE: PICK_SCALE, BIG_PICK_SCALE: BIG_PICK_SCALE, plan: plan, choosePick: choosePick, pickRadius: pickRadius, placements: placements };
 })(typeof window !== 'undefined' ? window : globalThis);

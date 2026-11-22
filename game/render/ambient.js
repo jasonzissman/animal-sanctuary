@@ -20,7 +20,7 @@
   var LOOP_SECONDS = 1.9, LOOP_RADIUS = 1.1, LOOP_LIFT = 1.3;   // freed bird's happy loop (shorter than care-flow NEXT_MS)
 
   SA.render.createAmbient = function (opts) {
-    var group = opts.animals, rigs = {}, t = 0;
+    var group = opts.animals, rigs = {}, hoppers = {}, t = 0;
     var data = {};
     SA.data.all('animals').forEach(function (a) { data[a.id] = a; });
 
@@ -45,7 +45,16 @@
     // Tree dwellers (animal data perch: "tree") sit on canopy branches and hop between the trees of their biome
     // (SA.perch) instead of wandering on the ground. Adapts the hopper to the SA.wander shape update() expects.
     function perchWalker(a, g, i) {
-      var h = SA.perch.create({ biome: a.biome, trees: opts.trees, seed: 100 + i, home: { x: g.position.x, z: g.position.z } });
+      var h = SA.perch.create({
+        biome: a.biome, trees: opts.trees, seed: 100 + i, home: { x: g.position.x, z: g.position.z },
+        bodyRadius: SA.spacing ? SA.spacing.bodyRadius(a) : 0,
+        others: function () {   // the other perchers' claimed spots (sitting + flying to), so no two share or land too close
+          var pts = [];
+          Object.keys(hoppers).forEach(function (k) { if (k !== a.id) pts = pts.concat(hoppers[k].claims()); });
+          return pts;
+        },
+      });
+      hoppers[a.id] = h;
       return {
         update: function (dt) { var p = h.update(dt); return { x: p.x, z: p.z, y: p.y, heading: p.heading, moving: p.hopping, perched: true }; },
         hold: h.hold, release: h.release, setAvoid: function () {},

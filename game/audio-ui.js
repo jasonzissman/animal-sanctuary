@@ -31,11 +31,12 @@
     btn.id = 'mute-btn';
     btn.type = 'button';
     var s = btn.style;
-    s.position = 'fixed'; s.top = '12px'; s.right = '12px'; s.zIndex = '10';
-    s.width = '64px'; s.height = '64px'; s.fontSize = '34px'; s.lineHeight = '1';
+    s.position = 'fixed'; s.zIndex = '10'; s.lineHeight = '1';
     s.borderRadius = '50%'; s.border = '4px solid #24543a'; s.background = '#fff8d6';
     s.cursor = 'pointer'; s.padding = '0'; s.touchAction = 'manipulation';
     paint(btn);
+    // The rect comes from SA.hud 'audioUi' (SA.hudPlace sets left/top/width/height; index.html always loads it before mount()).
+    if (SA.hudPlace) SA.hudPlace.register('audioUi', btn, { reserve: true, onPlace: function (r) { s.fontSize = Math.round(r.height * 0.53) + 'px'; } });
     btn.addEventListener('click', function () {
       SA.audio.unlock();
       SA.audio.toggleMute();

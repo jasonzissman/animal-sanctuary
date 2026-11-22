@@ -43,14 +43,17 @@
       if (!toast) {
         toast = doc.createElement('div');
         toast.setAttribute('aria-live', 'polite');
-        toast.style.cssText = 'position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:3;pointer-events:none;display:none;' +
-          'align-items:center;gap:.4em;padding:.3em .9em;background:#fff;color:#24543a;border:.1em solid #24543a;border-radius:1em;' +
+        toast.style.cssText = 'position:fixed;z-index:3;pointer-events:none;display:none;box-sizing:border-box;justify-content:center;overflow:hidden;' +
+          'align-items:center;gap:.4em;padding:0 .9em;background:#fff;color:#24543a;border:.1em solid #24543a;border-radius:1em;' +
           'box-shadow:0 .15em .6em rgba(0,0,0,.3);font:700 2rem system-ui,sans-serif;white-space:nowrap;';
         (opts.container || doc.body).appendChild(toast);
+        // Rect from SA.hud 'pickupsToast' (transient zone: under the star badge, shown only while it has a message).
+        if (SA.hudPlace) SA.hudPlace.register('pickupsToast', toast, { onPlace: function (r) { toast.style.fontSize = Math.round(r.height * 0.55) + 'px'; } });
       }
       toast.textContent = def.icon + ' ' + (v ? v.es : def.name.es);
       toast.style.display = 'flex';
       toastLeft = TOAST_SECONDS;
+      if (SA.hudPlace) SA.hudPlace.refresh();
     }
 
     function celebrate(got) {
@@ -88,7 +91,7 @@
           n.spark[k].scale.setScalar(0.3 + pulse);
         }
       }
-      if (toastLeft > 0) { toastLeft -= dt; if (toastLeft <= 0 && toast) toast.style.display = 'none'; }
+      if (toastLeft > 0) { toastLeft -= dt; if (toastLeft <= 0 && toast) { toast.style.display = 'none'; if (SA.hudPlace) SA.hudPlace.refresh(); } }
     }
 
     // Space collects the find the one Space dispatcher (SA.spaceUse) chose, via collectSpot; there is no Space key here.

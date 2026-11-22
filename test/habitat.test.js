@@ -388,7 +388,7 @@ test('render ghost: green on valid spots, red on invalid, hidden on touch releas
   props.bind({ active: () => active, selected: () => selected, onGround() {}, onPropTap() {} });
   const colors = () => {
     const meshes = [];
-    props.ghostGroup.traverse((o) => { if (o.isMesh) meshes.push(o); });
+    props.ghostGroup.traverse((o) => { if (o.isMesh && o.name !== 'starCue') meshes.push(o); });
     return [...new Set(meshes.map((m) => m.material.color.getHexString()))];
   };
   const ev = (x, y, type = 'mouse') => ({ pointerId: 1, pointerType: type, clientX: x, clientY: y });
@@ -505,4 +505,64 @@ test('render ghost: tray selection shows it at the last mouse position without a
   selected = 'arbol';
   props.refreshGhost();
   assert.equal(props.ghostVisible(), false, 'touch forgets the mouse position');
+});
+
+// ---- star cue on unaffordable ghost (AS-0061) ----
+test('ghostState.of: valid, blocked (not here) and unaffordable (not enough stars)', () => {
+  const SA = loadGame(['game/sa.js', 'game/ghost-state.js']);
+  assert.equal(SA.ghostState.of({ x: 0, z: 0, valid: true }), 'valid');
+  assert.equal(SA.ghostState.of({ x: 0, z: 0, valid: false, reason: 'stars' }), 'unaffordable');
+  for (const reason of ['bounds', 'terrain', 'biome', 'occupied', 'full', 'unknown', undefined]) {
+    assert.equal(SA.ghostState.of({ x: 0, z: 0, valid: false, reason }), 'blocked', String(reason));
+  }
+  assert.equal(SA.ghostState.of(null), 'blocked');
+});
+
+test('ghostState.of agrees with habitat.preview for real spots', () => {
+  const SA = loadGame([...LOGIC.slice(0, -1), 'game/ghost-state.js']);
+  SA.save.reset();
+  SA.save.update({ stars: 0 });
+  const s = spot(SA, 'arbol', SA.data.get('props', 'arbol').biomes[0]);
+  assert.equal(SA.ghostState.of(SA.habitat.preview('arbol', s)), 'unaffordable');
+  SA.save.update({ stars: 10 });
+  assert.equal(SA.ghostState.of(SA.habitat.preview('arbol', s)), 'valid');
+  assert.equal(SA.ghostState.of(SA.habitat.preview('arbol', { x: 9999, z: 0 })), 'blocked');
+});
+
+test('render ghost: star cue shows only when the prop is unaffordable; missing THREE pieces do not break it', () => {
+  const load = (strip) => {
+    const ctx = vm.createContext({ console });
+    ctx.window = ctx;
+    ctx.self = ctx;
+    for (const f of ['game/vendor/three.min.js', ...LOGIC.slice(0, -1), 'game/ghost-state.js', 'game/render/props.js', 'game/render/prop-ghost.js']) {
+      vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+    }
+    if (strip) ctx.THREE.Shape = undefined;
+    ctx.SA.save.reset();
+    return ctx;
+  };
+  const ctx = load(false);
+  const { SA, THREE } = ctx;
+  const s = spot(SA, 'arbol', SA.data.get('props', 'arbol').biomes[0]);
+  const ghost = SA.render.createPropGhost(THREE);
+  SA.save.update({ stars: 0 });
+  ghost.show('arbol', SA.habitat.preview('arbol', s));
+  assert.equal(ghost.visible(), true);
+  assert.equal(ghost.starVisible(), true, 'not enough stars: star cue');
+  ghost.show('arbol', SA.habitat.preview('arbol', { x: 9999, z: 0 }));
+  assert.equal(ghost.starVisible(), false, 'blocked spot: red but no star');
+  SA.save.update({ stars: 10 });
+  ghost.show('arbol', SA.habitat.preview('arbol', s));
+  assert.equal(ghost.starVisible(), false, 'affordable: no star');
+  SA.save.update({ stars: 0 });
+  ghost.show('arbol', SA.habitat.preview('arbol', s));
+  ghost.hide();
+  assert.equal(ghost.starVisible(), false, 'hidden ghost shows no star');
+
+  const bare = load(true);
+  const g2 = bare.SA.render.createPropGhost(bare.THREE);
+  bare.SA.save.update({ stars: 0 });
+  g2.show('arbol', bare.SA.habitat.preview('arbol', s));
+  assert.equal(g2.visible(), true, 'still shows the red ghost');
+  assert.equal(g2.starVisible(), false);
 });

@@ -124,8 +124,13 @@
     /** The camera settled in another biome: quietly swap to a new round from there. No miss, no round.complete, no scolding. */
     function reroll() {
       if (!canReroll()) return null;
+      var before = game.current();
+      var from = before ? before.answerId : null;
       var r = begin();
-      if (r) view.toast('🌿');
+      if (r) {
+        view.toast('🌿');
+        if (SA.reroll && SA.reroll.track) SA.reroll.track(root.SAT, from, r.answerId);
+      }
       return r;
     }
 

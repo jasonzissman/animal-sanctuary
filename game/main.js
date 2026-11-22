@@ -34,6 +34,8 @@
     // Gentle arrow toward the target animal when it is off-screen after ~10 s (counts as a hint when tapped).
     try { if (game) hintFlow = SA.hintFlow.create({ doc: root.document, game: game, animals: stage.animals, rig: stage.rig, camera: stage.camera }); }
     catch (e) { report('hintFlow.start', e); }
+    // Icon-only rotate/tilt buttons so touch players can orbit the camera (same path as Q/E/R/F).
+    try { if (SA.orbitPad) SA.orbitPad.create(root.document, stage.rig); } catch (e) { report('orbitPad.start', e); }
     // Habitat sandbox: a big button + prop tray; saved props come back on reload. Never blocks the main loop.
     try {
       if (SA.sandbox && stage.props) {

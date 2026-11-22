@@ -21,7 +21,10 @@ current; when your change sets or changes something future tickets must follow, 
   widening, eased ~0.5 s; a drag overrides it; `hooks.chase.above()` supplies perched animals). Space jumps everywhere, including in a canopy (AS-0115).
 - **The game starts at a research station (AS-0141, slice 1 = AS-0145).** A small low-poly building (door, window, roof, dish, antenna,
   "Estación" sign with an atom icon, bench, crates) stands on the flattest dry ground by the bosque/selva border; the kid spawns just outside
-  the door looking out. `SA.station` (game/station.js, pure) is the one source: `layout()`, `collisionBoxes()` (doorway left open),
+  the door. **Spawn pose (AS-0212):** on every load the kid stands ~2.6 in front of the front wall, straight in front of the scientist's post
+  (`layout().scientist`, 1.7 right of the door's centre line, 0.9 in front of the wall) and faces her and the building (heading 0 = +z); she
+  fills the view and the doorway is beside her (~30° off-axis). `SA.station.spawn()` / `SA.player.spawn()` stay the single source;
+  `SA.npc.scientist()` reads her post from the layout. `SA.station` (game/station.js, pure) is the one source: `layout()`, `collisionBoxes()` (doorway left open),
   `obstacles()` (those boxes as circle chains, appended to the player's obstacle list in scene.js), `spawn()` (what `SA.player.spawn()`
   returns when the module is loaded) and `inFootprint()` (decor and animal placement keep out). `game/render/station.js` builds the model
   from flat primitives (the sign letters are boxes, no textures). Later slices put the scientist and briefing in/at the station.
@@ -378,4 +381,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: intro talk gives the story (animals need help); the scientist always stays at the station (AS-0142).
 - 2026-11-22: badges/stickers, naming, day/night with sleeping animals, mamá missions, waterfall treasure, animal friend (AS-0167 to AS-0175); jump over rocks (AS-0176).
 - 2026-11-22: encounters vs missions: roaming encounters, ordered missions started only at the station board, replayable (AS-0177 to AS-0191).
-- 2026-11-22: the scientist NPC stands on the station porch beside the door (AS-0203): `game/npc.js` (pure post, idle/wave by distance with hysteresis, `SA.npc.create()` tracker) and `game/render/scientist.js` (the kid avatar plus lab coat, glasses, clipboard; reads the clipboard, waves when near). She never wanders and is a solid circle in the player's obstacles.
+- 2026-11-22: the scientist NPC stands on the station porch beside the door (AS-0203): `game/npc.js` (pure post, idle/wave by distance with hysteresis, `SA.npc.create()` tracker) and `game/render/scientist.js` (the kid avatar plus lab coat, glasses, clipboard; reads the clipboard, waves when near). She never wanders and is a solid circle in the player's obstacles. Since AS-0212 the player spawns straight in front of her, facing her (her post lives in `SA.station.layout().scientist`).

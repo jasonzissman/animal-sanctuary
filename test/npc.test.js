@@ -34,6 +34,23 @@ test('the scientist stands on the porch beside the door, facing out, outside the
   assert.ok(SA.npc.distance(s, sp) > r + 0.6, 'the kid does not spawn on her');
 });
 
+// Angle (degrees) between where the player is looking and the direction to (x, z); forward = (sin h, cos h).
+function offAxis(p, x, z) {
+  const d = Math.atan2(x - p.x, z - p.z) - p.heading;
+  return Math.abs(Math.atan2(Math.sin(d), Math.cos(d))) * 180 / Math.PI;
+}
+
+test('at the spawn the scientist is straight ahead and close, with the station door in the view cone (AS-0212)', () => {
+  const SA = loadGame(FILES), L = SA.station.layout(), s = SA.npc.scientist(), p = SA.player ? SA.player.spawn() : SA.station.spawn();
+  assert.deepEqual(p, SA.station.spawn());
+  assert.ok(offAxis(p, s.x, s.z) <= 15, 'scientist within 15 degrees of straight ahead: ' + offAxis(p, s.x, s.z));
+  const dist = SA.npc.distance(s, p);
+  assert.ok(dist <= 3 && dist > SA.npc.obstacle()[2] + 0.6, 'close, but not on top of her: ' + dist);
+  assert.ok(s.z > p.z, 'she is in front (toward the building), not behind');
+  assert.ok(offAxis(p, L.door.x, L.door.z) <= 40, 'the door is inside the forward view cone: ' + offAxis(p, L.door.x, L.door.z));
+  assert.ok(offAxis(p, L.door.x, L.door.z) > 0, 'the doorway is beside her, not hidden behind her');
+});
+
 test('mode: wave inside the near radius, idle beyond the far radius, hysteresis between', () => {
   const SA = loadGame(FILES), { mode, NEAR, FAR } = SA.npc;
   assert.equal(mode('idle', NEAR - 0.1), 'wave');

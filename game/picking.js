@@ -9,6 +9,8 @@
  *       A pointer that moved more than `threshold` px from where it went down is a drag, never a tap, and a
  *       second pointer (pinch) cancels the tap for everyone.
  *   SA.picking.labelFor(animalId, part, english) -> { es, en|null, icon } for the label chip.
+ *   SA.picking.labelVisible(hit, { exists, visible, inReach, avatar }) -> bool: the part-name bubble shows only for a part of a real,
+ *                          visible, in-reach animal (never the player's avatar, never with no target).
  *   SA.picking.speakPart(part) -> true when SA.audio.say('part:<key>') was called; does nothing without SA.audio.
  *   SA.picking.reactionPose(reaction, t) -> { rx, ry, rz, sx, sy, sz, py } offsets for t in [0, DURATION].
  */
@@ -93,6 +95,14 @@
     return { es: def.label.es, en: english ? def.label.en : null, icon: ICONS[part] || '🐾', animalId: animalId };
   }
 
+  // Should the part-name bubble be on screen? Only for a real part of a real, visible animal that is within reach, and never for
+  // the player's own avatar. hit = { animalId, part }|null; ctx = { exists, visible, inReach, avatar } (booleans from the renderer).
+  function labelVisible(hit, ctx) {
+    if (!hit || !hit.animalId || !hit.part || !ctx) return false;
+    if (ctx.avatar || hit.animalId === 'player' || hit.animalId === 'avatar') return false;
+    return ctx.exists === true && ctx.visible !== false && ctx.inReach === true;
+  }
+
   function speakPart(part) {
     if (!part || !SA.audio || typeof SA.audio.say !== 'function') return false;
     SA.audio.say('part:' + part);
@@ -124,6 +134,6 @@
 
   SA.picking = {
     DRAG_THRESHOLD: DRAG_THRESHOLD, DURATION: DURATION, ICONS: ICONS,
-    setRubTarget: setRubTarget, hasRubTarget: hasRubTarget, isRubTarget: isRubTarget, onPick: onPick, emit: emit, setPaused: setPaused, isPaused: function () { return paused; }, createTapTracker: createTapTracker, labelFor: labelFor, speakPart: speakPart, reactionPose: reactionPose,
+    setRubTarget: setRubTarget, hasRubTarget: hasRubTarget, isRubTarget: isRubTarget, onPick: onPick, emit: emit, setPaused: setPaused, isPaused: function () { return paused; }, createTapTracker: createTapTracker, labelFor: labelFor, labelVisible: labelVisible, speakPart: speakPart, reactionPose: reactionPose,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

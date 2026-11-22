@@ -38,11 +38,11 @@
       }
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    return new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+    return new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ vertexColors: true, flatShading: true, specular: 0x000000 }));
   }
 
   function waterMaterial(THREE, color) {
-    return new THREE.MeshLambertMaterial({ color: color, transparent: true, opacity: 0.85, flatShading: true });
+    return new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: 0.85, flatShading: true, specular: 0x000000 });
   }
 
   function buildRiver(THREE, color) {

@@ -8,7 +8,7 @@
   var SA = root.SA;
   SA.render = SA.render || {};
 
-  function mat(THREE, color) { return new THREE.MeshLambertMaterial({ color: color, flatShading: true }); }
+  function mat(THREE, color) { return new THREE.MeshPhongMaterial({ color: color, flatShading: true, specular: 0x000000 }); }
 
   function materials(THREE) {
     return {

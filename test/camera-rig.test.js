@@ -97,6 +97,21 @@ test('W/Up walk the avatar forward and the camera follows; releasing stops', () 
   assert.equal(rig.getPlayer().moving, false);
 });
 
+test('keys always move the player, even right after a pick/care step: no mode, no Escape needed', () => {
+  const { rig, keys, SA } = chaseRig();
+  SA.picking.emit({ animalId: 'conejo', part: 'orejas' });   // a part was just picked (care/inspect underway)
+  for (const k of ['Enter', ' ', 'Tab', 'Escape']) press(keys, k); // keys that used to start/stop part-cycling
+  const p0 = rig.getPlayer();
+  press(keys, 'ArrowUp');
+  frames(rig, 10);
+  const p1 = rig.getPlayer();
+  assert.ok(Math.hypot(p1.x - p0.x, p1.z - p0.z) > 1 && p1.moving, 'ArrowUp walks the player');
+  keys.keyup({ key: 'ArrowUp' });
+  press(keys, 'd');
+  frames(rig, 10);
+  assert.notEqual(rig.getPlayer().heading, p1.heading, 'D still turns the player');
+});
+
 test('A/D turn the avatar and the camera swings round behind it', () => {
   const { rig, keys } = chaseRig();
   const h0 = rig.getPlayer().heading, y0 = rig.getState().yaw;

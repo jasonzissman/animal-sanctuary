@@ -85,10 +85,10 @@ function makeEl() {
   };
 }
 
-function stage(english, withKeyHint) {
+function stage(english) {
   const files = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js',
     'game/data/biomes.js', 'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js',
-    'game/picking.js', ...(withKeyHint ? ['game/key-hint.js', 'game/ui/key-hint-view.js'] : []), 'game/render/picking.js'];
+    'game/picking.js', 'game/render/picking.js'];
   const ctx = vm.createContext({ console });
   ctx.window = ctx; ctx.self = ctx;
   ctx.document = { createElement: makeEl, body: makeEl() };
@@ -189,35 +189,9 @@ test('a hidden easter egg cannot be picked, and can once it is shown', () => {
   assert.ok(isEgg(s.picking.pickAt(400, 300)), 'a revealed animal is pickable');
 });
 
-test('cycler: next/prev walk the parts in order and wrap around both ways', () => {
+test('no keyboard part-picking: nothing cycles parts, and the old cycler/keyAction helpers are gone', () => {
   const SA = loadGame(LOGIC);
-  const c = SA.picking.createCycler();
-  assert.equal(c.next(), null, 'empty list');
-  c.setItems(['cabeza', 'orejas', 'cola']);
-  assert.equal(c.current(), null);
-  assert.deepEqual([c.next(), c.next(), c.next(), c.next()], ['cabeza', 'orejas', 'cola', 'cabeza'], 'wraps forward');
-  assert.equal(c.prev(), 'cola', 'wraps backward');
-  assert.equal(c.prev(), 'orejas');
-  c.reset();
-  assert.equal(c.prev(), 'cola', 'first prev starts at the end');
-  c.setItems(['cabeza', 'cola']);
-  assert.equal(c.current(), 'cola', 'keeps the current stop when still present');
-  c.setItems(['patas']);
-  assert.equal(c.current(), null);
-  assert.deepEqual([...SA.picking.uniqueParts([{ part: 'ojos' }, { part: 'ojos' }, { part: 'cola' }, null])], ['ojos', 'cola']);
-});
-
-test('keyAction maps arrows/Tab to cycling, Enter/Space to select, Escape to exit', () => {
-  const { keyAction } = loadGame(LOGIC).picking;
-  assert.equal(keyAction('ArrowRight'), 'next');
-  assert.equal(keyAction('ArrowLeft'), 'prev');
-  assert.equal(keyAction('Tab', false), 'next');
-  assert.equal(keyAction('Tab', true), 'prev');
-  assert.equal(keyAction('Enter'), 'select');
-  assert.equal(keyAction(' '), 'select');
-  assert.equal(keyAction('Escape'), 'exit');
-  assert.equal(keyAction('x'), null);
-  assert.equal(keyAction('toString'), null);
+  for (const k of ['createCycler', 'uniqueParts', 'keyAction']) assert.equal(SA.picking[k], undefined, k);
 });
 
 test('speakPart speaks via SA.audio.say when present and is silent without it', () => {
@@ -230,47 +204,14 @@ test('speakPart speaks via SA.audio.say when present and is silent without it', 
   assert.equal(SA.picking.speakPart(null), false);
 });
 
-test('keyboard: Enter starts cycling, arrows highlight + speak, Space selects like a tap, Escape ends', () => {
+test('picking never listens to the keyboard: no keydown handler, so keys always reach player movement', () => {
   const s = stage(false);
-  const said = [], picks = [];
-  s.SA.audio = { say: (k) => said.push(k) };
+  assert.equal(s.handlers.keydown, undefined, 'render/picking.js registers no key listener');
+  assert.equal(s.handlers.keyup, undefined);
+  // Parts are still chosen by click/tap.
+  const picks = [];
   s.SA.picking.onPick((p) => picks.push(p));
-  const key = (k, extra) => {
-    let stopped = false;
-    s.handlers.keydown({ key: k, target: { tagName: 'BODY' }, preventDefault() {}, stopPropagation() { stopped = true; }, ...extra });
-    return stopped;
-  };
-  assert.equal(key('ArrowRight'), false, 'arrows stay with the camera until cycling starts');
-  assert.equal(key('Enter'), true);
-  assert.equal(said.length, 1, 'first part spoken');
-  assert.equal(s.ctx.document.body.children[0].style.display, 'flex', 'chip shown');
-  assert.equal(key('ArrowRight'), true, 'arrows are ours while cycling');
-  assert.equal(said.length, 2);
-  assert.notEqual(said[0], said[1]);
-  key('ArrowLeft');
-  assert.equal(said[2], said[0], 'left goes back');
-  key(' ');
-  assert.equal(picks.length, 1, 'Space selects through the tap path');
-  assert.equal('part:' + picks[0].part, said[2]);
-  assert.equal(said.length, 4, 'select speaks the label like a tap');
-  key('Escape');
-  assert.equal(key('ArrowRight'), false, 'camera keys are back');
-  assert.equal(key('Enter', { target: { tagName: 'BUTTON' } }), false, 'a focused button keeps Enter');
-});
-
-test('keyboard hint: shows after a first key, never for pointer use, hides once Enter starts cycling', () => {
-  const s = stage(false, true);
-  const body = s.ctx.document.body;
-  const key = (k) => s.handlers.keydown({ key: k, target: { tagName: 'BODY' }, preventDefault() {}, stopPropagation() {} });
-  s.handlers.pointerdown(ev(10, 10));
-  assert.equal(body.children.length, 0, 'pointer use alone adds no hint');
-  key('ArrowRight');
-  assert.equal(body.children.length, 1, 'hint created by the first keydown');
-  assert.equal(body.children[0].style.opacity, '.9');
-  s.handlers.pointerdown(ev(10, 10));
-  assert.equal(body.children[0].style.opacity, '0', 'a touch dismisses it');
-  key('ArrowRight');
-  assert.equal(body.children[0].style.opacity, '.9');
-  key('Enter');
-  assert.equal(body.children[0].style.opacity, '0', 'cycling started: hint fades out');
+  s.handlers.pointerdown(ev(400, 300));
+  s.handlers.pointerup(ev(400, 300));
+  assert.equal(picks.length, 1, 'a tap still picks the part');
 });

@@ -6,9 +6,8 @@
  *   reaction (data: part.reaction) and shows a big chip: icon + Spanish label (+ English if settings.english).
  * - Speaks the part's Spanish label with SA.audio.say('part:<key>') (respects mute).
  * - Calls SA.picking.emit({ animalId, part }) so round/care loops can subscribe with SA.picking.onPick.
- * - Keyboard: Enter/Space (with no button focused) starts part-cycling on the animal nearest the screen centre; then
- *   arrows/Tab cycle its parts (highlight + chip + spoken label), Enter/Space select through the same path as a tap,
- *   Escape (or 8 s idle, or a pointer press) ends it so the arrows pan the camera again.
+ * - No keyboard handling at all: parts are chosen only by mouse click/hover or tap. Arrow keys/WASD always move the
+ *   player (no part-cycling mode, no Escape to unlock) and Space is left free for "use the equipped item".
  * - Reach: with opts.getPlayer() (the walking avatar) a pick on an out-of-reach animal never reaches SA.picking.emit; it
  *   shows opts.reachCue ("¡Acércate!") and calls SA.reach.notifyFar instead. Rubbing out of reach is silently ignored.
  * Returns { update(dt), pickAt(clientX, clientY) -> {animalId, part, ...}|null }. Call update(dt) every frame.
@@ -19,7 +18,6 @@
   SA.render = SA.render || {};
 
   var CHIP_SECONDS = 2.6, GLOW_SECONDS = 1.1;
-  var KEY_IDLE_SECONDS = 8;         // keyboard cycling ends after this long without a key
   var RUB_PX = 45;                  // pointer travel over a care target that counts as one rub
   var GLOW = { 1: 0.28, 2: 0.6 };   // emissive strength: 1 = hover, 2 = tapped
 
@@ -33,9 +31,6 @@
     var tapped = [];                  // { mesh, left }
     var playing = [];                 // { mesh, reaction, t, base }
     var chip = null, chipLeft = 0;
-    var cycler = SA.picking.createCycler();
-    var keyHint = SA.keyHintView ? SA.keyHintView.create(root.document, container) : null;   // icon-only Enter/Space hint
-    var kb = null;                   // { group, meshes, idle } while keyboard cycling; meshes = highlighted part's visible meshes
 
     function volumes() {
       var out = [];
@@ -86,7 +81,7 @@
     }
 
     function isTapped(mesh) { return tapped.some(function (t) { return t.mesh === mesh; }); }
-    function restLevel(mesh) { return (mesh === hovered || (kb && kb.meshes.indexOf(mesh) >= 0)) ? 1 : 0; }
+    function restLevel(mesh) { return mesh === hovered ? 1 : 0; }
 
     function react(mesh, name) {
       playing = playing.filter(function (p) {
@@ -133,7 +128,7 @@
 
     function tap(x, y) { select(pickAt(x, y)); }
 
-    // The one pick path: a tap and the keyboard's Enter/Space both end up here.
+    // The one pick path: a mouse click or a tap (never the keyboard) ends up here.
     // Reach rule (SA.reach): too far from the animal = a friendly "¡Acércate!" bubble, the part glows and the hint arrow
     // points the way. It is never a wrong pick: nothing is emitted, so rounds and care tasks just keep waiting.
     var wp = new THREE.Vector3();
@@ -184,75 +179,7 @@
       }
     }
 
-    function partMeshes(g, part) {
-      return g.children.filter(function (m) { return !m.userData.pick && !m.userData.pupil && m.userData.part === part; });
-    }
-
-    function stopKeys() {
-      if (!kb) return;
-      var old = kb.meshes;
-      kb = null;
-      cycler.reset();
-      old.forEach(function (m) { if (!isTapped(m)) setGlow(m, restLevel(m)); });
-    }
-
-    function startKeys() {
-      var best = null, bestD = Infinity, v = new THREE.Vector3();
-      animals.children.forEach(function (g) {
-        if (g.visible === false || !g.userData || !g.userData.pickVolumes) return;
-        g.getWorldPosition(v);
-        v.project(camera);
-        var d = v.x * v.x + v.y * v.y + (v.z > 1 ? 100 : 0);
-        if (d < bestD) { bestD = d; best = g; }
-      });
-      if (!best) return false;
-      cycler.setItems(SA.picking.uniqueParts(best.userData.pickVolumes.map(function (p) { return p.userData; })));
-      cycler.reset();
-      kb = { group: best, meshes: [], idle: 0 };
-      if (keyHint) keyHint.cycling();
-      return true;
-    }
-
-    function highlight(part) {
-      var old = kb.meshes;
-      kb.meshes = part ? partMeshes(kb.group, part) : [];
-      old.forEach(function (m) { if (!isTapped(m)) setGlow(m, restLevel(m)); });
-      kb.meshes.forEach(function (m) { if (!isTapped(m)) setGlow(m, 1); });
-      var settings = (SA.save && SA.save.get && SA.save.get().settings) || {};
-      var label = part && SA.picking.labelFor(kb.group.userData.animalId, part, !!settings.english);
-      if (label) showChip(label);
-      SA.picking.speakPart(part);
-    }
-
-    function onKey(e) {
-      if (keyHint && !kb) keyHint.keydown(e);
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      var action = SA.picking.keyAction(e.key, e.shiftKey);
-      if (!action) return;
-      var tag = e.target && e.target.tagName;
-      if (/^(BUTTON|INPUT|TEXTAREA|SELECT|A)$/.test(tag || '')) return;   // never steal keys from a focused control
-      if (!kb) {
-        if (action !== 'select' || SA.picking.isPaused() || !startKeys()) return;
-        e.preventDefault();
-        e.stopPropagation();
-        highlight(cycler.next());
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      kb.idle = 0;
-      if (action === 'exit') stopKeys();
-      else if (action === 'next') highlight(cycler.next());
-      else if (action === 'prev') highlight(cycler.prev());
-      else if (cycler.current() && kb.meshes[0]) {
-        var part = cycler.current();
-        var vol = kb.group.userData.pickVolumes.filter(function (p) { return p.userData.part === part; })[0];
-        if (vol) select({ animalId: kb.group.userData.animalId, part: part, index: vol.userData.index, side: vol.userData.side || null, mesh: kb.meshes[0] });
-      }
-    }
-    if (root.addEventListener) root.addEventListener('keydown', onKey, true);   // capture: wins over the camera rig's arrow keys while cycling
-
-    canvas.addEventListener('pointerdown', function (e) { stopKeys(); if (keyHint) keyHint.pointer(); rubLast = null; rubDist = 0; tracker.down(e.pointerId, e.clientX, e.clientY); });
+    canvas.addEventListener('pointerdown', function (e) { rubLast = null; rubDist = 0; tracker.down(e.pointerId, e.clientX, e.clientY); });
     canvas.addEventListener('pointermove', function (e) {
       tracker.move(e.pointerId, e.clientX, e.clientY);
       if (e.buttons && SA.picking.hasRubTarget()) rub(e);
@@ -286,7 +213,6 @@
           setGlow(t.mesh, restLevel(t.mesh));
           return false;
         });
-        if (kb && (kb.idle += dt) > KEY_IDLE_SECONDS) stopKeys();
         if (chipLeft > 0) {
           chipLeft -= dt;
           if (chipLeft <= 0 && chip) chip.style.display = 'none';

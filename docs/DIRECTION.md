@@ -260,7 +260,17 @@ current; when your change sets or changes something future tickets must follow, 
   'Toma una foto' 📷). `SA.missionPill` (`game/mission-pill.js`, pure) is polled by `main.js` after `SA.focus.update()`: it calls
   `view.showStep` and speaks the line via `SA.audio.say` on every step change; Replay 🔊 repeats it. When the mission ends the focus
   rule calls `ctl.begin()` and the pill shows its free-roam text again. A new mission's steps must each have a `line`.
-- **Small tasks show only near their animal (AS-0217; slice 1 = AS-0224, pure logic only, not wired in yet).** `SA.nearbyTask`
+- **Proximity only (AS-0225, slice 2 of AS-0217): clue rounds and encounters never start or show unless their animal is near.**
+  `SA.taskGate` (`game/task-gate.js`, pure wiring) is polled each frame by `main.js` (`ctl.updateTasks()`, after `SA.focus.update()`).
+  With no round, it asks `SA.nearbyTask`; when an animal is near and in view it calls `missionFlow.begin(animalId)`, so
+  `SA.mission.start({ animalId })` picks a clue that animal fits (`pickClueFor`). With a round, its pill is shown only while
+  `nearbyTask` returns it (`view.setPill(on)`): walking away hides the pill quietly (no miss, no failure, round kept; the biome reroll
+  is off) and coming back shows it and says the clue again. The animal you just finished stays quiet until you walk away from it.
+  Telemetry, once per transition (never per frame): `task.shown` / `task.hidden` `{ kind, animalId, dist }`. A story mission still
+  shows only its step (`stepOn` in the pill view); the gate shows nothing then. New small tasks (encounters, AS-0179) must be a
+  `{ kind, id, animalId }` entry in the gate's `tasksFor` (kind-generic) and never start without proximity. Gating is on only when
+  `SA.prompt.start` gets `nearby` (as `main.js` does); the plain round controller is the ungated fallback.
+- **Small tasks show only near their animal (AS-0217; slice 1 = AS-0224, the pure rule).** `SA.nearbyTask`
   (`game/nearby-task.js`, after `focus.js`): `create().update({ player, animals, tasks })` returns the one task to show
   `{ kind, taskId, animalId, dist }` or null. A clue (`fits(animal)`) starts when a fitting animal is within `NEAR` (8 m) and roughly
   in view (75° half-angle; < 2.5 m always counts); an encounter (`animalId`) shows while its animal is within `NEAR`. Once shown it

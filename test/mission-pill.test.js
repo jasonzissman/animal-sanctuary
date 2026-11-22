@@ -102,3 +102,22 @@ test('the step view is a harmless no-op without a DOM', () => {
   const { SA } = setup();
   assert.doesNotThrow(() => SA.prompt.createView(null).showStep({ text: 'Hola', icon: '👋' }));
 });
+
+test('gated pill view (AS-0225): hidden until a nearby task shows it; a mission step shows it too; clear() puts the step away', () => {
+  const SA = loadGame(FILES);
+  const gated = fakeDoc();
+  const view = SA.prompt.createView(gated.doc, { gated: true });
+  const bar = gated.made[0];
+  assert.equal(bar.style.display, 'none', 'no pill until the player is near a task');
+  view.setPill(true);
+  assert.equal(bar.style.display, 'flex');
+  view.setPill(false);
+  assert.equal(bar.style.display, 'none');
+  view.showStep({ text: 'Busca al cerdito', icon: '🐷' });
+  assert.equal(bar.style.display, 'flex', 'a story-mission step always shows');
+  view.clear();
+  assert.equal(bar.style.display, 'none');
+  const plain = fakeDoc();
+  SA.prompt.createView(plain.doc, {});
+  assert.equal(plain.made[0].style.display, 'flex', 'an ungated view is visible from the start');
+});

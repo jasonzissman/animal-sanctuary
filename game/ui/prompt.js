@@ -159,7 +159,7 @@
     var noop = function () {};
     if (!doc || typeof doc.createElement !== 'function' || !doc.body) {
       return { showRound: noop, showStep: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop,
-        setStars: noop, setHidden: noop, levelCue: noop, snapshot: noop, snapshotHide: noop };
+        setStars: noop, setHidden: noop, setPill: noop, levelCue: noop, snapshot: noop, snapshotHide: noop };
     }
     handlers = handlers || {};
     function el(tag, css, text) {
@@ -240,6 +240,12 @@
       icon.style.filter = silhouette ? 'brightness(0) opacity(.7)' : 'none';
     }
 
+    // The pill is visible while a small task is near its animal (pillOn) or while it shows a story-mission step (stepOn).
+    // Without proximity wiring (handlers.gated off) it is always on, as before.
+    var pillOn = !handlers.gated, stepOn = false;
+    function applyPill() { bar.style.display = pillOn || stepOn ? 'flex' : 'none'; }
+    applyPill();
+
     var current = '🐾';
     return {
       showRound: function (r) {
@@ -251,6 +257,7 @@
       },
       // On a story mission (AS-0223, SA.missionPill): the pill shows only the current step's line + icon (no hint silhouette, no camera badge).
       showStep: function (s) {
+        stepOn = true; applyPill();
         current = s.icon;
         text.textContent = s.text;
         camEl.style.display = 'none';
@@ -358,7 +365,9 @@
       },
       showHint: function () { setIcon(current, true); },
       celebrate: function (r) { setIcon(r.icon, false); starsEl.textContent = '⭐ ' + r.stars; },
-      clear: function () { text.textContent = ''; },
+      clear: function () { text.textContent = ''; stepOn = false; applyPill(); },
+      // Proximity (AS-0225, SA.taskGate): a small task's pill shows only near its animal. Hiding keeps its content for when you return.
+      setPill: function (on) { pillOn = !!on; applyPill(); },
       toast: function (msg) {
         toastEl.textContent = msg;
         toastEl.style.display = 'flex';
@@ -420,6 +429,7 @@
     var view = createView(o.doc, {
       replay: function () { if (pill && pill.replay()) return; if (ctl) ctl.replay(); },
       feed: function (id) { if (careFlow) careFlow.onFeed(id); },
+      gated: !!(o.nearby && o.mission && SA.missionFlow && SA.taskGate),
     });
     var careFlow = o.care || null;
     if (!careFlow && o.careFx !== undefined && SA.careFlow && SA.care) {
@@ -428,8 +438,10 @@
         onDone: function (task) { if (!ctl) return; if (ctl.onCareDone) ctl.onCareDone(task); else ctl.begin(); } });
     }
     // o.mission (SA.mission): the rescue flow (find, help, photo; game/ui/mission-flow.js) drives the card instead of a plain round.
+    // o.nearby = { player(), animals() } (AS-0225): a clue round starts only near a fitting animal (SA.taskGate; main.js polls ctl.updateTasks()).
+    var gated = !!(o.nearby && o.mission && SA.missionFlow && SA.taskGate);
     var common = { view: view, fx: o.fx, audio: o.audio, later: o.later, biomeFx: o.biomeFx, care: careFlow, onProgress: o.onProgress, pin: o.pin };
-    ctl = o.mission && SA.missionFlow ? SA.missionFlow.create(Object.assign({ mission: o.mission }, common))
+    ctl = o.mission && SA.missionFlow ? SA.missionFlow.create(Object.assign({ mission: o.mission, gated: gated }, common))
       : createController(Object.assign({ game: o.game || SA.round.create() }, common));
     SA.picking.onPick(ctl.onPick);
     ctl.begin();
@@ -439,6 +451,10 @@
     ctl.setStars = view.setStars;
     ctl.setHidden = view.setHidden;
     // On a story mission only the mission shows: the pill follows the current step (main.js polls ctl.updatePill() each frame).
+    if (gated) {
+      var gate = SA.taskGate.create({ flow: ctl, game: o.mission, view: view, player: o.nearby.player, animals: o.nearby.animals, track: o.track });
+      ctl.updateTasks = gate.update;
+    }
     if (SA.missionPill) {
       pill = SA.missionPill.create({ view: view, audio: o.audio });
       ctl.updatePill = pill.update;

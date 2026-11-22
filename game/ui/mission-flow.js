@@ -4,7 +4,7 @@
  *
  *   var flow = SA.missionFlow.create({ mission, view, fx?, audio?, care?, later?, biomeFx?, onProgress? })
  *     mission    SA.mission.create(...)       care   SA.careFlow instance (offer(animalId, force, kind) / active / onPick / replay)
- *   flow.begin()      starts a mission: the clue on the card, spoken (step find)
+ *   flow.begin(animalId?)  starts a mission: the clue on the card, spoken (step find). With o.gated (AS-0225) it needs the nearby animal's id
  *   flow.pause()      a story mission started (SA.focus): the clue/help/photo on screen is cleared quietly; begin() then does nothing
  *                     until the mission is over (main.js calls begin() again)
  *   flow.onPick(p)    { animalId, part, item? } from SA.picking:
@@ -103,10 +103,19 @@
       view.clear();
     }
 
-    function begin() {
+    // o.gated (AS-0225): a clue round starts only near a fitting animal. begin() with no animal then just clears the card (and drops a
+    // finished mission); SA.taskGate calls begin(animalId) when the nearby-task rule says that animal is near and in view.
+    function begin(animalId) {
       if (SA.focus && !SA.focus.allowsSmall()) return null;      // no new clue round while a story mission runs
+      if (o.gated && typeof animalId !== 'string') {
+        if (mission.cancel) mission.cancel();
+        unpin();
+        if (biomeFx) biomeFx.hide();
+        view.clear();
+        return null;
+      }
       if (o.onProgress) { try { o.onProgress(); } catch (e) { /* unlocks never break play */ } }
-      var m = mission.start();
+      var m = mission.start(o.gated ? { animalId: animalId } : undefined);
       if (!m) { unpin(); view.clear(); return null; }
       m.hintShown = m.level <= 1;
       m.stage = SA.hintStage ? SA.hintStage.initial(m.level) : (m.level <= 1 ? 1 : 0);
@@ -257,7 +266,7 @@
     /** The biome reroll only happens while looking for the animal (never during help or the photo). */
     function canReroll() {
       var m = cur();
-      return !!m && !m.done && m.step === 'find' && !(care && care.active());
+      return !o.gated && !!m && !m.done && m.step === 'find' && !(care && care.active());   // gated: the clue follows the animal, not the biome
     }
 
     function reroll() {

@@ -152,6 +152,35 @@ test('unlockFlow.reveal shows the hidden group, plays fanfare + sparkle, boings,
   assert.equal(flow.reveal({ id: 'nadie', name: { es: 'x' } }), false);
 });
 
+test('unlockFlow pans the camera rig to the revealed animal for ~1.5 s, then releases it', () => {
+  const { SA } = setup();
+  const calls = [];
+  const timers = [];
+  const group = { getObjectByName: () => ({ visible: false, position: { x: 12, z: -7 } }) };
+  const rig = { getState: () => ({ dist: 30 }), focusOn: (...a) => calls.push(['focus', ...a]), release: () => calls.push(['release']) };
+  const flow = SA.unlockFlow.create({ group, rig, audio: {}, later: (fn, ms) => timers.push([fn, ms]) });
+  assert.equal(flow.reveal(SA.data.get('animals', 'raton')), true);
+  assert.deepEqual(calls, [['focus', 12, -7, 30]]);
+  const pan = timers.find((t) => t[1] === SA.unlockFlow.PAN_MS);
+  assert.equal(pan[1], 1500);
+  pan[0]();
+  assert.deepEqual(calls[1], ['release']);
+});
+
+test('unlockFlow camera pan does nothing (and never throws) when the rig or focus is missing or broken', () => {
+  const { SA } = setup();
+  const mk = (rig) => SA.unlockFlow.create({ group: { getObjectByName: () => ({ visible: false, position: { x: 1, z: 2 } }) },
+    rig, audio: {}, later: (fn) => fn() });
+  const raton = SA.data.get('animals', 'raton');
+  assert.equal(mk(undefined).reveal(raton), true);
+  assert.equal(mk({}).reveal(raton), true);
+  assert.equal(mk({ focusOn() { throw new Error('boom'); } }).reveal(raton), true);
+  assert.equal(SA.unlockFlow.focusTarget({ position: { x: NaN, z: 0 } }, { focusOn() {} }), null);
+  assert.equal(SA.unlockFlow.focusTarget({}, { focusOn() {} }), null);
+  const t = SA.unlockFlow.focusTarget({ position: { x: 3, z: 4 } }, { focusOn() {} });
+  assert.deepEqual([t.x, t.z, t.dist], [3, 4, undefined]);
+});
+
 // ---- rendering with the real vendored three.js ----
 
 function stage() {

@@ -23,7 +23,7 @@
     try { SA.pickSfx.install(); } catch (e) { report('pickSfx.start', e); }
     // Easter eggs: hidden animals appear (fanfare + sparkles) when their data-defined condition is met.
     try {
-      var flow = SA.unlockFlow.create({ group: stage.animals, fx: stage.fx, celebrate: function (msg) { if (ctl && ctl.celebrate) ctl.celebrate(msg); } });
+      var flow = SA.unlockFlow.create({ group: stage.animals, fx: stage.fx, rig: stage.rig, celebrate: function (msg) { if (ctl && ctl.celebrate) ctl.celebrate(msg); } });
       unlocks = SA.unlocks.create({ onUnlock: flow.reveal });
       stage.onTreeTap = function (t) { unlocks.tap('tree', t.id, t.biome); };
     } catch (e) { report('unlocks.start', e); }

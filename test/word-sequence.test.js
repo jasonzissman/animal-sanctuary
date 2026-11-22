@@ -21,32 +21,85 @@ test('plan: ordered, spaced times and food ids only for food words', () => {
   assert.equal(SA.wordSeq.foodOf('animal:gato'), null);
 });
 
-test('play: says every word in order on its timer, pulsing foods; cancel and alive stop it', () => {
+// A fake clock: later() queues timers, run() fires them in due-time order.
+function clock() {
+  const q = [];
+  let now = 0;
+  return {
+    later: (fn, ms) => q.push({ fn, at: now + ms, n: q.length }),
+    pending: () => q.length,
+    run() {
+      while (q.length) {
+        q.sort((a, b) => a.at - b.at || a.n - b.n);
+        const t = q.shift();
+        now = t.at;
+        t.fn();
+      }
+    },
+    step() {   // fires only the earliest timer
+      q.sort((a, b) => a.at - b.at || a.n - b.n);
+      const t = q.shift();
+      now = t.at;
+      t.fn();
+    },
+  };
+}
+
+test('play: done() advances to the next word, then onEnd fires exactly once (extra done calls are ignored)', () => {
   const SA = loadGame(FILES);
-  const timers = [], said = [], pulsed = [];
-  const later = (fn, ms) => timers.push([fn, ms]);
-  let ended = 0, alive = true;
-  const h = SA.wordSeq.play(['number:3', 'foodpl:fresa'], { say: (k) => said.push(k), later, onWord: (s) => s.food && pulsed.push(s.food),
-    onEnd: () => { ended += 1; }, alive: () => alive });
-  assert.equal(timers.length, 2);
-  timers[0][0]();
+  const c = clock(), said = [], dones = [], pulsed = [];
+  let ended = 0;
+  SA.wordSeq.play(['number:3', 'foodpl:fresa'], { say: (k, done) => { said.push(k); dones.push(done); }, later: c.later,
+    onWord: (s) => s.food && pulsed.push(s.food), onEnd: () => { ended += 1; } });
+  c.step();                                     // start timer
   assert.deepEqual(J(said), ['number:3']);
-  timers[1][0]();
+  dones[0]();                                   // clip ended: schedules the next word after a short pause
+  dones[0]();                                   // a duplicate done is harmless
+  c.step();                                     // the pause timer (150ms) comes before the 4000ms safety
   assert.deepEqual(J(said), ['number:3', 'foodpl:fresa']);
   assert.deepEqual(J(pulsed), ['fresa']);
+  assert.equal(ended, 0, 'still waiting for the last word');
+  dones[1]();
   assert.equal(ended, 1);
-  // cancelled: nothing more is said
-  const h2 = SA.wordSeq.play(['number:1', 'foodsg:pez'], { say: (k) => said.push(k), later });
-  h2.cancel();
-  timers.slice(2).forEach(([fn]) => fn());
+  c.run();                                      // leftover safety timers do nothing
   assert.equal(said.length, 2);
-  // not alive: nothing is said
-  alive = false;
-  const before = timers.length;
-  SA.wordSeq.play(['number:1'], { say: (k) => said.push(k), later, alive: () => alive });
-  timers[before][0]();
-  assert.equal(said.length, 2);
-  assert.ok(h.cancel);
+  assert.equal(ended, 1);
+});
+
+test('play: a say that never calls done is rescued by the safety timeout, so it never stalls', () => {
+  const SA = loadGame(FILES);
+  const c = clock(), said = [];
+  let ended = 0;
+  SA.wordSeq.play(['number:1', 'foodsg:pez', 'phrase:y'], { say: (k) => said.push(k), later: c.later, onEnd: () => { ended += 1; } });
+  c.run();
+  assert.deepEqual(J(said), ['number:1', 'foodsg:pez', 'phrase:y']);
+  assert.equal(ended, 1);
+});
+
+test('play: a synchronous done (muted / no audio) still speaks in order and ends once', () => {
+  const SA = loadGame(FILES);
+  const c = clock(), said = [];
+  let ended = 0;
+  SA.wordSeq.play(['number:1', 'foodsg:pez'], { say: (k, done) => { said.push(k); done(); }, later: c.later, onEnd: () => { ended += 1; } });
+  c.run();
+  assert.deepEqual(J(said), ['number:1', 'foodsg:pez']);
+  assert.equal(ended, 1);
+});
+
+test('play: cancel and alive stop the rest quietly', () => {
+  const SA = loadGame(FILES);
+  const said = [];
+  const c = clock();
+  const h = SA.wordSeq.play(['number:1', 'foodsg:pez'], { say: (k, done) => { said.push(k); done(); }, later: c.later });
+  h.cancel();
+  c.run();
+  assert.equal(said.length, 0);
+  let alive = true, ended = 0;
+  SA.wordSeq.play(['number:1', 'foodsg:pez'], { say: (k, done) => { said.push(k); alive = false; done(); }, later: c.later,
+    alive: () => alive, onEnd: () => { ended += 1; } });
+  c.run();
+  assert.deepEqual(J(said), ['number:1'], 'task over after the first word: no more words');
+  assert.equal(ended, 0);
 });
 
 function feedFlow(audioOver = {}) {
@@ -57,12 +110,15 @@ function feedFlow(audioOver = {}) {
   const rec = (n) => (...a) => calls.push([n, ...a]);
   const view = { showCare() {}, showFeed() {}, updateFeed() {}, hideFeed() {}, bounceFood() {}, celebrate() {}, confetti() {},
     toast() {}, pulseFood: rec('pulse') };
-  const audio = { say: rec('say'), sfx() {}, ...audioOver };
+  const audio = { say: (k, done) => { calls.push(['say', k]); if (done) done(); }, sfx() {}, ...audioOver };
   const only = { ...care, maybeStart: (id) => care.maybeStart(id, true, 'alimentar') };
   const flow = SA.careFlow.create({ care: only, view, fx: { show() {}, scrub() {}, hide() {} }, audio,
     later: (fn, ms) => timers.push([fn, ms]), onDone() {} });
   return { SA, care, flow, calls, timers };
 }
+
+// Fires queued timers (including ones queued while running) until none are left.
+function runAll(timers) { while (timers.length) timers.shift()[0](); }
 
 test('feed replay speaks task.words one by one and pulses the matching tray food', () => {
   const f = feedFlow();
@@ -71,7 +127,7 @@ test('feed replay speaks task.words one by one and pulses the matching tray food
   f.calls.length = 0;
   f.flow.replay();
   assert.equal(f.calls.length, 0, 'nothing is spoken until the timers run');
-  f.timers.splice(0).forEach(([fn]) => fn());
+  runAll(f.timers);
   assert.deepEqual(J(f.calls.filter((c) => c[0] === 'say').map((c) => c[1])), [...task.words]);
   const foods = task.words.filter((k) => /^food/.test(k)).map((k) => k.split(':')[1]);
   assert.deepEqual(J(f.calls.filter((c) => c[0] === 'pulse').map((c) => c[1])), J(foods));
@@ -92,6 +148,7 @@ test('feed replay: a second Replay cancels the first; finishing the task stops t
   for (let n = 0; n < task.count * 2 + 2; n++) task.items.forEach((it) => f.flow.onFeed(it.food));
   f.calls.length = 0;
   second.forEach(([fn]) => fn());
+  runAll(f.timers);
   assert.equal(f.calls.filter((c) => c[0] === 'say').length, 0, 'finished task: no late words');
 });
 

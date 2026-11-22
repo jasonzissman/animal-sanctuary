@@ -28,7 +28,12 @@
     var care = o.care, view = o.view, fx = o.fx, audio = o.audio || SA.audio;
     var later = o.later || function (fn, ms) { return root.setTimeout(fn, ms); };
 
-    function say(key) { try { if (audio && audio.say) audio.say(key); } catch (e) { /* silent */ } }
+    function say(key, done) {
+      try {
+        if (audio && audio.say) { if (done) audio.say(key, done); else audio.say(key); return; }
+      } catch (e) { /* silent */ }
+      if (done) done();
+    }
     function sfx(name) { try { if (audio && audio.sfx) audio.sfx(name); } catch (e) { /* silent */ } }
     function stars() { return SA.save.get().stars; }
 

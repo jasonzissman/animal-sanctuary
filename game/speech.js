@@ -3,6 +3,9 @@
  * Order: (1) a vocab key (game/data/vocab.js) with a clip -> play the clip; (2) otherwise speechSynthesis with
  * the best Spanish voice (es-MX, es-US, es-ES, any es-*) at a slightly slower rate; (3) otherwise do nothing
  * (the text is already on screen). Muted -> silent. Never throws. Returns 'clip' | 'speech' | null.
+ * say(keyOrText, done?): the optional done() fires exactly once, when the clip ends or the utterance ends/errors, or
+ * at once when nothing will play (muted, empty, no audio). A voice stopped by stopVoice() or replaced by a newer
+ * say() may never report back, so callers that chain words keep a safety timeout (SA.wordSeq).
  * Needs SA.audio (game/audio.js) loaded first; SA.vocab is optional.
  */
 (function (root) {
@@ -43,7 +46,7 @@
 
   // A clip that fails to load/decode (e.g. file missing) is replaced by speechSynthesis of `text`, unless
   // the browser merely blocked autoplay (NotAllowedError) or the clip was stopped/replaced meanwhile.
-  function playClip(path, text) {
+  function playClip(path, text, finish) {
     try {
       if (typeof root.Audio !== 'function') return false;
       var a = new root.Audio(path);
@@ -52,18 +55,21 @@
       var fallback = function () {
         if (fell || currentClip !== a) return;
         fell = true;
-        speak(text);
+        if (!speak(text, finish)) finish();
       };
+      a.onended = finish;
       a.onerror = fallback;
       var p = a.play();
-      if (p && typeof p.catch === 'function') p.catch(function (e) { if (!e || e.name !== 'NotAllowedError') fallback(); });
+      if (p && typeof p.catch === 'function') {
+        p.catch(function (e) { if (!e || e.name !== 'NotAllowedError') fallback(); else finish(); });
+      }
       return true;
     } catch (e) {
       return false;
     }
   }
 
-  function speak(text) {
+  function speak(text, finish) {
     try {
       var synth = root.speechSynthesis;
       if (!synth || typeof root.SpeechSynthesisUtterance !== 'function' || typeof synth.speak !== 'function') return false;
@@ -72,6 +78,7 @@
       u.lang = voice ? voice.lang : 'es-MX';
       if (voice) u.voice = voice;
       u.rate = RATE;
+      if (finish) { u.onend = finish; u.onerror = finish; }
       if (typeof synth.cancel === 'function') synth.cancel();   // never queue up a backlog of old words
       synth.speak(u);
       return true;
@@ -80,15 +87,30 @@
     }
   }
 
-  function say(keyOrText) {
+  // Wraps done so it runs at most once and never throws into the audio code.
+  function once(done) {
+    var fired = false;
+    return function () {
+      if (fired) return;
+      fired = true;
+      if (typeof done !== 'function') return;
+      try { done(); } catch (e) { /* a callback never breaks speech */ }
+    };
+  }
+
+  function say(keyOrText, done) {
+    var finish = once(done), result = null;
     try {
-      if (typeof keyOrText !== 'string' || !keyOrText.trim() || SA.audio.isMuted()) return null;
-      var entry = SA.vocab && SA.vocab.get(keyOrText);
-      if (entry && entry.clip && playClip(entry.clip, entry.es)) return 'clip';
-      return speak(entry ? entry.es : keyOrText) ? 'speech' : null;
+      if (typeof keyOrText === 'string' && keyOrText.trim() && !SA.audio.isMuted()) {
+        var entry = SA.vocab && SA.vocab.get(keyOrText);
+        if (entry && entry.clip && playClip(entry.clip, entry.es, finish)) result = 'clip';
+        else if (speak(entry ? entry.es : keyOrText, finish)) result = 'speech';
+      }
     } catch (e) {
-      return null;
+      result = null;
     }
+    if (!result) finish();
+    return result;
   }
 
   SA.audio.say = say;

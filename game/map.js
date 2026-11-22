@@ -52,7 +52,8 @@
 
   function riverX(z) { return RIVER.centerX + RIVER.wiggle * Math.sin(z * RIVER.freq); }
 
-  function groundHeight(x, z) {
+  /** The rolling terrain without the climbable peaks (SA.peaks raises those on top of this). */
+  function baseHeight(x, z) {
     var h = 0.6 * Math.sin(x * 0.21) * Math.cos(z * 0.17) + 0.4 * Math.sin(x * 0.09 + z * 0.13);
     var dr = Math.abs(x - riverX(z));
     var span = RIVER.halfWidth + 2;
@@ -63,6 +64,12 @@
     var wz = smooth((FORD.halfLen + 1.5 - Math.abs(z - FORD.z)) / 1.5) * smooth((span + 1.5 - dr) / 1.5);
     if (wz > 0) h += (FORD.level - h) * wz;
     return h + mountainHeight(x, z) + duneHeight(x, z);
+  }
+
+  /** The single terrain height: baseHeight plus the climbable peaks' mounds and flat summits (SA.peaks, AS-0193). */
+  function groundHeight(x, z) {
+    var h = baseHeight(x, z);
+    return SA.peaks ? SA.peaks.raise(x, z, h) : h;
   }
 
   function isWater(x, z) { return groundHeight(x, z) < WATER_LEVEL; }
@@ -103,6 +110,6 @@
 
   SA.map = {
     BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND, FORD: FORD,
-    clamp: clamp, biomeAt: biomeAt, riverX: riverX, groundHeight: groundHeight, followHeight: followHeight, cameraHeight: cameraHeight, isWater: isWater, nearWater: nearWater, rng: rng,
+    clamp: clamp, biomeAt: biomeAt, riverX: riverX, baseHeight: baseHeight, groundHeight: groundHeight, followHeight: followHeight, cameraHeight: cameraHeight, isWater: isWater, nearWater: nearWater, rng: rng,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

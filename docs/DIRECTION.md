@@ -33,6 +33,11 @@ current; when your change sets or changes something future tickets must follow, 
   unchanged). On top the climb mode is `'canopy'` for trees and `'top'` for the rest (`SA.climb.onTop(state)` covers both); you
   walk the flat top at `topY`. Walking off the edge is a short no-damage fall arc (`climb.mode 'down'`, `fall: true`) to dry
   in-bounds ground (else the spot you climbed from); the landing frame carries `state.land` (`SA.climb.landed(state)`) to track.
+  Built (AS-0193): the six grey peaks are data in `game/peaks.js` (`SA.peaks.LIST` rows `{ id, x, z, height }`). `SA.map.groundHeight`
+  raises each into a cone mound with an exactly flat summit of radius 1.4 at `topY` (`SA.map.baseHeight` is the terrain without them);
+  `SA.peaks.targets()` gives the `kind: 'peak'` climb targets and decor draws a flat-topped grey cone over each mound (solid 'pico').
+  scene.js builds ONE `climbables` list (trees + peaks) for the camera rig (E/C/auto-climb), the Space chooser/outline and the ring;
+  the rig tracks the walk-off landing as `SAT.track('climb.land', { kind, y })`. New steep things: add a data row, no engine branch.
   Still to do: peak / station data and wiring them into the rig's target list (the next AS-0163 slices).
   Treetop hopping (AS-0166): treetops are flat standable tops, and a landing assist lands you on the tree you jump
   roughly toward (~7 units, ~40 degrees). Be generous: kids should chain tree to tree easily.

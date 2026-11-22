@@ -201,6 +201,8 @@
         var walk = { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
           left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running, lift: hop ? hop.lift : 0 };
         player = SA.climb.step(player, walk, dt, obs);
+        var lan = SA.climb.landed(player);   // the one frame a walk-off fall touches down (AS-0192): tell telemetry (stays local)
+        if (lan && root.SAT && root.SAT.track) root.SAT.track('climb.land', { kind: lan.kind, y: Math.round(lan.y * 10) / 10 });
         if (SA.climb.autoStep) {   // pushing forward into a trunk for 0.6 s starts the same climb as C / E
           autoTimer = SA.climb.autoStep(autoTimer, before, player, walk, trees(), dt * 1000);
           if (autoTimer.climb) { player = SA.climb.start(player, autoTimer.tree); autoTimer = null; }

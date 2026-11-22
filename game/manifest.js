@@ -35,6 +35,7 @@ globalThis.SA_MANIFEST = {
     'game/audio-ui.js',
     'game/speech.js',
     'game/map.js',
+    'game/peaks.js',
     'game/camera.js',
     'game/camera-frame.js',
     'game/station.js',

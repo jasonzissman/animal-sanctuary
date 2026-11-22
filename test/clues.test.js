@@ -155,6 +155,20 @@ test('with all 10 animals every clue has one answer; the new animals get clues (
   for (const id of ['camello', 'serpiente', 'cabra', 'aguila', 'mono']) assert.ok(clues.some((c) => c.answer.animalId === id), id);
 });
 
+test('every animal has at least one unique level-1 single-fact clue (the rana via "ojos grandes")', () => {
+  const SA = load();
+  const ids = SA.data.all('animals').filter((a) => !a.easterEgg).map((a) => a.id);
+  const clues = SA.clues.candidates(ids, ['trait', 'partAdjective']);
+  for (const id of ids) {
+    assert.ok(clues.some((c) => c.answer.animalId === id), `no unique level-1 clue for ${id}`);
+  }
+  const rana = clues.find((c) => c.answer.animalId === 'rana');
+  assert.equal(rana.text, 'Busca el animal con ojos grandes');
+  assert.deepEqual(JSON.parse(JSON.stringify(rana.answer)), { animalId: 'rana', part: 'ojos' });
+  rana.vocabKeys.forEach((k) => assert.ok(SA.vocab.get(k), `missing vocab ${k}`));
+  assert.equal(SA.clues.inflect(SA.data.get('clueTemplates', 'part-size').adjectives[0], 'm', 'pl'), 'grandes');
+});
+
 test('types filter restricts which clue kinds are generated', () => {
   const SA = load();
   const only = (types) => new Set(SA.clues.candidates(['conejo', 'tucan'], types).map((c) => c.type));

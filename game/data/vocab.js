@@ -7,7 +7,12 @@
  *   id, key   '<group>:<name>', e.g. 'part:orejas', 'animal:conejo', 'size:pequeño', 'color:rojo', 'number:3'
  *   es        Spanish text with article/accents exactly as shown on screen
  *   clip      relative path to an audio clip or null
- * Groups: part, animal, biome, size, color, movement, diet, number, phrase.
+ * Groups: part, animal, biome, size, color, movement, diet, number, phrase, adj.
+ * Adjective forms: size:/color: keys speak the masculine singular (base) word. Every size and colour adjective
+ * also has all four agreeing forms as 'adj:<form>' keys (adj:blanca, adj:blancos, adj:blancas, adj:grises ...), the
+ * same key shape game/data/clues.js uses for largo/larga/largos/largas. SA.vocab.adjKey(base, gender, number) maps a
+ * base word ('blanco' / 'marrón'), 'm'|'f' and 'sg'|'pl' to that key, ready for SA.audio.say(). Invariable forms
+ * (grande, verde, gris ...) reuse the same key for both genders.
  * test/vocab.test.js fails when any part, animal, biome or trait value in the data has no entry here.
  */
 (function (root) {
@@ -48,6 +53,24 @@
   ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul'].forEach(function (w) { add('color', w, w); });
   ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre', 'repta'].forEach(function (w) { add('movement', w, w); });
   ['herbívoro', 'carnívoro', 'omnívoro', 'insectívoro'].forEach(function (w) { add('diet', w, w); });
+  // Agreeing forms of every size/colour adjective: base -> [m.sg, m.pl, f.sg, f.pl]. Accents kept (marrón/marrones).
+  var ADJ_FORMS = {
+    'pequeño': ['pequeño', 'pequeños', 'pequeña', 'pequeñas'], 'mediano': ['mediano', 'medianos', 'mediana', 'medianas'],
+    'grande': ['grande', 'grandes', 'grande', 'grandes'],
+    'blanco': ['blanco', 'blancos', 'blanca', 'blancas'], 'gris': ['gris', 'grises', 'gris', 'grises'],
+    'marrón': ['marrón', 'marrones', 'marrón', 'marrones'], 'negro': ['negro', 'negros', 'negra', 'negras'],
+    'verde': ['verde', 'verdes', 'verde', 'verdes'], 'amarillo': ['amarillo', 'amarillos', 'amarilla', 'amarillas'],
+    'naranja': ['naranja', 'naranjas', 'naranja', 'naranjas'], 'rojo': ['rojo', 'rojos', 'roja', 'rojas'],
+    'azul': ['azul', 'azules', 'azul', 'azules']
+  };
+  var FORM_INDEX = { m: { sg: 0, pl: 1 }, f: { sg: 2, pl: 3 } };
+  var seenAdj = {};
+  Object.keys(ADJ_FORMS).forEach(function (base) {
+    ADJ_FORMS[base].forEach(function (w) {
+      if (!seenAdj[w]) { seenAdj[w] = true; add('adj', w, w); }
+    });
+  });
+
   // 0 covers a snake's legs (animal traits.legs runs 0..8); clue counts of parts start at 1.
   ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'].forEach(function (w, i) { add('number', String(i), w); });
 
@@ -62,6 +85,13 @@
   SA.vocab = {
     // Entry for a key, or null (so callers can treat unknown strings as plain text).
     get: function (key) { return typeof key === 'string' ? SA.data.get('vocab', key) : null; },
+    // Vocab key of the adjective `base` (e.g. 'blanco') agreeing in gender ('m'|'f') and number ('sg'|'pl'), or null.
+    adjKey: function (base, gender, number) {
+      var forms = Object.prototype.hasOwnProperty.call(ADJ_FORMS, base) ? ADJ_FORMS[base] : null;
+      var g = FORM_INDEX[gender];
+      if (!forms || !g || g[number] === undefined) return null;
+      return 'adj:' + forms[g[number]];
+    },
     keys: function () { return SA.data.all('vocab').map(function (v) { return v.key; }); }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

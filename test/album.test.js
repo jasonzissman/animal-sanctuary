@@ -151,8 +151,11 @@ test('view: opens a page of cards, tapping a card or part speaks, silhouettes st
   const found = cards.find((c) => c.attrs['aria-label'] === 'el conejo');
   found.fire('click');
   assert.deepEqual(said, ['animal:conejo']);
-  const chips = walk(found).filter((n) => n.tag === 'button');
+  const chips = walk(found).filter((n) => n.tag === 'button' && n.attrs['aria-label'] !== 'Escuchar');
   assert.ok(chips.length >= 3);
+  walk(found).find((n) => n.attrs['aria-label'] === 'Escuchar').fire('click');   // the 🔊 next to the name
+  assert.deepEqual(said, ['animal:conejo', 'animal:conejo']);
+  said.pop();
   chips[0].fire('click');
   assert.match(said[1], /^part:/);
   const silhouette = cards.find((c) => c.attrs['aria-label'] === '?');
@@ -167,4 +170,69 @@ test('view: no DOM is a harmless no-op', () => {
   const v = SA.albumView.create(null);
   v.open(); v.close(); v.toggle();
   assert.equal(v.isOpen(), false);
+});
+
+// --- pictures (AS-0237) ---
+const JPEG = 'data:image/jpeg;base64,AAAA';
+const tick = () => new Promise((r) => setTimeout(r, 0));
+const PIC_FILES = FILES.concat(['game/album-pics.js']);
+function picSetup(store) {
+  const SA = loadGame(PIC_FILES, {});
+  SA.save.reset();
+  SA.album.add('conejo');
+  SA.save.update({ album: { conejo: { pics: [{ id: 'a', date: '2026-11-22' }, { id: 'b', date: '2026-11-23' }] } } });
+  SA.albumPics.setStore(store);
+  return SA;
+}
+const stubStore = (m) => ({ get: async (id) => (id in m ? m[id] : null) });
+
+test('albumPics.load(): reads the saved pictures, skips missing ones, never rejects', async () => {
+  const SA = picSetup(stubStore({ a: JPEG, b: 'junk' }));
+  assert.deepEqual(plain(await SA.albumPics.load('conejo')), [{ id: 'a', date: '2026-11-22', src: JPEG }]);
+  assert.deepEqual(plain(await SA.albumPics.load('pato')), []);
+  assert.deepEqual(plain(await SA.albumPics.load('conejo', { get: async () => { throw new Error('x'); } })), []);
+  assert.deepEqual(plain(await SA.albumPics.load('conejo', { get: () => { throw new Error('x'); } })), []);
+  SA.albumPics.setStore(null);
+  assert.deepEqual(plain(await SA.albumPics.load('conejo')), []);   // no store at all
+});
+
+test('view: pictures replace the icon, tap opens the big overlay with ✕ and 🔊, tap ✕ closes', async () => {
+  const SA = picSetup(stubStore({ a: JPEG, b: JPEG }));
+  const said = [];
+  SA.audio = { say: (k) => said.push(k) };
+  const doc = fakeDoc();
+  const v = SA.albumView.create(doc);
+  v.open();
+  await tick(); await tick();
+  const card = walk(doc.body).find((n) => n.attrs['aria-label'] === 'el conejo');
+  const imgs = walk(card).filter((n) => n.tag === 'img');
+  assert.equal(imgs.length, 2);
+  assert.equal(imgs[0].src, JPEG);
+  const thumb = walk(card).find((n) => n.tag === 'button' && n.children[0] && n.children[0].tag === 'img');
+  thumb.fire('click');
+  assert.deepEqual(said, ['animal:conejo']);   // opening the big picture says the name
+  const bigImg = walk(doc.body).find((n) => n.tag === 'img' && n.attrs.alt === 'el conejo');
+  assert.equal(bigImg.src, JPEG);
+  const overlay = walk(doc.body).find((n) => n.children.includes(bigImg));
+  assert.equal(overlay.style.display, 'flex');
+  const bar = overlay.children[1].children;
+  assert.equal(bar[0].textContent, '✕');
+  assert.equal(bar[1].textContent, '🔊');
+  bar[1].fire('click');
+  assert.deepEqual(said, ['animal:conejo', 'animal:conejo']);
+  bar[0].fire('click');
+  assert.equal(overlay.style.display, 'none');
+});
+
+test('view: no stored pictures or an unavailable store keeps the icon card', async () => {
+  for (const store of [stubStore({}), null, { get: async () => { throw new Error('no storage'); } }]) {
+    const SA = picSetup(store);
+    SA.audio = { say() {} };
+    const doc = fakeDoc();
+    SA.albumView.create(doc).open();
+    await tick(); await tick();
+    const card = walk(doc.body).find((n) => n.attrs['aria-label'] === 'el conejo');
+    assert.equal(walk(card).filter((n) => n.tag === 'img').length, 0);
+    assert.ok(walk(card).some((n) => n.textContent === SA.data.get('animals', 'conejo').icon));
+  }
 });

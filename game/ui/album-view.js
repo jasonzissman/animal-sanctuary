@@ -3,6 +3,8 @@
  * A big 📖 button (right side, under the habitat button) opens a full-screen page of cards, one per species:
  *   photographed = the animal icon, its Spanish name (with article) and a row of its body parts as icon chips;
  *   not yet photographed = a dark silhouette with "?".
+ * Saved pictures (SA.albumPics.load: first + newest 3) replace the icon on a photographed card; tap one to see it bigger in an overlay with
+ * a big ✕ and a 🔊. No picture / no storage keeps the icon card. A 🔊 next to the name also says it.
  * Tapping a card speaks the animal name; tapping a part chip speaks the part (SA.audio.say with the vocab key). A silhouette
  * only wobbles (no name: it stays a surprise). The page is rebuilt each time it opens, so new photos show up. No-op without a DOM.
  */
@@ -60,13 +62,74 @@
       return c;
     }
 
-    function card(e) {
+    function speaker(e) {
+      var b = el('button', BTN + 'width:56px;height:56px;font-size:1.8rem;border-radius:.6em;', '🔊');
+      b.type = 'button';
+      b.setAttribute('aria-label', 'Escuchar');
+      b.addEventListener('click', function (ev) { ev.stopPropagation(); say(SA.album.speakKey(e)); });
+      return b;
+    }
+
+    // Enlarged picture: a simple overlay inside the page with a big ✕ and a 🔊 for the animal's name.
+    var big = el('div', 'position:fixed;inset:0;z-index:11;display:none;flex-direction:column;align-items:center;justify-content:center;' +
+      'gap:12px;background:rgba(0,0,0,.85);padding:12px;box-sizing:border-box;');
+    var bigImg = el('img', 'max-width:92%;max-height:68%;border:.2em solid #fff8d6;border-radius:.6em;background:#fff;');
+    var bigBar = el('div', 'display:flex;align-items:center;gap:16px;');
+    var bigClose = el('button', BTN + 'width:88px;height:88px;font-size:2.6rem;', '✕');
+    bigClose.type = 'button';
+    bigClose.setAttribute('aria-label', 'Cerrar');
+    var bigSay = null;
+    bigBar.appendChild(bigClose);
+    big.appendChild(bigImg); big.appendChild(bigBar);
+    page.appendChild(big);
+    function showBig(e, pic) {
+      bigImg.src = pic.src;
+      bigImg.setAttribute('alt', e.es);
+      if (bigSay) bigBar.removeChild(bigSay);
+      bigSay = speaker(e);
+      bigSay.style.width = bigSay.style.height = '88px';
+      bigSay.style.fontSize = '2.6rem';
+      bigBar.appendChild(bigSay);
+      big.style.display = 'flex';
+      say(SA.album.speakKey(e));
+    }
+    function hideBig() { big.style.display = 'none'; bigImg.src = ''; }
+    bigClose.addEventListener('click', function (ev) { ev.stopPropagation(); hideBig(); });
+    big.addEventListener('click', hideBig);
+    var token = 0;
+
+    // Swaps the icon for the saved pictures (first + newest 3) once they are read; no pictures or no storage = the icon stays.
+    function fillPics(e, media, mine) {
+      if (!SA.albumPics || !SA.albumPics.load) return;
+      SA.albumPics.load(e.id).then(function (pics) {
+        if (mine !== token || !pics.length) return;
+        while (media.firstChild) media.removeChild(media.firstChild);
+        media.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;';
+        pics.forEach(function (p) {
+          var b = el('button', BTN + 'padding:2px;border-radius:.4em;border-width:.08em;');
+          b.type = 'button';
+          b.setAttribute('aria-label', e.es);
+          var img = el('img', 'display:block;width:' + (pics.length > 2 ? 84 : 120) + 'px;height:auto;border-radius:.3em;');
+          img.src = p.src;
+          b.appendChild(img);
+          b.addEventListener('click', function (ev) { ev.stopPropagation(); showBig(e, p); });
+          media.appendChild(b);
+        });
+      });
+    }
+
+    function card(e, mine) {
       var c = el('div', CARD);
       c.setAttribute('role', 'button');
       c.setAttribute('aria-label', e.seen ? e.es : '?');
       if (e.seen) {
-        c.appendChild(el('div', 'font-size:3.4rem;line-height:1.1;', e.icon));
-        c.appendChild(el('div', '', e.es));
+        var media = el('div', 'font-size:3.4rem;line-height:1.1;', e.icon);
+        c.appendChild(media);
+        var nameRow = el('div', 'display:flex;align-items:center;gap:.3em;');
+        nameRow.appendChild(el('div', '', e.es));
+        nameRow.appendChild(speaker(e));
+        c.appendChild(nameRow);
+        fillPics(e, media, mine);
         var row = el('div', 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;');
         e.parts.forEach(function (p) { row.appendChild(chip(p)); });
         c.appendChild(row);
@@ -81,7 +144,9 @@
 
     function build() {
       while (grid.firstChild) grid.removeChild(grid.firstChild);
-      SA.album.entries().forEach(function (e) { grid.appendChild(card(e)); });
+      var mine = ++token;
+      hideBig();
+      SA.album.entries().forEach(function (e) { grid.appendChild(card(e, mine)); });
       var p = SA.album.progress();
       title.textContent = '📖 Álbum ' + p.found + '/' + p.total;
     }
@@ -89,7 +154,7 @@
     function setOpen(on) {
       if (on === opened) return;
       opened = on;
-      if (on) build();
+      if (on) build(); else { token++; hideBig(); }
       page.style.display = on ? 'flex' : 'none';
       if (o.onToggle) o.onToggle(on);
     }

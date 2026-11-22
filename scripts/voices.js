@@ -28,8 +28,11 @@ export const SIZE_BUDGET = 3 * 1024 * 1024;
 const PREFERRED = ['paulina', 'monica'];
 
 // foods.js registers the foodsg:/foodpl: keys; it needs animals (diets), which need parts and biomes.
+// props.js registers prop:*, clues.js the adj:* and phrase:buscaanimal* keys, clue-levels.js the multi-trait phrases
+// (it needs the clueTemplates kind from clues.js). Keys already in vocab.js are skipped by those files, so no duplicates.
 export const MANIFEST_FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-  'game/data/animals.js', 'game/data/vocab.js', 'game/data/foods.js'];
+  'game/data/animals.js', 'game/data/vocab.js', 'game/data/foods.js', 'game/data/props.js', 'game/data/clues.js',
+  'game/data/clue-levels.js'];
 
 /** Loads the vocab manifest in a vm context: [{ key, es }]. */
 export function loadManifest(root = ROOT) {

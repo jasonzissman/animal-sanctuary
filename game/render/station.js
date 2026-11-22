@@ -98,6 +98,12 @@
       g.add(board.group);
       g.userData.board = board;
     }
+    // The "Insignias" board on the front wall, left of the doorway, facing into the room (AS-0239).
+    if (SA.render.createStationBoard && L.badgesBoard) {
+      var badges = SA.render.createStationBoard(THREE, { key: 'badgesBoard', badges: true, id: 'station-badges', titles: { es: ['Insignias'], en: ['Badges'] } });
+      g.add(badges.group);
+      g.userData.badgesBoard = badges;
+    }
 
     // Bench: a plank seat on two legs, against the front wall.
     var b = L.bench, bx0 = b.x - b.w / 2, bx1 = b.x + b.w / 2, bz0 = b.z - b.d / 2, bz1 = b.z + b.d / 2, by = L.floorY;

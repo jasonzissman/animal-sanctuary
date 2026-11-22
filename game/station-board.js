@@ -5,8 +5,11 @@
  * The door frame is NOT a target: walking through the doorway just enters.
  *
  *   SA.station.boardTarget()           -> { id: 'station-board', kind: 'board', x, y, z, reach } (the board's centre; one stable object)
- *   SA.station.boardTargets()          -> [boardTarget()] (the list SA.spaceUse feeds the chooser; stable array, nothing allocated)
- *   SA.station.canTapBoard(player)     -> true when a tap on the board may open it (within TAP_REACH of it)
+ *   SA.station.badgesTarget()          -> { id: 'station-badges', kind: 'board', source: 'badges', x, y, z, reach }: the "Insignias" board
+ *                                         on the front wall (AS-0239). Same Use pattern; it opens the card with source 'badges'
+ *   SA.station.boardTargets()          -> [boardTarget(), badgesTarget()] (the list SA.spaceUse feeds the chooser; stable array, nothing allocated)
+ *   SA.station.canTapBoard(player, target?) -> true when a tap on a board (default: the missions one) may open it (within TAP_REACH of it)
+ *   SA.station.openSource()            -> the source the card was opened with ('board' | 'tap' | 'badges' | ...), null while closed
  *   SA.station.open(source?)           -> true when it newly opened, false when it already was open. Fires onOpen listeners and
  *                                         SAT.track('station.open', { source: 'board' | 'tap' | ... }) once per opening
  *   SA.station.close()                 -> true when it closed, false when it was not open. Fires onClose listeners
@@ -22,7 +25,7 @@
 
   var BOARD_REACH = 3.0;  // the board is the Use target when the player is this close to it (SA.spaceTarget.BOARD_REACH)
   var TAP_REACH = 8;      // a tap on the board opens it from this far (generous: little hands, small screens; the room is ~5 deep)
-  var board = null, list = null, opened = false, openSource = null, openers = [], closers = [];
+  var board = null, badges = null, list = null, opened = false, openSource = null, openers = [], closers = [];
 
   function boardTarget() {
     if (!board) {
@@ -31,11 +34,18 @@
     }
     return board;
   }
-  function boardTargets() { return list || (list = [boardTarget()]); }
+  function badgesTarget() {
+    if (!badges) {
+      var K = SA.station.layout().badgesBoard;
+      badges = { id: 'station-badges', kind: 'board', source: 'badges', x: K.x, y: K.y, z: K.z, reach: BOARD_REACH };
+    }
+    return badges;
+  }
+  function boardTargets() { return list || (list = [boardTarget(), badgesTarget()]); }
 
-  function canTapBoard(p) {
+  function canTapBoard(p, target) {
     if (!p || typeof p.x !== 'number' || typeof p.z !== 'number' || !isFinite(p.x) || !isFinite(p.z)) return false;
-    var b = boardTarget(), dx = p.x - b.x, dz = p.z - b.z;
+    var b = target || boardTarget(), dx = p.x - b.x, dz = p.z - b.z;
     return dx * dx + dz * dz <= TAP_REACH * TAP_REACH;
   }
 
@@ -64,7 +74,9 @@
   function toggle(source) { if (opened) close(); else open(source); return opened; }
 
   SA.station.boardTarget = boardTarget;
+  SA.station.badgesTarget = badgesTarget;
   SA.station.boardTargets = boardTargets;
+  SA.station.openSource = function () { return opened ? openSource : null; };
   SA.station.canTapBoard = canTapBoard;
   SA.station.open = open;
   SA.station.close = close;

@@ -1,6 +1,6 @@
 /* SA.render.blockText(THREE, material, text, px) -> { group, width }: a word in 3x5 block letters made of small boxes (px = one block),
  * readable from -z (the reader's left is +x), centred on the group's origin. Shared by the station sign and the missions board.
- * Letters: A C D E I L M N O S T (accented Ó is drawn as O plus a tick); any other character is a gap. Pure geometry, no textures.
+ * Letters: A B C D E G I L M N O S T (accented Ó is drawn as O plus a tick); any other character is a gap. Pure geometry, no textures.
  */
 (function (root) {
   'use strict';
@@ -13,6 +13,7 @@
     E: ['111', '100', '111', '100', '111'], I: ['111', '010', '010', '010', '111'], L: ['100', '100', '100', '100', '111'],
     M: ['101', '111', '111', '101', '101'], N: ['101', '111', '111', '111', '101'], O: ['111', '101', '101', '101', '111'],
     S: ['111', '100', '111', '001', '111'], T: ['111', '010', '010', '010', '010'],
+    B: ['110', '101', '110', '101', '110'], G: ['111', '100', '101', '101', '111'],   // for "Insignias" / "Badges" (AS-0239)
   };
 
   /** Number of block columns a text spans (letters are 3 wide with a 1 gap; unknown characters are a 2-wide gap). */

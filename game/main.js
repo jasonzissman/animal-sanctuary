@@ -139,6 +139,8 @@
       var stationMenu = SA.stationMenuView ? SA.stationMenuView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); } }) : null;
       // Misiones board (AS-0197) renders into the station card: done (replay), next (start), locked and En curso cards.
       if (stationMenu && stationMenu.body && SA.missionsBoardView) SA.missionsBoardView.create(root.document, { body: stationMenu.body });
+      // Insignias board (AS-0239): the card the front-wall badges board opens (source 'badges'); the missions card hides for it.
+      if (stationMenu && stationMenu.body && SA.badgesBoardView) SA.badgesBoardView.create(root.document, { body: stationMenu.body });
     } catch (e) { report('station.menu', e); }
     // The scientist's hello (AS-0213): on every load, one card with two short lines; closes on ✕ / Enter / E / a tap / walking.
     // It starts no mission: missions are chosen at the board in the station.

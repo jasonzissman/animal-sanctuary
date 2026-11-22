@@ -193,7 +193,13 @@
     };
 
     render(false);
-    if (SA.station && SA.station.onOpen) SA.station.onOpen(function () { render(true); });
+    if (SA.station && SA.station.onOpen) SA.station.onOpen(function (source) {
+      if (source === 'badges') {   // the Insignias card (ui/badges-board-view.js, AS-0239) owns the room: hide this one, keep any celebration for next time
+        talk = null; strip.style.cssText = 'display:none;'; talkBox.style.cssText = 'display:none;'; grid.style.cssText = 'display:none;';
+        return;
+      }
+      render(true);
+    });
     if (SA.station && SA.station.onClose) SA.station.onClose(function () { talk = null; });   // closing the station (Esc, ✕, start) drops the start card
     return { render: function () { render(false); }, element: grid };
   }

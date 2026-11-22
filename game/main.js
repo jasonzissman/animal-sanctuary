@@ -50,6 +50,13 @@
           onReroll: function () { ctl.reroll(); } });
       }
     } catch (e) { report('reroll.start', e); }
+    // One focus rule (SA.focus): a story mission started at the station board puts the small task on screen away quietly;
+    // when it is done or abandoned, small tasks start again. Polled once per frame in loop().
+    try {
+      if (SA.focus && ctl) SA.focus.onChange(function (mode) {
+        if (mode === 'mission') { if (ctl.pause) ctl.pause(); } else ctl.begin();
+      });
+    } catch (e) { report('focus.start', e); }
     // Icon-only rotate/tilt buttons so touch players can orbit the camera (same path as Q/E/R/F).
     try { if (SA.orbitPad) SA.orbitPad.create(root.document, stage.rig, root); } catch (e) { report('orbitPad.start', e); }
     // Virtual joystick (bottom-left, shown at the first touch) so touch players can walk without a keyboard.
@@ -131,6 +138,7 @@
       if (useBtn) { try { useBtn.update(); } catch (e) { useBtn = null; report('useButton.update', e); } }
       if (greeting && greeting.isOpen()) { try { greeting.update(stage.rig.getPlayer()); } catch (e) { greeting = null; report('greeting.update', e); } }
       if (climbBtn) { try { climbBtn.update(); } catch (e) { climbBtn = null; report('climbButton.update', e); } }
+      if (SA.focus) { try { SA.focus.update(); } catch (e) { report('focus.update', e); } }
       if (hintFlow) { try { hintFlow.update(dt); } catch (e) { hintFlow = null; report('hintFlow.update', e); } }
       if (rerollWatch) { try { rerollWatch.update(dt); } catch (e) { rerollWatch = null; report('reroll.update', e); } }
       if (root.SAT && root.SAT.frame) { try { root.SAT.frame(dt); } catch (e) { /* telemetry never stops the loop */ } }

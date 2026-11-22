@@ -217,6 +217,7 @@
 
     return {
       maybeStart: maybeStart, tap: tap, feed: feed, current: function () { return task; },
+      cancel: function () { task = null; },      // drops the task quietly: no star, no round, no miss (AS-0222)
       active: function () { return !!task && !task.done; },
     };
   }

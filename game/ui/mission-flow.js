@@ -5,6 +5,8 @@
  *   var flow = SA.missionFlow.create({ mission, view, fx?, audio?, care?, later?, biomeFx?, onProgress? })
  *     mission    SA.mission.create(...)       care   SA.careFlow instance (offer(animalId, force, kind) / active / onPick / replay)
  *   flow.begin()      starts a mission: the clue on the card, spoken (step find)
+ *   flow.pause()      a story mission started (SA.focus): the clue/help/photo on screen is cleared quietly; begin() then does nothing
+ *                     until the mission is over (main.js calls begin() again)
  *   flow.onPick(p)    { animalId, part, item? } from SA.picking:
  *       find   any pick (any item, or empty hands) of an animal that fits the clue celebrates (chime, boing, confetti, toast with
  *              its name, say('animal:<id>')) and the mission goes on with that animal; a pick of another animal is a gentle
@@ -92,7 +94,17 @@
       }, AUTO_HINT_MS);
     }
 
+    // A story mission started (SA.focus): the small task on screen is put away quietly: no fail, no miss, no round.complete.
+    function pause() {
+      if (care && care.cancel) care.cancel();
+      if (mission.cancel) mission.cancel();
+      unpin();
+      if (biomeFx) biomeFx.hide();
+      view.clear();
+    }
+
     function begin() {
+      if (SA.focus && !SA.focus.allowsSmall()) return null;      // no new clue round while a story mission runs
       if (o.onProgress) { try { o.onProgress(); } catch (e) { /* unlocks never break play */ } }
       var m = mission.start();
       if (!m) { unpin(); view.clear(); return null; }
@@ -265,7 +277,7 @@
       return true;
     }
 
-    return { begin: begin, onPick: onPick, replay: replay, hint: hint, canReroll: canReroll, reroll: reroll, equipCamera: equipCamera,
+    return { begin: begin, pause: pause, onPick: onPick, replay: replay, hint: hint, canReroll: canReroll, reroll: reroll, equipCamera: equipCamera,
       onCareDone: onCareDone,
       game: { current: mission.current, hint: function () { hint(); return cur(); }, biomeHint: biomeHint, pointerHint: pointerHint,
         hasBiomePool: mission.hasBiomePool } };

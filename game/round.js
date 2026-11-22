@@ -156,7 +156,8 @@
       return candidatesForBiome(list, biomeId) !== list;
     }
 
-    return { start: start, pick: pick, hasBiomePool: hasBiomePool, hint: hint, biomeHint: biomeHint, pointerHint: pointerHint, current: function () { return round; } };
+    return { start: start, pick: pick, hasBiomePool: hasBiomePool, hint: hint, biomeHint: biomeHint, pointerHint: pointerHint, current: function () { return round; },
+      cancel: function () { round = null; } };      // drops the round quietly: no miss, no round.complete (AS-0222)
   }
 
   SA.round = { TYPES: TYPES, MIN_BIOME_ANIMALS: MIN_BIOME_ANIMALS, candidatesForBiome: candidatesForBiome,

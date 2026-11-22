@@ -41,7 +41,16 @@
       }, AUTO_HINT_MS);
     }
 
+    // A story mission started (SA.focus): clear the round on screen quietly (no miss, no round.complete).
+    function pause() {
+      if (care && care.cancel) care.cancel();
+      if (game.cancel) game.cancel();
+      if (biomeFx) biomeFx.hide();
+      view.clear();
+    }
+
     function begin() {
+      if (SA.focus && !SA.focus.allowsSmall()) return null;      // no new clue round while a story mission runs
       // Stars/rounds may just have changed: let easter-egg unlocks run first so a new friend can join this clue.
       if (o.onProgress) { try { o.onProgress(); } catch (e) { /* unlocks never break play */ } }
       var r = game.start();
@@ -137,7 +146,7 @@
       return r;
     }
 
-    return { begin: begin, onPick: onPick, replay: replay, hint: hint, canReroll: canReroll, reroll: reroll };
+    return { begin: begin, pause: pause, onPick: onPick, replay: replay, hint: hint, canReroll: canReroll, reroll: reroll };
   }
 
   // No screen offsets here: every position comes from SA.hud.layout (see place() below).

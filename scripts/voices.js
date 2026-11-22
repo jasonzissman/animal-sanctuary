@@ -142,6 +142,12 @@ export function generate({ root = ROOT, force = false, core = false, voice = nul
     if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
   }
   result.skipped = entries.length - todo.length;
+  if (core) { // --core also drops non-core clips left over from a full run, so the repo stays small
+    const keep = new Set(entries.map((e) => e.key));
+    for (const e of loadManifest(root)) {
+      if (!keep.has(e.key)) fs.rmSync(path.join(outDir, clipName(e.key) + '.m4a'), { force: true });
+    }
+  }
   // The generated file lists every clip that exists on disk (not just the ones rendered this run).
   for (const e of loadManifest(root)) {
     const file = path.join(outDir, clipName(e.key) + '.m4a');
@@ -162,7 +168,7 @@ function main(argv) {
   if (opts.listOnly) { console.log(Object.keys(r.clips).length + ' clips planned'); return 0; }
   console.log(`voice ${r.voice || '(none needed)'}: ${r.rendered} rendered, ${r.skipped} skipped, ${r.failed.length} failed; ` +
     `${Object.keys(r.clips).length} clips, ${(r.bytes / 1024).toFixed(0)} KB total`);
-  if (r.bytes > SIZE_BUDGET) console.log('Clips exceed ~3 MB: delete assets/voice and re-run with --core.');
+  if (r.bytes > SIZE_BUDGET) console.log('Clips exceed ~3 MB: re-run with --core (it removes the non-core clips).');
   return r.failed.length ? 1 : 0;
 }
 

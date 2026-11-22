@@ -140,6 +140,18 @@ test('generate --core only renders core groups; --voice and listOnly work', () =
   assert.equal(Object.keys(planned.clips).length, loadManifest(root).length);
 });
 
+test('generate --core prunes non-core clips left by a full run', () => {
+  const root = tempRoot();
+  const { exec } = fakeExec();
+  const full = generate({ root, exec });
+  const nonCore = Object.keys(full.clips).filter((k) => !CORE_GROUPS.includes(k.split(':')[0]));
+  assert.ok(nonCore.length > 0);
+  const r = generate({ root, exec, core: true });
+  assert.equal(r.rendered, 0);
+  assert.ok(Object.keys(r.clips).every((k) => CORE_GROUPS.includes(k.split(':')[0])));
+  for (const k of nonCore) assert.ok(!fs.existsSync(path.join(root, full.clips[k])), k + ' pruned');
+});
+
 test('generate reports failed clips, and errors without a Spanish voice', () => {
   const root = tempRoot();
   const exec = (cmd, args) => {

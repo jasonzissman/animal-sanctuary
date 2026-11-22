@@ -30,7 +30,7 @@ test('every pick plays pop exactly once (correct pick: pop + chime)', () => {
 test('a wrong pick plays pop once and boing once', () => {
   const { SA, sfx, ctl } = setup();
   const r = ctl.begin();
-  const other = SA.data.all('animals').find((a) => a.id !== r.answerId).id;
+  const other = SA.data.all('animals').find((a) => !r.answerIds.includes(a.id)).id;
   SA.picking.emit({ animalId: other, part: 'cola' });
   assert.deepEqual(sfx, ['pop', 'boing']);
 });

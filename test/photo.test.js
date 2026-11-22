@@ -20,7 +20,8 @@ function setup(extra = {}) {
 }
 
 const plain = (o) => JSON.parse(JSON.stringify(o));   // objects built inside the vm context are not reference-equal
-const other =(SA, id) => SA.data.all('animals').find((a) => a.id !== id && !a.easterEgg).id;
+// An animal that does NOT fit the round's clue (any animal that fits is a match).
+const other = (SA, r) => SA.data.all('animals').find((a) => !r.answerIds.includes(a.id) && !a.easterEgg).id;
 
 test('isShot is true only for a pick made with the camera', () => {
   const { SA } = setup();
@@ -33,7 +34,7 @@ test('judge: match, other animal, and none without an open mission', () => {
   assert.equal(SA.photo.judge(null, 'conejo'), 'none');
   const r = game.start();
   assert.equal(SA.photo.judge(r, r.answerId), 'match');
-  assert.equal(SA.photo.judge(r, other(SA, r.answerId)), 'other');
+  assert.equal(SA.photo.judge(r, other(SA, r)), 'other');
   assert.equal(SA.photo.judge(r, 7), 'none');
   r.done = true;
   assert.equal(SA.photo.judge(r, r.answerId), 'none');
@@ -62,7 +63,7 @@ test('take: a photo of the right animal completes the mission and awards a star'
 test('take: a different animal is saved but only a friendly miss; the mission stays open', () => {
   const { SA, game } = setup();
   const r = game.start();
-  const wrong = other(SA, r.answerId);
+  const wrong = other(SA, r);
   const res = SA.photo.take(game, { animalId: wrong, part: 'cuerpo', item: 'camara' });
   assert.deepEqual([res.verdict, res.status, res.saved], ['other', 'wrong', 1]);
   assert.equal(game.current().done, false);
@@ -104,7 +105,7 @@ test('camera shot at the right animal: shutter, snapshot, celebration, star', ()
 test('camera shot at a different animal: friendly hint, photo saved, clue replayed, round continues', () => {
   const t = setup();
   const r = t.ctl.begin();
-  const wrong = other(t.SA, r.answerId);
+  const wrong = other(t.SA, r);
   const res = t.ctl.onPick({ animalId: wrong, part: 'cuerpo', item: 'camara' });
   assert.equal(res.status, 'wrong');
   assert.ok(t.sfx.includes('shutter'));

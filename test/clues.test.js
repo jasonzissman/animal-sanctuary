@@ -55,7 +55,7 @@ test('generates the example clue shapes from the real animals', () => {
   assert.ok(byText['Busca el animal con pico largo']);
 });
 
-test('every clue has exactly one satisfying animal, vocab keys that exist, and an answer in play', () => {
+test('every clue has at least one satisfying animal, vocab keys that exist, and an answer in play', () => {
   const SA = load();
   const ids = SA.data.all('animals').map((a) => a.id);
   const sets = [ids, ids.slice(0, 2), ids.slice(2, 5), ['conejo', 'pato', 'rana']];
@@ -67,29 +67,41 @@ test('every clue has exactly one satisfying animal, vocab keys that exist, and a
       assert.ok(c.vocabKeys.length >= 2);
       c.vocabKeys.forEach((k) => assert.ok(SA.vocab.get(k), `missing vocab ${k} for "${c.text}"`));
     }
-    // Uniqueness cross-check: re-derive the match count independently for trait clues.
+    // Cross-check: re-derive the matching animals independently for trait clues; answerIds lists exactly those.
     for (const c of clues.filter((x) => x.type === 'trait')) {
       const [, v] = c.key.split(':');
       const trait = SA.data.get('clueTemplates', c.templateId).trait;
-      const n = set.filter((id) => SA.data.get('animals', id).traits[trait] === v).length;
-      assert.equal(n, 1, c.text);
+      const want = Array.from(set).filter((id) => {
+        const t = SA.data.get('animals', id).traits;
+        return t[trait] === v || (trait === 'movement' && (t.alsoMoves || []).includes(v));
+      });
+      assert.ok(want.length >= 1, c.text);
+      assert.deepEqual(JSON.parse(JSON.stringify(c.answerIds)), want, c.text);
+      assert.ok(c.answerIds.includes(c.answer.animalId), c.text);
     }
   }
 });
 
-test('pickClue never returns a clue that is ambiguous among the animals in play', () => {
+test('pickClue accepts clues several animals satisfy; the answer is always one of the matches', () => {
   const SA = load();
-  // Two identical-trait animals: no trait clue can single either out.
+  // Two identical-trait animals: a trait clue now matches both of them.
   const a = animal('a', [['cola', 1.5]], { movement: 'salta', color: 'verde', size: 'grande' });
   const b = animal('b', [['cola', 1.5]], { movement: 'salta', color: 'verde', size: 'grande' });
-  assert.equal(SA.clues.pickClue({ animals: [a, b] }, () => 0.5), null);
+  const both = SA.clues.pickClue({ animals: [a, b] }, () => 0.5);
+  assert.ok(both);
+  assert.ok(SA.clues.matches(both, a) && SA.clues.matches(both, b));
   const c = animal('c', [['cola', 0.2]], { movement: 'salta', color: 'verde', size: 'pequeño' });
   const rng = SA.clues.makeRng(7);
-  for (let i = 0; i < 30; i++) {
+  const shown = new Set();
+  for (let i = 0; i < 60; i++) {
     const clue = SA.clues.pickClue({ animals: [a, b, c] }, rng);
     assert.ok(clue);
-    assert.ok(['c'].includes(clue.answer.animalId) || clue.answer.animalId === undefined, clue.text);
+    assert.ok(clue.answerIds.length >= 1, clue.text);
+    assert.ok(clue.answerIds.includes(clue.answer.animalId), clue.text);
+    assert.ok(SA.clues.matches(clue, clue.answer.animalId.length ? [a, b, c].find((x) => x.id === clue.answer.animalId) : null), clue.text);
+    if (clue.answerIds.length > 1) shown.add(clue.answer.animalId);
   }
+  assert.ok(shown.size > 1, 'the hinted answer rotates among the matches');
   assert.equal(SA.clues.pickClue({ animals: [] }, () => 0), null);
   assert.equal(SA.clues.pickClue(undefined, () => 0), null);
 });

@@ -8,6 +8,13 @@
  *               answer: { animalId, part? }, vocabKeys: ['phrase:buscaanimalcon', 'part:orejas', 'adj:largas'] }
  *     Returns null when no unique clue is left that was not used recently (callers may then widen the animals).
  *     state.level (optional, 1..3): 2 and 3 give multi-trait clues from game/clue-levels.js (intermediate, challenge).
+ *     Single-fact clues (partAdjective, trait) may be satisfied by SEVERAL animals ("the one that swims" = duck AND turtle):
+ *     clue.answerIds lists them all (in play), clue.answer.animalId is one of them (rotated by the rng so the
+ *     silhouette hint does not always show the same animal), clue.match is the data to test any animal against.
+ *   SA.clues.matches(clue, animal) -> boolean   pure: does this animal (object or id) satisfy the clue? clue.match is a
+ *     list of facts that must ALL hold: { kind: 'trait', trait, value } | { kind: 'length', part, min?, max? } |
+ *     { kind: 'count', part, count } | { kind: 'biome', id } | { kind: 'part', part }.
+ *     A clue without `match` (hand-made) only accepts its answer.animalId.
  *   SA.clues.remember(state, clue)   push clue.key onto state.recent, keeping only the last RECENT_LIMIT (3).
  *   SA.clues.inflect(adjective, gender, number)  adjective forms -> 'larga' etc.
  *   SA.clues.candidates(animals, types) every unique clue for those animals (before the recent filter).
@@ -73,11 +80,37 @@
       .filter(function (a) { return a && a.parts; });
   }
 
-  // Keep the clue only when exactly one animal in play satisfies it.
-  function consider(out, animals, clue, test) {
-    var hits = animals.filter(test);
-    if (hits.length !== 1) return;
+  function matchesFact(f, animal) {
+    if (!f || !animal) return false;
+    switch (f.kind) {
+      case 'trait': {
+        var t = animal.traits;
+        if (!t) return false;
+        return t[f.trait] === f.value || (f.trait === 'movement' && Array.isArray(t.alsoMoves) && t.alsoMoves.indexOf(f.value) >= 0);
+      }
+      case 'length': return !!animal.parts && matchesLength(animal, f.part, f);
+      case 'count': { var e = animal.parts && partEntry(animal, f.part); return !!e && e.count === f.count; }
+      case 'biome': return animal.biome === f.id;
+      case 'part': return !!animal.parts && !!partEntry(animal, f.part);
+      default: return false;
+    }
+  }
+
+  /** Does `animal` (object or id) satisfy `clue`? Every fact in clue.match must hold. */
+  function matches(clue, animal) {
+    if (typeof animal === 'string') animal = SA.data.get('animals', animal);
+    if (!clue || !animal) return false;
+    if (!Array.isArray(clue.match) || !clue.match.length) return !!clue.answer && clue.answer.animalId === animal.id;
+    return clue.match.every(function (f) { return matchesFact(f, animal); });
+  }
+
+  // Keep the clue when at least one animal in play satisfies it (`unique`: exactly one, for touchPart/Care clues).
+  function consider(out, animals, clue, match, unique) {
+    var hits = animals.filter(function (a) { return matches({ match: match }, a); });
+    if (unique ? hits.length !== 1 : hits.length < 1) return;
+    clue.match = match;
     clue.answer = { animalId: hits[0].id };
+    clue.answerIds = hits.map(function (a) { return a.id; });
     if (clue.part) clue.answer.part = clue.part;
     delete clue.part;
     out.push(clue);
@@ -91,14 +124,14 @@
         consider(out, animals, {
           key: t.id + ':' + v, templateId: t.id, type: t.type, text: t.lead.es + ' ' + agreed.text,
           vocabKeys: [t.lead.key, agreed.key]
-        }, function (a) { return a.traits[t.trait] === v; });
+        }, [{ kind: 'trait', trait: t.trait, value: v }]);
       });
     } else if (t.type === 'touchPart') {
       t.parts.forEach(function (k) {
         consider(out, animals, {
           key: t.id + ':' + k, templateId: t.id, type: t.type, part: k, text: t.lead.es + ' ' + partOf(k).label.es,
           vocabKeys: [t.lead.key, 'part:' + k]
-        }, function (a) { return !!partEntry(a, k); });
+        }, [{ kind: 'part', part: k }], true);
       });
     } else {
       t.parts.forEach(function (k) {
@@ -109,7 +142,7 @@
             key: t.id + ':' + k + ':' + adj.id, templateId: t.id, type: t.type, part: k,
             text: t.lead.es + ' ' + bareNoun(part) + ' ' + word,
             vocabKeys: [t.lead.key, 'part:' + k, 'adj:' + word]
-          }, function (a) { return matchesLength(a, k, adj); });
+          }, [{ kind: 'length', part: k, min: adj.min, max: adj.max }]);
         });
       });
     }
@@ -133,7 +166,15 @@
     if (!pool.length) pool = candidates(state.animals, state.types).filter(fresh);   // beginner clues are the fallback
     if (!pool.length) return null;
     var r = typeof rng === 'function' ? rng() : 0;
-    return pool[Math.min(pool.length - 1, Math.floor(r * pool.length))];
+    var at = Math.min(pool.length - 1, Math.floor(r * pool.length));
+    var clue = pool[at], ids = clue.answerIds;
+    if (ids && ids.length > 1) {      // several animals fit: the rng's leftover fraction picks the one the hint shows
+      var frac = Math.max(0, r * pool.length - at);
+      var answer = { animalId: ids[Math.min(ids.length - 1, Math.floor(frac * ids.length))] };
+      if (clue.answer && clue.answer.part) answer.part = clue.answer.part;
+      clue = Object.assign({}, clue, { answer: answer });
+    }
+    return clue;
   }
 
   function remember(state, clue) {
@@ -142,5 +183,5 @@
   }
 
   SA.clues = { RECENT_LIMIT: RECENT_LIMIT, makeRng: makeRng, inflect: inflect, candidates: candidates,
-    pickClue: pickClue, remember: remember, partEntry: partEntry, matchesLength: matchesLength, bareNoun: bareNoun };
+    pickClue: pickClue, matches: matches, remember: remember, partEntry: partEntry, matchesLength: matchesLength, bareNoun: bareNoun };
 })(typeof window !== 'undefined' ? window : globalThis);

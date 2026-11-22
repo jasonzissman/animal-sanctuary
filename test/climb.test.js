@@ -339,3 +339,151 @@ test('auto-climb ring: shows the arc while pushing, hides otherwise', () => {
   cur = null; ring.update(0.016);
   assert.equal(ring.mesh.visible, false);
 });
+
+// ---- Generic climb targets (AS-0192): peaks and buildings are plain data, same flow as trees ----
+// Find a dry open patch (all of x-8..x+8, z-8..z+8 dry) so every landing side is safe.
+let open = null;
+for (let x = -70; x < 40 && !open; x += 2) for (let z = -15; z < 15 && !open; z += 2) {
+  let ok = true;
+  for (let dx = -7; dx <= 27 && ok; dx += 2) for (let dz = -7; dz <= 7 && ok; dz += 2) if (SA.map.isWater(x + dx, z + dz)) ok = false;
+  if (ok) open = { x, z };
+}
+const PEAK = { kind: 'peak', x: open.x, z: open.z, radius: 3, topY: 9, top: { shape: 'circle', size: 1.5 } };
+const HOUSE = { kind: 'building', x: open.x + 20, z: open.z, footprint: { w: 6, d: 4 }, topY: 3, top: { shape: 'rect', size: { w: 5, d: 3 } } };
+const TARGETS = [PEAK, HOUSE];
+const land = (s, obstacles) => { for (let i = 0; i < 100 && s.climb; i++) s = K.step(s, {}, DT, obstacles); return s; };   // the frame it lands (land flag lasts one frame)
+const walkOff = (s, heading) => {
+  s = { ...s, heading };
+  for (let i = 0; i < 200 && K.onTop(s); i++) s = K.step(s, { forward: 1 }, DT);
+  return s;
+};
+
+test('fromTree normalises a tree into plain target data (SA.perch height and radius)', () => {
+  const d = K.fromTree(TREE);
+  assert.equal(d.kind, 'tree');
+  assert.equal(d.topY, SA.perch.KINDS.jungle.height);
+  assert.equal(d.top.shape, 'circle');
+  assert.equal(d.top.size, K.edgeRadius(TREE));
+  assert.equal(JSON.stringify(JSON.parse(JSON.stringify(d))), JSON.stringify(d), 'plain data');
+});
+
+test('peak: range is measured to the base edge, prompt/start/stop work', () => {
+  assert.equal(K.nearest(at(PEAK.x + 3 + 2, PEAK.z), TARGETS), PEAK, '2 units from the edge (5 from the centre)');
+  assert.equal(K.nearest(at(PEAK.x + 3 + 2.6, PEAK.z), TARGETS), null, 'just too far from the edge');
+  const near = at(PEAK.x, PEAK.z + 4);
+  assert.equal(K.prompt(near, TARGETS), 'up');
+  assert.equal(K.start(at(PEAK.x + 20, PEAK.z), PEAK).climb, null);
+  let s = K.toggle(near, TARGETS);
+  assert.equal(s.climb.mode, 'up');
+  assert.equal(K.prompt(s, TARGETS), 'down');
+  let prev = 0;
+  while (s.climb.mode === 'up') { s = K.step(s, { forward: 1 }, DT); assert.ok(s.y >= prev - 1e-9 && s.y <= PEAK.topY + 1e-9); prev = s.y; }
+  assert.equal(s.climb.mode, 'top');
+  assert.ok(K.onTop(s));
+  assert.equal(s.y, PEAK.topY);
+  assert.ok(Math.hypot(s.x - PEAK.x, s.z - PEAK.z) <= PEAK.top.size);
+  s = K.toggle(s, TARGETS);   // explicit climb down
+  assert.equal(s.climb.mode, 'down');
+  assert.ok(!s.climb.fall);
+  s = run(s, {}, K.DOWN_TIME + 0.1);
+  assert.equal(s.climb, null);
+  assert.equal(K.landed(s), null, 'the button climb-down is not a fall');
+  assert.equal(s.y, SA.map.groundHeight(s.x, s.z));
+  assert.ok(Math.hypot(s.x - PEAK.x, s.z - PEAK.z) > PEAK.radius);
+});
+
+test('building: rect footprint range, flat rect top, turning and walking on it', () => {
+  const south = at(HOUSE.x, HOUSE.z + 2 + 1.5);   // 1.5 from the south wall (half depth 2)
+  assert.equal(K.nearest(south, TARGETS), HOUSE);
+  assert.equal(K.nearest(at(HOUSE.x + 3 + 1.5, HOUSE.z), TARGETS), HOUSE, 'the east wall too');
+  assert.equal(K.nearest(at(HOUSE.x + 3 + 3, HOUSE.z), TARGETS), null);
+  assert.equal(K.nearest(at(HOUSE.x + 3 + 2, HOUSE.z + 2 + 2), TARGETS), null, 'a corner is measured diagonally (2.8 away)');
+  let s = run(K.start(south, HOUSE), {}, K.UP_TIME + 0.1);
+  assert.equal(s.climb.mode, 'top');
+  assert.equal(s.y, HOUSE.topY);
+  const turned = K.step(s, { left: true }, DT, [[s.x, s.z, 5]]);
+  assert.ok(turned.heading !== s.heading, 'can turn on top');
+  assert.equal(turned.climb.mode, 'top');
+  let w = { ...s, x: HOUSE.x, z: HOUSE.z, heading: -Math.PI / 2 };   // walk west across the roof
+  for (let i = 0; i < 12; i++) {
+    w = K.step(w, { forward: 1 }, DT);
+    assert.equal(w.climb.mode, 'top');
+    assert.equal(w.y, HOUSE.topY);
+    assert.ok(Math.abs(w.x - HOUSE.x) <= 2.5 && Math.abs(w.z - HOUSE.z) <= 1.5);
+  }
+  assert.ok(w.x < HOUSE.x - 1, 'actually moved');
+});
+
+test('building: auto-climb after a 600 ms push into the wall', () => {
+  const face = at(HOUSE.x, HOUSE.z + 2 + 0.65, { heading: Math.PI });   // touching the south wall, facing it
+  let t = null, fired = null;
+  for (let e = 0; e < 800 && !fired; e += DT * 1000) {
+    t = K.autoStep(t, face, face, FWD, TARGETS, DT * 1000);   // the wall blocks: no progress
+    if (t.climb) fired = t;
+  }
+  assert.ok(fired, 'fires');
+  assert.equal(fired.tree, HOUSE);
+  assert.equal(K.start(face, fired.tree).climb.mode, 'up');
+  const away = { ...face, heading: 0 };
+  assert.equal(K.autoStep(null, away, away, FWD, TARGETS, 1000).climb, false, 'facing away');
+  const peakFace = at(PEAK.x, PEAK.z + 3 + 0.65, { heading: Math.PI });
+  assert.equal(K.autoStep(null, peakFace, peakFace, FWD, TARGETS, 1000).climb, true, 'peaks too');
+});
+
+test('walking off a peak falls with a short arc to safe dry ground and reports land', () => {
+  let s = run(K.start(at(PEAK.x, PEAK.z + 4), PEAK), {}, K.UP_TIME + 0.1);
+  s = walkOff(s, 0);   // +z: out through the south edge
+  assert.equal(s.climb.mode, 'down');
+  assert.equal(s.climb.fall, true);
+  assert.equal(K.landed(s), null);
+  let prev = s.y, frames = 0;
+  assert.equal(prev, PEAK.topY);
+  while (s.climb && frames++ < 100) {
+    s = K.step(s, {}, DT);
+    if (s.climb) { assert.ok(s.y <= prev + 1e-9, 'only ever falls'); prev = s.y; }
+  }
+  const landed = K.landed(s);
+  assert.ok(frames * DT <= 0.9, 'a short arc');
+  assert.ok(landed, 'land event');
+  assert.equal(landed.kind, 'peak');
+  assert.equal(s.climb, null);
+  assert.equal(s.y, SA.map.groundHeight(s.x, s.z));
+  assert.ok(!SA.map.isWater(s.x, s.z));
+  assert.ok(Math.hypot(s.x - PEAK.x, s.z - PEAK.z) > PEAK.radius, 'beyond the base');
+  assert.equal(K.landed(K.step(s, {}, DT)), null, 'the flag lasts one frame');
+});
+
+test('trees fall off the canopy edge too, with a land event', () => {
+  let s = run(K.start(at(NEAR.x, NEAR.z), TREE), {}, K.UP_TIME + 0.1);
+  s = walkOff(s, 0);
+  assert.equal(s.climb.fall, true);
+  s = land(s);
+  assert.equal(K.landed(s).kind, 'tree');
+});
+
+test('walking off a building falls beyond the wall; a bad landing goes back to the start spot', () => {
+  let s = run(K.start(at(HOUSE.x, HOUSE.z - 3.5), HOUSE), {}, K.UP_TIME + 0.1);   // from the north side
+  s = walkOff(s, Math.PI / 2);   // +x: out through the east edge
+  assert.ok(s.climb.fall);
+  s = land(s);
+  assert.ok(K.landed(s));
+  assert.ok(s.x > HOUSE.x + 3, 'past the east wall');
+  assert.ok(!SA.map.isWater(s.x, s.z));
+  // A peak at the map edge: the fall beyond it is out of bounds, so you land back where you climbed from.
+  const B = SA.map.BOUNDS, rim = { kind: 'peak', x: B.maxX - 3, z: 0, radius: 2, topY: 6, top: { shape: 'circle', size: 1.5 } };
+  const from = at(rim.x - 3, 0);
+  let r = walkOff(run(K.start(from, rim), {}, K.UP_TIME + 0.1), Math.PI / 2);
+  r = land(r);
+  assert.ok(K.landed(r));
+  assert.ok(r.x <= B.maxX);
+  assert.ok(Math.hypot(r.x - from.x, r.z - from.z) < 1e-6, 'fell back to the safe start spot');
+});
+
+test('a fall is pushed out of solids and bad target data is ignored', () => {
+  let s = walkOff(run(K.start(at(PEAK.x, PEAK.z + 4), PEAK), {}, K.UP_TIME + 0.1), 0);
+  const rock = [s.climb.to.x, s.climb.to.z, 1];
+  s = land(s, [rock]);
+  assert.ok(Math.hypot(s.x - rock[0], s.z - rock[1]) >= 1 - 1e-6, 'not left inside the rock');
+  assert.equal(K.nearest(at(PEAK.x, PEAK.z + 4), [null, { x: NaN, z: 0 }, { x: PEAK.x, z: PEAK.z + 5, topY: 3, top: { shape: 'rect' } }]), null);
+  assert.equal(K.start(at(0, 0), { x: 'a', z: 0 }).climb, null);
+});

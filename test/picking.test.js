@@ -88,7 +88,7 @@ function makeEl() {
 function stage(english) {
   const files = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js',
     'game/data/biomes.js', 'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js',
-    'game/picking.js', 'game/render/picking.js'];
+    'game/picking.js', 'game/aim.js', 'game/render/picking.js'];
   const ctx = vm.createContext({ console });
   ctx.window = ctx; ctx.self = ctx;
   ctx.document = { createElement: makeEl, body: makeEl() };
@@ -168,10 +168,56 @@ test('mouse hover brightens the part under the cursor and clears when it leaves'
   const s = stage(false);
   const hit = s.picking.pickAt(400, 300);
   s.handlers.pointermove(ev(400, 300, { pointerType: 'mouse' }));
+  s.picking.update(0.016);
   assert.ok(hit.mesh.material.emissiveIntensity > 0, 'hover glow');
-  s.handlers.pointerleave(ev(400, 300, { pointerType: 'mouse' }));
+  assert.equal(s.picking.target().part, hit.part, 'the highlighted part is the target');
+  s.handlers.pointermove(ev(2, 2, { pointerType: 'mouse' }));   // far from every part: the highlight clears
+  s.picking.update(0.016);
   assert.equal(hit.mesh.material, hit.mesh.userData.baseMaterial);
-  s.handlers.pointermove(ev(2, 2, { pointerType: 'mouse' }));
+  assert.equal(s.picking.target(), null);
+});
+
+test('forgiving aim: the pointer a few pixels off the part still highlights it, and Space uses the equipped item on it', () => {
+  const s = stage(false);
+  const hit = s.picking.pickAt(400, 300);
+  s.handlers.pointermove(ev(400, 300, { pointerType: 'mouse' }));
+  s.picking.update(0.016);
+  const part = s.picking.target();
+  assert.equal(part.part, hit.part);
+  // Nudge the mouse a few pixels: the same part stays highlighted (sticky).
+  s.handlers.pointermove(ev(400 + 5, 300 + 3, { pointerType: 'mouse' }));
+  s.picking.update(0.016);
+  assert.equal(s.picking.target().part, hit.part);
+  s.SA.inventory = { equipped: () => 'venda' };
+  const picks = [];
+  s.SA.picking.onPick((p) => picks.push(p));
+  let stopped = 0, prevented = 0;
+  s.handlers.keydown({ key: ' ', target: {}, preventDefault() { prevented++; }, stopImmediatePropagation() { stopped++; } });
+  assert.deepEqual({ ...picks[0] }, { animalId: part.animalId, part: part.part, item: 'venda' });
+  assert.equal(picks.length, 1);
+  assert.equal(stopped, 1, 'Space is consumed so the climb key does not also fire');
+  assert.equal(prevented, 1);
+  s.SA.inventory = { equipped: () => null };
+  assert.equal(s.picking.useTarget(), true, 'the touch use button path');
+  assert.deepEqual({ ...picks[1] }, { animalId: part.animalId, part: part.part }, 'empty hands: no item, just pet/inspect');
+});
+
+test('a tap that misses every pick volume still picks the nearest in-reach part within the touch radius', () => {
+  const s = stage(false);
+  const picks = [];
+  s.SA.picking.onPick((p) => picks.push(p));
+  const hit = s.picking.pickAt(400, 300);
+  assert.ok(hit, 'test setup: the centre hits a part');
+  // The first pixel to the right that misses every pick volume is just outside the part, well inside the touch radius.
+  let found = null;
+  for (let d = 1; d <= 70 && !found; d++) {
+    for (const [dx, dy] of [[d, 0], [-d, 0], [0, d], [0, -d]]) if (!found && !s.picking.pickAt(400 + dx, 300 + dy)) found = [400 + dx, 300 + dy];
+  }
+  assert.ok(found, 'test setup: a pixel within the touch radius (72px) misses the volumes');
+  s.handlers.pointerdown(ev(found[0], found[1]));
+  s.handlers.pointerup(ev(found[0], found[1]));
+  assert.equal(picks.length, 1, 'the fallback picks exactly one part');
+  assert.equal(picks[0].animalId, hit.animalId);
 });
 
 test('a hidden easter egg cannot be picked, and can once it is shown', () => {
@@ -204,10 +250,13 @@ test('speakPart speaks via SA.audio.say when present and is silent without it', 
   assert.equal(SA.picking.speakPart(null), false);
 });
 
-test('picking never listens to the keyboard: no keydown handler, so keys always reach player movement', () => {
+test('picking only reacts to Space (and only with a highlighted part): movement keys always reach the player', () => {
   const s = stage(false);
-  assert.equal(s.handlers.keydown, undefined, 'render/picking.js registers no key listener');
   assert.equal(s.handlers.keyup, undefined);
+  const touched = [];
+  const k = (key) => ({ key, target: {}, preventDefault() { touched.push('p'); }, stopImmediatePropagation() { touched.push('s'); } });
+  for (const key of ['ArrowUp', 'w', 'a', 'Escape', ' ']) s.handlers.keydown(k(key));   // nothing is highlighted yet
+  assert.deepEqual(touched, []);
   // Parts are still chosen by click/tap.
   const picks = [];
   s.SA.picking.onPick((p) => picks.push(p));

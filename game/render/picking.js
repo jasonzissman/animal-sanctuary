@@ -4,6 +4,7 @@
  * - A tap is a pointerdown + pointerup that did not drag (SA.picking.createTapTracker), so camera drags and
  *   pinches never pick. Mouse hover brightens the part under the cursor; a tap glows it more, plays its
  *   reaction (data: part.reaction) and shows a big chip: icon + Spanish label (+ English if settings.english).
+ * - Speaks the part's Spanish label with SA.audio.say('part:<key>') (respects mute).
  * - Calls SA.picking.emit({ animalId, part }) so round/care loops can subscribe with SA.picking.onPick.
  * Returns { update(dt), pickAt(clientX, clientY) -> {animalId, part, ...}|null }. Call update(dt) every frame.
  */
@@ -128,6 +129,7 @@
       var settings = (SA.save && SA.save.get && SA.save.get().settings) || {};
       var label = SA.picking.labelFor(hit.animalId, hit.part, !!settings.english);
       if (label) showChip(label);
+      if (SA.audio && SA.audio.say) SA.audio.say('part:' + hit.part);
       SA.picking.emit({ animalId: hit.animalId, part: hit.part });
     }
 

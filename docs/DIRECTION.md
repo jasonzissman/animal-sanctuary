@@ -99,6 +99,9 @@ current; when your change sets or changes something future tickets must follow, 
   `render/auto-climb-ring.js` (fed by `rig.autoClimb()`). New climb targets (peaks, station) join by being in that list.
 - **Movement has sound (AS-0118 to AS-0120).** Soft footsteps (quicker when running, splashy in water, leafy in a
   canopy), a hop and a landing thump, a splash entering water, a rustle while climbing. Short, quiet, never spammy; mute silences all.
+  Footsteps are done (AS-0118): pure `SA.footsteps.step(state, {moving, running, air, climbing, surface}, dt)` -> `{state, event}`
+  (0.45 s walking, 0.28 s running, none still / airborne / climbing); the camera rig only wires it to `SA.audio.sfx(name, volume, rate)`
+  (`rate` = tiny pitch shift). Recipes `step`, `stepWet`, `stepLeaf` (gain <= 0.15). Landing/climb sounds reuse `sfx` the same way.
 - **Uncluttered screen, nothing overlaps (AS-0147 to AS-0149).** All HUD positions come from one pure layout (SA.hud),
   tested for overlaps at phone to desktop sizes. The mission is a small pill (tap = replay), not a banner: audio carries
   instructions. Few icons: pill, stars, hotbar and one 🎒 menu; touch controls only on touch. When in doubt, remove an icon.

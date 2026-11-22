@@ -63,7 +63,7 @@ test('before the first gesture nothing plays and nothing is created', () => {
 
 test('after unlock all 6 named effects play; unknown names do not', () => {
   const { SA, stats } = setup();
-  assert.deepEqual([...SA.audio.NAMES].sort(), ['boing', 'chime', 'chirp', 'fanfare', 'giggle', 'hop', 'hop2', 'ouch', 'pop', 'shutter', 'sparkle', 'splash']);
+  assert.deepEqual([...SA.audio.NAMES].sort(), ['boing', 'chime', 'chirp', 'fanfare', 'giggle', 'hop', 'hop2', 'ouch', 'pop', 'shutter', 'sparkle', 'splash', 'step', 'stepLeaf', 'stepWet']);
   assert.equal(SA.audio.unlock(), true);
   assert.equal(SA.audio.unlock(), true);
   assert.equal(stats.created, 1, 'context created once');
@@ -74,6 +74,30 @@ test('after unlock all 6 named effects play; unknown names do not', () => {
   });
   assert.equal(SA.audio.sfx('nope'), false);
   assert.equal(SA.audio.sfx('toString'), false);
+});
+
+test('footstep recipes exist, are quieter than pop and short; a pitch rate is accepted', () => {
+  const { SA, stats } = setup();
+  const popGain = Math.max(...SA.audio.RECIPES.pop.map((v) => v.g));
+  ['step', 'stepWet', 'stepLeaf'].forEach((n) => {
+    const voices = SA.audio.RECIPES[n];
+    assert.ok(voices && voices.length, n);
+    voices.forEach((v) => { assert.ok(v.g <= 0.15 && v.g < popGain, n + ' gain'); assert.ok(v.t + v.d <= 0.2, n + ' short'); });
+  });
+  SA.audio.unlock();
+  const before = stats.started;
+  assert.equal(SA.audio.sfx('step', 1, 1.07), true);
+  assert.ok(stats.started > before);
+  assert.equal(SA.audio.sfx('step', 1, 99), true, 'a silly rate falls back to 1');
+});
+
+test('muted: footstep sounds do not play', () => {
+  const { SA, stats } = setup();
+  SA.audio.unlock();
+  SA.audio.setMuted(true);
+  const before = stats.started;
+  ['step', 'stepWet', 'stepLeaf'].forEach((n) => assert.equal(SA.audio.sfx(n, 1, 1.03), false));
+  assert.equal(stats.started, before);
 });
 
 test('a suspended context is resumed on unlock', () => {

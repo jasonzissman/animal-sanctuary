@@ -39,6 +39,7 @@
     var pinchDist = 0, mid = null;
     var isRunning = false;        // moved forward at run speed this frame (the avatar plays a faster stride)
     var jumpHeld = false;       // Space held (SA.jump needs a release between hops)
+    var steps = SA.footsteps ? SA.footsteps.create() : null;   // footstep timer (AS-0118)
     var hop = SA.jump ? SA.jump.create() : null;   // { lift, vy, air, ... }: the avatar is drawn at y + lift; reach still uses y
     var prick = SA.prick ? SA.prick.create() : { lift: 0, hurt: 0 };   // cactus knockback (SA.prick): its lift/hurt ride on the avatar
     var jumpTap = false;       // the on-screen jump button was tapped: one frame of "Space pressed" (same one-hop-per-landing rule)
@@ -225,6 +226,13 @@
         camY += (player.y - camY) * (1 - Math.exp(-5 * Math.min(dt, 0.1)));
         moving = Math.hypot(player.x - before.x, player.z - before.z) > 1e-4 || player.heading !== before.heading;
         isRunning = moving && running;
+        if (steps && SA.audio && SA.audio.sfx) {   // soft steps on the ground, splashes in water, leafy brushes in a canopy (muted / locked: silent)
+          var surface = player.climb && player.climb.mode === 'canopy' ? 'canopy' : !player.climb && SA.map.isWater(player.x, player.z) ? 'water' : 'ground';
+          var fs = SA.footsteps.step(steps, { moving: Math.hypot(player.x - before.x, player.z - before.z) > 1e-4, running: running,
+            air: !!(hop && (hop.air || hop.lift > 0)) || !!prick.active, climbing: climbing(), surface: surface }, dt);   // turning on the spot makes no step
+          steps = fs.state;
+          if (fs.event) SA.audio.sfx(fs.event.sfx, fs.event.volume, fs.event.rate);
+        }
         offset = C.decayOffset(offset, az < 0 || J.forward > 0, dt);
         state = C.chaseFollow(state, player, offset, dt, B);
         // Automatic framing: perched animals above / being up a canopy pull the camera back and tilt it up; a drag or the

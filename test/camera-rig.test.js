@@ -66,6 +66,20 @@ test('the wheel zooms the chase camera (always, there is no focus mode that lock
   assert.notEqual(rig.getState().dist, d0);
 });
 
+test('a tree between the player and the chase camera pulls the camera in', () => {
+  const open = chaseRig();
+  frames(open.rig, 40);
+  const p = open.rig.getPlayer(), fwd = { x: Math.sin(p.heading), z: Math.cos(p.heading) };
+  const free = Math.hypot(open.placed.pos.x - p.x, open.placed.pos.z - p.z);
+  const tree = [p.x - fwd.x * 3, p.z - fwd.z * 3, 1];   // directly behind the player, inside the camera's reach
+  const blocked = chaseRig([tree]);
+  frames(blocked.rig, 40);
+  const near = Math.hypot(blocked.placed.pos.x - p.x, blocked.placed.pos.z - p.z);
+  assert.ok(near < free - 0.5, `camera pulled in: ${near} < ${free}`);
+  assert.ok(near >= blocked.SA.camera.DEFAULTS.minClear - 1e-6, 'never closer than the minimum');
+  assert.ok(Math.hypot(blocked.placed.pos.x - tree[0], blocked.placed.pos.z - tree[1]) >= tree[2] - 1e-6, 'camera is outside the tree');
+});
+
 test('there is no overhead or focus camera API: focusOn and release are gone', () => {
   const { rig } = make();
   assert.equal(rig.focusOn, undefined);

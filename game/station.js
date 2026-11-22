@@ -7,6 +7,7 @@
  *         window: { x, z, width, height, y }   in the front wall, beside the door
  *         roof:   { y, overhang, thickness }, dish: { x, y, z, radius }   satellite dish on the roof, antenna: { x, y, z, height }
  *         sign:   { text: 'Estación', icon: 'atom', x, y, z }              over the door
+ *         board:  { x, y, z, width, height, depth, facing }  the "Lista de misiones" board on the back wall's inner face, facing the door (AS-0210)
  *         bench:  { x, z, w, d },  crates: [{ x, z, size }],  walls: [box], scientist: { x, z } (her post), spawn: { x, z, heading } }
  *     a box is { x0, x1, z0, z1, y0, y1 } in world units. Door and window are gaps/openings; the walls leave the doorway open.
  *   SA.station.collisionBoxes()    -> [box] the solid parts at ground level: the wall pieces (doorway left open) and the crates
@@ -25,7 +26,8 @@
   var SA = root.SA;
 
   var HALF_W = 3.2, HALF_D = 2.6, WALL_H = 2.9, WALL_T = 0.5, DOOR_W = 2.2, DOOR_H = 2.1;
-  var SPAWN_GAP = 2.6;   // spawn this far in front of the front wall's outer face
+  var BOARD_D = 0.12;    // how far the missions board stands out from the back wall's inner face
+  var SPAWN_GAP = 2.6;  // spawn this far in front of the front wall's outer face
   var SCI_X = 1.7, SCI_GAP = 0.9;   // the scientist's post: this far right of the door's centre line, this far in front of the front wall's outer face
   var cached = null;
 
@@ -78,6 +80,9 @@
       antenna: { x: cx + 1.9, y: yTop + 0.3, z: cz + 1.2, height: 2.2 },
       sign: { text: 'Estación', icon: 'atom', x: cx, y: y0 + DOOR_H + 0.5, z: fz - t - 0.05 },
       bench: { x: cx - 2.1, z: fz - t - 0.55, w: 1.7, d: 0.55 },
+      // "Lista de misiones" board (AS-0210): on the inside face of the back wall, centred on the doorway's line so it is the first thing
+      // seen on the way in. (x, y, z) is the slab's centre; it stands `depth` out from the wall, facing the door.
+      board: { x: cx, y: y0 + 1.6, z: wz1 - t - BOARD_D / 2, width: 3.2, height: 1.8, depth: BOARD_D, facing: { x: 0, z: -1 } },
       crates: crates, walls: walls,
       // The scientist's post (SA.npc reads it). The kid spawns straight in front of her, looking at her (heading 0 = +z, toward
       // the building), so she fills the view with the doorway just left of her (AS-0212).
@@ -91,6 +96,8 @@
   function collisionBoxes() {
     var L = layout(), out = L.walls.slice();
     L.crates.forEach(function (c) { if (!c.stacked) out.push(box(c.x - c.size / 2, c.x + c.size / 2, c.z - c.size / 2, c.z + c.size / 2, L.floorY, L.floorY + c.size)); });
+    var b = L.board;   // stands out from the wall, so it is solid too (a thin strip against the back wall)
+    out.push(box(b.x - b.width / 2, b.x + b.width / 2, b.z - b.depth / 2, b.z + b.depth / 2, b.y - b.height / 2, b.y + b.height / 2));
     return out;
   }
 

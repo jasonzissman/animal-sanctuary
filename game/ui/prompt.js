@@ -106,7 +106,13 @@
 
     function biomeHint() {
       var id = game.biomeHint && game.biomeHint();
-      if (id && biomeFx) { try { biomeFx.show(id); } catch (e) { /* the glow never breaks play */ } }
+      if (!id || !biomeFx) return;
+      try { biomeFx.show(id); } catch (e) { /* the glow never breaks play */ }
+      // Say the biome's Spanish name once, as the glow first appears (the stage logic calls this once per round).
+      var key = SA.vocab && SA.vocab.biomeKey ? SA.vocab.biomeKey(id) : null;
+      var muted = false;
+      try { muted = !!(audio && audio.isMuted && audio.isMuted()); } catch (e) { muted = false; }
+      if (key && !muted) say(key);
     }
 
     /** Scout & Spot is the active loop (no care task, round not yet answered). */

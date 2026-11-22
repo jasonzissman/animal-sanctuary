@@ -113,6 +113,57 @@ test('controller: a throwing glow never breaks play', () => {
   assert.doesNotThrow(() => timers[0]());
 });
 
+// ---- spoken biome name (AS-0050) ----
+
+test('SA.vocab.biomeKey: maps each biome id to its vocab key, null for junk; every biome name carries its article', () => {
+  const SA = load();
+  SA.data.all('biomes').forEach((b) => {
+    assert.equal(SA.vocab.biomeKey(b.id), 'biome:' + b.id);
+    assert.match(SA.vocab.get('biome:' + b.id).es, /^(el|la|los|las) /i);
+  });
+  assert.equal(SA.vocab.get('biome:selva').es, 'La selva');
+  assert.equal(SA.vocab.get('biome:desierto').es, 'El desierto');
+  assert.equal(SA.vocab.get('biome:montana').es, 'La montaña');
+  [undefined, null, 5, '', 'nope', 'Selva', 'sel va'].forEach((x) => assert.equal(SA.vocab.biomeKey(x), null));
+});
+
+test('vocab validation rejects a biome name without an article', () => {
+  const SA = load();
+  assert.throws(() => SA.data.register('vocab', [{ id: 'biome:x', key: 'biome:x', es: 'selva', clip: null }]));
+});
+
+function biomeCtl(audio) {
+  const SA = load();
+  const timers = [], glow = [];
+  const game = SA.round.create({ level: 1, rng: SA.clues.makeRng(4), now: () => 0, track() {} });
+  const ctl = SA.prompt.createController({ game, view: quietView(), audio, later: (fn) => timers.push(fn),
+    biomeFx: { show: (id) => glow.push(id), hide() {} } });
+  const r = ctl.begin();
+  return { SA, timers, glow, r };
+}
+
+test('controller: the biome glow says its vocab key once', () => {
+  const said = [];
+  const { SA, timers, glow, r } = biomeCtl({ say: (k) => said.push(k) });
+  assert.deepEqual(said, [r.clue.text]);
+  timers.shift()();
+  assert.equal(glow.length, 1);
+  assert.deepEqual(said.slice(1), ['biome:' + SA.data.get('animals', r.answerId).biome]);
+  assert.equal(timers.length, 0);
+  assert.equal(said.length, 2);
+});
+
+test('controller: biome hint is silent when muted and safe without SA.audio', () => {
+  const said = [];
+  const m = biomeCtl({ say: (k) => said.push(k), isMuted: () => true });
+  m.timers.shift()();
+  assert.equal(m.glow.length, 1);
+  assert.ok(!said.some((k) => k.startsWith('biome:')));
+  const n = biomeCtl({});
+  assert.doesNotThrow(() => n.timers.shift()());
+  assert.equal(n.glow.length, 1);
+});
+
 // ---- render (stub THREE) ----
 
 function stubThree() {

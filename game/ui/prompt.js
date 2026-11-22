@@ -174,7 +174,7 @@
     bar.appendChild(icon); bar.appendChild(text); bar.appendChild(hintBtn); bar.appendChild(replayBtn);
     doc.body.appendChild(bar); doc.body.appendChild(starsEl); doc.body.appendChild(toastEl);
     // Feed tray: big food buttons along the bottom plus a row of counting dots (filled as food is given).
-    var trayEl = el('div', 'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:4;display:none;' +
+    var trayEl = el('div', 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:4;display:none;' +
       'flex-direction:column;align-items:center;gap:.3em;font:700 2rem system-ui,sans-serif;');
     var dotsEl = el('div', 'padding:.1em .6em;background:#fff8d6;border:.1em solid #24543a;border-radius:1em;letter-spacing:.2em;');
     var foodsEl = el('div', 'display:flex;gap:.4em;');

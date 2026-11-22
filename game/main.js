@@ -54,6 +54,18 @@
     // Icon-only climb button: 🧗 next to a tree, ⬇️ while up one (same as Space / C).
     var climbBtn = null;
     try { if (SA.climbButton) climbBtn = SA.climbButton.create(root.document, stage.rig); } catch (e) { report('climbButton.start', e); }
+    // Icon-only hotbar (bottom centre): tap a slot or press 1-9 to equip, tap it again or press 0 to empty your hands.
+    var hotbar = null;
+    try {
+      if (SA.hotbarView) hotbar = SA.hotbarView.create(root.document);
+      // Digits are not movement/orbit/climb keys, so this never fights the camera rig's key handling.
+      root.addEventListener('keydown', function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+        var t = e.target && e.target.tagName;
+        if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+        if (SA.hotbar.pressKey(e.key).action !== 'none' && hotbar) hotbar.update();
+      });
+    } catch (e) { report('hotbar.start', e); }
     // Habitat sandbox: a big button + prop tray; saved props come back on reload. Never blocks the main loop.
     try {
       if (SA.sandbox && stage.props) {
@@ -65,6 +77,7 @@
           view: { setActive: view.setActive, select: view.select, toast: view.toast, setStars: setStars },
           onMode: function (on) {
             SA.picking.setPaused(on);
+            if (hotbar) hotbar.setHidden(on);
             if (ctl && ctl.setHidden) ctl.setHidden(on);
             if (!on && ctl && ctl.setStars) ctl.setStars(SA.save.get().stars);
           }
@@ -81,6 +94,7 @@
       var dt = last === null ? 0 : Math.min((now - last) / 1000, 0.25);
       last = now;
       stage.render(dt);
+      if (hotbar) { try { hotbar.update(); } catch (e) { hotbar = null; report('hotbar.update', e); } }
       if (climbBtn) { try { climbBtn.update(); } catch (e) { climbBtn = null; report('climbButton.update', e); } }
       if (hintFlow) { try { hintFlow.update(dt); } catch (e) { hintFlow = null; report('hintFlow.update', e); } }
       if (rerollWatch) { try { rerollWatch.update(dt); } catch (e) { rerollWatch = null; report('reroll.update', e); } }

@@ -14,7 +14,12 @@
  * any overlapped obstacle (walk away or slide), and as a last resort when wedged by 2+ obstacles those are ignored
  * until the player is clear of them. Nothing is persisted.
  *
- *   SA.player.SPAWN_CLEAR              radius (world units) around the spawn kept free of decor and animals
+ * Water is a soft obstacle (SA.map.isWater): walking into it slides along the shore, never punishes, and a player who
+ * starts in water (or is pushed in) is moved to the nearest dry point. step(..., { water: false }) skips this (canopy walking).
+ *
+ *   SA.player.heightAt(x, z)           terrain height under the feet (SA.map.groundHeight); SA.climb.step eases y toward it
+ *   SA.player.nearestDry(x, z)         closest dry in-bounds point to (x, z)
+ *   SA.player.SPAWN_CLEAR             radius (world units) around the spawn kept free of decor and animals
  *   SA.player.inSpawnZone(x, z, pad?)  true when (x, z) is within SPAWN_CLEAR + pad of the spawn
  *   SA.player.spawnZone()              [x, z, SPAWN_CLEAR] avoid point (same shape as SA.propAvoid.points)
  */
@@ -95,7 +100,49 @@
     return q;
   }
 
-  function step(state, input, dt, obstacles) {
+  /** Terrain height under the player's feet at (x, z): the single source is SA.map.groundHeight. */
+  function heightAt(x, z) { return SA.map.groundHeight(x, z); }
+  function wet(x, z) { return SA.map.isWater(x, z); }
+
+  /** The closest dry, in-bounds point to (x, z) (the point itself when already dry). Searches outward in rings. */
+  function nearestDry(x, z) {
+    var q = { x: x, z: z };
+    clampToMap(q);
+    if (!wet(q.x, q.z)) return q;
+    for (var r = 0.25; r <= 60; r += 0.25) {
+      var n = Math.max(12, Math.ceil(r * 8));
+      for (var i = 0; i < n; i++) {
+        var a = (i / n) * Math.PI * 2, c = { x: x + Math.cos(a) * r, z: z + Math.sin(a) * r };
+        clampToMap(c);
+        if (!wet(c.x, c.z)) return c;
+      }
+    }
+    return { x: x, z: z };   // no dry land anywhere (not on this map): leave them be
+  }
+
+  /**
+   * Water is a soft wall: if moving from `from` to `to` would enter water, slide along the shore instead (drop the part
+   * of the move that points into the water), else try each axis alone, else stay put. Starting in water: nearest dry point.
+   */
+  function shore(from, to) {
+    if (wet(from.x, from.z)) return nearestDry(to.x, to.z);
+    if (!wet(to.x, to.z)) return to;
+    var e = 0.2, gx = heightAt(to.x + e, to.z) - heightAt(to.x - e, to.z), gz = heightAt(to.x, to.z + e) - heightAt(to.x, to.z - e);
+    var gl = Math.hypot(gx, gz), mx = to.x - from.x, mz = to.z - from.z;
+    if (gl > 1e-9) {
+      var nx = -gx / gl, nz = -gz / gl, into = mx * nx + mz * nz;   // n points downhill = into the water
+      if (into > 0) {
+        var s = { x: from.x + mx - into * nx, z: from.z + mz - into * nz };
+        if (!wet(s.x, s.z)) return s;
+      }
+    }
+    var ax = { x: to.x, z: from.z }, az = { x: from.x, z: to.z };
+    var okx = !wet(ax.x, ax.z), okz = !wet(az.x, az.z);
+    if (okx && okz) return Math.abs(mx) >= Math.abs(mz) ? ax : az;
+    return okx ? ax : okz ? az : from;
+  }
+
+  function step(state, input, dt, obstacles, opts) {
     state = state || SPAWN;
     input = input || {};
     var h = num(state.heading, 0), p = { x: num(state.x, SPAWN.x), z: num(state.z, SPAWN.z) };
@@ -114,7 +161,10 @@
     p.x += fx * fwd * v * dt;
     p.z += fz * fwd * v * dt;
     clampToMap(p);
+    var water = !(opts && opts.water === false);   // water: false = on a tree canopy, where the ground below does not matter
+    if (water) p = shore(p0, p);
     p = resolve(p0, p, obstacles || [], fx, fz);
+    if (water && wet(p.x, p.z)) p = nearestDry(p.x, p.z);   // an obstacle push-out must never leave them wet
     var TAU = Math.PI * 2;
     h = h - TAU * Math.floor(h / TAU);   // keep heading in [0, 2π)
     return { x: p.x, z: p.z, heading: h };
@@ -124,6 +174,6 @@
   function inSpawnZone(x, z, pad) { return Math.hypot(x - SPAWN.x, z - SPAWN.z) < SPAWN_CLEAR + (pad || 0); }
   function spawnZone() { return [SPAWN.x, SPAWN.z, SPAWN_CLEAR]; }
 
-  SA.player = { step: step, spawn: spawn, SPEED: SPEED, BACK_SPEED: BACK_SPEED, TURN_RATE: TURN_RATE, RADIUS: RADIUS,
+  SA.player = { step: step, heightAt: heightAt, nearestDry: nearestDry, spawn: spawn, SPEED: SPEED, BACK_SPEED: BACK_SPEED, TURN_RATE: TURN_RATE, RADIUS: RADIUS,
     SPAWN_CLEAR: SPAWN_CLEAR, inSpawnZone: inSpawnZone, spawnZone: spawnZone };
 })(typeof window !== 'undefined' ? window : globalThis);

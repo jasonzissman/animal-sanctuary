@@ -33,7 +33,7 @@
   function lerp(a, b, k) { return a + (b - a) * k; }
 
   // Ground height under the avatar: the single terrain source, SA.map.groundHeight.
-  function groundAt(x, z) { return SA.map.groundHeight(x, z); }
+  function groundAt(x, z) { return SA.player.heightAt ? SA.player.heightAt(x, z) : SA.map.groundHeight(x, z); }
 
   function kindOf(tree) { var K = SA.perch && SA.perch.KINDS; return (K && (K[tree.kind] || K.jungle)) || { height: 4, radius: 0.8 }; }
   function scaleOf(tree) { return num(tree.scale, 1) > 0 ? num(tree.scale, 1) : 1; }
@@ -114,7 +114,7 @@
     }
     dt = Math.max(0, Math.min(MAX_DT, num(dt, 0)));
     if (c.mode === 'canopy') {
-      var w = SA.player.step(state, input, dt, []);
+      var w = SA.player.step(state, input, dt, [], { water: false });
       var walked = copy(state, { x: w.x, z: w.z, heading: w.heading });
       if (Math.hypot(w.x - c.tree.x, w.z - c.tree.z) > edgeOf(c.tree)) return stop(walked);   // walked off the edge: climb down
       return walked;

@@ -11,7 +11,7 @@ function make(hooks) {
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
   ctx.addEventListener = (t, f) => { keys[t] = f; };
-  for (const f of ['game/sa.js', 'game/map.js', 'game/camera.js', 'game/player.js', 'game/perch.js', 'game/climb.js', 'game/turn.js', 'game/picking.js', 'game/render/camera-rig.js']) {
+  for (const f of ['game/sa.js', 'game/map.js', 'game/camera.js', 'game/player.js', 'game/perch.js', 'game/climb.js', 'game/turn.js', 'game/picking.js', 'game/footsteps.js', 'game/render/camera-rig.js']) {
     vm.runInContext(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'), ctx, { filename: f });
   }
   const placed = { pos: null, look: null };
@@ -96,6 +96,28 @@ test('opens with the camera a few metres behind the avatar, near ground level, l
   assert.ok(placed.pos.y > 1 && placed.pos.y < 4, 'height ' + placed.pos.y);
   assert.ok(placed.look.y > 0.5 && placed.look.y < 2, 'looks at ' + placed.look.y);
   assert.equal(p.moving, false);
+});
+
+test('footsteps: soft steps while walking, quicker running, stepWet in water, silent when still (AS-0118)', () => {
+  const plays = [];
+  const walk = (setup, key = 'w', n = 40) => {
+    const r = chaseRig();
+    r.SA.audio = { sfx: (name, vol, rate) => { plays.push({ name, vol, rate }); return true; } };
+    if (setup) setup(r.SA);
+    plays.length = 0;
+    press(r.keys, key);
+    frames(r.rig, n);   // 2 s
+    return plays.slice();
+  };
+  const walking = walk();
+  assert.ok(walking.length >= 3 && walking.every((p) => p.name === 'step' && p.rate > 0.9 && p.rate < 1.1), JSON.stringify(walking));
+  const wet = walk((SA) => { SA.map.isWater = () => true; });
+  assert.ok(wet.length >= 3 && wet.every((p) => p.name === 'stepWet'));
+  const r = chaseRig();
+  let count = 0;
+  r.SA.audio = { sfx: () => { count++; return true; } };
+  frames(r.rig, 40);
+  assert.equal(count, 0, 'standing still: no steps');
 });
 
 test('W/Up walk the avatar forward and the camera follows; releasing stops', () => {

@@ -25,6 +25,11 @@
     hop2: [{ w: 'sine', f: 400, f2: 800, t: 0, d: 0.18, g: 0.18, wob: 14 }, { w: 'triangle', f: 200, f2: 400, t: 0, d: 0.18, g: 0.08 }],
     // Soft "ouch" (AS-0156): a short falling squeak with a tiny prickle of noise; gentle, never scary.
     ouch: [{ w: 'triangle', f: 700, f2: 330, t: 0, d: 0.2, g: 0.2, wob: 22 }, { n: 1, hp: 3500, t: 0, d: 0.04, g: 0.07 }],
+    // Footsteps (AS-0118): soft and short (they play hundreds of times). Dry ground: a low muffled tap; water: a quick filtered
+    // splish; canopy: a leafy brush. All far quieter than pop. sfx(name, volume, rate) shifts the pitch a hair per step.
+    step: [{ w: 'sine', f: 150, f2: 80, t: 0, d: 0.08, g: 0.12 }, { n: 1, lp: 500, hp: 120, t: 0, d: 0.05, g: 0.06 }],
+    stepWet: [{ n: 1, lp: 3200, hp: 700, t: 0, d: 0.12, g: 0.1 }, { n: 1, lp: 5000, hp: 2200, t: 0.03, d: 0.08, g: 0.04 }],
+    stepLeaf: [{ n: 1, lp: 5000, hp: 1800, t: 0, d: 0.1, g: 0.08 }, { n: 1, lp: 2500, hp: 900, t: 0.02, d: 0.07, g: 0.04 }],
     pop: [{ w: 'sine', f: 600, f2: 200, t: 0, d: 0.09, g: 0.35 }, { n: 1, hp: 2500, t: 0, d: 0.03, g: 0.12 }],
     splash: [{ n: 1, lp: 1800, hp: 300, t: 0, d: 0.5, g: 0.3 }, { n: 1, hp: 3000, t: 0.08, d: 0.3, g: 0.12 },
              { w: 'sine', f: 300, f2: 700, t: 0, d: 0.12, g: 0.15 }],
@@ -117,19 +122,19 @@
     return gn;
   }
 
-  function voice(v, now, vol) {
+  function voice(v, now, vol, rate) {
     var t0 = now + v.t, src, out;
     if (v.n) {
       src = ctx.createBufferSource();
       src.buffer = noise();
       out = src;
-      if (v.hp) { var hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = v.hp; out.connect(hp); out = hp; }
-      if (v.lp) { var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = v.lp; out.connect(lp); out = lp; }
+      if (v.hp) { var hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = v.hp * rate; out.connect(hp); out = hp; }
+      if (v.lp) { var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = v.lp * rate; out.connect(lp); out = lp; }
     } else {
       src = ctx.createOscillator();
       src.type = v.w;
-      src.frequency.setValueAtTime(v.f, t0);
-      if (v.f2) src.frequency.exponentialRampToValueAtTime(v.f2, t0 + v.d);
+      src.frequency.setValueAtTime(v.f * rate, t0);
+      if (v.f2) src.frequency.exponentialRampToValueAtTime(v.f2 * rate, t0 + v.d);
       out = src;
       if (v.wob) { // funny wobble: a fast LFO on the pitch
         var lfo = ctx.createOscillator(), depth = ctx.createGain();
@@ -145,13 +150,15 @@
 
   // Plays a named effect. Returns true if it was started; false (never throws) when locked, muted, unknown or unsupported.
   // `volume` (optional, 0..1, default 1) scales the effect, e.g. a faraway call.
-  function sfx(name, volume) {
+  // `rate` (optional, 0.5..2, default 1) shifts the pitch a little (footsteps vary per step).
+  function sfx(name, volume, rate) {
     if (!ctx || !master || !RECIPES.hasOwnProperty(name) || isMuted()) return false;
     var vol = typeof volume === 'number' && volume >= 0 && volume <= 1 ? volume : 1;
+    var rt = typeof rate === 'number' && rate >= 0.5 && rate <= 2 ? rate : 1;
     try {
       if (ctx.state === 'suspended' && typeof ctx.resume === 'function') ctx.resume();
       var now = ctx.currentTime;
-      RECIPES[name].forEach(function (v) { voice(v, now, vol); });
+      RECIPES[name].forEach(function (v) { voice(v, now, vol, rt); });
       return true;
     } catch (e) {
       return false;
@@ -160,6 +167,7 @@
 
   SA.audio = {
     NAMES: NAMES,
+    RECIPES: RECIPES,
     sfx: sfx,
     unlock: unlock,
     isUnlocked: function () { return !!ctx; },

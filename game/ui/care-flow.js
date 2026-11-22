@@ -3,7 +3,7 @@
  *
  *   var flow = SA.careFlow.create({ care, view, fx?, audio?, later?, onDone?, react?, inventory? })
  *   (react(animalId, reaction) plays an animal reaction; inventory defaults to SA.inventory)
- *   flow.offer(animalId) -> boolean   maybe starts a task (shows "Lava las patas" with the tool's icon, speaks it, makes
+ *   flow.offer(animalId, force?, kind?) -> boolean   maybe starts a task (force = no random chance, kind = only that task kind; shows "Lava las patas" with the tool's icon, speaks it, makes
  *                                     the part rub-able); false when no task was started
  *   flow.active()                     a task is in progress
  *   flow.onPick({ animalId, part, item? })  routes a Space/click/tap/rub with the equipped item: the right tool on the right
@@ -47,8 +47,8 @@
       return it ? it.icon : '✋';
     }
 
-    function offer(animalId) {
-      var task = care.maybeStart(animalId);
+    function offer(animalId, force, kind) {
+      var task = care.maybeStart(animalId, force, kind);
       if (!task) return false;
       if (fx) fx.show(task);
       if (task.kind === 'alimentar') {
@@ -66,6 +66,7 @@
     }
 
     function finish(res) {
+      var finished = care.current();      // handed to onDone: a rescue mission needs to know which task ended
       stopSeq();
       if (SA.picking && SA.picking.setRubTarget) SA.picking.setRubTarget(null);
       if (fx) fx.scrub(0);
@@ -84,7 +85,7 @@
       say(phrase ? res.say : 'phrase:muybien');
       later(function () {
         if (fx) fx.hide();
-        if (o.onDone) o.onDone();
+        if (o.onDone) o.onDone(finished);
       }, NEXT_MS);
     }
 

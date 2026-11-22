@@ -42,7 +42,8 @@
     if (!pick || typeof pick.animalId !== 'string') return { photo: false, status: 'ignored' };
     var verdict = judge(game && game.current && game.current(), pick.animalId);
     var saved = record(pick.animalId);
-    var res = verdict === 'none' ? { status: 'saved' } : game.pick(pick);
+    // a rescue mission (SA.mission) is answered by game.photo(animalId); a plain round (SA.round) by game.pick(pick)
+    var res = verdict === 'none' ? { status: 'saved' } : typeof game.photo === 'function' ? game.photo(pick.animalId) : game.pick(pick);
     return Object.assign({ photo: true, verdict: verdict, saved: saved }, res);
   }
 

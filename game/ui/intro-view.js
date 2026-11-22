@@ -1,6 +1,7 @@
 /* SA.introView.create(doc, o) -> { element, isOpen(), start(), close() }: the scientist's first conversation (DOM only).
  *   o.onToggle(isOpen)  optional, e.g. main.js pauses picking while it shows.
  *   o.auto              false = do not auto-play (tests); default: plays at once when SA.introDialogue.shouldPlay() (a new save).
+ *   start(true)         replay on demand (the scientist's 💬 button, AS-0204): plays even after introSeen, and never calls finish().
  * One full-screen card at a time: 🧑‍🔬, a big picture (icon), a short subtitle (<= 6 words), a 🔊 Replay button and a big ⏭️ skip
  * button. Tapping the card advances line by line; the lines also move on by themselves once the voice is done (at least
  * MIN_MS on a line, at most MAX_MS), so the whole talk is ~15-20 s. Skip (one tap) or the last line ends it:
@@ -37,7 +38,7 @@
     shade.appendChild(card);
     doc.body.appendChild(shade);
 
-    var state = null, opened = false, hold = null, cap = null, minDone = false, spoke = false, token = 0;
+    var replaying = false, state = null, opened = false, hold = null, cap = null, minDone = false, spoke = false, token = 0;
 
     function show(on) {
       if (on === opened) return;
@@ -73,6 +74,7 @@
       var finished = state;
       state = null;
       show(false);
+      if (replaying) { replaying = false; return; }   // a replay from the scientist (AS-0204) never finishes: no flag, no mission
       try { D.finish(finished); } catch (e) { if (root.SAT && root.SAT.error) { try { root.SAT.error('intro.finish', e); } catch (x) { /* silent */ } } }
     }
 
@@ -114,10 +116,12 @@
       card.appendChild(row);
     }
 
-    function start() {
-      if (opened || !D.shouldPlay()) return;
+    // start() plays only on a new save. start(true) is the replay from the scientist (AS-0204): always plays, then just closes.
+    function start(force) {
+      if (opened || (force !== true && !D.shouldPlay())) return;
       state = D.begin();
       if (!state) return;
+      replaying = force === true;
       show(true);
       enterLine();
     }

@@ -102,6 +102,16 @@
   add('phrase', 'introayuda', 'Los animales necesitan ayuda.', 'The animals need help.');
   add('phrase', 'introplan', 'Busca, ayuda y toma una foto.', 'Find, help and take a photo.');
   add('phrase', 'introvamos', '¡Vamos a las misiones!', "Let's go to the missions!");
+  // The scientist's reminder when you use her (SA.scientistTalk): the one-line mission and what the current step asks.
+  add('phrase', 'recuerdo', 'Ayuda a los animales: busca, ayuda, foto', 'Help the animals: find, help, photo');
+  add('phrase', 'eligemision', 'Elige una misión en la estación', 'Pick a mission at the station');
+  add('phrase', 'masmisiones', '¡Muy bien! Pronto, más misiones.', 'Well done! More missions soon.');
+  add('phrase', 'pasoayuda', '¡Ayuda!', 'Help!');
+  add('phrase', 'pasosigue', '¡Sigue!', 'Follow!');
+  add('phrase', 'pasolleva', '¡Lleva!', 'Carry it!');
+  add('phrase', 'pasoentrega', '¡Entrega!', 'Deliver it!');
+  add('phrase', 'pasorecoge', '¡Recoge!', 'Collect it!');
+  add('phrase', 'pasove', '¡Ve allí!', 'Go there!');
   add('phrase', 'acercate', '¡Acércate!', 'Come closer!');   // the reach cue (SA.reach.speakCue)
 
   SA.data.register('vocab', items);

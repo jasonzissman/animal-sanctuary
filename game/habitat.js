@@ -4,6 +4,7 @@
  *   SA.habitat.snap(v)                       grid-snaps a world coordinate (GRID units)
  *   SA.habitat.check(propId, x, z)           -> { ok, reason?, x, z } for the snapped spot. reason is one of
  *                                            unknown | bounds | terrain | biome | occupied | full | stars
+ *   SA.habitat.preview(propId, {x,z})        -> { x, z, valid, reason? } snapped spot + green/red validity for the ghost, or null
  *   SA.habitat.place(propId, x, z)           validates, spends the stars and saves a record in save.placedProps:
  *                                            { status: 'placed', prop: { id, prop, x, z }, stars } | { status: 'rejected', reason }
  *   SA.habitat.remove(placedId)              refunds the stars: { status: 'removed', refund, stars, prop } | { status: 'missing' }
@@ -43,6 +44,15 @@
     if (placed.length >= MAX_PROPS) return out('full');
     if (SA.save.get().stars < def.cost) return out('stars');
     return out(null);
+  }
+
+  // Hover/drag preview: the snapped spot plus whether a tap there would place the prop (green) or not (red).
+  // -> { x, z, valid, reason? } or null when there is no usable pointer point / prop.
+  function preview(propId, pt) {
+    if (!propId || !pt || typeof pt.x !== 'number' || typeof pt.z !== 'number' || !isFinite(pt.x) || !isFinite(pt.z)) return null;
+    if (!SA.data.get('props', propId)) return null;
+    var c = check(propId, pt.x, pt.z);
+    return { x: c.x, z: c.z, valid: !!c.ok, reason: c.reason };
   }
 
   function nextId(placed) {
@@ -87,5 +97,5 @@
     return isFinite(x) && isFinite(z) ? { x: x, z: z } : null;
   }
 
-  SA.habitat = { GRID: GRID, MAX_PROPS: MAX_PROPS, snap: snap, check: check, place: place, remove: remove, list: list, rayToGround: rayToGround };
+  SA.habitat = { GRID: GRID, MAX_PROPS: MAX_PROPS, snap: snap, check: check, place: place, remove: remove, list: list, preview: preview, rayToGround: rayToGround };
 })(typeof window !== 'undefined' ? window : globalThis);

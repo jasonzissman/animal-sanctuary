@@ -1,0 +1,58 @@
+/* SA.render.createPropGhost(THREE): the translucent "where will it land" preview for habitat placement (thin, no logic).
+ *   ghost.group              THREE.Group to add to the scene (hidden until show)
+ *   ghost.show(propId, pv)   pv is SA.habitat.preview(...): { x, z, valid }. Shows the prop's ghost plus a ground tile on the
+ *                            snapped spot, green when valid and red when not. A null pv or unknown prop hides it.
+ *   ghost.hide()             hides it (placement mode ended, prop placed or deselected)
+ *   ghost.visible()          true while shown
+ * Validity and snapping live in SA.habitat.preview (pure, node:vm tested). Needs SA.render.propBuilders/propMaterials.
+ */
+(function (root) {
+  'use strict';
+  var SA = root.SA;
+  SA.render = SA.render || {};
+
+  SA.render.createPropGhost = function (THREE) {
+    var group = new THREE.Group();
+    group.name = 'propGhost';
+    group.visible = false;
+    function ghostMat(c) { return new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.5, depthWrite: false }); }
+    var good = ghostMat('#3ddc57'), bad = ghostMat('#ff4a4a');
+    var tile = new THREE.Mesh(new THREE.BoxGeometry(SA.habitat.GRID, 0.08, SA.habitat.GRID), good);
+    group.add(tile);
+    var realMats = null, cache = {}, current = null;
+
+    function build(propId) {
+      if (cache[propId]) return cache[propId];
+      var def = SA.data.get('props', propId);
+      var build = def && SA.render.propBuilders && SA.render.propBuilders[def.builder];
+      if (!build) return null;
+      realMats = realMats || SA.render.propMaterials(THREE);
+      var obj = build(THREE, realMats), meshes = [];
+      obj.traverse(function (o) { if (o.isMesh) meshes.push(o); });
+      cache[propId] = { obj: obj, meshes: meshes, shore: def.where === 'shore' };
+      return cache[propId];
+    }
+
+    function hide() { group.visible = false; }
+
+    function show(propId, pv) {
+      var entry = pv && build(propId);
+      if (!entry) { hide(); return; }
+      if (current !== entry) {
+        if (current) group.remove(current.obj);
+        group.add(entry.obj);
+        current = entry;
+      }
+      var mat = pv.valid ? good : bad;
+      entry.meshes.forEach(function (m) { m.material = mat; });
+      tile.material = mat;
+      var y = SA.map.groundHeight(pv.x, pv.z);
+      if (entry.shore) y = Math.max(y, SA.map.WATER_LEVEL);
+      entry.obj.position.set(pv.x, y, pv.z);
+      tile.position.set(pv.x, y + 0.06, pv.z);
+      group.visible = true;
+    }
+
+    return { group: group, show: show, hide: hide, visible: function () { return group.visible; } };
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

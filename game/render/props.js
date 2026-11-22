@@ -69,6 +69,7 @@
   }
 
   SA.render.propBuilders = BUILDERS;
+  SA.render.propMaterials = mats;
 
   SA.render.createProps = function (THREE, opts) {
     var group = new THREE.Group();
@@ -131,18 +132,33 @@
       if (pt) handlers.onGround(pt);
     }
 
+    // Placement preview: a green/red ghost of the selected prop on the snapped spot under the pointer (hover with a
+    // mouse; pointer-down or drag on touch). Validity/snapping come from the pure SA.habitat.preview.
+    var ghost = SA.render.createPropGhost ? SA.render.createPropGhost(THREE) : null;
+    function hideGhost() { if (ghost) ghost.hide(); }
+    function showGhost(x, y) {
+      if (!ghost) return;
+      var id = handlers && handlers.active() && handlers.selected();
+      if (!id || !setRay(x, y)) { ghost.hide(); return; }
+      var pv = SA.habitat.preview(id, SA.habitat.rayToGround(raycaster.ray.origin, raycaster.ray.direction));
+      ghost.show(id, pv);
+    }
+
     var canvas = opts.canvas;
-    canvas.addEventListener('pointerdown', function (e) { tracker.down(e.pointerId, e.clientX, e.clientY); });
-    canvas.addEventListener('pointermove', function (e) { tracker.move(e.pointerId, e.clientX, e.clientY); });
+    canvas.addEventListener('pointerdown', function (e) { tracker.down(e.pointerId, e.clientX, e.clientY); showGhost(e.clientX, e.clientY); });
+    canvas.addEventListener('pointermove', function (e) { tracker.move(e.pointerId, e.clientX, e.clientY); showGhost(e.clientX, e.clientY); });
     canvas.addEventListener('pointerup', function (e) {
       var t = tracker.up(e.pointerId, e.clientX, e.clientY);
       if (t) tap(t.x, t.y);
+      if (e.pointerType && e.pointerType !== 'mouse') hideGhost();   // touch: the ghost only lives while the finger is down
     });
-    canvas.addEventListener('pointercancel', function () { tracker.cancel(); });
+    canvas.addEventListener('pointercancel', function () { tracker.cancel(); hideGhost(); });
+    canvas.addEventListener('pointerleave', hideGhost);
 
     return {
       group: group, add: add, remove: remove, count: function () { return group.children.length; },
-      bind: function (h) { handlers = h; }, tap: tap
+      bind: function (h) { handlers = h; }, tap: tap,
+      ghostGroup: ghost ? ghost.group : null, hideGhost: hideGhost, ghostVisible: function () { return !!ghost && ghost.visible(); }
     };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

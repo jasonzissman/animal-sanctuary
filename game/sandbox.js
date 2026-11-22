@@ -32,7 +32,12 @@
     function say(key) { try { if (audio && audio.say) audio.say(key); } catch (e) { /* silent */ } }
     function sfx(name) { try { if (audio && audio.sfx) audio.sfx(name); } catch (e) { /* silent */ } }
     function stars() { return SA.save.get().stars; }
-    function setSelected(id) { selected = id; view.select(id); }
+    // Any selection change (placed, put back, mode ended) clears the green/red placement ghost.
+    function setSelected(id) {
+      selected = id;
+      view.select(id);
+      if (scene.hideGhost) scene.hideGhost();
+    }
 
     function restore() { SA.habitat.list().forEach(function (r) { scene.add(r); }); }
 

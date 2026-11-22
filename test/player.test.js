@@ -117,6 +117,36 @@ test('junk obstacle entries are ignored', () => {
   near(s.z, P.SPEED * DT);
 });
 
+test('run: forward moves at RUN_SPEED (about 1.8x SPEED); backing up stays at BACK_SPEED', () => {
+  assert.ok(P.RUN_SPEED >= 1.7 * P.SPEED && P.RUN_SPEED <= 1.9 * P.SPEED);
+  let s = P.step({ x: 0, z: 0, heading: 0 }, { forward: true, run: true }, DT);
+  near(s.z, P.RUN_SPEED * DT);
+  s = P.step({ x: 0, z: 0, heading: 0 }, { forward: true, run: false }, DT);
+  near(s.z, P.SPEED * DT);
+  s = P.step({ x: 0, z: 0, heading: 0 }, { back: true, run: true }, DT);
+  near(s.z, -P.BACK_SPEED * DT);
+  s = P.step({ x: 0, z: 0, heading: 0 }, { right: 1, strafe: true, run: true }, DT);
+  near(Math.abs(s.x), P.RUN_SPEED * DT);
+});
+
+test('run keeps the map bounds, obstacles and the shore at full speed', () => {
+  const B = SA.map.BOUNDS;
+  for (const heading of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+    const s = walk({ x: 0, z: 0, heading }, { forward: true, run: true }, 30);
+    assert.ok(s.x >= B.minX && s.x <= B.maxX && s.z >= B.minZ && s.z <= B.maxZ, 'inside the map');
+    assert.ok(!SA.map.isWater(s.x, s.z), 'dry');
+  }
+  const tree = [0, 5, 1];   // running straight at a tree slides around it, never into it
+  let s = { x: 0, z: 0, heading: 0 };
+  for (let i = 0; i < 90; i++) {
+    s = P.step(s, { forward: true, run: true }, DT, [tree]);
+    assert.ok(Math.hypot(s.x - tree[0], s.z - tree[1]) >= tree[2] + P.RADIUS - 1e-6, 'never inside the tree');
+  }
+  // the biggest allowed frame (0.1 s = 0.7 units) cannot tunnel through a thin obstacle
+  s = P.step({ x: 0, z: 0, heading: 0 }, { forward: true, run: true }, 5, [[0, 0.5, 0.2]]);
+  assert.ok(Math.hypot(s.x, s.z - 0.5) >= 0.8 - 1e-6);
+});
+
 test('spawn zone helpers: spawn is inside, far away is not, and the zone is an avoid point', () => {
   const s = P.spawn();
   assert.ok(P.inSpawnZone(s.x, s.z));

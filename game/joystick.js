@@ -3,8 +3,9 @@
  *   SA.joystick.vector(dx, dy, radius) -> { x, y, mag }  thumb offset from the joystick centre in px (screen: +x right,
  *     +y down) -> unit-disc vector. Inside the dead zone it is { 0, 0, 0 }; outside, the magnitude is eased from 0 at
  *     the dead-zone edge to 1 at the rim (and stays 1 beyond it), so small thumb wobbles never move the player.
- *   SA.joystick.toInput(v) -> { forward, back, left, right }  analog 0..1 axes for SA.player.step: up = forward,
- *     down = back, left/right turn the avatar (the same meaning as the arrow keys).
+ *   SA.joystick.toInput(v) -> { forward, back, left, right, run }  analog 0..1 axes for SA.player.step: up = forward,
+ *     down = back, left/right turn the avatar (the same meaning as the arrow keys). run is true when the thumb is at
+ *     the outer edge (magnitude >= RUN_AT) and pushing up/forward, like holding Shift.
  *   SA.joystick.isTouch(pointerType) -> true for 'touch' and 'pen', so the stick only appears once a finger is used.
  */
 (function (root) {
@@ -12,6 +13,7 @@
   var SA = root.SA;
 
   var DEAD_ZONE = 0.18;   // fraction of the radius
+  var RUN_AT = 0.9;       // vector magnitude (0..1) at which the stick runs: the very edge of the pad
 
   function num(v) { return typeof v === 'number' && isFinite(v) ? v : 0; }
 
@@ -27,10 +29,12 @@
 
   function toInput(v) {
     var x = v ? num(v.x) : 0, y = v ? num(v.y) : 0;
-    return { forward: Math.max(0, -y), back: Math.max(0, y), left: Math.max(0, -x), right: Math.max(0, x) };
+    // run: thumb pushed to the outer edge (vector magnitude is eased to 1 at the rim) and heading forward
+    return { forward: Math.max(0, -y), back: Math.max(0, y), left: Math.max(0, -x), right: Math.max(0, x),
+      run: Math.sqrt(x * x + y * y) >= RUN_AT && y < 0 };
   }
 
   function isTouch(pointerType) { return pointerType === 'touch' || pointerType === 'pen'; }
 
-  SA.joystick = { DEAD_ZONE: DEAD_ZONE, vector: vector, toInput: toInput, isTouch: isTouch };
+  SA.joystick = { DEAD_ZONE: DEAD_ZONE, RUN_AT: RUN_AT, vector: vector, toInput: toInput, isTouch: isTouch };
 })(typeof window !== 'undefined' ? window : globalThis);

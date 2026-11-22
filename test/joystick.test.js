@@ -35,11 +35,20 @@ test('vector: junk input and a bad radius never produce NaN', () => {
 
 test('toInput: up walks forward, down backs up, left/right turn; opposite axes never overlap', () => {
   const J = load().joystick;
-  assert.deepEqual(plain(J.toInput({ x: 0, y: -1 })), { forward: 1, back: 0, left: 0, right: 0 });
-  assert.deepEqual(plain(J.toInput({ x: 0, y: 0.5 })), { forward: 0, back: 0.5, left: 0, right: 0 });
-  assert.deepEqual(plain(J.toInput({ x: -0.25, y: -0.5 })), { forward: 0.5, back: 0, left: 0.25, right: 0 });
-  assert.deepEqual(plain(J.toInput({ x: 1, y: 0 })), { forward: 0, back: 0, left: 0, right: 1 });
-  assert.deepEqual(plain(J.toInput(null)), { forward: 0, back: 0, left: 0, right: 0 });
+  assert.deepEqual(plain(J.toInput({ x: 0, y: -1 })), { forward: 1, back: 0, left: 0, right: 0, run: true });
+  assert.deepEqual(plain(J.toInput({ x: 0, y: 0.5 })), { forward: 0, back: 0.5, left: 0, right: 0, run: false });
+  assert.deepEqual(plain(J.toInput({ x: -0.25, y: -0.5 })), { forward: 0.5, back: 0, left: 0.25, right: 0, run: false });
+  assert.deepEqual(plain(J.toInput({ x: 1, y: 0 })), { forward: 0, back: 0, left: 0, right: 1, run: false });
+  assert.deepEqual(plain(J.toInput(null)), { forward: 0, back: 0, left: 0, right: 0, run: false });
+});
+
+test('toInput runs only when the stick is pushed forward to its outer edge; backing up never runs', () => {
+  const SA = load(), J = SA.joystick;
+  assert.equal(J.toInput(J.vector(0, -46, 46)).run, true, 'rim');
+  assert.equal(J.toInput(J.vector(0, -44, 46)).run, true, 'just inside the rim still counts');
+  assert.equal(J.toInput(J.vector(0, -30, 46)).run, false, 'mid-way walks');
+  assert.equal(J.toInput(J.vector(0, 46, 46)).run, false, 'down at the rim backs up, no run');
+  assert.equal(J.toInput({ x: 0.7, y: -0.7 }).run, true, 'diagonal at the rim runs');
 });
 
 test('toInput drives SA.player.step: pushing up walks forward, pushing right turns clockwise', () => {

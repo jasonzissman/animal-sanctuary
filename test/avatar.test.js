@@ -32,6 +32,21 @@ test('update places the avatar and faces it along the player heading', () => {
   assert.equal(a.group.position.x, 3);
 });
 
+test('running plays a faster stride than walking', () => {
+  const cycles = (running) => {
+    const a = SA.render.createAvatar(THREE);
+    let flips = 0, prev = 0;
+    for (let i = 0; i < 120; i++) {
+      a.update(0.025, { x: 0, z: 0, heading: 0, moving: true, running });
+      const s = Math.sign(a.parts.armL.rotation.x);
+      if (i > 5 && s !== prev && prev !== 0) flips++;
+      prev = s;
+    }
+    return flips;
+  };
+  assert.ok(cycles(true) > cycles(false) * 1.3, 'more arm swings per second while running');
+});
+
 test('arms and legs swing in opposition while moving, and settle when stopped', () => {
   const a = SA.render.createAvatar(THREE);
   const p = a.parts;

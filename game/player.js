@@ -6,6 +6,7 @@
  *               chase camera behind the player uses yaw = heading + PI (see SA.camera: camera sits at +(sin yaw, cos yaw))
  *     input     { forward, back, left, right, strafe? }  numbers/booleans (any truthy or +/-1 axis value); W/Up = forward,
  *               S/Down = back. left/right TURN the player; with strafe: true they side-step instead.
+ *               run: true moves forward at RUN_SPEED instead of SPEED (backing up stays at BACK_SPEED).
  *     dt        seconds (clamped to 0.1 so a stalled tab cannot teleport the player)
  *     obstacles [[x, z, radius], ...] circles for animals and placed props (same shape as SA.propAvoid.points)
  * Obstacles push the player out along the line from their centre (so walking into one slides around it) and the
@@ -28,7 +29,8 @@
   var SA = root.SA;
 
   var SPEED = 4;          // world units / second: a brisk kid-friendly walk
-  var BACK_SPEED = 2.4;   // backing up is slower
+  var RUN_SPEED = 7;      // while input.run (Shift held / joystick at its edge): about 1.8x SPEED
+  var BACK_SPEED = 2.4;   // backing up is slower (and never faster, even while running)
   var TURN_RATE = 2.4;    // radians / second
   var RADIUS = 0.6;       // player body circle, added to each obstacle radius
   var MAX_DT = 0.1;
@@ -152,12 +154,13 @@
     var fx = Math.sin(h), fz = Math.cos(h);
     if (input.strafe) {
       // Seen from behind the player, right = (-cos h, sin h) = (-fz, fx) (heading 0 faces +z, so right is -x).
-      p.x += (-fz * side) * SPEED * dt; p.z += (fx * side) * SPEED * dt;
+      var sv = input.run ? RUN_SPEED : SPEED;
+      p.x += (-fz * side) * sv * dt; p.z += (fx * side) * sv * dt;
     } else {
       h -= side * TURN_RATE * dt;   // right = clockwise seen from above = decreasing heading
       fx = Math.sin(h); fz = Math.cos(h);
     }
-    var v = fwd > 0 ? SPEED : BACK_SPEED;
+    var v = fwd > 0 ? (input.run ? RUN_SPEED : SPEED) : BACK_SPEED;   // run only speeds up going forward
     p.x += fx * fwd * v * dt;
     p.z += fz * fwd * v * dt;
     clampToMap(p);
@@ -174,6 +177,6 @@
   function inSpawnZone(x, z, pad) { return Math.hypot(x - SPAWN.x, z - SPAWN.z) < SPAWN_CLEAR + (pad || 0); }
   function spawnZone() { return [SPAWN.x, SPAWN.z, SPAWN_CLEAR]; }
 
-  SA.player = { step: step, heightAt: heightAt, nearestDry: nearestDry, spawn: spawn, SPEED: SPEED, BACK_SPEED: BACK_SPEED, TURN_RATE: TURN_RATE, RADIUS: RADIUS,
+  SA.player = { step: step, heightAt: heightAt, nearestDry: nearestDry, spawn: spawn, SPEED: SPEED, RUN_SPEED: RUN_SPEED, BACK_SPEED: BACK_SPEED, TURN_RATE: TURN_RATE, RADIUS: RADIUS,
     SPAWN_CLEAR: SPAWN_CLEAR, inSpawnZone: inSpawnZone, spawnZone: spawnZone };
 })(typeof window !== 'undefined' ? window : globalThis);

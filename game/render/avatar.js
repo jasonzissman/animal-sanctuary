@@ -1,5 +1,5 @@
 /* SA.render.createAvatar(THREE) -> { group, update(dt, player) }: the procedural low-poly kid the player walks around as.
- * Built from boxes, a sphere and flat materials only. update() puts it at player { x, z, heading, moving } (heading in
+ * Built from boxes, a sphere and flat materials only. update() puts it at player { x, z, heading, moving, running? } (heading in
  * radians, forward = (sin, cos) on x/z), and while `moving` plays a run bob and an opposite arm/leg swing; it eases
  * back to a standing pose when stopped. The group sits at player.y (terrain height) with feet at its origin.
  */
@@ -9,6 +9,7 @@
   SA.render = SA.render || {};
 
   var CLIMB_RATE = 7;   // climb animation: hand-over-hand cycles per second ~1
+  var RUN_GAIT = 1.6;   // stride speed multiplier while player.running
   var SWING = 0.9, STRIDE = 9, BOB = 0.07;   // arm/leg swing (rad), steps per second, body bob height
 
   SA.render.createAvatar = function (THREE) {
@@ -46,11 +47,12 @@
       group.rotation.y = player.heading || 0;
       dt = Math.max(0, Math.min(0.1, dt || 0));
       amount += ((player.moving ? 1 : 0) - amount) * Math.min(1, dt * 12);
-      if (player.moving) phase += dt * STRIDE;
+      var gait = player.running ? RUN_GAIT : 1;   // running: quicker steps, bigger swing and bob
+      if (player.moving) phase += dt * STRIDE * gait;
       var climbing = player.climb === 'up' || player.climb === 'down';
       if (climbing) climbPhase += dt * CLIMB_RATE;
       lift += ((climbing ? 1 : 0) - lift) * Math.min(1, dt * 10);
-      var s = Math.sin(phase) * amount, c = Math.sin(climbPhase) * lift;
+      var s = Math.sin(phase) * amount * (gait > 1 ? 1.2 : 1), c = Math.sin(climbPhase) * lift;
       // Climbing: arms reach up and alternate, knees pump, the body leans into the trunk.
       armL.rotation.x = s * SWING * (1 - lift) - (2.6 - c) * lift; armR.rotation.x = -s * SWING * (1 - lift) - (2.6 + c) * lift;
       legL.rotation.x = -s * SWING * (1 - lift) + c * 0.9; legR.rotation.x = s * SWING * (1 - lift) - c * 0.9;

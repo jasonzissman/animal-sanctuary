@@ -16,6 +16,10 @@ current; when your change sets or changes something future tickets must follow, 
 - **No modes: keys always move the player.** Arrow keys/WASD only ever walk the player; nothing (finding an animal,
   care, menus) switches the keyboard to controlling something else, and there is never an "Escape to unlock". The
   mouse or a tap clicks on things (body parts, items); Space uses the equipped item.
+- **Hold Shift to run (AS-0094).** Shift (either side) is a held modifier, never a mode: while it is down, moving forward
+  uses `SA.player.RUN_SPEED` (7, about 1.8x `SPEED`) via `input.run`; backing up stays at `BACK_SPEED`. The touch joystick
+  runs when pushed forward to its outer edge (`SA.joystick.RUN_AT`). Bounds, soft collisions, water and reach apply
+  unchanged; the avatar's stride plays faster (`rig.getPlayer().running`). Shift triggers nothing else.
 - **Soft things don't block.** The player walks through flowers, grass and small animals; only trees, rocks, ponds and
   big animals block. You never start stuck or have to wait for an animal to move. Built (AS-0105): the spawn is fixed
   (`SA.player` SPAWN) with a clear radius `SA.player.SPAWN_CLEAR` (5): seeded decor skips it, `animal-plan` placements

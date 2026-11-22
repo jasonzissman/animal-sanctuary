@@ -21,10 +21,10 @@ function setup() {
   return { SA, care, flow, calls, events, birds };
 }
 
-test('the tangled-wing action and task are data: empty hands on las alas, gives la hoja, says ¡Ya puede volar!', () => {
+test('the tangled-wing action and task are data: empty hands on las alas, gives nothing, says ¡Ya puede volar!', () => {
   const { SA } = setup();
   const a = SA.data.get('actions', 'desenredar');
-  assert.deepEqual([a.item, [...a.parts], a.tangled, a.gives, a.say], ['hands', ['alas'], true, 'hoja', 'phrase:yapuedevolar']);
+  assert.deepEqual([a.item, [...a.parts], a.tangled, a.gives, a.say], ['hands', ['alas'], true, undefined, 'phrase:yapuedevolar']);
   assert.equal(SA.vocab.get('phrase:yapuedevolar').es, '¡Ya puede volar!');
   const bad = (patch, re) => assert.throws(() => SA.data.register('actions', [{ ...a, id: 'prueba', ...patch }]), re);
   bad({ gives: 'martillo' }, /unknown item/);
@@ -58,21 +58,21 @@ test('three tugs with empty hands on the wing finish it; wrong tool or part neve
   assert.equal(care.tap({ animalId: id, part: 'alas' }).status, 'scrub');
   assert.equal(care.active(), true);
   const done = care.tap({ animalId: id, part: 'alas' });
-  assert.deepEqual([done.status, done.kind, done.tangled, done.gives, done.say], ['done', 'desenredar', true, 'hoja', 'phrase:yapuedevolar']);
+  assert.deepEqual([done.status, done.kind, done.tangled, done.gives, done.say], ['done', 'desenredar', true, null, 'phrase:yapuedevolar']);
   assert.equal(care.active(), false);
   assert.equal(SA.save.get().stars, 1);
   assert.equal(events.filter((e) => e.type === 'round.complete').length, 1);
 });
 
-test('flow: Space on the wing frees the bird, adds la hoja to the inventory and says ¡Ya puede volar!', () => {
+test('flow: Space on the wing frees the bird, gives nothing and says ¡Ya puede volar!', () => {
   const { SA, flow, calls, birds } = setup();
-  const id = birds[0].id, before = SA.inventory.count('hoja');
+  const id = birds[0].id, before = JSON.stringify(SA.inventory.list());
   assert.equal(flow.offer(id), true);
   for (let i = 0; i < 2; i++) assert.equal(flow.onPick({ animalId: id, part: 'alas' }).status, 'scrub');
-  assert.equal(SA.inventory.count('hoja'), before, 'not yet');
+  assert.equal(JSON.stringify(SA.inventory.list()), before, 'not yet');
   assert.ok(!calls.some((c) => c[0] === 'fx.fly'));
   assert.equal(flow.onPick({ animalId: id, part: 'alas' }).status, 'done');
-  assert.equal(SA.inventory.count('hoja'), before + 1);
+  assert.equal(JSON.stringify(SA.inventory.list()), before, 'nothing added');
   assert.ok(calls.some((c) => c[0] === 'fx.fly' && c[1] === id));
   assert.ok(calls.some((c) => c[0] === 'say' && c[1] === 'phrase:yapuedevolar'));
   assert.ok(!calls.some((c) => c[0] === 'say' && c[1] === 'phrase:muybien'));

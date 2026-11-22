@@ -34,15 +34,13 @@
     rule('platano-arbol', 'platano', 'tree', ['selva'], 4, 60),
     rule('fresa-arbol', 'fresa', 'tree', ['bosque'], 3, 60),
     rule('roca-suelo', 'roca', 'ground', ['bosque', 'montana', 'desierto'], 3, 45),
-    rule('flor-suelo', 'flor', 'ground', ['bosque', 'selva'], 3, 45),
-    rule('hoja-suelo', 'hoja', 'ground', ['bosque', 'selva'], 3, 45),
     rule('pez-agua', 'pez', 'water', ['bosque', 'selva'], 2, 60)
   ];
 
   SA.data.defineKind('pickups', validatePickup);
   SA.data.register('pickups', rules);
 
-  // The spoken/shown exclamation: indefinite article agreeing with the item's gender ("¡Un plátano!", "¡Una flor!").
+  // The spoken/shown exclamation: indefinite article agreeing with the item's gender ("¡Un plátano!", "¡Una roca!").
   var seen = {};
   var found = [];
   rules.forEach(function (r) {

@@ -25,7 +25,9 @@ function trees(SA) {
 test('pickup data validates and every item has a spoken exclamation agreeing in gender', () => {
   const SA = fresh();
   assert.equal(SA.vocab.get('found:platano').es, '¡Un plátano!');
-  assert.equal(SA.vocab.get('found:flor').es, '¡Una flor!');
+  assert.equal(SA.vocab.get('found:fresa').es, '¡Una fresa!');
+  assert.equal(SA.data.all('pickups').filter((r) => r.item === 'flor' || r.item === 'hoja').length, 0, 'no flower/leaf pickups');
+  assert.equal(SA.data.all('pickups').filter((r) => /^(flor|hoja)-/.test(r.id)).length, 0, 'no flor-suelo / hoja-suelo rules');
   assert.equal(SA.vocab.get('found:roca').es, '¡Una roca!');
   for (const r of SA.data.all('pickups')) assert.ok(SA.vocab.get('found:' + r.item), r.id);
   assert.throws(() => SA.data.register('pickups', [{ id: 'x', item: 'nope', where: 'ground', biomes: ['selva'], count: 1, respawn: 5 }]));
@@ -88,10 +90,10 @@ test('walking into a find collects it into the inventory', () => {
 
 test('space radius is wider than the walk radius', () => {
   const SA = fresh(), w = SA.pickups.create({ trees: trees(SA), seed: 5 });
-  const flower = w.list().find((s) => s.item === 'flor');
-  const p = { x: flower.x + 2, z: flower.z, y: 0 };
+  const rock = w.list().find((s) => s.item === 'roca');
+  const p = { x: rock.x + 2, z: rock.z, y: 0 };
   assert.equal(w.nearest(p), null);
-  assert.equal(w.nearest(p, SA.pickups.SPACE_RADIUS).id, flower.id);
+  assert.equal(w.nearest(p, SA.pickups.SPACE_RADIUS).id, rock.id);
 });
 
 test('canopy fruit needs the player up the tree', () => {
@@ -166,18 +168,18 @@ test('render: pickups are drawn, collected on contact with sound + speech, hidde
   assert.equal(node1.visible, true, 'grew back');
 
   // Space (via SA.spaceUse) reaches a little farther than walking does.
-  const flower = spots.find((s) => s.item === 'flor');
+  const flower = spots.filter((s) => s.item === 'roca')[1];
   Object.assign(player, { x: flower.x + 2, z: flower.z });
   px.update(0.1);
-  assert.equal(SA.inventory.count('flor'), 0);
+  assert.equal(SA.inventory.count('roca'), 1);
   assert.equal(listeners.keydown, undefined, 'no Space key of its own: SA.spaceUse dispatches');
   const near = px.world.reachable(player, SA.pickups.SPACE_RADIUS, []);
   assert.ok(near.some((n) => n.id === flower.id), 'reachable() lists finds within the Space radius');
   assert.ok(px.collectSpot(flower));
-  assert.equal(SA.inventory.count('flor'), 1);
+  assert.equal(SA.inventory.count('roca'), 2);
   assert.equal(px.collectSpot(flower), null, 'already collected');
   assert.equal(px.world.reachable({ x: 1e6, z: 0 }, 2.4, []).length, 0);
-  assert.equal(log[log.length - 1], 'say:found:flor');
+  assert.equal(log[log.length - 1], 'say:found:roca');
 });
 
 test('boot: index.html loads the pickup scripts in dependency order before the scene', () => {

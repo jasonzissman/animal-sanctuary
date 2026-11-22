@@ -65,7 +65,7 @@
     { id: 'acariciar', item: 'hands', parts: ['barriga'], verb: { es: 'acariciar', imperative: 'Acaricia' }, reaction: 'boing', sfx: 'giggle' },
     // A leaf or twig stuck on a bird's wing: tug it off with empty hands (Space on the wing) and it can fly again.
     { id: 'desenredar', item: 'hands', parts: ['alas'], verb: { es: 'quitar', imperative: 'Quita' }, reaction: 'flap', sfx: 'pop',
-      tangled: true, gives: 'hoja', say: 'phrase:yapuedevolar' },
+      tangled: true, say: 'phrase:yapuedevolar' },
     { id: 'alimentar', item: 'food', parts: [], verb: { es: 'dar de comer', imperative: 'Dale' }, reaction: 'boing', sfx: 'pop' }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

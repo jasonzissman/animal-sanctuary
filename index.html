@@ -32,6 +32,7 @@
   <script src="game/clue-levels.js"></script>
   <!-- Save manager (SA.save): santuario_save_v1 with migration and in-memory fallback. -->
   <script src="game/save.js"></script>
+  <script src="game/unlocks.js"></script>
   <script src="game/scaffold.js"></script>
   <!-- Telemetry client (window.SAT): queues events locally, flushes only if the local receiver is running. -->
   <script src="game/telemetry.js"></script>
@@ -49,6 +50,7 @@
   <script src="game/render/decor.js"></script>
   <!-- Animals: pure assembly plan, then the THREE builder that turns it into raycastable groups. -->
   <script src="game/animal-plan.js"></script>
+  <script src="game/render/zigzag.js"></script>
   <script src="game/render/animals.js"></script>
   <script src="game/render/camera-rig.js"></script>
   <!-- Ambient life: pure seeded wandering (SA.wander), then the renderer that applies it plus idle animations. -->
@@ -57,10 +59,12 @@
   <!-- Picking: pure tap/drag logic and labels (SA.picking.onPick), then the THREE raycaster glue. -->
   <script src="game/picking.js"></script>
   <script src="game/render/picking.js"></script>
+  <script src="game/render/tree-tap.js"></script>
   <!-- Scout & Spot: pure round state, whole-animal reactions, then the prompt bar + controller. -->
   <script src="game/round.js"></script>
   <script src="game/render/round-fx.js"></script>
   <script src="game/ui/prompt.js"></script>
+  <script src="game/unlock-flow.js"></script>
   <!-- Care loop part 1 (limpiar): care-task data, pure task state, 3D mud/sparkle effects, prompt wiring. -->
   <!-- Part 2 (curar, alimentar): foods (+ their vocab entries) must load before the care task data. -->
   <script src="game/data/foods.js"></script>

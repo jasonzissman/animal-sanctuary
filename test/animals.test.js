@@ -11,14 +11,17 @@ const good = () => ({
   parts: [part()], easterEgg: false,
 });
 
-test('4 biomes and 10 animals are registered; every animal is a real animal in a known biome', () => {
+test('4 biomes, 10 real animals and 1 easter egg are registered, all in known biomes', () => {
   const SA = loadGame(FILES);
   assert.deepEqual(Array.from(SA.data.all('biomes'), (b) => b.id), ['bosque', 'selva', 'desierto', 'montana']);
-  const animals = SA.data.all('animals');
-  assert.deepEqual(Array.from(animals, (a) => a.id),
-    ['conejo', 'pato', 'tortuga', 'mono', 'tucan', 'rana', 'camello', 'serpiente', 'cabra', 'aguila']);
-  for (const a of animals) {
-    assert.equal(a.easterEgg, false);
+  const all = SA.data.all('animals');
+  assert.deepEqual(Array.from(all, (a) => a.id),
+    ['conejo', 'pato', 'tortuga', 'mono', 'tucan', 'rana', 'camello', 'serpiente', 'cabra', 'aguila', 'raton']);
+  assert.deepEqual(Array.from(all.filter((a) => a.easterEgg), (a) => a.id), ['raton']);
+  const animals = all.filter((a) => !a.easterEgg);
+  for (const a of all) {
+    assert.equal(a.easterEgg, a.id === 'raton');
+    assert.equal(a.unlock !== undefined, a.easterEgg);
     assert.ok(SA.data.get('biomes', a.biome), a.id);
     for (const p of a.parts) assert.ok(SA.data.get('parts', p.part), `${a.id}/${p.part}`);
   }

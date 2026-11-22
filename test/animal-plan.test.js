@@ -101,12 +101,13 @@ test('buildAnimals: groups per animal; every part mesh and pick volume carries u
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
   ctx.self = ctx;
-  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/animals.js']) {
+  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/animals.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;
   const group = SA.render.buildAnimals(THREE);
-  assert.equal(group.children.length, 10);
+  assert.equal(group.children.length, 11);
+  assert.equal(group.children.filter((g) => !g.visible).map((g) => g.name).join(), 'raton', 'the easter egg is built but hidden');
   for (const g of group.children) {
     const animal = SA.data.get('animals', g.userData.animalId);
     const parts = g.children.filter((m) => !m.userData.pick);
@@ -126,7 +127,7 @@ function pickerFor(animalId) {
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
   ctx.self = ctx;
-  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/animals.js']) {
+  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/animals.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;

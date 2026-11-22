@@ -18,8 +18,15 @@
     function report(source, e) {
       if (root.SAT) root.SAT.track('error', { message: String(e && e.message).slice(0, 200), source: source, line: 0, stack: String(e && e.stack).slice(0, 500) });
     }
-    var ctl = null;
+    var ctl = null, unlocks = null;
+    // Easter eggs: hidden animals appear (fanfare + sparkles) when their data-defined condition is met.
+    try {
+      var flow = SA.unlockFlow.create({ group: stage.animals, fx: stage.fx, celebrate: function (msg) { if (ctl && ctl.celebrate) ctl.celebrate(msg); } });
+      unlocks = SA.unlocks.create({ onUnlock: flow.reveal });
+      stage.onTreeTap = function (t) { unlocks.tap('tree', t.id, t.biome); };
+    } catch (e) { report('unlocks.start', e); }
     try { ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx,
+      onProgress: function () { if (unlocks) unlocks.check(); },
       game: SA.round.create({ biome: function () { return SA.round.biomeForX(stage.rig.getState().x); } }) }); } catch (e) { report('prompt.start', e); }
     // Habitat sandbox: a big button + prop tray; saved props come back on reload. Never blocks the main loop.
     try {

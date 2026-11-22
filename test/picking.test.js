@@ -87,7 +87,7 @@ function makeEl() {
 
 function stage(english) {
   const files = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js',
-    'game/data/biomes.js', 'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/animals.js',
+    'game/data/biomes.js', 'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js',
     'game/picking.js', 'game/render/picking.js'];
   const ctx = vm.createContext({ console });
   ctx.window = ctx; ctx.self = ctx;
@@ -171,4 +171,19 @@ test('mouse hover brightens the part under the cursor and clears when it leaves'
   s.handlers.pointerleave(ev(400, 300, { pointerType: 'mouse' }));
   assert.equal(hit.mesh.material, hit.mesh.userData.baseMaterial);
   s.handlers.pointermove(ev(2, 2, { pointerType: 'mouse' }));
+});
+
+test('a hidden easter egg cannot be picked, and can once it is shown', () => {
+  const s = stage(false);
+  const egg = s.animals.getObjectByName('raton');
+  assert.equal(egg.visible, false);
+  const vol = egg.userData.pickVolumes.find((v) => v.userData.part === 'cuerpo');
+  const target = new s.THREE.Vector3(); vol.getWorldPosition(target);
+  s.camera.position.set(target.x + 3, target.y + 2, target.z + 3);
+  s.camera.lookAt(target);
+  s.camera.updateMatrixWorld(true);
+  const isEgg = (hit) => !!hit && hit.animalId === 'raton';
+  assert.ok(!isEgg(s.picking.pickAt(400, 300)), 'an invisible animal is not hit');
+  egg.visible = true;
+  assert.ok(isEgg(s.picking.pickAt(400, 300)), 'a revealed animal is pickable');
 });

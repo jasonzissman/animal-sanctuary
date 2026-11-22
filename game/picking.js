@@ -20,7 +20,7 @@
 
   var ICONS = {
     cabeza: '🙂', cuerpo: '🧸', orejas: '👂', ojos: '👀', hocico: '🐽', pico: '🐦', cola: '➰', patas: '🐾',
-    alas: '🪶', caparazon: '🐢', cuernos: '🦌', aletas: '🐟', plumas: '🪶', nariz: '👃', joroba: '🐪',
+    alas: '🪶', caparazon: '🐢', cuernos: '🦌', aletas: '🐟', plumas: '🪶', nariz: '👃', joroba: '🐪', mejillas: '😊',
   };
 
   var listeners = [];
@@ -116,6 +116,6 @@
 
   SA.picking = {
     DRAG_THRESHOLD: DRAG_THRESHOLD, DURATION: DURATION, ICONS: ICONS,
-    setRubTarget: setRubTarget, hasRubTarget: hasRubTarget, isRubTarget: isRubTarget, onPick: onPick, emit: emit, setPaused: setPaused, createTapTracker: createTapTracker, labelFor: labelFor, reactionPose: reactionPose,
+    setRubTarget: setRubTarget, hasRubTarget: hasRubTarget, isRubTarget: isRubTarget, onPick: onPick, emit: emit, setPaused: setPaused, isPaused: function () { return paused; }, createTapTracker: createTapTracker, labelFor: labelFor, reactionPose: reactionPose,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

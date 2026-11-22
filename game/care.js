@@ -99,7 +99,7 @@
     // kind (optional) restricts the pick to one task kind ('limpiar' | 'curar' | 'alimentar').
     function maybeStart(animalId, force, kind) {
       var animal = SA.data.get('animals', animalId);
-      if (!animal || animal.easterEgg) return null;
+      if (!animal || (animal.easterEgg && SA.save.get().unlockedAnimals.indexOf(animalId) < 0)) return null;   // hidden eggs have no care
       var defs = SA.data.all('careTasks').filter(function (d) { return !kind || d.kind === kind; });
       if (!defs.length) return null;
       var def = pick(defs);

@@ -38,12 +38,16 @@
     scene.add(animals);
 
     var camera = new THREE.PerspectiveCamera(SA.camera.DEFAULTS.fovDeg, 1, 0.5, 400);
-    var picking;
+    var picking, stageApi = {};
     // While a care task is rubbing a part, a drag that starts on that part rubs it instead of orbiting.
     var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, null, { canOrbit: function (e) {
       return !(SA.picking.hasRubTarget() && picking && SA.picking.isRubTarget(picking.pickAt(e.clientX, e.clientY)));
     } });
     picking = SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container });
+
+    var treeTap = SA.render.createTreeTap(THREE, { canvas: renderer.domElement, camera: camera, decor: decor,
+      hitsAnimal: function (x, y) { return !!picking.pickAt(x, y); },
+      onTap: function (t) { if (stageApi.onTreeTap) stageApi.onTreeTap(t); } });
 
     var props = SA.render.createProps(THREE, { canvas: renderer.domElement, camera: camera });
     scene.add(props.group);
@@ -62,9 +66,12 @@
     resize();
     root.addEventListener('resize', resize);
 
-    return {
+    // stageApi.onTreeTap({ id, biome }) is set by main.js (easter-egg unlocks).
+    stageApi = {
       scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, ambient: ambient, resize: resize,
-      render: function (dt) { rig.update(dt); picking.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); renderer.render(scene, camera); },
+      animals: animals, treeTap: treeTap, onTreeTap: null,
+      render: function (dt) { rig.update(dt); picking.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); renderer.render(scene, camera); },
     };
+    return stageApi;
   };
 })(typeof window !== 'undefined' ? window : globalThis);

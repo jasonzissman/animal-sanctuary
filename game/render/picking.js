@@ -30,7 +30,9 @@
 
     function volumes() {
       var out = [];
-      animals.children.forEach(function (g) { if (g.userData && g.userData.pickVolumes) out = out.concat(g.userData.pickVolumes); });
+      animals.children.forEach(function (g) {
+        if (g.visible !== false && g.userData && g.userData.pickVolumes) out = out.concat(g.userData.pickVolumes);   // hidden eggs are not pickable
+      });
       return out;
     }
 

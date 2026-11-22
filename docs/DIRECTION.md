@@ -221,6 +221,14 @@ current; when your change sets or changes something future tickets must follow, 
 - **Mission variety.** Lost-baby missions: the cría follows you to its mamá, and you take a family photo (AS-0172, AS-0173). Secret
   treasure chests behind waterfalls are original easter eggs (AS-0174).
 
+- **Encounters vs missions.** Routine help happens as you roam: about 1 in 4 animals has a small need (floating icon,
+  species call, spoken hint), and fixing it takes 1-2 steps and counts for badges (AS-0179). No clue rounds start by
+  themselves. Missions are deliberate stories that are only started from the scientist's Misiones board in the station
+  (AS-0180). They unlock strictly in order, one after the previous is done, and finished missions can be replayed (AS-0177).
+  Missions are data rows on a step runner (AS-0178). Order: 1 ¿Dónde está mamá? (piglet), 2 El huevo perdido, 3 Rescate en
+  el río, 4 Cumpleaños del mono, 5 Doctor del santuario, 6 El nido del águila, 7 Censo de animales, 8 Los ladrones de fresas,
+  9 Construir un hogar, 10 La carrera, 11 Mensaje perdido, 12 Noche de estrellas (AS-0173, AS-0181 to AS-0191).
+
 ## Unchanged from the spec
 
 Visual-first and low-reading, correct Spanish grammar agreement, never punish, original Easter-egg creatures (no
@@ -252,3 +260,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: treetop to treetop jumping with landing assist (AS-0166).
 - 2026-11-22: intro talk gives the story (animals need help); the scientist always stays at the station (AS-0142).
 - 2026-11-22: badges/stickers, naming, day/night with sleeping animals, mamá missions, waterfall treasure, animal friend (AS-0167 to AS-0175); jump over rocks (AS-0176).
+- 2026-11-22: encounters vs missions: roaming encounters, ordered missions started only at the station board, replayable (AS-0177 to AS-0191).

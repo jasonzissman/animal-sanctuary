@@ -36,6 +36,7 @@
     var isRunning = false;        // moved forward at run speed this frame (the avatar plays a faster stride)
     var jumpHeld = false;       // Space held (SA.jump needs a release between hops)
     var hop = SA.jump ? SA.jump.create() : null;   // { lift, vy, air, ... }: the avatar is drawn at y + lift; reach still uses y
+    var jumpTap = false;        // the on-screen jump button was tapped: one frame of "Space pressed" (same one-hop-per-landing rule)
     var run = false;            // Shift held: the avatar runs (SA.player RUN_SPEED) while moving forward
     var clearK = 1;             // smoothed fraction (0..1) of the camera's reach kept by SA.camera.clearPath
 
@@ -172,7 +173,8 @@
         player = SA.climb.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
           left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running }, dt, obstacles());
         if (hop) {   // the hop is a lift on top of the ground height; there is no hopping while climbing
-          hop = player.climb ? SA.jump.cancel(hop) : SA.jump.step(hop, { jump: jumpHeld }, dt);
+          hop = player.climb ? SA.jump.cancel(hop) : SA.jump.step(hop, { jump: jumpHeld || jumpTap }, dt);
+          jumpTap = false;
           if (hop.event === 'takeoff' && SA.audio && SA.audio.sfx) SA.audio.sfx('hop');
         }
         camY += (player.y - camY) * (1 - Math.exp(-5 * Math.min(dt, 0.1)));
@@ -194,6 +196,13 @@
       /** 'up' | 'down' | null: which climb button to show right now (the icon-only UI polls this each frame). */
       climbPrompt: function () { return SA.climb.prompt(player, trees()); },
       toggleClimb: toggleClimb,
+      /** The touch jump button: a fresh Space press. Only a grounded avatar hops (no buffering in the air, none up a tree). */
+      jump: function () {
+        if (!hop || hop.air || player.climb) return false;
+        hop = { lift: hop.lift, vy: hop.vy, air: false, armed: true, event: hop.event };
+        jumpTap = true;
+        return true;
+      },
       /** Climb a specific tree (the one Space chose); no-op when out of range or already up a tree. */
       climbTree: function (tree) { player = SA.climb.start(player, tree); },
       /** On-screen buttons hold yaw/pitch axes (-1, 0, 1); update() runs them through the same clamped orbitByKeys path as the keys. */

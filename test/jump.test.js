@@ -145,6 +145,48 @@ test('a solid obstacle still blocks the player in the air', () => {
   assert.ok(closest >= 1 + 0.6 - 0.05, `never entered the tree circle (closest ${closest})`);
 });
 
+// --- the touch jump button (AS-0114) ---
+test('rig.jump() hops exactly like Space: one hop per landing, none in the air', () => {
+  const log = [];
+  const { rig, frames } = makeRig([], log);
+  frames(3);
+  assert.equal(rig.jump(), true);
+  frames(2);
+  assert.ok(rig.getPlayer().lift > 0, 'in the air after a tap');
+  assert.equal(rig.jump(), false, 'a tap in the air is ignored (and not buffered)');
+  frames(60);
+  assert.equal(rig.getPlayer().lift, 0, 'landed, no second hop chained');
+  assert.deepEqual(log, ['hop']);
+  assert.equal(rig.jump(), true, 'a new tap after landing hops again');
+  frames(2);
+  assert.ok(rig.getPlayer().lift > 0);
+  assert.deepEqual(log, ['hop', 'hop']);
+});
+
+test('jump button: big round icon-only button, shown at the first touch, taps call rig.jump', () => {
+  const SA = loadGame(['game/sa.js', 'game/ui/jump-button.js']);
+  const made = [];
+  const doc = { body: { appendChild() {} }, createElement: () => { const el = { style: {}, attrs: {}, on: {}, setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(t, f) { this.on[t] = f; } }; made.push(el); return el; } };
+  const win = { addEventListener(t, f) { win[t] = f; } };
+  let jumps = 0;
+  const view = SA.jumpButton.create(doc, { jump: () => { jumps++; } }, win);
+  const b = made[0];
+  assert.equal(b.style.display, 'none', 'hidden on mouse/keyboard devices');
+  assert.equal(b.textContent, '⬆️');
+  assert.ok(SA.jumpButton.SIZE >= 72 && /border-radius:50%/.test(b.style.cssText));
+  win.pointerdown({ pointerType: 'mouse' });
+  assert.equal(b.style.display, 'none');
+  win.pointerdown({ pointerType: 'touch' });
+  assert.equal(b.style.display, 'block');
+  let stopped = 0;
+  b.on.pointerdown({ preventDefault() {}, stopPropagation() { stopped++; } });
+  assert.deepEqual([jumps, stopped], [1, 1], 'the tap jumps and does not reach the canvas (no drag-to-look)');
+  b.on.contextmenu({ preventDefault() {} });
+  assert.equal(SA.jumpButton.create(null, { jump() {} }).element, null);
+  assert.equal(SA.jumpButton.create(doc, {}).element, null);
+  assert.ok(view.element);
+});
+
 test('the avatar rises with the hop and squashes and stretches', () => {
   const node = () => ({ children: [], position: { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } }, rotation: { x: 0, y: 0, z: 0 },
     scale: { x: 1, y: 1, z: 1, set(x, y, z) { this.x = x; this.y = y; this.z = z; } }, add(c) { this.children.push(c); } });

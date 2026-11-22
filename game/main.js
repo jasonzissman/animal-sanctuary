@@ -54,6 +54,8 @@
     // Icon-only climb button: 🧗 next to a tree, ⬇️ while up one (same as Space / C).
     var climbBtn = null;
     try { if (SA.climbButton) climbBtn = SA.climbButton.create(root.document, stage.rig); } catch (e) { report('climbButton.start', e); }
+    // Icon-only ⬆️ jump button (appears at the first touch, like the joystick): the same hop as Space.
+    try { if (SA.jumpButton) SA.jumpButton.create(root.document, stage.rig, root); } catch (e) { report('jumpButton.start', e); }
     // Icon-only hotbar (bottom centre): tap a slot or press 1-9 to equip, tap it again or press 0 to empty your hands.
     var hotbar = null;
     try {

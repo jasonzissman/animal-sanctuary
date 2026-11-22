@@ -35,7 +35,10 @@ current; when your change sets or changes something future tickets must follow, 
   chase camera use), so a hop never reaches canopy animals; the avatar is drawn at `y + lift` and lands exactly back on the terrain.
   One hop per press: a held Space does not chain (the rig re-arms only on a fresh, non-repeat keydown or after release); no hopping up
   a tree. The rig reads Space (also Shift+Space; not on a focused button/input) and exposes `getPlayer().lift`; takeoff plays
-  `SA.audio.sfx('hop')`; the avatar squashes/stretches. A touch jump button is the next slice.
+  `SA.audio.sfx('hop')`; the avatar squashes/stretches.
+  **Touch jump button (AS-0114):** `game/ui/jump-button.js` is a round icon-only ⬆️ button (84 px, above the use button; appears at the first
+  touch like the joystick) that calls `rig.jump()`, a fresh Space press with the same rule (grounded only, one hop per landing, no buffering
+  in the air, none up a tree).
 - **Walk on any hard ground (AS-0109).** Only solid obstacles and the map edge block the player. Water and dips never
   do: the player wades in and may go under the surface for a moment, the camera stays above it. This overrides the
   water soft-wall / nearestDry notes below; animals still avoid water.

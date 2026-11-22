@@ -45,6 +45,7 @@
         el.style.display = 'flex';
         left = SECONDS;
         place();
+        if (SA.reach.speakCue) SA.reach.speakCue();   // spoken once per cue (throttled in SA.reach)
       },
       update: function (dt) {
         if (left <= 0 || !el) return;

@@ -6,6 +6,7 @@
  * Entry shape (JSON-serialisable):
  *   id, key   '<group>:<name>', e.g. 'part:orejas', 'animal:conejo', 'size:pequeño', 'color:rojo', 'number:3'
  *   es        Spanish text with article/accents exactly as shown on screen
+ *   en        optional English scaffold text (shown only when settings.english is on)
  *   clip      relative path to an audio clip or null
  * Groups: part, animal, biome, size, color, movement, diet, number, phrase, adj.
  * Adjective forms: size:/color: keys speak the masculine singular (base) word. Every size and colour adjective
@@ -25,6 +26,7 @@
     if (v.key !== v.id) fail('key', 'must equal id');
     if (typeof v.es !== 'string' || !v.es.trim()) fail('es', 'must be a non-empty string');
     if (v.clip !== null && (typeof v.clip !== 'string' || !v.clip)) fail('clip', 'must be a path string or null');
+    if (v.en !== undefined && (typeof v.en !== 'string' || !v.en.trim())) fail('en', 'must be a non-empty string when present');
     // Biome names are spoken with their article (la selva, el desierto) so the gender is always heard.
     if (/^biome:/.test(v.key) && !/^(el|la|los|las) /i.test(v.es)) fail('es', 'a biome name must start with its article (el/la/los/las)');
   }
@@ -32,9 +34,11 @@
   SA.data.defineKind('vocab', validateVocab);
 
   var items = [];
-  function add(group, name, es) {
+  function add(group, name, es, en) {
     var key = group + ':' + name;
-    items.push({ id: key, key: key, es: es, clip: null });
+    var item = { id: key, key: key, es: es, clip: null };
+    if (en) item.en = en;
+    items.push(item);
   }
 
   [['cabeza', 'la cabeza'], ['cuerpo', 'el cuerpo'], ['orejas', 'las orejas'], ['ojos', 'los ojos'],
@@ -90,6 +94,7 @@
   add('phrase', 'casi', '¡Casi!');
   add('phrase', 'yapuedevolar', '¡Ya puede volar!');
   add('phrase', 'quefoto', '¡Qué foto! Pero busca…');
+  add('phrase', 'acercate', '¡Acércate!', 'Come closer!');   // the reach cue (SA.reach.speakCue)
 
   SA.data.register('vocab', items);
   SA.vocab = {

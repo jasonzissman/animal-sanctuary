@@ -8,6 +8,7 @@
  *               check (canopy perchers until the player can climb: standing under the tree is enough)
  *   SA.reach.check(...) -> { ok, dist, dy }   the numbers behind canReach
  *   SA.reach.cue() -> { es: '¡Acércate!', icon: '🚶' }   the friendly get-closer cue (never a wrong pick)
+ *   SA.reach.speakCue(nowMs?) -> true when it spoke 'phrase:acercate' via SA.audio.say (false while throttled: once per cue)
  *   SA.reach.onFar(cb) -> unsubscribe;  SA.reach.notifyFar(info) tells listeners (cue UI, hint arrow) a tap was too far.
  * Generous on purpose: a 7-year-old should not have to fight to stand in exactly the right spot.
  */
@@ -46,6 +47,19 @@
     });
   }
 
-  SA.reach = { HORIZONTAL: HORIZONTAL, VERTICAL: VERTICAL, check: check, canReach: canReach, onFar: onFar, notifyFar: notifyFar,
+  // Speak the cue once per appearance: calls inside CUE_MS of the last spoken one (the bubble is still up) are ignored.
+  var CUE_KEY = 'phrase:acercate', CUE_MS = 1800, lastSpoken = -Infinity;
+  function speakCue(now) {
+    var t = num(now, Date.now());
+    if (t - lastSpoken < CUE_MS) return false;
+    lastSpoken = t;
+    if (SA.audio && typeof SA.audio.say === 'function') {
+      try { SA.audio.say(CUE_KEY); } catch (e) { /* speech is best effort */ }
+    }
+    return true;
+  }
+
+  SA.reach = { HORIZONTAL: HORIZONTAL, VERTICAL: VERTICAL, CUE_KEY: CUE_KEY, CUE_MS: CUE_MS, check: check, canReach: canReach,
+    onFar: onFar, notifyFar: notifyFar, speakCue: speakCue,
     cue: function () { return { es: '¡Acércate!', icon: '🚶' }; } };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -15,6 +15,7 @@
  *       The right animal emits round.complete {roundId, seconds, misses, hints, level}, awards 1 star in SA.save
  *       and ends the round ({ status: 'correct', animalId, seconds, stars }).
  *   game.hint() -> round | null       reveals the silhouette (counts a hint when it was hidden).
+ *   game.biomeHint() -> biomeId | null   second-stage hint (see SA.hintStage): counts one hint, once per round.
  *   game.current() -> round | null
  */
 (function (root) {
@@ -77,7 +78,8 @@
       seq += 1;
       var level = levelNow();
       round = { id: 'r' + seq + ':' + clue.key, clue: clue, answerId: clue.answer.animalId, level: level,
-        hintShown: level <= 1, misses: 0, hints: 0, done: false };
+        hintShown: level <= 1, misses: 0, hints: 0, done: false,
+        stage: SA.hintStage ? SA.hintStage.initial(level) : (level <= 1 ? 1 : 0), biomeShown: false };
       startedAt = now();
       return round;
     }
@@ -111,8 +113,17 @@
 
     function hint() {
       if (!round || round.done) return null;
-      if (!round.hintShown) { round.hintShown = true; round.hints += 1; }
+      if (!round.hintShown) { round.hintShown = true; round.hints += 1; round.stage = Math.max(round.stage, 1); }
       return round;
+    }
+
+    /** Second-stage hint: the target's biome glows. Counts one hint (once per round); returns the biome id or null. */
+    function biomeHint() {
+      if (!round || round.done) return null;
+      var a = SA.data.get('animals', round.answerId);
+      if (!a || !a.biome) return null;
+      if (!round.biomeShown) { round.biomeShown = true; round.hints += 1; round.stage = 2; }
+      return a.biome;
     }
 
     /** The off-screen arrow was tapped: counts as one hint for this round (once). */
@@ -122,7 +133,7 @@
       return round;
     }
 
-    return { start: start, pick: pick, hint: hint, pointerHint: pointerHint, current: function () { return round; } };
+    return { start: start, pick: pick, hint: hint, biomeHint: biomeHint, pointerHint: pointerHint, current: function () { return round; } };
   }
 
   SA.round = { TYPES: TYPES, MIN_BIOME_ANIMALS: MIN_BIOME_ANIMALS, candidatesForBiome: candidatesForBiome,

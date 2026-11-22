@@ -27,6 +27,20 @@
     function say(key) { try { if (audio && audio.say) audio.say(key); } catch (e) { /* silent */ } }
     function sfx(name) { try { if (audio && audio.sfx) audio.sfx(name); } catch (e) { /* silent */ } }
 
+    var biomeFx = o.biomeFx || null;    // optional { show(biomeId), hide() }: the second-stage biome glow
+
+    // Stuck without a correct pick: after each delay show the next hint stage (SA.hintStage). Hints never fail a round.
+    function scheduleHint(r, seconds) {
+      if (!SA.hintStage || r.stage >= SA.hintStage.MAX_STAGE) return;
+      later(function () {
+        if (game.current() !== r || r.done) return;
+        var stage = SA.hintStage.next(r.level, seconds, r.stage);
+        if (stage === 1) hint();
+        else if (stage === 2) biomeHint();
+        scheduleHint(r, seconds + AUTO_HINT_MS / 1000);
+      }, AUTO_HINT_MS);
+    }
+
     function begin() {
       // Stars/rounds may just have changed: let easter-egg unlocks run first so a new friend can join this clue.
       if (o.onProgress) { try { o.onProgress(); } catch (e) { /* unlocks never break play */ } }
@@ -34,11 +48,8 @@
       if (!r) { view.clear(); return null; }
       view.showRound({ text: r.clue.text, icon: iconFor(r.answerId), hintShown: r.hintShown, stars: SA.save.get().stars });
       say(r.clue.text);
-      if (!r.hintShown) {             // stuck for ~20s without a correct pick: offer the hint (counted in hints)
-        later(function () {
-          if (game.current() === r && !r.done && !r.hintShown) hint();
-        }, AUTO_HINT_MS);
-      }
+      if (biomeFx) biomeFx.hide();
+      scheduleHint(r, AUTO_HINT_MS / 1000);
       return r;
     }
 
@@ -58,6 +69,7 @@
         view.toast('¡Casi! 🙈');
         view.shake();
       } else if (res.status === 'correct') {
+        if (biomeFx) biomeFx.hide();
         sfx('chime');
         if (fx) fx.play(res.animalId, 'boing');
         view.celebrate({ icon: iconFor(res.animalId), stars: res.stars });
@@ -79,6 +91,11 @@
     function hint() {
       var r = game.hint();
       if (r) view.showHint();
+    }
+
+    function biomeHint() {
+      var id = game.biomeHint && game.biomeHint();
+      if (id && biomeFx) { try { biomeFx.show(id); } catch (e) { /* the glow never breaks play */ } }
     }
 
     return { begin: begin, onPick: onPick, replay: replay, hint: hint };
@@ -237,7 +254,7 @@
       careFlow = SA.careFlow.create({ care: SA.care.create(), view: view, fx: o.careFx, audio: o.audio, later: o.later,
         onDone: function () { if (ctl) ctl.begin(); } });
     }
-    ctl = createController({ game: o.game || SA.round.create(), view: view, fx: o.fx, audio: o.audio, later: o.later,
+    ctl = createController({ game: o.game || SA.round.create(), view: view, fx: o.fx, audio: o.audio, later: o.later, biomeFx: o.biomeFx,
       care: careFlow, onProgress: o.onProgress });
     SA.picking.onPick(ctl.onPick);
     ctl.begin();

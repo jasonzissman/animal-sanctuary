@@ -26,6 +26,13 @@ test('part height wins over the animal height', () => {
   assert.equal(R.canReach({ x: 0, z: 0 }, { x: 1, z: 0 }, { y: 8 }), false);
 });
 
+test('ignoreHeight lets a player under a canopy percher reach it, but still needs to be close sideways', () => {
+  const bird = { x: 1, y: 6, z: 1 };
+  assert.equal(R.canReach({ x: 0, z: 0 }, bird, { y: 6.5 }), false);
+  assert.equal(R.canReach({ x: 0, z: 0 }, bird, { y: 6.5 }, { ignoreHeight: true }), true);
+  assert.equal(R.canReach({ x: 0, z: 0 }, { x: 20, y: 6, z: 0 }, { y: 6.5 }, { ignoreHeight: true }), false);
+});
+
 test('options, junk input and the numbers behind the answer', () => {
   assert.equal(R.canReach({ x: 0, z: 0 }, { x: 8, z: 0 }, null, { horizontal: 9 }), true);
   assert.equal(R.canReach(null, { x: 0, z: 0 }), false);

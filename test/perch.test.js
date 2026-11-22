@@ -34,7 +34,7 @@ test('spots are seeded, only in the biome, and sit at canopy height', () => {
   for (const s of a) {
     const t = TREES[s.tree];
     assert.equal(SA.map.biomeAt(s.x), 'selva');
-    assert.ok(Math.hypot(s.x - t.x, s.z - t.z) <= 1.0 * t.scale + 1e-9, 'on the canopy ring');
+    assert.ok(Math.hypot(s.x - t.x, s.z - t.z) <= SA.perch.KINDS.jungle.radius * t.scale + 1e-9, 'on the canopy ring');
     assert.ok(Math.abs(s.y - (t.y + SA.perch.KINDS.jungle.height * t.scale)) < 1e-9);
   }
   assert.equal(SA.perch.spots(TREES, 'montana', 1).length, 0);

@@ -142,7 +142,9 @@
       var g = animals.getObjectByName(hit.animalId);
       if (!player || !g || !SA.reach) return true;   // no walking player (or no rule): behave as before
       hit.mesh.getWorldPosition(wp);
-      return SA.reach.canReach({ x: player.x, y: player.y || 0, z: player.z }, { x: g.position.x, y: g.position.y, z: g.position.z }, { y: wp.y });
+      return SA.reach.canReach({ x: player.x, y: player.y || 0, z: player.z }, { x: g.position.x, y: g.position.y, z: g.position.z }, { y: wp.y },
+        // Canopy perchers (userData.perched) are reachable from under their tree until a climb system (SA.climb) exists.
+        { ignoreHeight: !!(g.userData && g.userData.perched && !SA.climb) });
     }
 
     function nudgeCloser(hit) {

@@ -17,7 +17,7 @@
   'use strict';
   var SA = root.SA;
 
-  var KINDS = { jungle: { height: 4.4, radius: 1.0 }, pine: { height: 3.2, radius: 0.55 } };
+  var KINDS = { jungle: { height: 5.2, radius: 0.9 }, pine: { height: 3.2, radius: 0.55 } };
   var DEFAULT_KIND = 'jungle';
   var PER_TREE = 3;            // branch spots per tree
   var HOP_RANGE = 7;

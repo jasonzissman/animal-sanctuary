@@ -60,9 +60,20 @@
       begin();
     }
 
+    // Difficulty just moved: a wordless cue (star burst up, soft sparkle on Replay down). Sound only if SA.audio exists.
+    function levelCue(change) {
+      var lc = SA.levelCue;
+      var cue = lc ? lc.cueFor(change) : null;
+      if (!cue) return;
+      try { if (view.levelCue) view.levelCue(cue); } catch (e) { /* a cue never breaks play */ }
+      var name = lc.sfxFor(cue);
+      if (name) sfx(name);
+    }
+
     function onPick(p) {
       if (care && care.active()) return care.onPick(p);
       var res = game.pick(p);
+      levelCue(res && res.levelChange);
       if (res.status === 'wrong') {
         sfx('boing');
         if (fx) fx.play(p.animalId, 'wobble');
@@ -125,7 +136,7 @@
     var noop = function () {};
     if (!doc || typeof doc.createElement !== 'function' || !doc.body) {
       return { showRound: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop,
-        setStars: noop, setHidden: noop };
+        setStars: noop, setHidden: noop, levelCue: noop };
     }
     handlers = handlers || {};
     function el(tag, css, text) {
@@ -233,6 +244,26 @@
         if (typeof bar.animate === 'function') {
           bar.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-12px)' }, { transform: 'translateX(12px)' },
             { transform: 'translateX(-8px)' }, { transform: 'translateX(0)' }], { duration: 450 });
+        }
+      },
+      // cue: 'star-burst' (level up: stars fly out of the star badge) or 'soft-sparkle' (level down: a quiet shimmer on Replay).
+      levelCue: function (cue) {
+        function puff(emoji, css, from, to, ms) {
+          var n = el('div', 'position:fixed;z-index:6;pointer-events:none;' + css, emoji);
+          doc.body.appendChild(n);
+          if (typeof n.animate === 'function') n.animate([from, to], { duration: ms, easing: 'ease-out' });
+          root.setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, ms + 100);
+        }
+        if (cue === 'star-burst') {
+          for (var i = 0; i < 6; i++) {
+            var a = (i / 6) * Math.PI * 2;
+            puff('⭐', 'left:90px;bottom:40px;font-size:2.2rem;',
+              { transform: 'translate(0,0) scale(.4)', opacity: 1 },
+              { transform: 'translate(' + Math.round(Math.cos(a) * 110) + 'px,' + Math.round(Math.sin(a) * -110) + 'px) scale(1.1)', opacity: 0 }, 900);
+          }
+        } else if (cue === 'soft-sparkle' && typeof replayBtn.animate === 'function') {
+          replayBtn.animate([{ boxShadow: '0 0 0 0 rgba(255,217,61,0)' }, { boxShadow: '0 0 14px 6px rgba(255,217,61,.8)' },
+            { boxShadow: '0 0 0 0 rgba(255,217,61,0)' }], { duration: 1200 });
         }
       },
       confetti: function () {

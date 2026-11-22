@@ -43,6 +43,55 @@ test('every part, animal, biome and trait word in the data has a vocab entry', (
   assert.ok(SA.vocab.keys().some((k) => k.startsWith('phrase:')));
 });
 
+test('every animal name and every trait value an animal actually uses has a vocab entry', () => {
+  const SA = loadGame(DATA);
+  const animals = SA.data.all('animals');
+  assert.ok(animals.length >= 10);
+  const missing = [];
+  const need = (animal, key, es) => {
+    const e = SA.vocab.get(key);
+    if (!e) missing.push(`${animal.id}: no vocab entry "${key}"`);
+    else if (es !== undefined && e.es !== es) missing.push(`${animal.id}: "${key}" text ${JSON.stringify(e.es)} != ${JSON.stringify(es)}`);
+  };
+  const article = { m: 'el ', f: 'la ' };
+  animals.forEach((a) => {
+    // The spoken name carries the article for its gender (el águila is feminine but takes "el").
+    need(a, 'animal:' + a.id);
+    const name = SA.vocab.get('animal:' + a.id);
+    if (name) assert.ok(/^(el|la|los|las) /.test(name.es) && name.es.endsWith(a.name.es), `${a.id}: ${name.es}`);
+    if (name && a.id !== 'aguila') assert.ok(name.es.startsWith(article[a.name.gender]), `${a.id} article vs gender`);
+    need(a, 'biome:' + a.biome, SA.data.get('biomes', a.biome).name.es);   // habitat
+    need(a, 'size:' + a.traits.size, a.traits.size);
+    need(a, 'color:' + a.traits.color, a.traits.color);
+    need(a, 'movement:' + a.traits.movement, a.traits.movement);
+    need(a, 'diet:' + a.traits.diet, a.traits.diet);
+    need(a, 'number:' + a.traits.legs);                                    // count
+    a.parts.forEach((p) => need(a, 'number:' + p.count));
+  });
+  assert.deepEqual(missing, []);
+});
+
+test('the missing-vocab check really fails when an animal or trait value has no entry', () => {
+  const SA = loadGame(DATA);
+  const bad = { id: 'dragon', name: { es: 'dragón', en: 'dragon', gender: 'm' }, traits: { size: 'enorme', color: 'morado', movement: 'surfea', diet: 'fuego', legs: 11 } };
+  assert.equal(SA.vocab.get('animal:' + bad.id), null);
+  ['size', 'color', 'movement', 'diet'].forEach((t) => assert.equal(SA.vocab.get(t + ':' + bad.traits[t]), null, t));
+  assert.equal(SA.vocab.get('number:' + bad.traits.legs), null);
+});
+
+test('say() can speak every animal name and trait value', () => {
+  const { spoken, globals } = speechGlobals();
+  const SA = loadGame(ALL, globals);
+  SA.data.all('animals').forEach((a) => {
+    [['animal:' + a.id, SA.vocab.get('animal:' + a.id).es], ['size:' + a.traits.size, a.traits.size], ['color:' + a.traits.color, a.traits.color],
+      ['movement:' + a.traits.movement, a.traits.movement], ['diet:' + a.traits.diet, a.traits.diet]].forEach(([key, es]) => {
+      spoken.length = 0;
+      assert.equal(SA.audio.say(key), 'speech', key);
+      assert.equal(spoken[0].text, es);
+    });
+  });
+});
+
 test('vocab entries are validated', () => {
   const SA = loadGame(DATA);
   assert.throws(() => SA.data.register('vocab', [{ id: 'x', key: 'x', es: 'hola', clip: null }]), /group:name/);

@@ -69,6 +69,22 @@
     return Math.abs(x - riverX(z)) < RIVER.halfWidth + margin || dp < POND.radius + margin;
   }
 
+  /** Height-following: ease `prev` (current standing height) toward the ground `target`, frame-rate independent so slopes
+   *  feel natural, never lagging more than MAX_LAG from the ground (steep faces cannot sink the feet). No prev = snap. */
+  var FOLLOW_RATE = 14, MAX_LAG = 0.5;
+  function followHeight(prev, target, dt) {
+    if (typeof target !== 'number' || !isFinite(target)) return typeof prev === 'number' && isFinite(prev) ? prev : 0;
+    if (typeof prev !== 'number' || !isFinite(prev)) return target;
+    var k = 1 - Math.exp(-FOLLOW_RATE * Math.max(0, Math.min(0.1, typeof dt === 'number' && isFinite(dt) ? dt : 0)));
+    return clamp(prev + (target - prev) * k, target - MAX_LAG, target + MAX_LAG);
+  }
+
+  /** Chase-camera height: the wanted y, but never lower than the terrain under the camera plus `clearance` (default 0.6). */
+  function cameraHeight(wantY, x, z, clearance) {
+    var floor = Math.max(groundHeight(x, z), WATER_LEVEL) + (typeof clearance === 'number' ? clearance : 0.6);
+    return typeof wantY === 'number' && isFinite(wantY) && wantY > floor ? wantY : floor;
+  }
+
   /** Deterministic PRNG (mulberry32) so procedural decoration is identical on every load. */
   function rng(seed) {
     var a = seed >>> 0;
@@ -83,6 +99,6 @@
 
   SA.map = {
     BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND,
-    clamp: clamp, biomeAt: biomeAt, riverX: riverX, groundHeight: groundHeight, isWater: isWater, nearWater: nearWater, rng: rng,
+    clamp: clamp, biomeAt: biomeAt, riverX: riverX, groundHeight: groundHeight, followHeight: followHeight, cameraHeight: cameraHeight, isWater: isWater, nearWater: nearWater, rng: rng,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -26,6 +26,10 @@ current; when your change sets or changes something future tickets must follow, 
   carry `solid` (flores false), animals use `SA.animals.BLOCK_RADIUS` by size trait (pequeño 0). `SA.blocking`
   (game/blocking.js, pure) builds the obstacle list; wanderers still keep clear of every decor item and prop.
   New decor or props must declare `solid`; untagged decor blocks by default.
+- **Everything sits on the terrain (AS-0091).** `SA.map.groundHeight(x, z)` is the one height source. The player's `y` follows
+  it every frame through `SA.map.followHeight` (eased, bounded lag; used by `SA.climb.step`), animals (`render/ambient.js`),
+  pickups, decor and props all read it, and the chase camera is lifted by `SA.map.cameraHeight` so it never dips into hills.
+  New things placed in the world must take their `y` from `groundHeight`, never a constant.
 - **Being close matters.** Inspecting, caring and photographing need the player within reach. Too far gives a
   friendly "¡Acércate!", never a wrong answer. Rule: `SA.reach.canReach(player, animal, part?)` (game/reach.js, player
   `y` is its standing height so climbing raises reach); `render/picking.js` gates every pick and rub through it and

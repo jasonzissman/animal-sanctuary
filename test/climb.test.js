@@ -73,7 +73,7 @@ test('the down button always returns to dry ground, outside the trunk, y = 0', (
   assert.equal(s.climb.mode, 'down');
   s = run(s, {}, K.DOWN_TIME + 0.1);
   assert.equal(s.climb, null);
-  assert.equal(s.y, 0);
+  assert.equal(s.y, SA.map.groundHeight(s.x, s.z));
   assert.ok(!SA.map.isWater(s.x, s.z));
   assert.ok(Math.hypot(s.x - TREE.x, s.z - TREE.z) > 1.6, 'not inside the trunk');
   assert.equal(K.prompt(s, TREES), 'up', 'can climb again right away');
@@ -87,7 +87,7 @@ test('walking off the canopy edge climbs down safely', () => {
   assert.ok(went < 300);
   s = run(s, { forward: true }, K.DOWN_TIME + 0.1);
   assert.equal(s.climb, null);
-  assert.equal(s.y, 0);
+  assert.ok(Math.abs(s.y - SA.map.groundHeight(s.x, s.z)) < 0.5);
 });
 
 test('canopy walking stays on the tree and ignores ground obstacles', () => {
@@ -108,7 +108,7 @@ test('aborting a climb halfway comes back down from the current height', () => {
   assert.equal(s.y, h);
   let last = h;
   while (s.climb) { s = K.step(s, {}, DT); assert.ok(s.y <= last + 1e-9); last = s.y; }
-  assert.equal(s.y, 0);
+  assert.equal(s.y, SA.map.groundHeight(s.x, s.z));
 });
 
 test('landing in water falls back to the spot you climbed from', () => {
@@ -134,9 +134,9 @@ test('landing is clamped inside the map and pushed out of props', () => {
   assert.ok(s.x <= SA.map.BOUNDS.maxX);
 });
 
-test('ground stepping is SA.player.step plus y = 0, and tolerates a missing state', () => {
-  const g = K.step(at(0, 0), { forward: true }, DT);
-  assert.ok(g.z > 0 && g.y === 0 && g.climb === null);
+test('ground stepping is SA.player.step plus terrain y, and tolerates a missing state', () => {
+  const g = K.step(at(0, 0, { y: SA.map.groundHeight(0, 0) }), { forward: true }, DT);
+  assert.ok(g.z > 0 && g.climb === null && Math.abs(g.y - SA.map.groundHeight(g.x, g.z)) < 0.5);
   assert.ok(K.step(null, {}, 0).climb === null);
 });
 
@@ -177,7 +177,7 @@ test('rig: C climbs when next to a tree and down again, and getPlayer reports y'
   assert.equal(rig.getPlayer().climb, 'down');
   frames(40);
   assert.equal(rig.getPlayer().climb, null);
-  assert.equal(rig.getPlayer().y, 0);
+  assert.ok(Math.abs(rig.getPlayer().y - ctx.window.SA.map.groundHeight(rig.getPlayer().x, rig.getPlayer().z)) < 1e-9);
   rig.glideTo(0, 0);
   rig.toggleClimb();
   frames(1);

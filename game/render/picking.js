@@ -11,7 +11,8 @@
  *   on it uses the equipped item (SA.picking.emit gets `item`); empty hands just pet/inspect. A click or tap that misses every
  *   pick volume falls back to the nearest in-reach part within the radius (larger for touch).
  * - Arrow keys/WASD always move the player (no part-cycling mode, no Escape to unlock); only Space acts, and only when a target
- *   is highlighted (it then wins over the climb key, so the tree prompt never steals a target).
+ *   is highlighted (it then wins over the climb key and the pickup collector, so Space never both uses a part and grabs a
+ *   find; with no highlighted part Space reaches them as before).
  * - Reach: with opts.getPlayer() (the walking avatar) a pick on an out-of-reach animal never reaches SA.picking.emit; it
  *   shows opts.reachCue ("¡Acércate!") and calls SA.reach.notifyFar instead. Rubbing out of reach is silently ignored.
  * Returns { update(dt), pickAt(clientX, clientY) -> {animalId, part, ...}|null, target() -> {animalId, part, mesh}|null, useTarget() -> bool }. Call update(dt) every frame.

@@ -45,6 +45,18 @@ test('on a touch screen it shows while a part is highlighted, with the equipped 
   assert.equal(s.used.length, 1);
 });
 
+test('it is placed left of the orbit pad (right 12-132px, bottom 72-192px) and never covers it', () => {
+  const s = setup({ coarse: true });
+  const right = parseInt(/right:(\d+)px/.exec(s.el.style.cssText)[1], 10);
+  const bottom = parseInt(/bottom:(\d+)px/.exec(s.el.style.cssText)[1], 10);
+  const size = parseInt(/width:(\d+)px/.exec(s.el.style.cssText)[1], 10);
+  const overlapsX = right < 132 && right + size > 12;
+  const overlapsY = bottom < 192 && bottom + size > 72;
+  assert.ok(!(overlapsX && overlapsY), 'no overlap with the orbit pad');
+  // The climb button sits at right 12, bottom 200, 72px.
+  assert.ok(!(right < 84 && bottom < 272 && bottom + size > 200), 'no overlap with the climb button');
+});
+
 test('the first touch enables the button on a non-coarse device', () => {
   const s = setup({ target: { animalId: 'x' } });
   s.winL.pointerdown({ pointerType: 'touch' });

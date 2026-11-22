@@ -207,13 +207,17 @@ test('a tap that misses every pick volume still picks the nearest in-reach part 
   const picks = [];
   s.SA.picking.onPick((p) => picks.push(p));
   const hit = s.picking.pickAt(400, 300);
-  // Find a point just outside the part's pick volume that is still near its projected centre.
+  assert.ok(hit, 'test setup: the centre hits a part');
+  // The first pixel to the right that misses every pick volume is just outside the part, well inside the touch radius.
   let found = null;
-  for (let dx = 20; dx < 140 && !found; dx += 4) if (!s.picking.pickAt(400 + dx, 300) && !s.picking.pickAt(400 - dx, 300)) found = dx;
-  assert.ok(found, 'test setup: some pixel misses the volumes');
-  s.handlers.pointerdown(ev(400 + found, 300));
-  s.handlers.pointerup(ev(400 + found, 300));
-  assert.ok(picks.length === 0 || picks[0].animalId === hit.animalId, 'a nearby tap resolves to the aimed animal or nothing too far');
+  for (let d = 1; d <= 70 && !found; d++) {
+    for (const [dx, dy] of [[d, 0], [-d, 0], [0, d], [0, -d]]) if (!found && !s.picking.pickAt(400 + dx, 300 + dy)) found = [400 + dx, 300 + dy];
+  }
+  assert.ok(found, 'test setup: a pixel within the touch radius (72px) misses the volumes');
+  s.handlers.pointerdown(ev(found[0], found[1]));
+  s.handlers.pointerup(ev(found[0], found[1]));
+  assert.equal(picks.length, 1, 'the fallback picks exactly one part');
+  assert.equal(picks[0].animalId, hit.animalId);
 });
 
 test('a hidden easter egg cannot be picked, and can once it is shown', () => {

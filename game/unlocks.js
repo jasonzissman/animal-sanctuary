@@ -13,10 +13,12 @@
  *
  *   SA.unlocks.validate(cond)            throws a clear Error for a malformed condition
  *   SA.unlocks.evaluate(cond, facts)     -> boolean
- *   SA.unlocks.create({ save?, track?, onUnlock? }) -> tracker
- *     tracker.tap(target, itemId, biome)   counts one tap on an item (saved in stats.unlocks, so it survives a reload)
- *                                          and then runs check()
- *     tracker.tapCount(target, itemId, biome)  taps so far on that item
+ *   SA.unlocks.create({ save?, track?, onUnlock?, now? }) -> tracker
+ *     tracker.tap(target, itemId, biome)   counts one tap on an item (count in stats.unlocks, time in stats.unlockTimes)
+ *                                          and then runs check(). Taps more than WINDOW_MS (10 s) apart restart the
+ *                                          count at 1, so only a short burst on one item counts.
+ *     tracker.tapCount(target, itemId, biome)  taps in the current burst on that item (0 once it went stale)
+ *   SA.unlocks.streakAfterTap(count, last, now, windowMs?) / liveCount(...)  the pure streak rules
  *     tracker.check()                      unlocks every hidden easter egg whose condition now holds: saved in
  *                                          unlockedAnimals, event `unlock.animal` {animalId}, onUnlock(animal);
  *                                          returns the newly unlocked animals
@@ -73,24 +75,51 @@
     return !!a && (!a.easterEgg || savedIds().indexOf(id) >= 0);
   }
 
+  // Pure streak rule: a tap continues the streak only when it comes within WINDOW_MS of the previous tap on the
+  // same item; otherwise (or when the stored data is missing/odd) the streak restarts at 1.
+  var WINDOW_MS = 10000;
+  function isLive(last, now, windowMs) {
+    var w = typeof windowMs === 'number' ? windowMs : WINDOW_MS;
+    return typeof last === 'number' && isFinite(last) && typeof now === 'number' && isFinite(now) && last > 0 && now >= last && now - last <= w;
+  }
+  // -> the streak length after a tap at `now` (count/last = the item's previous streak length and last tap time)
+  function streakAfterTap(count, last, now, windowMs) {
+    var c = typeof count === 'number' && isFinite(count) && count > 0 ? Math.floor(count) : 0;
+    return isLive(last, now, windowMs) ? Math.min(c + 1, MAX_TAPS) : 1;
+  }
+  // -> the streak length still counting at `now` (0 once the window has passed)
+  function liveCount(count, last, now, windowMs) {
+    return isLive(last, now, windowMs) && typeof count === 'number' && count > 0 ? count : 0;
+  }
+
   function create(opts) {
     opts = opts || {};
-    var counts = {};    // 'target|biome|item' -> taps (restored from stats.unlocks, saved on every tap)
-    var best = {};      // target -> { biome|'*': highest count on one item }
+    var counts = {};    // 'target|biome|item' -> taps in the current burst (restored from stats.unlocks)
+    var times = {};     // same key -> ms timestamp of the last tap (restored from stats.unlockTimes)
+    function clock() { return opts.now ? opts.now() : Date.now(); }
 
-    function note(key, n) {
-      var p = key.split('|');
-      if (p.length !== 3 || !p[0]) return;
-      var t = best[p[0]] = best[p[0]] || {};
-      t['*'] = Math.max(t['*'] || 0, n);
-      if (p[1] !== '*') t[p[1]] = Math.max(t[p[1]] || 0, n);
-    }
-
-    // Progress from earlier visits (a missing/odd save simply starts at zero).
+    // Progress from earlier visits (a missing/odd save simply starts at zero). Stale counts are kept as they
+    // are and simply stop counting once their window has passed; the next tap restarts them.
     try {
-      var saved = SA.save.get().stats.unlocks;
-      Object.keys(saved).forEach(function (k) { counts[k] = saved[k]; note(k, saved[k]); });
+      var st = SA.save.get().stats;
+      Object.keys(st.unlocks).forEach(function (k) { counts[k] = st.unlocks[k]; });
+      var tm = st.unlockTimes;
+      if (tm && typeof tm === 'object') Object.keys(tm).forEach(function (k) { times[k] = tm[k]; });
     } catch (e) { /* no save module: session memory only */ }
+
+    // target -> { biome|'*': highest in-window count on one item }
+    function best() {
+      var out = {}, now = clock();
+      Object.keys(counts).forEach(function (key) {
+        var p = key.split('|');
+        var n = liveCount(counts[key], times[key], now);
+        if (p.length !== 3 || !p[0] || !n) return;
+        var t = out[p[0]] = out[p[0]] || {};
+        t['*'] = Math.max(t['*'] || 0, n);
+        if (p[1] !== '*') t[p[1]] = Math.max(t[p[1]] || 0, n);
+      });
+      return out;
+    }
 
     function track(type, fields) {
       try {
@@ -101,7 +130,7 @@
 
     function facts() {
       var s = SA.save.get();
-      return { stars: s.stars, rounds: s.rounds.completed, taps: best };
+      return { stars: s.stars, rounds: s.rounds.completed, taps: best() };
     }
 
     function check() {
@@ -117,18 +146,25 @@
     }
 
     function tap(target, itemId, biome) {
-      var key = target + '|' + (biome || '*') + '|' + itemId;
-      var n = counts[key] = Math.min((counts[key] || 0) + 1, MAX_TAPS);
-      note(key, n);
-      try { var patch = { stats: { unlocks: {} } }; patch.stats.unlocks[key] = n; SA.save.update(patch); } catch (e) { /* play on */ }
+      var key = target + '|' + (biome || '*') + '|' + itemId, now = clock();
+      var n = counts[key] = streakAfterTap(counts[key], times[key], now);
+      times[key] = now;
+      try {
+        var patch = { stats: { unlocks: {}, unlockTimes: {} } };
+        patch.stats.unlocks[key] = n; patch.stats.unlockTimes[key] = now;
+        SA.save.update(patch);
+      } catch (e) { /* play on */ }
       return check();
     }
 
-    // Taps so far on one item (all visits).
-    function tapCount(target, itemId, biome) { return counts[target + '|' + (biome || '*') + '|' + itemId] || 0; }
+    // Taps in the current burst on one item (0 once the window has passed).
+    function tapCount(target, itemId, biome) {
+      var key = target + '|' + (biome || '*') + '|' + itemId;
+      return liveCount(counts[key], times[key], clock());
+    }
 
     return { tap: tap, tapCount: tapCount, check: check, facts: facts, isUnlocked: isUnlocked };
   }
 
-  SA.unlocks = { TYPES: TYPES, validate: validate, evaluate: evaluate, create: create, isUnlocked: isUnlocked };
+  SA.unlocks = { WINDOW_MS: WINDOW_MS, streakAfterTap: streakAfterTap, liveCount: liveCount, TYPES: TYPES, validate: validate, evaluate: evaluate, create: create, isUnlocked: isUnlocked };
 })(typeof window !== 'undefined' ? window : globalThis);

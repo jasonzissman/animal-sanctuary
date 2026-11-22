@@ -7,6 +7,7 @@
  *   radius  how far from the centre it keeps the player out (world units, > 0 and <= 6); required only when solid
  *   height  optional, solid only (AS-0176): top of the item at scale 1 (world units, 0 < h <= 3); the placed scale multiplies it.
  *           A low item (rocks) only blocks a player whose jump lift is below it; no height = always blocks (trees, cacti, peaks)
+ *   prick   optional, solid only (AS-0156): true = touching it bounces the player back with an 'ouch' (SA.prick; the cactus)
  */
 (function (root) {
   'use strict';
@@ -23,6 +24,7 @@
     if (d.height !== undefined && (!d.solid || typeof d.height !== 'number' || !isFinite(d.height) || d.height <= 0 || d.height > 3)) {
       fail('height', 'only a solid item may have a height, a number in (0, 3]');
     }
+    if (d.prick !== undefined && (d.prick !== true || !d.solid)) fail('prick', 'only a solid item may be prickly (true)');
   }
 
   SA.data.defineKind('decor', validateDecor);
@@ -31,7 +33,7 @@
     { id: 'jungle', solid: true, radius: 1 },
     { id: 'roca', solid: true, radius: 1, height: 0.8 },
     { id: 'flor', solid: false },
-    { id: 'cactus', solid: true, radius: 0.8 },
+    { id: 'cactus', solid: true, radius: 0.8, prick: true },
     { id: 'pinonieve', solid: true, radius: 1 },
     { id: 'rocaarena', solid: true, radius: 1, height: 0.75 },
     { id: 'pico', solid: true, radius: 2.5 }

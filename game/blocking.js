@@ -7,7 +7,8 @@
  *   SA.blocking.decorRadius(id)         -> blocking radius (0 = soft); unknown/missing id -> DEFAULT_RADIUS (safe: blocks)
  *   SA.blocking.animalRadius(animalId)  -> blocking radius from the animal's size trait (0 = walk through)
  *   SA.blocking.decorHeight(id, scale?) -> top of a low decor item (data height x placed scale), or 0 = always blocks
- *   SA.blocking.solidProps(records)     -> [[x, z, radius(, height)], ...] for the solid placed props only (needs SA.propAvoid)
+ *   SA.blocking.pricklies(decor)        -> [[x, z, radius], ...] for decor items whose data says prick: true (cacti, AS-0156)
+ *   SA.blocking.solidProps(records)    -> [[x, z, radius(, height)], ...] for the solid placed props only (needs SA.propAvoid)
  *   SA.blocking.obstacles({ decor, animals, props }) -> the [[x, z, r(, h)], ...] list SA.player.step takes. A 4th number h
  *       (AS-0176) marks a low solid: a player whose jump lift is within a small margin of h passes over it and may land on top.
  *       Trees, cacti, peaks, ponds, bridges and animals have no h, so they always block.
@@ -48,6 +49,16 @@
     return out;
   }
 
+  /** The prickly decor (data `prick: true`) as [x, z, radius] circles: SA.prick bounces the player off them. */
+  function pricklies(decor) {
+    var out = [];
+    (decor || []).forEach(function (d) {
+      var def = d && typeof d.decor === 'string' ? SA.data.get('decor', d.decor) : null;
+      if (def && def.solid && def.prick === true) out.push([d.x, d.z, def.radius]);
+    });
+    return out;
+  }
+
   function obstacles(src) {
     var list = [];
     (src.decor || []).forEach(function (d) {
@@ -65,5 +76,5 @@
     return list;
   }
 
-  SA.blocking = { DEFAULT_RADIUS: DEFAULT_RADIUS, decorRadius: decorRadius, decorHeight: decorHeight, animalRadius: animalRadius, solidProps: solidProps, obstacles: obstacles };
+  SA.blocking = { DEFAULT_RADIUS: DEFAULT_RADIUS, decorRadius: decorRadius, decorHeight: decorHeight, animalRadius: animalRadius, solidProps: solidProps, pricklies: pricklies, obstacles: obstacles };
 })(typeof window !== 'undefined' ? window : globalThis);

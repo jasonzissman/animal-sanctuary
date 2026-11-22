@@ -63,7 +63,7 @@ test('before the first gesture nothing plays and nothing is created', () => {
 
 test('after unlock all 6 named effects play; unknown names do not', () => {
   const { SA, stats } = setup();
-  assert.deepEqual([...SA.audio.NAMES].sort(), ['boing', 'chime', 'chirp', 'fanfare', 'giggle', 'hop', 'pop', 'shutter', 'sparkle', 'splash']);
+  assert.deepEqual([...SA.audio.NAMES].sort(), ['boing', 'chime', 'chirp', 'fanfare', 'giggle', 'hop', 'ouch', 'pop', 'shutter', 'sparkle', 'splash']);
   assert.equal(SA.audio.unlock(), true);
   assert.equal(SA.audio.unlock(), true);
   assert.equal(stats.created, 1, 'context created once');

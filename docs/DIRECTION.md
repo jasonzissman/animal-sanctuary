@@ -31,7 +31,7 @@ current; when your change sets or changes something future tickets must follow, 
   sub-steps each move to at most `RADIUS` long so running (or a slow frame) never tunnels through thin obstacles. The touch joystick
   runs when pushed forward to its outer edge (`SA.joystick.RUN_AT`). Bounds, soft collisions, water and reach apply
   unchanged; the avatar's stride plays faster (`rig.getPlayer().running`). Shift triggers nothing else.
-- **Keys for a 7-year-old (AS-0111, AS-0112).** Arrows/WASD walk, Shift runs (about 2.5x, AS-0110), **Space jumps**,
+- **Keys for a 7-year-old (AS-0111, AS-0112). Space twice = double jump (AS-0126).** Arrows/WASD walk, Shift runs (about 2.5x, AS-0110), **Space jumps**,
   **E or Enter uses** the equipped item on the outlined target (climb, pick up, care, photo), 1-9 picks a hotbar item,
   click/tap on the outline also uses it. Wherever the notes below say "Space" for using/acting, read E/Enter.
   Implemented (AS-0111): `SA.spaceUse.isUseKey(e)` (game/space-use.js) is the one key map (E/e/Enter/KeyE; modified keys,
@@ -180,3 +180,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: movement sounds: footsteps, landing, water and climbing (AS-0118, AS-0119, AS-0120).
 - 2026-11-22: messages always win; the item-name chip only flashes on equip (AS-0121).
 - 2026-11-22: any matching animal counts (AS-0122); rescue missions: find, help 1-2 times, photo proof (AS-0123 to AS-0125).
+- 2026-11-22: double jump: Space again in mid-air (AS-0126).

@@ -71,7 +71,11 @@ current; when your change sets or changes something future tickets must follow, 
   (the hint still reveals itself after 20 s; la cámara is in the hotbar). `game/ui/prompt.js` is migrated (pill, stars
   under it, toast, snapshot card, feed tray; re-laid out on resize). AS-0151 migrated the rest of `game/ui/` through
   `game/ui/hud-place.js` (`SA.hudPlace.register(id, el, {reserve, onPlace})`, `refresh()` after a show/hide, re-run on resize):
-  🏡/📖/⚙️ stack in the top-right column, hotbar and name chip, joystick, orbit pad, use/jump/climb sit in their zones, the sandbox
+  one 🎒 menu button tops the top-right column (AS-0195, `game/menu.js` pure state + `game/ui/menu-view.js`): tapping it opens a
+  2x2 grid under it of sound (mute), 🏡 habitat, 📖 album and ⚙️ settings (still press-and-hold). Those four buttons keep their
+  own views and `SA.hud` slots (`audioUi`, `sandbox`, `album`, `settings`, always reserved) and are only shown while the menu is
+  open; it closes on an outside tap, Escape or after habitat/album/settings is used; M toggles mute without opening it. A new
+  rarely used button goes into this menu (add an `SA.menu.ITEMS` entry), not onto the always-visible HUD. Hotbar and name chip, joystick, orbit pad, use/jump/climb sit in their zones, the sandbox
   prop tray uses the `feedTray` slot and its messages the `toast` slot, and the roaming hint arrow is nudged clear of every rect
   (`SA.hud.nudge`). A test greps `game/ui/*.js` for numeric top/left/right/bottom on `position:fixed` elements: add a new HUD
   element as an id + size in `hud.js` and register it, never a CSS offset.
@@ -184,7 +188,7 @@ current; when your change sets or changes something future tickets must follow, 
   `take(game, pick)`. A shot plays SFX `shutter`, a white flash and a framed snapshot (icon + Spanish name) that slides in; a
   match is the normal celebration + star; a different animal gets "¡Qué foto! Pero busca…" (`phrase:quefoto`) and the clue
   is replayed, the round continues (counts a miss for adaptive difficulty, never a penalty).
-- **Photo album (AS-0085).** The 📖 button (right side, under 🏡) opens a page of cards, one per species: photographed = icon, Spanish
+- **Photo album (AS-0085).** The 📖 button (in the 🎒 menu) opens a page of cards, one per species: photographed = icon, Spanish
   name and its body parts as icon chips (tap the card or a chip to hear it); not yet photographed = a dark "?" silhouette that stays
   silent. Easter-egg creatures only appear once photographed. `SA.album` (game/album.js, pure) reads/writes save `album: { animalId:
   'YYYY-MM-DD' }` (first-photo date, no images; `SA.photo.record` calls `SA.album.add`) and builds the cards from animal/part data

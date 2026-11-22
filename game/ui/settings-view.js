@@ -1,6 +1,6 @@
 /* SA.settingsView.create(doc, opts) -> { open(), close(), isOpen(), refresh() }: the grown-up drawer (DOM only).
- *   opts { reload?(), copy?(text) -> Promise|void, onChange?() }
- * A small ⚙ button opens it only after a ~1.5s press-and-hold (SA.settings.createHold), so kids don't open it by
+ *   opts { reload?(), copy?(text) -> Promise|void, onChange?(), onOpen?() (after the hold opened it: the 🎒 menu closes) }
+ * A ⚙ button (an item of the 🎒 menu) opens it only after a ~1.5s press-and-hold (SA.settings.createHold), so kids don't open it by
  * accident; a quick tap just shows a "hold" hint ring. The drawer holds: English labels toggle, difficulty selector,
  * mute, local stats (+ copy as text), "Send feedback" and Reset progress (with a confirm step).
  * Logic lives in SA.settings / SA.stats (pure, tested); this file is thin glue. Harmless no-op without a DOM.
@@ -37,7 +37,7 @@
     gear.setAttribute('aria-label', 'Settings (press and hold)');
     gear.title = 'Hold to open';
     var isOpen = false;
-    var hold = SA.settings.createHold({ onOpen: function () { open(); } });
+    var hold = SA.settings.createHold({ onOpen: function () { open(); if (opts.onOpen) opts.onOpen(); } });
     ['pointerdown', 'touchstart', 'mousedown'].forEach(function (ev) { gear.addEventListener(ev, function () { hold.down(); }); });
     ['pointerup', 'pointerleave', 'pointercancel', 'touchend', 'touchcancel', 'mouseup', 'mouseleave'].forEach(function (ev) {
       gear.addEventListener(ev, function () { hold.up(); });

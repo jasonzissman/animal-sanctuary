@@ -111,8 +111,8 @@
     }
     function isKey(k) { return KEYS[k] || ORBIT_KEYS[k]; }
     function onKeyDown(e) {
-      // Space / C climb up when next to a tree and down when up one; otherwise they do nothing here.
-      if ((e.key === ' ' || e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey && !e.altKey && SA.climb.prompt(player, trees())) {
+      // C climbs up when next to a tree and down when up one (Space goes through SA.spaceUse); otherwise it does nothing here.
+      if ((e.key === 'c' || e.key === 'C') &&!e.ctrlKey && !e.metaKey && !e.altKey && SA.climb.prompt(player, trees())) {
         e.preventDefault();
         if (!e.repeat) toggleClimb();
         return;
@@ -157,6 +157,8 @@
       /** 'up' | 'down' | null: which climb button to show right now (the icon-only UI polls this each frame). */
       climbPrompt: function () { return SA.climb.prompt(player, trees()); },
       toggleClimb: toggleClimb,
+      /** Climb a specific tree (the one Space chose); no-op when out of range or already up a tree. */
+      climbTree: function (tree) { player = SA.climb.start(player, tree); },
       /** On-screen buttons hold yaw/pitch axes (-1, 0, 1); update() runs them through the same clamped orbitByKeys path as the keys. */
       setOrbitAxes: function (yaw, pitch) { padYaw = yaw > 0 ? 1 : yaw < 0 ? -1 : 0; padPitch = pitch > 0 ? 1 : pitch < 0 ? -1 : 0; },
       /** The on-screen joystick (unit disc, +y down). update() feeds it to SA.player.step with the keys. */

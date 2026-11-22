@@ -140,6 +140,13 @@
       list: function () { return spots.map(function (s) { var c = {}; for (var k in s) c[k] = s[k]; c.available = wait[s.id] === undefined; return c; }); },
       nearest: nearest,
       collect: collect,
+      /** Fill `out` (cleared first, reused, no allocation) with the available spots within `radius` of the player; returns it. */
+      reachable: function (player, radius, out) {
+        out.length = 0;
+        if (!player || typeof player.x !== 'number' || typeof player.z !== 'number') return out;
+        for (var i = 0; i < spots.length; i++) if (wait[spots[i].id] === undefined && within(player, spots[i], radius)) out.push(spots[i]);
+        return out;
+      },
       collectNear: function (player, radius) { var s = nearest(player, radius); return s ? collect(s.id) : null; },
       update: update
     };

@@ -10,9 +10,9 @@
  *   mouse (or the screen centre for keyboard/touch play) is the sticky target; it stays highlighted. Space, a click or a tap
  *   on it uses the equipped item (SA.picking.emit gets `item`); empty hands just pet/inspect. A click or tap that misses every
  *   pick volume falls back to the nearest in-reach part within the radius (larger for touch).
- * - Arrow keys/WASD always move the player (no part-cycling mode, no Escape to unlock); only Space acts, and only when a target
- *   is highlighted (it then wins over the climb key and the pickup collector, so Space never both uses a part and grabs a
- *   find; with no highlighted part Space reaches them as before).
+ * - Arrow keys/WASD always move the player (no part-cycling mode, no Escape to unlock). This module has no key handler: the
+ *   single Space dispatcher (SA.spaceUse, game/space-use.js) calls useTarget() when the highlighted part is Space's one target
+ *   (parts beat trees and pickups there, so Space never both uses a part and grabs a find).
  * - Reach: with opts.getPlayer() (the walking avatar) a pick on an out-of-reach animal never reaches SA.picking.emit; it
  *   shows opts.reachCue ("¡Acércate!") and calls SA.reach.notifyFar instead. Rubbing out of reach is silently ignored.
  * Returns { update(dt), pickAt(clientX, clientY) -> {animalId, part, ...}|null, target() -> {animalId, part, mesh}|null, useTarget() -> bool }. Call update(dt) every frame.
@@ -274,16 +274,7 @@
     canvas.addEventListener('pointercancel', function () { tracker.cancel(); });
     canvas.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') pointer = null; });
 
-    // Space uses the equipped item on the highlighted part. Capture phase + stopImmediatePropagation so it beats the climb key.
-    root.addEventListener('keydown', function (e) {
-      if (e.key !== ' ' || e.ctrlKey || e.metaKey || e.altKey) return;
-      var t = e.target && e.target.tagName;
-      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || t === 'BUTTON') return;
-      if (!targetHit()) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      if (!e.repeat) useTarget();
-    }, true);
+    // No Space key here: the one Space dispatcher (SA.spaceUse) calls useTarget() when the aim part is the chosen target.
 
     return {
       pickAt: pickAt,

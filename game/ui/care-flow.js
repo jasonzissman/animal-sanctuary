@@ -43,6 +43,7 @@
     // The icon of the tool that fits the task (🪮 🧽 🩹), or an open hand: the prompt shows what to hold.
     function itemDef(id) { try { return id ? SA.data.get('items', id) : null; } catch (e) { return null; } }
     function toolIcon(task) {
+      if (SA.missionCard) return SA.missionCard.helpIcon(task);      // the one step -> icon mapping (game/mission-card.js)
       var it = task.item && task.item !== 'hands' && task.item !== 'food' ? itemDef(task.item) : null;
       return it ? it.icon : '✋';
     }

@@ -391,7 +391,7 @@
         onDone: function (task) { if (!ctl) return; if (ctl.onCareDone) ctl.onCareDone(task); else ctl.begin(); } });
     }
     // o.mission (SA.mission): the rescue flow (find, help, photo; game/ui/mission-flow.js) drives the card instead of a plain round.
-    var common = { view: view, fx: o.fx, audio: o.audio, later: o.later, biomeFx: o.biomeFx, care: careFlow, onProgress: o.onProgress };
+    var common = { view: view, fx: o.fx, audio: o.audio, later: o.later, biomeFx: o.biomeFx, care: careFlow, onProgress: o.onProgress, pin: o.pin };
     ctl = o.mission && SA.missionFlow ? SA.missionFlow.create(Object.assign({ mission: o.mission }, common))
       : createController(Object.assign({ game: o.game || SA.round.create() }, common));
     SA.picking.onPick(ctl.onPick);

@@ -216,6 +216,12 @@ current; when your change sets or changes something future tickets must follow, 
   Find = Use/touch with any item on an animal that fits (celebration, name spoken); then `care.offer(id, true, kind)` starts the help
   task at once (no random chance), `careFlow`'s `onDone(task)` calls `mission.taskDone`, and the photo step ("Tómale una foto",
   📷 badge) accepts only a la cámara shot (`SA.photo.take` -> `mission.photo`). Biome reroll works only in the find step.
+  **Step card + pin (AS-0200, slice 2):** `SA.missionCard` (`game/mission-card.js`, pure) is the one step -> card mapping
+  (`find(m)` clue + animal icon, `help(task)` care text + tool/food icon, `photo(m)` "Tómale una foto" + 📷; card =
+  `{ step, text, key, icon, silhouette, camera }`); mission-flow and care-flow render from it and Replay says the current step's key.
+  The found animal does not wander during its mission: `ambient.pin(id)` / `unpin(id)` (render/ambient.js; `release` is ignored
+  while pinned, so care tasks ending cannot free it). mission-flow takes `pin: { pin, unpin }` (main passes `stage.ambient`),
+  pins at the find and unpins at the correct photo or when the mission is replaced (begin/reroll).
 - **Tasks while roaming.** Missions ("Busca un animal con orejas largas") sit on a card while you explore freely. You
   complete a find by taking a photo with *la cámara*, and the photo album rewards exploring.
   Built (AS-0084): the round IS the photo mission. The top card keeps the clue, Replay and a 📷 badge (tap = equip la cámara);

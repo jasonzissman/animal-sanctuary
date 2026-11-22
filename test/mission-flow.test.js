@@ -4,7 +4,7 @@ import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/round.js', 'game/data/foods.js',
-  'game/data/items.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js', 'game/scaffold.js', 'game/mission.js',
+  'game/data/items.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js', 'game/scaffold.js', 'game/mission.js', 'game/mission-card.js',
   'game/hint-stage.js', 'game/level-cue.js', 'game/photo.js', 'game/ui/care-flow.js', 'game/ui/mission-flow.js'];
 
 // A stub care flow: offers are recorded, a task is "active" until the test finishes it.
@@ -128,6 +128,10 @@ test('each finished task starts the next one (level 2: two tasks), then the phot
   assert.deepEqual([t.shown[0].text, t.shown[0].camera], ['Tómale una foto', true]);
   assert.equal(t.shown[0].icon, t.SA.data.get('animals', m.animalId).icon);
   assert.deepEqual(t.said, ['phrase:tomalefoto']);
+  t.care.activeTask = null;
+  t.said.length = 0;
+  t.flow.replay();
+  assert.deepEqual(t.said, ['phrase:tomalefoto'], 'Replay speaks the photo step');
 });
 
 test('while a care task is active picks go to care-flow only', () => {
@@ -327,4 +331,64 @@ test('with the real care flow the found animal is helped right away and the came
   assert.ok(cur && cur.status !== 'correct', 'while helping, a camera shot is only a care pick and never finishes the mission');
   assert.equal(m.done, false);
   assert.equal(timers.length >= 0, true);
+});
+
+// A stub pin target (the render ambient system): records pin/unpin calls.
+const stubPin = () => { const p = { calls: [] }; p.pin = (id) => p.calls.push(['pin', id]); p.unpin = (id) => p.calls.push(['unpin', id]); return p; };
+
+test('the found animal is pinned from the find until the photo, then released; a wrong pick pins nothing', () => {
+  const pin = stubPin();
+  const t = setup({ extra: { pin } });
+  const m = t.flow.begin();
+  t.flow.onPick({ animalId: other(t.SA, m), part: 'cuerpo' });
+  assert.deepEqual(pin.calls, [], 'a wrong pick does not pin');
+  const id = m.answerIds[0];
+  t.flow.onPick({ animalId: id, part: 'cuerpo' });
+  assert.deepEqual(pin.calls, [['pin', id]]);
+  t.saidCbs.forEach((fn) => fn());
+  finishTask(t);
+  assert.deepEqual(pin.calls, [['pin', id]], 'still pinned between help tasks');
+  assert.equal(m.step, 'photo');
+  assert.equal(t.flow.onPick(cam(other(t.SA, m))).status, 'wrong');
+  assert.deepEqual(pin.calls, [['pin', id]], 'a photo of another animal does not release it');
+  assert.equal(t.flow.onPick(cam(id)).status, 'correct');
+  assert.deepEqual(pin.calls, [['pin', id], ['unpin', id]]);
+});
+
+test('a replaced mission (begin again) releases the pinned animal, and pin errors never break play', () => {
+  const pin = stubPin();
+  const t = setup({ extra: { pin } });
+  const id = find(t).answerIds[0];
+  t.flow.begin();
+  assert.deepEqual(pin.calls, [['pin', id], ['unpin', id]]);
+  t.flow.begin();
+  assert.equal(pin.calls.length, 2, 'nothing left to release');
+  const bad = setup({ extra: { pin: { pin() { throw new Error('x'); }, unpin() { throw new Error('y'); } } } });
+  assert.doesNotThrow(() => { find(bad); bad.flow.begin(); });
+});
+
+test('the card shows find, then each help task with its icon, then the photo card with the camera badge; Replay follows the step', () => {
+  const SA = loadGame(FILES);
+  SA.save.reset();
+  const timers = [], said = [], cards = [];
+  SA.audio = { say: (k, done) => { said.push(k); if (done) done(); }, sfx() {} };
+  const view = new Proxy({ showRound: (r) => cards.push(['round', r]), showCare: (r) => cards.push(['care', r]) }, { get: (o, k) => o[k] || (() => {}) });
+  const mission = SA.mission.create({ rng: SA.clues.makeRng(9), level: 2, track() {} });
+  let flow;
+  const careFlow = SA.careFlow.create({ care: SA.care.create({ rng: SA.clues.makeRng(3) }), view, audio: SA.audio, later: (fn) => timers.push(fn),
+    onDone: (t) => flow.onCareDone(t) });
+  flow = SA.missionFlow.create({ mission, view, care: careFlow, later: (fn) => timers.push(fn) });
+  const m = flow.begin();
+  flow.onPick({ animalId: m.answerIds[0], part: 'cuerpo' });
+  assert.equal(cards[0][0], 'round');
+  assert.equal(cards[1][0], 'care', 'the first help task has its own card');
+  assert.ok(cards[1][1].text && cards[1][1].icon);
+  assert.equal(cards[1][1].camera, undefined);
+  assert.ok(said.includes(cards[1][1].text), 'its text is spoken');
+  for (let i = 0; i < 2; i++) {          // finish both help tasks the way the care flow does
+    careFlow.active() && flow.onCareDone({ taskId: mission.current().tasks.find((x) => !x.done).id });
+  }
+  assert.equal(m.step, 'photo');
+  const last = cards.at(-1);
+  assert.deepEqual([last[0], last[1].text, last[1].camera], ['round', 'Tómale una foto', true]);
 });

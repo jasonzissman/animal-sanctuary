@@ -111,6 +111,7 @@ globalThis.SA_MANIFEST = {
     'game/data/care.js',
     'game/care.js',
     'game/mission.js',
+    'game/mission-card.js',
     'game/data/missions.js',
     'game/missions.js',
     'game/render/care-fx.js',

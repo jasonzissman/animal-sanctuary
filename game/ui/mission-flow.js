@@ -14,6 +14,9 @@
  *       photo  only a la cámara shot of the found animal (SA.photo.take -> mission.photo) finishes the mission. 'wrong' (another
  *              animal) and 'early' (help not done) are friendly nudges; 'correct' celebrates with a level cue and the next
  *              mission begins after NEXT_MS.
+ *   The card for every step comes from SA.missionCard (find: clue + animal icon; help: the care-flow card with its tool/food icon;
+ *   photo: "Tómale una foto" + camera badge). Option `pin` = { pin(id), unpin(id) } (the render ambient system): the found animal
+ *   is pinned (stops wandering) from the find until the photo is taken, or until the mission is replaced (begin / reroll).
  *   flow.onCareDone(task)   the care-flow onDone hook (task.taskId says which help task ended)
  *   flow.replay()     says the current step again; flow.hint() the silhouette; flow.canReroll()/reroll() only in the find step
  *   flow.game         the round-like adapter (current, hint, biomeHint, pointerHint, hasBiomePool) for SA.hintFlow and SA.reroll
@@ -36,6 +39,18 @@
     var biomeFx = o.biomeFx || null;
     var later = o.later || function (fn, ms) { return typeof root.setTimeout === 'function' ? root.setTimeout(fn, ms) : null; };
     var cardKey = '';       // what Replay says for the current step
+
+    // The found animal stays put from the find until the photo (o.pin = { pin(id), unpin(id) }, e.g. the render ambient system).
+    var pinned = null;
+    function pin(id) {
+      unpin();
+      try { if (o.pin && o.pin.pin) { o.pin.pin(id); pinned = id; } } catch (e) { pinned = null; /* a pin never breaks play */ }
+    }
+    function unpin() {
+      var id = pinned;
+      pinned = null;
+      try { if (id && o.pin && o.pin.unpin) o.pin.unpin(id); } catch (e) { /* silent */ }
+    }
 
     function say(key, done) {
       try {
@@ -78,11 +93,13 @@
     function begin() {
       if (o.onProgress) { try { o.onProgress(); } catch (e) { /* unlocks never break play */ } }
       var m = mission.start();
-      if (!m) { view.clear(); return null; }
+      if (!m) { unpin(); view.clear(); return null; }
       m.hintShown = m.level <= 1;
       m.stage = SA.hintStage ? SA.hintStage.initial(m.level) : (m.level <= 1 ? 1 : 0);
-      view.showRound({ text: m.clue.text, icon: iconFor(m.answerId), hintShown: m.hintShown, stars: stars(), camera: false });
-      cardKey = m.clue.text;
+      unpin();                          // a replaced mission (new clue, reroll) frees the animal it had pinned
+      var card = SA.missionCard.find(m);
+      view.showRound({ text: card.text, icon: card.icon, hintShown: m.hintShown, stars: stars(), camera: card.camera });
+      cardKey = card.key;
       say(cardKey);
       if (biomeFx) biomeFx.hide();
       scheduleHint(m, AUTO_HINT_MS / 1000);
@@ -90,9 +107,9 @@
     }
 
     function showPhotoCard(m) {
-      var phrase = SA.vocab && SA.vocab.get(PHOTO_KEY);
-      view.showRound({ text: phrase ? phrase.es : 'Tómale una foto', icon: iconFor(m.animalId), hintShown: true, stars: stars(), camera: true });
-      cardKey = PHOTO_KEY;
+      var card = SA.missionCard.photo(m);
+      view.showRound({ text: card.text, icon: card.icon, hintShown: card.silhouette, stars: stars(), camera: card.camera });
+      cardKey = card.key;
       say(cardKey);
     }
 
@@ -135,6 +152,7 @@
         view.shake();
       } else if (res.status === 'found') {
         m.answerId = p.animalId;        // the hint arrow and Replay now follow the animal that was found
+        pin(p.animalId);                // it stops wandering until the photo is taken
         if (biomeFx) biomeFx.hide();
         celebrate(p.animalId, stars());
         var started = false;
@@ -157,6 +175,7 @@
       var res = SA.photo.take(mission, p);
       trackTap(p, res.status === 'correct');
       if (res.status === 'correct') {
+        unpin();                        // the mission is complete: the animal wanders again
         levelCue(res.levelChange);
         celebrate(res.animalId, res.stars);
         say('animal:' + res.animalId);

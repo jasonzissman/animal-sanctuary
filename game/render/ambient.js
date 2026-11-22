@@ -2,7 +2,9 @@
  * (it only moves groups/meshes), so it is testable with plain objects.
  *   ambient.update(dt)         call every frame BEFORE round-fx/care-fx (they override pose while a reaction plays)
  *   ambient.hold(id, seconds?) stop one animal wandering (while inspected / cared for); no seconds = until release
- *   ambient.release(id)        let it wander again
+ *   ambient.release(id)        let it wander again (ignored while the animal is pinned)
+ *   ambient.pin(id)            the rescue mission found it: it stays put (holds until unpin; care/tap releases do not free it)
+ *   ambient.unpin(id)          the mission is done or replaced: it wanders again
  *   ambient.setTangled(id, on)  a stuck leaf on a wing: the flyer hops on the ground with drooping wings until freed
  *   ambient.flyLoop(id)         freed: one spinning circle in the air with wide wing beats, then normal again
  *   ambient.setAvoid(points)   replace the [[x, z, r?],...] points wanderers keep clear of (decor + placed props)
@@ -128,7 +130,11 @@
     }
 
     function hold(id, seconds) { if (rigs[id]) rigs[id].w.hold(seconds); }
-    function release(id) { if (rigs[id]) rigs[id].w.release(); }
+    // A pinned animal (its rescue mission is running) never wanders: release() (care finishing, tap holds ending) is ignored
+    // until unpin(), so it stays exactly where it was found, from the find until the photo.
+    function release(id) { if (rigs[id] && !rigs[id].pinned) rigs[id].w.release(); }
+    function pin(id) { if (rigs[id]) { rigs[id].pinned = true; rigs[id].w.hold(); } }
+    function unpin(id) { if (rigs[id]) { rigs[id].pinned = false; rigs[id].w.release(); } }
     // Tangled wing (care task with action.tangled): the animal hops with drooping wings instead of flying until freed.
     function setTangled(id, on) { if (rigs[id]) rigs[id].tangled = !!on; }
     // Freed: one happy spinning circle in the air with wide wing beats (LOOP_SECONDS), then back to normal.
@@ -138,6 +144,6 @@
 
     function setAvoid(points) { Object.keys(rigs).forEach(function (id) { rigs[id].w.setAvoid(points); }); }
 
-    return { update: update, hold: hold, release: release, setTangled: setTangled, flyLoop: flyLoop, setAvoid: setAvoid, rigs: rigs };
+    return { update: update, hold: hold, release: release, pin: pin, unpin: unpin, setTangled: setTangled, flyLoop: flyLoop, setAvoid: setAvoid, rigs: rigs };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -91,7 +91,7 @@
       pitch: clampPitch(s.pitch, o) + finite(dy, 0) * o.pitchPerPx }, bounds, o);
   }
 
-  /** Keyboard orbit (Q/E, R/F). ayaw: +1 = E / -1 = Q; apitch: +1 = R (higher) / -1 = F (lower). */
+  /** Keyboard orbit (Q/T, R/F). ayaw: +1 = T / -1 = Q; apitch: +1 = R (higher) / -1 = F (lower). */
   function orbitByKeys(s, ayaw, apitch, dt, bounds, o) {
     o = o || DEFAULTS;
     return clampState({ x: s.x, z: s.z, dist: s.dist, yaw: finite(s.yaw, 0) - finite(ayaw, 0) * o.yawKeySpeed * dt,

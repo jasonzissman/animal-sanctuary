@@ -180,12 +180,17 @@ test('A/D turn the avatar and the camera swings round behind it', () => {
   assert.ok(Math.abs(SA_wrap(rig.getState().yaw - want)) < 0.5 && rig.getState().yaw !== y0);
 });
 
-test('Q/E and the orbit pad swing the camera around the standing player without moving them', () => {
+test('Q/T and the orbit pad swing the camera around the standing player without moving them; E no longer orbits', () => {
   const { rig, keys } = chaseRig();
   const p0 = rig.getPlayer();
+  const yawBefore = rig.getState().yaw;
   press(keys, 'e');
   frames(rig, 10);
   keys.keyup({ key: 'e' });
+  assert.equal(rig.getState().yaw, yawBefore, 'E is the use key, not an orbit key');
+  press(keys, 't');
+  frames(rig, 10);
+  keys.keyup({ key: 't' });
   frames(rig, 60);
   const s = rig.getState(), p1 = rig.getPlayer();
   assert.equal(p1.x, p0.x); assert.equal(p1.heading, p0.heading);

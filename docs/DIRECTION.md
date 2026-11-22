@@ -26,6 +26,9 @@ current; when your change sets or changes something future tickets must follow, 
 - **Keys for a 7-year-old (AS-0111, AS-0112).** Arrows/WASD walk, Shift runs (about 2.5x, AS-0110), **Space jumps**,
   **E or Enter uses** the equipped item on the outlined target (climb, pick up, care, photo), 1-9 picks a hotbar item,
   click/tap on the outline also uses it. Wherever the notes below say "Space" for using/acting, read E/Enter.
+  Implemented (AS-0111): `SA.spaceUse.isUseKey(e)` (game/space-use.js) is the one key map (E/e/Enter/KeyE; modified keys,
+  Space and focused buttons/inputs never). Space does nothing there, so jump (AS-0112) can own it. E no longer orbits the
+  camera: swing left/right is **Q / T** (R/F tilt). There is no keyboard hint on screen; touch keeps the big use button.
 - **Walk on any hard ground (AS-0109).** Only solid obstacles and the map edge block the player. Water and dips never
   do: the player wades in and may go under the surface for a moment, the camera stays above it. This overrides the
   water soft-wall / nearestDry notes below; animals still avoid water.

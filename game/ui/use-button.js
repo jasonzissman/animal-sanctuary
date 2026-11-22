@@ -1,8 +1,8 @@
 /* SA.useButton.create(doc, picking, win) -> { update(), element }: the big icon-only "use" button for touch players.
  * It appears while a body part is highlighted (picking.target()) on touch screens and shows the equipped item's icon
- * (🤚 with empty hands); pressing it calls picking.useTarget(), the same path as Space, a click or a tap on the part.
+ * (🤚 with empty hands); pressing it calls picking.useTarget(), the same path as E / Enter, a click or a tap on the part.
  * It sits just left of the orbit pad (pad covers right 12-132px, bottom 72-192px) so it never covers those buttons.
- * Mouse-only players never see it (Space and clicking cover them); it shows after the first touch or on a coarse pointer.
+ * Mouse-only players never see it (E / Enter and clicking cover them); it shows after the first touch or on a coarse pointer.
  * Call update() every frame. No text beyond the aria-label. No-op without a DOM.
  */
 (function (root) {

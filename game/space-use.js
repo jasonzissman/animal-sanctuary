@@ -1,7 +1,8 @@
 /* SA.spaceUse.create({ getPlayer, trees, pickups, picking, rig, collect, root? }) -> { update(), target(), use() }
- * The single Space dispatcher. Each frame update() asks SA.spaceTarget which one thing Space would act on (the aim part, else
- * the best tree / pickup in reach); pressing Space acts on exactly that: use the part (picking.useTarget), climb the tree
- * (rig.climbTree) or collect the pickup (collect(spot)). Never two actions. With no target Space does nothing, except that up
+ * The single "use" dispatcher (named for its first key; since AS-0111 the use keys are E and Enter, Space is free for jumping).
+ * Each frame update() asks SA.spaceTarget which one thing would be acted on (the aim part, else
+ * the best tree / pickup in reach); pressing E / Enter acts on exactly that: use the part (picking.useTarget), climb the tree
+ * (rig.climbTree) or collect the pickup (collect(spot)). Never two actions. With no target E / Enter does nothing, except that up
  * a tree it still climbs down (rig.climbPrompt() === 'down'). The C key (camera rig) and the touch use/climb buttons are
  * separate paths. Arrow keys / WASD are never touched here. No THREE or DOM needed; deps are injected.
  *   getPlayer() -> { x, z, heading, climb }   trees() -> [tree]   pickups.reachable(player, radius, out) fills `out`
@@ -11,6 +12,14 @@
   'use strict';
   var SA = root.SA;
   SA.spaceUse = SA.spaceUse || {};
+
+  /** True for the keys that "use" the outlined target: E (either case) and Enter. Space, and any modified key, is not one. */
+  SA.spaceUse.isUseKey = function (e) {
+    if (!e || e.ctrlKey || e.metaKey || e.altKey) return false;
+    var k = e.key;
+    if (k === 'e' || k === 'E' || k === 'Enter') return true;
+    return e.code === 'KeyE' || e.code === 'Enter' || e.code === 'NumpadEnter';
+  };
 
   SA.spaceUse.create = function (opts) {
     var chooser = SA.spaceTarget.create(), found = [], input = { player: null, part: null, trees: null, pickups: found };
@@ -44,10 +53,10 @@
     }
 
     function onKey(e) {
-      if ((e.key !== ' ' && e.code !== 'Space') || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!SA.spaceUse.isUseKey(e)) return;
       var tag = e.target && e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') return;
-      if (!update() && !canDescend()) return;   // nothing to act on: Space is left alone
+      if (!update() && !canDescend()) return;   // nothing to act on: the key is left alone
       if (e.preventDefault) e.preventDefault();
       if (!e.repeat) use();
     }

@@ -5,7 +5,8 @@
  *   id, name { es: 'conejo', en: 'rabbit', gender: 'm'|'f' }   (article is derived from gender)
  *   icon      required short emoji string shown in the prompt bar and celebrations (e.g. '🐰')
  *   biome     id of a registered biome
- *   traits    { size, color, movement, diet, legs }   values from SA.animals.SIZES / COLORS / ...
+ *   traits    { size, color, movement, alsoMoves?, diet, legs }   values from SA.animals.SIZES / COLORS / ...
+ *             alsoMoves: extra movements that also count for "the one that swims" clues (turtle: ['nada'])
  *             color is the masculine/base Spanish colour word; the clue engine inflects it for gender.
  *   parts     [{ part: <registered part key>, color: '#rrggbb', scale: n | [x,y,z], count: int, offset: [x,y,z] }]
  *             count > 1 spreads instances symmetrically: offset.x is the HALF-WIDTH of the spread (not a position),
@@ -89,6 +90,10 @@
     oneOf(t.size, SIZES, 'traits.size');
     oneOf(t.color, COLORS, 'traits.color');
     oneOf(t.movement, MOVEMENTS, 'traits.movement');
+    if (t.alsoMoves !== undefined) {      // other ways it moves too: a turtle walks slowly AND swims (clues accept any)
+      if (!Array.isArray(t.alsoMoves)) fail('traits.alsoMoves', 'must be an array of movements');
+      t.alsoMoves.forEach(function (m, i) { oneOf(m, MOVEMENTS, 'traits.alsoMoves[' + i + ']'); });
+    }
     oneOf(t.diet, DIETS, 'traits.diet');
     if (!Number.isInteger(t.legs) || t.legs < 0 || t.legs > 8) fail('traits.legs', 'must be an integer from 0 to 8');
     if (!Array.isArray(a.parts) || !a.parts.length) fail('parts', 'must be a non-empty array');
@@ -140,7 +145,7 @@
         eyes(0.13, [0.14, 1.37, 0.61])
       ], easterEgg: false },
     { id: 'tortuga', name: { es: 'tortuga', en: 'turtle', gender: 'f' }, icon: '🐢', biome: 'bosque',
-      traits: { size: 'mediano', color: 'verde', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
+      traits: { size: 'mediano', color: 'verde', movement: 'camina lento', alsoMoves: ['nada'], diet: 'herbívoro', legs: 4 },
       parts: [
         p('cuerpo', '#7ab86b', [1.1, 0.4, 1.3], 1, [0, 0.4, 0]), p('caparazon', '#3f7d3a', 1.2, 1, [0, 0.7, 0]),
         p('cabeza', '#7ab86b', 0.4, 1, [0, 0.6, 0.75]), p('patas', '#7ab86b', 0.3, 4, [0.35, 0.17, 0]),

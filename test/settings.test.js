@@ -147,7 +147,7 @@ test('round and care taps are recorded into stats (part.tap hook)', () => {
   SA.save.reset();
   const game = SA.round.create({ level: 1, track() {} });
   const r = game.start();
-  const wrong = SA.data.all('animals').find((a) => a.id !== r.answerId);
+  const wrong = SA.data.all('animals').find((a) => !r.answerIds.includes(a.id));   // any animal that fits the clue is right
   game.pick({ animalId: wrong.id, part: 'cola' });
   game.pick({ animalId: r.answerId, part: 'orejas' });
   assert.deepEqual(plain(SA.save.get().stats.parts), { cola: { taps: 1, misses: 1 }, orejas: { taps: 1, misses: 0 } });

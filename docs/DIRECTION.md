@@ -186,7 +186,10 @@ current; when your change sets or changes something future tickets must follow, 
 - **Parts light up only while helping (AS-0128).** Outside a care/help task an animal is one whole target: no part glow,
   chip or speech. During a task on it, its parts glow, show their chip and say their names.
 - **Every animal that fits counts (AS-0122).** A clue accepts ANY animal matching it (a duck and a turtle both swim; every
-  grey animal is grey). Never a single hidden right answer.
+  grey animal is grey). Never a single hidden right answer. Built: `SA.clues.matches(clue, animal)` tests the clue's
+  `match` facts (trait / length / count / biome / part); `round.answerIds` lists every animal in play that fits and
+  `round.pick` is correct for any of them (the result names the picked one; `answerId` is just the one the hint shows).
+  An animal may list `traits.alsoMoves` (turtle: `['nada']`) so it also fits other movement clues.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

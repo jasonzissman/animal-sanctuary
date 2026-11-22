@@ -47,7 +47,7 @@ test('level defaults to the saved scaffold setting', () => {
 test('wrong pick: counts a miss, emits part.tap correct:false, round continues', () => {
   const { SA, game, events } = setup();
   const r = game.start();
-  const other = SA.data.all('animals').find((a) => a.id !== r.answerId).id;
+  const other = SA.data.all('animals').find((a) => !r.answerIds.includes(a.id)).id;
   const res = game.pick({ animalId: other, part: 'orejas' });
   assert.deepEqual({ ...res }, { status: 'wrong', misses: 1 });
   assert.equal(r.done, false);
@@ -79,7 +79,7 @@ test('misses reset the streak, hints are reported, stars accumulate across round
   const { SA, game, events } = setup({ level: 2 });
   let r = game.start();
   game.hint();
-  const other = SA.data.all('animals').find((a) => a.id !== r.answerId).id;
+  const other = SA.data.all('animals').find((a) => !r.answerIds.includes(a.id)).id;
   game.pick({ animalId: other, part: 'cola' });
   game.pick({ animalId: r.answerId, part: 'cola' });
   const done = events.find((e) => e.type === 'round.complete');
@@ -154,7 +154,7 @@ test('controller: wrong pick = boing + wobble + toast, no new round scheduled', 
   const { SA, ctl, log, timers } = controllerSetup();
   const r = ctl.begin();
   log.length = 0;
-  const other = SA.data.all('animals').find((a) => a.id !== r.answerId).id;
+  const other = SA.data.all('animals').find((a) => !r.answerIds.includes(a.id)).id;
   assert.equal(ctl.onPick({ animalId: other, part: 'cola' }).status, 'wrong');
   assert.deepEqual(log.filter((l) => l[0] === 'sfx' || l[0] === 'fx'), [['sfx', 'boing'], ['fx', other, 'wobble']]);
   assert.equal(timers.length, 0);

@@ -10,7 +10,9 @@
  *   game.start()  -> round | null    begins a new round with a fresh clue:
  *       { id, clue, answerId, answerPart (part the clue is about, or null; a pick of the right animal on any part is correct), level, hintShown, misses, hints, done }
  *       Beginner (level <= 1) shows the silhouette hint right away; higher levels reveal it with game.hint().
+ *       answerIds = every animal in play that satisfies the clue (SA.clues.matches); answerId is the one the hint shows.
  *   game.pick({ animalId, part }) -> { status: 'ignored' | 'wrong' | 'correct', ... }
+ *       correct for ANY animal in round.answerIds ("the one that swims": duck or turtle); result.animalId is the picked one.
  *       Emits part.tap {part, correct}. A wrong pick only counts a miss (no penalty, the round continues).
  *       The right animal emits round.complete {roundId, seconds, misses, hints, level}, awards 1 star in SA.save
  *       and ends the round ({ status: 'correct', animalId, seconds, stars }).
@@ -87,7 +89,9 @@
       SA.clues.remember(cluesState, clue);
       seq += 1;
       var level = levelNow();
-      round = { id: 'r' + seq + ':' + clue.key, clue: clue, answerId: clue.answer.animalId,
+      var ids = animals().filter(function (a) { return SA.clues.matches(clue, a); }).map(function (a) { return a.id; });
+      if (ids.indexOf(clue.answer.animalId) < 0) ids.unshift(clue.answer.animalId);   // any animal in play that fits is right
+      round = { id: 'r' + seq + ':' + clue.key, clue: clue, answerId: clue.answer.animalId, answerIds: ids,
         answerPart: typeof clue.answer.part === 'string' ? clue.answer.part : null, level: level,
         hintShown: level <= 1, misses: 0, hints: 0, done: false, picks: 0, biome: typeof biome === 'string' && biome ? biome : null,
         stage: SA.hintStage ? SA.hintStage.initial(level) : (level <= 1 ? 1 : 0), biomeShown: false };
@@ -95,7 +99,7 @@
       return round;
     }
 
-    function complete() {
+    function complete(pickedId) {
       var seconds = Math.max(0, Math.round((now() - startedAt) / 100) / 10);
       round.done = true;
       var s = SA.save.get();
@@ -109,16 +113,16 @@
           adapt = SA.scaffold.record({ seconds: seconds, misses: round.misses, hints: round.hints });
         }
       } catch (e) { /* adaptivity never breaks play */ }
-      return { status: 'correct', animalId: round.answerId, seconds: seconds, stars: stars, misses: round.misses,
+      return { status: 'correct', animalId: pickedId, seconds: seconds, stars: stars, misses: round.misses,
         levelChange: adapt ? adapt.change : null };
     }
 
     function pick(p) {
       if (!round || round.done || !p || typeof p.animalId !== 'string') return { status: 'ignored' };
-      var correct = p.animalId === round.answerId;
+      var correct = round.answerIds.indexOf(p.animalId) >= 0;
       round.picks += 1;
       track('part.tap', { part: String(p.part || 'cuerpo'), correct: correct });
-      if (correct) return complete();
+      if (correct) return complete(p.animalId);
       round.misses += 1;
       return { status: 'wrong', misses: round.misses };
     }

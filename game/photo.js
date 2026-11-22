@@ -23,7 +23,7 @@
 
   function judge(round, animalId) {
     if (!round || round.done || typeof animalId !== 'string') return 'none';
-    return round.answerId === animalId ? 'match' : 'other';
+    return (round.answerIds || [round.answerId]).indexOf(animalId) >= 0 ? 'match' : 'other';
   }
 
   function record(animalId) {

@@ -41,6 +41,7 @@
           var word = C.inflect(adj, part.gender, part.number);
           out.push({ id: 'len:' + e.part + ':' + adj.id, group: 'part', part: e.part, text: noun + ' ' + word,
             vocabKeys: ['part:' + e.part, 'adj:' + word],
+            m: { kind: 'length', part: e.part, min: adj.min, max: adj.max },
             test: function (a) { return C.matchesLength(a, e.part, adj); } });
         });
       });
@@ -48,6 +49,7 @@
       if (e.count >= 2 && part.number === 'pl' && word) {
         out.push({ id: 'cnt:' + e.part + ':' + e.count, group: 'part', part: e.part, count: true, text: word + ' ' + noun,
           vocabKeys: ['number:' + e.count, 'part:' + e.part],
+          m: { kind: 'count', part: e.part, count: e.count },
           test: function (a) { var x = C.partEntry(a, e.part); return !!x && x.count === e.count; } });
       }
     });
@@ -55,11 +57,13 @@
     var biome = SA.data.get('biomes', animal.biome);
     if (biome) {
       out.push({ id: 'hab:' + biome.id, group: 'verb', text: lvl.dwell.es + ' ' + lowerFirst(biome.name.es),
-        vocabKeys: [lvl.dwell.key, 'biome:' + biome.id], test: function (a) { return a.biome === biome.id; } });
+        vocabKeys: [lvl.dwell.key, 'biome:' + biome.id],
+        m: { kind: 'biome', id: biome.id }, test: function (a) { return a.biome === biome.id; } });
     }
     var mv = animal.traits.movement;
     out.push({ id: 'mov:' + mv, group: 'verb', text: mv, vocabKeys: ['movement:' + mv],
-      test: function (a) { return a.traits.movement === mv; } });
+      m: { kind: 'trait', trait: 'movement', value: mv },
+      test: function (a) { return C.matches({ match: [{ kind: 'trait', trait: 'movement', value: mv }] }, a); } });
     return out;
   }
 
@@ -111,7 +115,8 @@
         });
         out.push({ key: lvl.id + ':' + animal.id + ':' + ordered.map(function (f) { return f.id; }).join('+'),
           templateId: lvl.id, type: 'multiTrait', text: lvl.lead.es + ' ' + join(ordered.map(function (f) { return f.text; })),
-          answer: { animalId: animal.id }, vocabKeys: keys });
+          answer: { animalId: animal.id }, answerIds: [animal.id], vocabKeys: keys,
+          match: ordered.map(function (f) { return f.m; }) });
       });
     });
     return out;

@@ -34,10 +34,12 @@
     var decor = SA.render.buildDecor(THREE);
     scene.add(decor);
     var avoid = decor.children.map(function (o) { return [o.position.x, o.position.z]; });
-    scene.add(SA.render.buildAnimals(THREE, { avoid: avoid }));
+    var animals = SA.render.buildAnimals(THREE, { avoid: avoid });
+    scene.add(animals);
 
     var camera = new THREE.PerspectiveCamera(SA.camera.DEFAULTS.fovDeg, 1, 0.5, 400);
     var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera);
+    var picking = SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container });
 
     function resize() {
       var w = container.clientWidth || root.innerWidth || 800;
@@ -50,8 +52,8 @@
     root.addEventListener('resize', resize);
 
     return {
-      scene: scene, camera: camera, renderer: renderer, rig: rig, resize: resize,
-      render: function (dt) { rig.update(dt); renderer.render(scene, camera); },
+      scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, resize: resize,
+      render: function (dt) { rig.update(dt); picking.update(dt); renderer.render(scene, camera); },
     };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

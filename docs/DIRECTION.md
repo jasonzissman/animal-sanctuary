@@ -103,6 +103,8 @@ current; when your change sets or changes something future tickets must follow, 
   variety with discretion: fun, never cluttered, ~60 fps (instancing, auto quality).
 - **Animals keep an arm's length apart (AS-0153).** Never bunched: at least ~1.5 units of gap between any two animals'
   bodies at all times (hard rule, not a soft preference), so tapping one never hits another.
+- **Small inventory (AS-0154, AS-0155).** Tools (cámara, cepillo, esponja, venda), la fresa as the only food, and rocks.
+  No flor or hoja collectibles. Add items only when a mission needs them; fewer is better.
 - **Lots of animals.** Several of each species (3-5) spread around each biome, and >= 5 species per biome. Any instance
   counts for its species.
 - **Animals look like the real animal (AS-0127).** Low-poly but recognisable: real proportions and silhouette (neck, legs,
@@ -210,3 +212,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: research station start, scientist briefing, photo board, character customizer (AS-0141 to AS-0144).
 - 2026-11-22: declutter: one HUD layout with no overlaps, small mission pill, one menu (AS-0147 to AS-0149).
 - 2026-11-22: animals keep an arm's length apart (AS-0153).
+- 2026-11-22: small inventory: no flor/hoja, strawberries are the only food (AS-0154, AS-0155).

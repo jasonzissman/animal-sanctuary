@@ -75,6 +75,6 @@
       body.scale.set(1 - squash * 0.5, 1 + squash, 1 - squash * 0.5);
       prevAir = air; prevLift = hop;
     }
-    return { group: group, update: update, parts: { head: head, armL: armL, armR: armR, legL: legL, legR: legR, eyes: [eyeL, eyeR] } };
+    return { group: group, update: update, parts: { body: body, head: head, armL: armL, armR: armR, legL: legL, legR: legR, eyes: [eyeL, eyeR] } };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

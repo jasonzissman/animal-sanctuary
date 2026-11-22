@@ -51,6 +51,7 @@
     function offer(animalId, force, kind) {
       var task = care.maybeStart(animalId, force, kind);
       if (!task) return false;
+      if (SA.picking && SA.picking.setActiveTask) SA.picking.setActiveTask(task);   // its animal's parts become aimable (AS-0128)
       if (fx) fx.show(task);
       if (task.kind === 'alimentar') {
         view.showCare({ text: task.text, icon: food(task.food).icon, stars: stars() });
@@ -69,6 +70,7 @@
     function finish(res) {
       var finished = care.current();      // handed to onDone: a rescue mission needs to know which task ended
       stopSeq();
+      if (SA.picking && SA.picking.setActiveTask) SA.picking.setActiveTask(null);
       if (SA.picking && SA.picking.setRubTarget) SA.picking.setRubTarget(null);
       if (fx) fx.scrub(0);
       if (res.kind === 'curar' && fx && fx.bandage) fx.bandage();

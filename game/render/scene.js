@@ -129,7 +129,7 @@
     }
     // The one outline: whatever spaceUse chose (part, tree or pickup) glows, nothing else (AS-0101).
     var outline = spaceUse && SA.render.createTargetOutline ? SA.render.createTargetOutline(THREE, { getTarget: spaceUse.target, nodeFor: function (kind, ref) {
-      if (kind === 'part') return ref && ref.mesh || null;
+      if (kind === 'part') return ref && (ref.node || ref.mesh) || null;   // a whole-animal target outlines the whole animal (AS-0128)
       if (kind === 'tree') {
         var i = trees.indexOf(ref);
         if (i >= 0) return treeNodes[i];

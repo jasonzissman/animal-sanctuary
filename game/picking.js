@@ -11,6 +11,9 @@
  *   SA.picking.labelFor(animalId, part, english) -> { es, en|null, icon } for the label chip.
  *   SA.picking.labelVisible(hit, { exists, visible, inReach, avatar }) -> bool: the part-name bubble shows only for a part of a real,
  *                          visible, in-reach animal (never the player's avatar, never with no target).
+ *   SA.picking.setActiveTask(task|null) / activeTask() / partsActive(animalId): the care/help task whose animal has individually aimable
+ *                          parts (AS-0128; SA.careFlow sets it on offer and clears it on finish; the rule is SA.aim.partsActive). With no task
+ *                          on that animal a pick is the whole animal: emit() carries { animalId } and no part.
  *   SA.picking.speakPart(part) -> true when SA.audio.say('part:<key>') was called; does nothing without SA.audio.
  *   SA.picking.reactionPose(reaction, t) -> { rx, ry, rz, sx, sy, sz, py } offsets for t in [0, DURATION].
  */
@@ -43,12 +46,18 @@
 
   function emit(pick) {
     if (paused) return;
-    var out = { animalId: pick.animalId, part: pick.part };
+    var out = { animalId: pick.animalId };
+    if (typeof pick.part === 'string' && pick.part) out.part = pick.part;   // a whole-animal pick (no task) carries no part
     if (typeof pick.item === 'string' && pick.item) out.item = pick.item;   // the equipped item used on the part (Space / click / tap)
     listeners.slice().forEach(function (cb) {
       try { cb(out); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error(e); }
     });
   }
+
+  // The care/help task that makes its animal's parts aimable (AS-0128). SA.care mutates the task (done), so no polling is needed.
+  var activeTask = null;
+  function setActiveTask(task) { activeTask = task || null; }
+  function partsActive(animalId) { return !!SA.aim && SA.aim.partsActive(animalId, activeTask); }
 
   // Rubbing: while a care task is active, dragging a pressed pointer over the target part counts as a rub.
   var rubTarget = null;
@@ -134,6 +143,7 @@
 
   SA.picking = {
     DRAG_THRESHOLD: DRAG_THRESHOLD, DURATION: DURATION, ICONS: ICONS,
+    setActiveTask: setActiveTask, activeTask: function () { return activeTask; }, partsActive: partsActive,
     setRubTarget: setRubTarget, hasRubTarget: hasRubTarget, isRubTarget: isRubTarget, onPick: onPick, emit: emit, setPaused: setPaused, isPaused: function () { return paused; }, createTapTracker: createTapTracker, labelFor: labelFor, labelVisible: labelVisible, speakPart: speakPart, reactionPose: reactionPose,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

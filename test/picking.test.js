@@ -101,7 +101,7 @@ function makeEl() {
   };
 }
 
-function stage(english) {
+function stage(english, noTask) {
   const files = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js',
     'game/data/biomes.js', 'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js',
     'game/picking.js', 'game/aim.js', 'game/render/picking.js'];
@@ -128,6 +128,8 @@ function stage(english) {
   camera.position.set(target.x + 4, target.y + 3, target.z + 4);
   camera.lookAt(target);
   camera.updateMatrixWorld(true);
+  // AS-0128: parts are only aimable while a care/help task is active on that animal (the default here); noTask = a free animal.
+  if (!noTask) SA.picking.setActiveTask({ animalId: g.name, done: false });
   return { SA, THREE, handlers, picking, animals, g, vol, ctx, camera };
 }
 
@@ -275,4 +277,79 @@ test('picking has no key handlers (movement keys always reach the player); parts
   s.handlers.pointerdown(ev(400, 300));
   s.handlers.pointerup(ev(400, 300));
   assert.equal(picks.length, 1, 'a tap still picks the part');
+});
+
+// --- AS-0128: parts only while a care/help task is active on that animal ---------------------------------------
+
+test('SA.aim.partsActive: only the animal with an unfinished task has aimable parts', () => {
+  const SA = loadGame([...LOGIC, 'game/aim.js']);
+  const task = { animalId: 'conejo', done: false };
+  assert.equal(SA.aim.partsActive('conejo', task), true);
+  assert.equal(SA.aim.partsActive('conejo', null), false, 'no task');
+  assert.equal(SA.aim.partsActive('conejo', undefined), false);
+  assert.equal(SA.aim.partsActive('vaca', task), false, 'another animal stays whole');
+  assert.equal(SA.aim.partsActive('conejo', { animalId: 'conejo', done: true }), false, 'a finished task');
+  assert.equal(SA.aim.partsActive(null, task), false);
+  assert.equal(SA.aim.partsActive('', { animalId: '', done: false }), false);
+});
+
+test('SA.picking.setActiveTask drives partsActive; emit drops the part when there is none', () => {
+  const SA = loadGame([...LOGIC, 'game/aim.js']);
+  assert.equal(SA.picking.partsActive('conejo'), false);
+  const task = { animalId: 'conejo', done: false };
+  SA.picking.setActiveTask(task);
+  assert.equal(SA.picking.partsActive('conejo'), true);
+  assert.equal(SA.picking.partsActive('vaca'), false);
+  task.done = true;                                   // SA.care mutates the task when it completes
+  assert.equal(SA.picking.partsActive('conejo'), false);
+  SA.picking.setActiveTask({ animalId: 'conejo', done: false });
+  SA.picking.setActiveTask(null);
+  assert.equal(SA.picking.partsActive('conejo'), false);
+  const got = [];
+  SA.picking.onPick((p) => got.push({ ...p }));
+  SA.picking.emit({ animalId: 'conejo', item: 'camara' });
+  SA.picking.emit({ animalId: 'conejo', part: 'cola' });
+  assert.deepEqual(got, [{ animalId: 'conejo', item: 'camara' }, { animalId: 'conejo', part: 'cola' }]);
+});
+
+test('no task: the animal is one target (no part glow, chip or speech); Use/tap emits only the animal', () => {
+  const s = stage(false, true);
+  const said = [];
+  s.SA.audio = { say: (k) => said.push(k) };
+  const picks = [];
+  s.SA.picking.onPick((p) => picks.push({ ...p }));
+  const hit = s.picking.pickAt(400, 300);
+  assert.ok(hit && hit.mesh && hit.node, 'the ray still hits the animal');
+  assert.equal(hit.part, null, 'but never a part');
+  s.handlers.pointermove(ev(400, 300, { pointerType: 'mouse' }));
+  s.picking.update(0.016);
+  const t = s.picking.target();
+  assert.ok(t && t.part === null && t.node === s.g, 'the Space target is the whole animal group');
+  s.g.children.forEach((m) => { if (m.userData && m.userData.part) assert.equal(m.material, m.userData.baseMaterial || m.material, 'no part glows'); });
+  assert.ok(!s.g.children.some((m) => m.material && m.material.emissiveIntensity > 0 && m.material.emissive && m.material.emissive.r > 0), 'no emissive glow anywhere');
+  s.SA.inventory = { equipped: () => 'camara' };
+  assert.equal(s.picking.useTarget(), true);
+  s.handlers.pointerdown(ev(400, 300));
+  s.handlers.pointerup(ev(400, 300));
+  assert.deepEqual(picks, [{ animalId: hit.animalId, item: 'camara' }, { animalId: hit.animalId, item: 'camara' }]);
+  assert.equal(s.ctx.document.body.children.length, 0, 'no part chip was ever built');
+  assert.deepEqual(said, [], 'no part name is spoken');
+});
+
+test('a task on one animal leaves the others whole; its own parts glow, chip and speak', () => {
+  const s = stage(false, true);
+  const other = s.animals.children.find((a) => a !== s.g && !a.userData.avatar);
+  s.SA.picking.setActiveTask({ animalId: other.name, done: false });   // a task, but on a different animal
+  const said = [];
+  s.SA.audio = { say: (k) => said.push(k) };
+  const hit = s.picking.pickAt(400, 300);
+  assert.equal(hit.animalId, s.g.name);
+  assert.equal(hit.part, null, 'the animal without a task stays whole');
+  s.SA.picking.setActiveTask({ animalId: s.g.name, done: false });
+  const part = s.picking.pickAt(400, 300);
+  assert.ok(part.part, 'now its parts are individually pickable');
+  s.handlers.pointerdown(ev(400, 300));
+  s.handlers.pointerup(ev(400, 300));
+  assert.deepEqual(said, ['part:' + part.part]);
+  assert.equal(s.ctx.document.body.children[0].style.display, 'flex', 'the chip shows');
 });

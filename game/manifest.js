@@ -68,6 +68,7 @@ globalThis.SA_MANIFEST = {
     'game/ui/care-flow.js',
     'game/data/props.js',
     'game/habitat.js',
+    'game/prop-avoid.js',
     'game/sandbox.js',
     'game/ui/sandbox-view.js',
     'game/render/props.js',

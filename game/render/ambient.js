@@ -3,6 +3,7 @@
  *   ambient.update(dt)         call every frame BEFORE round-fx/care-fx (they override pose while a reaction plays)
  *   ambient.hold(id, seconds?) stop one animal wandering (while inspected / cared for); no seconds = until release
  *   ambient.release(id)        let it wander again
+ *   ambient.setAvoid(points)   replace the [[x, z, r?],...] points wanderers keep clear of (decor + placed props)
  * Wandering comes from SA.wander (driven by traits.movement). Idle animation: breathing (group scale), ear and tail
  * wiggle, blinking (eye scale). Animals keep breathing and blinking while held, only their travel stops.
  */
@@ -86,6 +87,8 @@
 
     if (SA.picking && SA.picking.onPick) SA.picking.onPick(function (pick) { if (pick && pick.animalId) hold(pick.animalId, PART_HOLD); });
 
-    return { update: update, hold: hold, release: release, rigs: rigs };
+    function setAvoid(points) { Object.keys(rigs).forEach(function (id) { rigs[id].w.setAvoid(points); }); }
+
+    return { update: update, hold: hold, release: release, setAvoid: setAvoid, rigs: rigs };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

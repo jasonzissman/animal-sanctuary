@@ -37,7 +37,7 @@
     var pickMat = new THREE.MeshBasicMaterial({ visible: false });
     var group = new THREE.Group();
     group.name = 'animals';
-    var animals = SA.data.all('animals');
+    var animals = SA.data.all('animals').filter(function (a) { return !a.story; });   // story animals (pigs) are placed by their mission
     var spots = SA.animalPlan.placements(animals, opts);
 
     animals.forEach(function (animal) {

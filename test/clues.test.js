@@ -154,7 +154,7 @@ test('selection is seeded and deterministic', () => {
 
 test('with all 10 animals every clue has one answer; the new animals get clues (joroba, repta, cuernos)', () => {
   const SA = load();
-  const ids = SA.data.all('animals').filter((a) => !a.easterEgg).map((a) => a.id);   // the hidden egg is not in play yet
+  const ids = SA.data.all('animals').filter((a) => !a.easterEgg && !a.story).map((a) => a.id);   // the hidden egg and story animals are not in play
   assert.equal(ids.length, 10);
   const clues = SA.clues.candidates(ids, null);
   const byText = Object.fromEntries(clues.map((c) => [c.text, c.answer.animalId]));
@@ -170,7 +170,7 @@ test('with all 10 animals every clue has one answer; the new animals get clues (
 
 test('every animal has at least one unique level-1 single-fact clue (the rana via "ojos grandes")', () => {
   const SA = load();
-  const ids = SA.data.all('animals').filter((a) => !a.easterEgg).map((a) => a.id);
+  const ids = SA.data.all('animals').filter((a) => !a.easterEgg && !a.story).map((a) => a.id);
   const clues = SA.clues.candidates(ids, ['trait', 'partAdjective']);
   for (const id of ids) {
     assert.ok(clues.some((c) => c.answer.animalId === id), `no unique level-1 clue for ${id}`);

@@ -19,8 +19,9 @@
   var SA = root.SA = root.SA || {};
   var DOT = '•';
 
-  function animals() { return SA.data && SA.data.all ? SA.data.all('animals') : []; }
-  function find(id) { return typeof id === 'string' ? animals().filter(function (a) { return a.id === id; })[0] || null : null; }
+  function all() { return SA.data && SA.data.all ? SA.data.all('animals') : []; }
+  function animals() { return all().filter(function (a) { return !a.story; }); }   // story animals (pigs) get no album page yet
+  function find(id) { return typeof id === 'string' ? all().filter(function (a) { return a.id === id; })[0] || null : null; }
 
   function stored() {
     var s = SA.save ? SA.save.get() : {};

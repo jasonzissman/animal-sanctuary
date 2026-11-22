@@ -14,7 +14,9 @@ const good = () => ({
 test('4 biomes, 10 real animals and 1 easter egg are registered, all in known biomes', () => {
   const SA = loadGame(FILES);
   assert.deepEqual(Array.from(SA.data.all('biomes'), (b) => b.id), ['bosque', 'selva', 'desierto', 'montana']);
-  const all = SA.data.all('animals');
+  const everything = SA.data.all('animals');
+  assert.deepEqual(Array.from(everything.filter((a) => a.story), (a) => a.id), ['cerda', 'cerdito']);   // AS-0232: not in the world population
+  const all = everything.filter((a) => !a.story);
   assert.deepEqual(Array.from(all, (a) => a.id),
     ['conejo', 'pato', 'tortuga', 'mono', 'tucan', 'rana', 'camello', 'serpiente', 'cabra', 'aguila', 'raton']);
   assert.deepEqual(Array.from(all.filter((a) => a.easterEgg), (a) => a.id), ['raton']);
@@ -92,7 +94,7 @@ test('validator rejects other bad animals naming the field', () => {
     [(a) => { a.name.gender = 'x'; }, /field "name.gender"/],
     [(a) => { a.traits = null; }, /field "traits"/],
     [(a) => { a.traits.size = 'enorme'; }, /field "traits.size"/],
-    [(a) => { a.traits.color = 'rosa'; }, /field "traits.color"/],
+    [(a) => { a.traits.color = 'turquesa'; }, /field "traits.color"/],
     [(a) => { a.traits.movement = 'teletransporta'; }, /field "traits.movement"/],
     [(a) => { a.traits.diet = 'solar'; }, /field "traits.diet"/],
     [(a) => { a.traits.legs = 2.5; }, /field "traits.legs"/],
@@ -112,6 +114,11 @@ test('validator rejects other bad animals naming the field', () => {
     [(a) => { a.parts[0].also = [{ scale: 1, count: 1, offset: [0, 0, 0], color: 'red' }]; }, /field "parts\[0\]\.also\[0\]\.color"/],
     [(a) => { a.parts[0].also = [{ scale: 0, count: 1, offset: [0, 0, 0] }]; }, /field "parts\[0\]\.also\[0\]\.scale"/],
     [(a) => { a.easterEgg = 'no'; }, /field "easterEgg"/],
+    [(a) => { a.story = 'yes'; }, /field "story"/],
+    [(a) => { a.voice = 'oinc'; }, /field "voice"/],
+    [(a) => { a.baby = { of: 'cerda', scale: 1, headScale: 1.4, eyeScale: 1.4 }; }, /field "baby.scale"/],
+    [(a) => { a.baby = { of: 'cerda', scale: 0.5, headScale: 0, eyeScale: 1.4 }; }, /field "baby.headScale"/],
+    [(a) => { a.baby = { scale: 0.5, headScale: 1.4, eyeScale: 1.4 }; }, /field "baby.of"/],
   ];
   for (const [mutate, re] of cases) {
     const a = good();

@@ -58,7 +58,7 @@
 
     function animals() {
       var found = SA.save.get().unlockedAnimals;   // unlocked easter eggs join the clue rotation
-      var list = opts.animals || SA.data.all('animals').filter(function (a) { return !a.easterEgg || found.indexOf(a.id) >= 0; });
+      var list = opts.animals || SA.data.all('animals').filter(function (a) { return !a.story && (!a.easterEgg || found.indexOf(a.id) >= 0); });
       return list.map(function (a) { return typeof a === 'string' ? SA.data.get('animals', a) : a; });
     }
 

@@ -23,7 +23,7 @@
       var dt = last === null ? 0 : Math.min((now - last) / 1000, 0.25);
       last = now;
       stage.render(dt);
-      if (root.SAT) root.SAT.frame(dt);
+      if (root.SAT && root.SAT.frame) { try { root.SAT.frame(dt); } catch (e) { /* telemetry never stops the loop */ } }
       if (boot) { boot.parentNode.removeChild(boot); boot = null; }
       root.requestAnimationFrame(loop);
     }

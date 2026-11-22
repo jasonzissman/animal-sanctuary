@@ -37,6 +37,8 @@ current; when your change sets or changes something future tickets must follow, 
   `inventory: { items: [{id, count}], equipped }`; new and old saves get the starting kit, nothing equipped).
 - **Forgiving aim.** The nearest in-reach part within a generous radius highlights and stays highlighted, so being a
   few pixels off the feet still counts. A 7-year-old should never fight the aim.
+- **You always see what Space will hit.** Whatever Space would act on right now (an animal part, a climbable tree, a
+  pickup) is the one object with a bright outline; nothing else has it. No outline means Space does nothing.
 - **Care is physical and silly.** Brush fur, wash with the sponge, bandage, rub *la barriga*, feed by hand, tug a leaf
   off a tangled wing so the bird can fly. The wrong tool or part gets a funny reaction plus the Spanish words, never
   a penalty.
@@ -52,3 +54,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
   (tickets AS-0069 to AS-0085). Mouse/tap on a part works as well as Space.
 - 2026-11-22: chase camera only. The care close-up ("on top of the player" view) is removed (AS ticket from Jason's playtest).
 - 2026-11-22: no keyboard lock-in. Part-cycling with arrows/Escape is removed (AS-0093); keys always move the player, mouse/tap picks parts.
+- 2026-11-22: one visible Space target. Whatever Space would act on gets a distinct outline (AS-0101; folds in AS-0100).

@@ -9,6 +9,8 @@
 
   var BASE = 136, KNOB = 68, RADIUS = (BASE - KNOB) / 2 + 12;   // px; the knob travels a little past the rim
 
+  var BOTTOM = 132;   // px above the bottom edge (was 84, which touched the hotbar and sat inside the habitat tray's area)
+
   function create(doc, rig, win) {
     var none = { show: function () {}, release: function () {} };
     if (!doc || typeof doc.createElement !== 'function' || !doc.body || !rig || !SA.joystick) return none;
@@ -16,7 +18,10 @@
 
     var pad = doc.createElement('div');
     pad.setAttribute('aria-label', 'Caminar');
-    pad.style.cssText = 'position:fixed;left:16px;bottom:84px;z-index:4;display:none;width:' + BASE + 'px;height:' + BASE + 'px;' +
+    // bottom:132px clears the stars badge (top edge ~62px), the hotbar (72px slots, an equipped one lifts to ~90px) and the
+    // habitat tray (top edge ~125px) at 768px wide and up; the pad spans 132..268px from the bottom, so it also stays
+    // below the prompt bar at 600px tall.
+    pad.style.cssText = 'position:fixed;left:16px;bottom:' + BOTTOM + 'px;z-index:4;display:none;width:' + BASE + 'px;height:' + BASE + 'px;' +
       'border-radius:50%;background:rgba(255,248,214,.45);border:.1em solid #24543a;touch-action:none;user-select:none;' +
       '-webkit-user-select:none;pointer-events:auto;';
     pad.style.display = 'none';   // hidden until the first touch

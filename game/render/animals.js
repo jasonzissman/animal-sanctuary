@@ -28,6 +28,7 @@
   function tag(mesh, spec) {
     mesh.userData = { animalId: spec.animalId, part: spec.part, index: spec.index };
     if (spec.side) mesh.userData.side = spec.side;
+    if (spec.extra) mesh.userData.extra = true;   // a neck segment / knee / foot: rides with its parent part when limbs animate
   }
 
   SA.render.buildAnimals = function (THREE, opts) {

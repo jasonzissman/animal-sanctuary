@@ -2,7 +2,8 @@
  *
  * plan(animal, partDefs?) -> [ { animalId, part, builder, size, worldSize, pickSize, color,
  *                                position, rotation, index, count, side } ]
- *   - one entry per part INSTANCE (count: 4 gives 4 entries, index 0..3)
+ *   - one entry per part INSTANCE (count: 4 gives 4 entries, index 0..3). A parts[] entry's `also` extras add more specs
+ *     with the same part key, one per instance of each extra; `index` then keeps counting across the entry (0..n-1, unique)
  *   - builder      primitive name from the part definition (box | sphere | cone | cylinder)
  *   - worldSize    [x,y,z] extents of the part in animal space (the data "scale"; a number means uniform)
  *   - size         local extents to give the unit primitive BEFORE `rotation` (axis-swapped when the

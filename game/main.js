@@ -39,6 +39,7 @@
         nearby: { player: function () { return stage.rig.getPlayer(); }, animals: function () {
           return stage.animals.children.filter(function (g) { return g.visible; }).map(function (g) { return { id: g.name, x: g.position.x, z: g.position.z }; });
         } } });
+      if (ctl.taskShown) stage.getTask = ctl.taskShown;      // the glow ring round the current small-task animal (AS-0226)
       game = ctl.game || game;      // the round-like adapter that hint arrow and biome reroll read
     } catch (e) { report('prompt.start', e); }
     // Gentle arrow toward the target animal when it is off-screen after ~10 s (counts as a hint when tapped).

@@ -300,6 +300,13 @@ current; when your change sets or changes something future tickets must follow, 
   in view (75° half-angle; < 2.5 m always counts); an encounter (`animalId`) shows while its animal is within `NEAR`. Once shown it
   stays until `NEAR + HIDE_SLACK` (2 m): hiding never fails the task and it can return. Nothing shows while `SA.focus` says a story
   mission runs. `pickClueFor(animal, state, rng)` picks a clue that animal fits; `answerIds` lists every fitting animal (AS-0122).
+- **Task ring (AS-0226, slice 3 of AS-0217): the current small-task animal glows in a rising ring cylinder.**
+  `SA.render.createTaskRing` (`game/render/task-ring.js`, THREE) is updated by `stage.render` with `stage.getTask()` =
+  `ctl.taskShown()` -> `{ animalId, kind, done } | null` (set in `main.js`; from `SA.taskGate.shown()`). Task shown: a transparent
+  cylinder sized from the animal's parts follows its group, with 3 soft rings rising and thinning near the top (1.5 s loop), colour
+  by task kind (clue gold, encounter sky blue; a new small task kind just passes its `kind`). Task hidden: vanishes quietly. Task `done`:
+  vanishes with a small sparkle. One shared unlit material, meshes made once, nothing allocated per frame, no lights, not in the
+  animals group or `pickVolumes` (raycast is a no-op), so it never blocks picking.
 - **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
   (hurt, stuck, hungry, tangled, scared: 1 task at beginner, 2 later) -> take its photo as proof it is OK ("¡Está bien!",
   saved to the album) -> next mission. Finding alone never ends a round. This supersedes "the photo answers the round" below.

@@ -457,6 +457,13 @@
     if (gated) {
       var gate = SA.taskGate.create({ flow: ctl, game: o.mission, view: view, player: o.nearby.player, animals: o.nearby.animals, track: o.track });
       ctl.updateTasks = gate.update;
+      // What the 3D task ring shows (AS-0226): the animal the gate shows a task for, and whether that round just finished.
+      ctl.taskShown = function () {
+        var sh = gate.shown();
+        if (!sh) return null;
+        var cur = o.mission.current();
+        return { animalId: sh.animalId, kind: sh.kind, done: !!(cur && cur.done) };
+      };
     }
     if (SA.missionPill) {
       pill = SA.missionPill.create({ view: view, audio: o.audio });

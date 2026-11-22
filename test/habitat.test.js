@@ -323,3 +323,112 @@ test('render props: builds each prop from data, removes it, and 50 props stay li
   assert.equal(got.pop()[0], 'ground', 'with a prop selected the tap places instead');
   listeners.pointercancel();
 });
+
+// ---- placement preview (ghost) ----
+test('habitat.preview: snapped spot with green/red validity, null without a usable point', () => {
+  const SA = setup(5);
+  const s = spot(SA, 'arbol', 'selva');
+  const ok = SA.habitat.preview('arbol', { x: s.x + 0.4, z: s.z - 0.3 });
+  assert.deepEqual([ok.x, ok.z, ok.valid], [s.x, s.z, true]);
+  assert.ok(!ok.reason);
+  const far = SA.habitat.preview('arbol', { x: 500, z: 0 });
+  assert.deepEqual([far.valid, far.reason], [false, 'bounds']);
+  const other = spot(SA, 'roca', 'bosque');
+  assert.equal(SA.habitat.preview('arbol', other).valid, SA.habitat.check('arbol', other.x, other.z).ok);
+  SA.habitat.place('arbol', s.x, s.z);
+  const taken = SA.habitat.preview('arbol', s);
+  assert.deepEqual([taken.valid, taken.reason], [false, 'occupied']);
+  SA.save.update({ stars: 0 });
+  assert.equal(SA.habitat.preview('arbol', spot(SA, 'arbol', 'selva', 1)).reason, 'stars', 'unaffordable is red');
+  assert.equal(SA.habitat.preview('arbol', null), null);
+  assert.equal(SA.habitat.preview('arbol', { x: NaN, z: 0 }), null);
+  assert.equal(SA.habitat.preview('dragon', s), null);
+  assert.equal(SA.habitat.preview(null, s), null);
+});
+
+test('sandbox: any selection change hides the ghost (place, put back, mode end)', () => {
+  const SA = setup(5);
+  let hides = 0;
+  const box = SA.sandbox.create({
+    scene: { add() {}, remove() {}, hideGhost: () => hides++ },
+    view: { setActive() {}, select() {}, setStars() {}, toast() {} },
+    audio: { say() {}, sfx() {} },
+  });
+  const s = spot(SA, 'arbol', 'selva');
+  box.toggle();
+  hides = 0;
+  box.select('arbol');
+  assert.equal(hides, 1);
+  box.onGround(s);
+  assert.equal(hides, 2, 'placing clears it');
+  box.select('arbol');
+  box.toggle();
+  assert.equal(hides, 4, 'leaving placement mode clears it');
+});
+
+test('render ghost: green on valid spots, red on invalid, hidden on touch release and when selection ends', () => {
+  const ctx = vm.createContext({ console });
+  ctx.window = ctx;
+  ctx.self = ctx;
+  for (const f of ['game/vendor/three.min.js', ...LOGIC.slice(0, -1), 'game/render/props.js', 'game/render/prop-ghost.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+  }
+  const { SA, THREE } = ctx;
+  SA.save.reset();
+  SA.save.update({ stars: 10 });
+  const listeners = {};
+  const canvas = { addEventListener: (ev, fn) => { listeners[ev] = fn; }, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+  const camera = new THREE.PerspectiveCamera(50, 800 / 600, 0.5, 400);
+  camera.position.set(0, 40, 30);
+  camera.lookAt(0, 0, 0);
+  camera.updateMatrixWorld(true);
+  const props = SA.render.createProps(THREE, { canvas, camera });
+  assert.ok(props.ghostGroup, 'ghost group is exposed for the scene');
+  let selected = 'arbol', active = true;
+  props.bind({ active: () => active, selected: () => selected, onGround() {}, onPropTap() {} });
+  const colors = () => {
+    const meshes = [];
+    props.ghostGroup.traverse((o) => { if (o.isMesh) meshes.push(o); });
+    return [...new Set(meshes.map((m) => m.material.color.getHexString()))];
+  };
+  const ev = (x, y, type = 'mouse') => ({ pointerId: 1, pointerType: type, clientX: x, clientY: y });
+
+  // find screen points whose ground spot is valid and one that is not
+  let good = null, bad = null;
+  for (let sx = 20; sx < 800 && !(good && bad); sx += 20) {
+    for (let sy = 20; sy < 600 && !(good && bad); sy += 20) {
+      listeners.pointermove(ev(sx, sy));
+      if (!props.ghostVisible()) continue;
+      const c = colors();
+      if (c.length === 1 && c[0] === '3ddc57') good = good || [sx, sy];
+      else if (c.length === 1 && c[0] === 'ff4a4a') bad = bad || [sx, sy];
+    }
+  }
+  assert.ok(good && bad, 'both a green and a red ghost appear while hovering');
+  listeners.pointermove(ev(...good));
+  assert.deepEqual(colors(), ['3ddc57']);
+  listeners.pointermove(ev(...bad));
+  assert.deepEqual(colors(), ['ff4a4a']);
+
+  listeners.pointerleave();
+  assert.equal(props.ghostVisible(), false, 'mouse leaving hides it');
+  listeners.pointermove(ev(...good));
+  props.hideGhost();
+  assert.equal(props.ghostVisible(), false);
+
+  listeners.pointerdown(ev(...good, 'touch'));
+  assert.equal(props.ghostVisible(), true, 'touch shows it on pointer-down');
+  listeners.pointerup(ev(...good, 'touch'));
+  assert.equal(props.ghostVisible(), false, 'and hides it on release');
+
+  selected = null;
+  listeners.pointermove(ev(...good));
+  assert.equal(props.ghostVisible(), false, 'no selection, no ghost');
+  selected = 'arbol'; active = false;
+  listeners.pointermove(ev(...good));
+  assert.equal(props.ghostVisible(), false, 'placement mode off, no ghost');
+  active = true;
+  listeners.pointermove(ev(...good));
+  listeners.pointercancel();
+  assert.equal(props.ghostVisible(), false);
+});

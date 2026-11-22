@@ -51,6 +51,7 @@
 
     var props = SA.render.createProps(THREE, { canvas: renderer.domElement, camera: camera });
     scene.add(props.group);
+    if (props.ghostGroup) scene.add(props.ghostGroup);
 
     var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid });
     // Placed props (this session and restored from the save) join the decor in the wander avoid list. The save is

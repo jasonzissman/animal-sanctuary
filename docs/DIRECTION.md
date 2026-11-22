@@ -359,3 +359,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: intro talk gives the story (animals need help); the scientist always stays at the station (AS-0142).
 - 2026-11-22: badges/stickers, naming, day/night with sleeping animals, mamá missions, waterfall treasure, animal friend (AS-0167 to AS-0175); jump over rocks (AS-0176).
 - 2026-11-22: encounters vs missions: roaming encounters, ordered missions started only at the station board, replayable (AS-0177 to AS-0191).
+- 2026-11-22: the scientist NPC stands on the station porch beside the door (AS-0203): `game/npc.js` (pure post, idle/wave by distance with hysteresis, `SA.npc.create()` tracker) and `game/render/scientist.js` (the kid avatar plus lab coat, glasses, clipboard; reads the clipboard, waves when near). She never wanders and is a solid circle in the player's obstacles.

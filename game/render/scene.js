@@ -37,6 +37,9 @@
     var station = SA.render.buildStation && SA.station ? SA.render.buildStation(THREE) : null;
     if (station) scene.add(station);
     var stationWalls = SA.station ? SA.station.obstacles() : [];
+    // The scientist NPC (AS-0203) stands on the porch beside the door, never moves, and the player walks around her.
+    var scientist = SA.render.createScientist && SA.npc ? SA.render.createScientist(THREE) : null;
+    if (scientist) { scene.add(scientist.group); stationWalls = stationWalls.concat([SA.npc.obstacle()]); }
     var avoid = decor.children.map(function (o) { return [o.position.x, o.position.z]; });
     if (SA.station) avoid = avoid.concat(SA.station.avoidPoints());
     var animals = SA.render.buildAnimals(THREE, { avoid: avoid });
@@ -167,7 +170,7 @@
       scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize,
       animals: animals, treeTap: treeTap, onTreeTap: null,
       avatar: avatar, pickups: pickups, spaceUse: spaceUse,
-      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (autoRing) autoRing.update(dt); if (reachCue) reachCue.update(dt); if (clickFx) clickFx.update(dt); treeTap.update(dt); ambient.update(dt); if (treetop) treetop.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
+      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); if (scientist) scientist.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (autoRing) autoRing.update(dt); if (reachCue) reachCue.update(dt); if (clickFx) clickFx.update(dt); treeTap.update(dt); ambient.update(dt); if (treetop) treetop.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
     };
     return stageApi;
   };

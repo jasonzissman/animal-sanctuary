@@ -12,6 +12,14 @@
 
   function mat(THREE, color) { return new THREE.MeshPhongMaterial({ color: color, flatShading: true, specular: 0x000000 }); }
 
+  /** A thin flat leafy disc at the canopy standing height (SA.perch.KINDS): the treetop you can stand and jump from (AS-0166). */
+  function canopyPad(THREE, material, kindId, radius) {
+    var K = SA.perch && SA.perch.KINDS && SA.perch.KINDS[kindId], h = K ? K.height : 4;
+    var pad = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.14, 8), material);
+    pad.position.y = h - 0.07;
+    return pad;
+  }
+
   function pine(THREE, m, s) {
     var g = new THREE.Group();
     var trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 1.2, 6), m.trunk);
@@ -20,7 +28,7 @@
     low.position.y = 2.1;
     var high = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 7), m.pine);
     high.position.y = 3.3;
-    g.add(trunk, low, high);
+    g.add(trunk, low, high, canopyPad(THREE, m.pine, 'pine', 1.0));
     g.userData.tree = true;      // tappable (SA.render.createTreeTap)
     g.userData.kind = 'pine';    // canopy size for SA.perch
     g.scale.setScalar(s);
@@ -34,7 +42,7 @@
     var top = new THREE.Mesh(new THREE.IcosahedronGeometry(1.7, 0), m.leaf);
     top.position.y = 4.1;
     top.scale.y = 0.7;
-    g.add(trunk, top);
+    g.add(trunk, top, canopyPad(THREE, m.leaf, 'jungle', 1.5));
     g.userData.tree = true;
     g.userData.kind = 'jungle';
     g.scale.setScalar(s);

@@ -143,3 +143,74 @@ test('standing between two kinds, the one you face wins; turning round flips it'
   c.reset();
   assert.equal(c.choose({ player: player(0, 0, Math.PI), trees: [t1, t2] }).ref, t2);
 });
+
+// ---- AS-0165: the doorway never climbs; the dish and antenna are solid on the roof; the drop-off is safe ----
+const DOOR = { x: L.door.x, z: L.door.z, reach: SA.spaceTarget.DOOR_REACH };
+
+test('the doorway and the room inside are never in climb reach (walking in does not auto-climb)', () => {
+  const zFront = L.door.z - 1.3;
+  assert.equal(K.nearest({ x: L.cx, z: zFront, heading: 0, y: L.floorY, climb: null }, [HOUSE]), null, 'in the doorway strip');
+  assert.equal(K.nearest({ x: L.cx + 0.9, z: zFront, heading: 0, y: L.floorY, climb: null }, [HOUSE]), null, 'at the door frame');
+  assert.equal(K.nearest({ x: L.cx, z: L.cz, heading: 0, y: L.floorY, climb: null }, [HOUSE]), null, 'inside the room');
+  assert.equal(K.edgeDistance(HOUSE, L.cx, L.cz), Infinity);
+  const inside = { x: L.cx, z: L.cz, heading: 0, y: L.floorY, climb: null };
+  assert.equal(K.start(inside, HOUSE), inside, 'start refuses from inside');
+  assert.equal(K.nearest({ x: frontLeftX, z: zFront, heading: 0, y: L.floorY, climb: null }, [HOUSE]), HOUSE, 'but the wall beside it climbs');
+});
+
+test('pushing forward through the doorway walks in and never starts a climb', () => {
+  let s = { x: L.cx, z: L.door.z - 3, heading: 0, y: L.floorY, climb: null }, timer = null;
+  for (let i = 0; i < 300; i++) {
+    const before = s;
+    s = K.step(s, FWD, DT, obstacles);
+    timer = K.autoStep(timer, before, s, FWD, [HOUSE], DT * 1000);
+    assert.ok(!timer.climb, 'no auto-climb at the door');
+  }
+  assert.ok(s.z > L.door.z + 0.5, 'walked through the doorway into the room');
+});
+
+test('the Space chooser: the door wins in the doorway, the wall wins beside it', () => {
+  const c = SA.spaceTarget.create();
+  const atDoor = c.choose({ player: player(L.cx, L.door.z - 1.4, 0), trees: [HOUSE], pickups: [], doors: [DOOR] });
+  assert.equal(atDoor.kind, 'door');
+  c.reset();
+  const atWall = c.choose({ player: player(frontLeftX, L.door.z - 1.4, 0), trees: [HOUSE], pickups: [], doors: [DOOR] });
+  assert.equal(atWall.kind, 'tree', 'a wall facing is a climb');
+  assert.equal(atWall.ref, HOUSE);
+  c.reset();
+  assert.equal(c.choose({ player: player(L.cx + L.halfW + 1.4, L.cz, -Math.PI / 2), trees: [HOUSE], pickups: [], doors: [DOOR] }).ref, HOUSE, 'side wall');
+  c.reset();
+  assert.equal(c.choose({ player: player(L.cx, L.cz + L.halfD + 1.4, Math.PI), trees: [HOUSE], pickups: [], doors: [DOOR] }).ref, HOUSE, 'back wall');
+});
+
+function onRoof() {
+  let s = K.start({ x: frontLeftX, z: L.cz - L.halfD - 1.5, heading: 0, y: L.floorY, climb: null }, HOUSE);
+  for (let i = 0; i < 200 && s.climb.mode === 'up'; i++) s = K.step(s, {}, DT, obstacles);
+  assert.ok(K.onTop(s));
+  return s;
+}
+
+test('on the roof you walk and turn freely, but the dish and the antenna are solid', () => {
+  assert.ok(HOUSE.top.solids.length >= 2);
+  let s = onRoof();
+  s = { ...s, x: L.dish.x, z: L.dish.z - 3, heading: 0 };   // walk +z straight at the dish
+  for (let i = 0; i < 240; i++) { s = K.step(s, FWD, DT, obstacles); assert.ok(K.onTop(s), 'stays on the roof'); }
+  assert.ok(s.z < L.dish.z - L.dish.radius * 0.8 + 0.01, `stopped at the dish (z ${s.z.toFixed(2)})`);
+  const turned = K.step(s, { right: 1 }, DT, obstacles);
+  assert.notEqual(turned.heading, s.heading, 'turning works');
+  let a = { ...onRoof(), x: L.antenna.x, z: L.antenna.z - 3, heading: 0 };
+  for (let i = 0; i < 240; i++) a = K.step(a, FWD, DT, obstacles);
+  assert.ok(K.onTop(a) && a.z < L.antenna.z, 'blocked by the antenna');
+});
+
+test('walking off any roof edge drops safely onto dry ground, clear of the walls', () => {
+  for (const heading of [0, Math.PI, Math.PI / 2, -Math.PI / 2]) {
+    let s = { ...onRoof(), x: L.cx + (heading === 0 || heading === Math.PI ? 0.3 : 0), z: L.cz - 0.4, heading };
+    let land = null;
+    for (let i = 0; i < 900 && !land; i++) { s = K.step(s, { forward: 1 }, DT, obstacles, [HOUSE]); land = K.landed(s); }
+    assert.ok(land, `heading ${heading}: lands`);
+    assert.ok(!s.climb, 'on the ground');
+    assert.ok(Math.abs(s.y - SA.map.groundHeight(s.x, s.z)) < 1e-6);
+    assert.ok(!obstacles.some(([ox, oz, r]) => Math.hypot(s.x - ox, s.z - oz) < r - 0.05), 'not inside a wall or crate');
+  }
+});

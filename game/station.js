@@ -16,7 +16,8 @@
  *   SA.station.avoidPoints()       -> [[x, z], ...] sparse points across the footprint for placement code that spaces by distance
  *   SA.station.climbTarget()       -> the station as a generic SA.climb target (AS-0194), plain data:
  *       { kind: 'building', id: 'station', x, z, footprint: { w, d } (the walls' outer box), topY (roof surface),
- *         top: { shape: 'rect', size: { w, d } } (the flat roof incl. its overhang) }
+ *         top: { shape: 'rect', size: { w, d }, solids: [[x, z, r]] } (the flat roof incl. its overhang; the dish and antenna are solid on it),
+ *         noClimb: [box] (AS-0165: the doorway strip and the room inside; the station can't be climbed from there) }
  * SA.player.spawn() reads SA.station.spawn() when this module is loaded, so there is one source for where the game starts.
  */
 (function (root) {
@@ -108,9 +109,14 @@
   }
 
   function climbTarget() {
-    var L = layout(), o = L.roof.overhang;
+    var L = layout(), o = L.roof.overhang, t = L.wallT / 2, d = L.door, m = 0.3, fz = d.z;
+    // Nobody climbs from the doorway (it is the station-menu Use target, AS-0146) or from inside the room.
+    var noClimb = [{ x0: d.x - d.width / 2 - m, x1: d.x + d.width / 2 + m, z0: fz - 3, z1: fz + t },
+      { x0: L.cx - L.halfW, x1: L.cx + L.halfW, z0: fz, z1: L.cz + L.halfD }];
+    // The dish and the antenna stay solid on the roof (circles on the flat top).
+    var solids = [[L.dish.x, L.dish.z, L.dish.radius * 0.8], [L.antenna.x, L.antenna.z, 0.35]];
     return { kind: 'building', id: 'station', x: L.cx, z: L.cz, footprint: { w: 2 * L.halfW + L.wallT, d: 2 * L.halfD + L.wallT },
-      topY: L.roof.y + L.roof.thickness, top: { shape: 'rect', size: { w: 2 * (L.halfW + o), d: 2 * (L.halfD + o) } } };
+      topY: L.roof.y + L.roof.thickness, top: { shape: 'rect', size: { w: 2 * (L.halfW + o), d: 2 * (L.halfD + o) }, solids: solids }, noClimb: noClimb };
   }
 
   function spawn() { var s = layout().spawn; return { x: s.x, z: s.z, heading: s.heading }; }

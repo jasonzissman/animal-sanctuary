@@ -50,7 +50,8 @@
           // Every climb target (tree, peak, building: AS-0163) is in reach by the same measure SA.climb uses: within EDGE_RANGE of its base edge.
           if (SA.climb && SA.climb.edgeDistance) { if (SA.climb.edgeDistance(o, p.x, p.z) > SA.climb.EDGE_RANGE) continue; }
           else if (Math.sqrt((o.x - p.x) * (o.x - p.x) + (o.z - p.z) * (o.z - p.z)) > range) continue;
-          s = score(p, o.x, o.z);
+          var fp = SA.climb && SA.climb.focusPoint ? SA.climb.focusPoint(o, p.x, p.z) : o;   // a building: its nearest wall, so a wall beside the doorway beats the door
+          s = score(p, fp.x, fp.z);
           if (curKind === 'tree' && curRef === o) curScore = s;
           if (s < bestScore) { bestScore = s; bestKind = 'tree'; bestRef = o; }
         }

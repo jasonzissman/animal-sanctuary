@@ -48,6 +48,10 @@ current; when your change sets or changes something future tickets must follow, 
   Built (AS-0194): `SA.station.climbTarget()` is the `kind: 'building'` target (wall footprint, flat rect roof at topY) and joins
   `climbables` (trees + peaks + station). The Space chooser measures reach with `SA.climb.edgeDistance` for every kind, and the
   outline finds a target's node by `userData.climbId === target.id` (peaks, station), so no kind-specific branches remain.
+  Built (AS-0165): the station doorway never climbs. Target data may carry `noClimb: [{x0,x1,z0,z1}]` ground zones (the station: the doorway
+  strip and the room inside); `SA.climb.edgeDistance` is Infinity there, so nearest/start/auto-climb/the Space chooser skip it. The chooser
+  scores a rect-footprint target by its nearest wall point (`SA.climb.focusPoint`), so a wall beside the door is a climb and the door is
+  still the Use target when you face it. `top.solids [[x, z, r]]` keeps the dish and antenna solid on the roof (walked with SA.player.step).
   Jumping on any top works as on the ground (lift on top of topY); jumping past the edge is the normal walk-off fall.
   Treetop hopping (AS-0166): treetops are flat standable tops (decor draws a flat leafy pad at canopy height), and a landing
   assist lands you on the tree you jump roughly toward (~7 units, ~40 degrees). Be generous: kids should chain tree to tree easily.

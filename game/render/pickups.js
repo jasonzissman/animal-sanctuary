@@ -63,6 +63,8 @@
         try { SA.audio.say('found:' + got.item); } catch (e) { /* speech is best effort */ }
       }
       showToast(got.item);
+      // A 'collect' mission step counts it (SA.missionRuntime, AS-0230).
+      if (SA.missionRuntime) { try { SA.missionRuntime.report({ type: 'collected', item: got.item }); } catch (e) { /* missions never break play */ } }
       if (nodes[got.id]) nodes[got.id].g.visible = false;
       if (root.SAT && root.SAT.track) root.SAT.track('pickup.collect', { item: got.item, where: got.spot.where, biome: got.spot.biome });
     }

@@ -5,7 +5,7 @@ import { loadGame } from './helpers/vm.js';
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/save.js', 'game/map.js', 'game/station.js', 'game/station-board.js', 'game/data/missions.js', 'game/missions.js',
   'game/missions-board.js', 'game/missions-dialogue.js', 'game/ui/station-menu-view.js', 'game/ui/missions-board-view.js'];
 
-const row = (n) => ({ id: 'm' + n, n, es: 'Misión ' + n + ' nombre', en: 'Mission ' + n, icon: '🐷', intro: [{ es: 'Hola ' + n + '.', icon: '👋' }, { es: 'Vamos.', icon: '🚶' }],
+const row = (n) => ({ id: 'm' + n, n, es: 'Misión ' + n + ' nombre', en: 'Mission ' + n, icon: '🐷', intro: { es: 'Hola ' + n + '.', icon: '👋', en: 'Hi ' + n },
   steps: [{ kind: 'find' }, { kind: 'photo' }], reward: { stars: n } });
 const plain = (o) => JSON.parse(JSON.stringify(o));
 
@@ -62,17 +62,18 @@ function fakeDom() {
     appendChild(c) { this.children.push(c); }, removeChild(c) { this.children.splice(this.children.indexOf(c), 1); },
     setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(t, f) { this.listeners[t] = f; } });
   const body = mk();
-  return { doc: { createElement: mk, body, addEventListener() {} }, body };
+  const keys = [];
+  return { doc: { createElement: mk, body, addEventListener(t, f, cap) { if (t === 'keydown') keys.push({ f, cap }); } }, body, keys };
 }
 const texts = (n) => [n.textContent, ...n.children.flatMap(texts)];
 const find = (n, pred) => (pred(n) ? n : n.children.map((c) => find(c, pred)).find(Boolean));
 
 function board(count) {
   const { SA, said } = setup(count);
-  const { doc } = fakeDom();
+  const { doc, keys } = fakeDom();
   const menu = SA.stationMenuView.create(doc, {});
   const view = SA.missionsBoardView.create(doc, { body: menu.body });
-  return { SA, said, menu, view, cards: () => view.element.children };
+  return { SA, said, menu, view, keys, cards: () => view.element.children };
 }
 
 test('opening the station shows every mission in order as done, next and locked cards', () => {
@@ -104,7 +105,7 @@ test('it re-renders each time the station opens', () => {
 const clickText = (root, re) => find(root, (n) => re.test(n.textContent) && n.listeners.click && n.children.length === 0).listeners.click({ stopPropagation() {} });
 const shown = (n) => !/display:none/.test(n.style.cssText);
 
-test('tapping the next card plays the intro lines one by one, then Empezar starts it and closes the menu', () => {
+test('tapping the next card shows ONE start card; one press of ¡Vamos! starts it and closes the menu', () => {
   const { SA, said, menu, view, cards } = board(3);
   SA.station.open('use');   // the scientist's panels are siblings of the grid inside the menu body
   const body = menu.element.children[0].children[2];
@@ -115,16 +116,46 @@ test('tapping the next card plays the intro lines one by one, then Empezar start
   assert.equal(shown(panel), true);
   assert.equal(shown(view.element), false, 'the talk replaces the grid: nothing overlaps');
   assert.deepEqual(said, ['Hola 1.']);
-  assert.ok(texts(panel).includes('👋') && texts(panel).includes('Hola 1.'), 'picture card + phrase');
+  assert.ok(texts(panel).includes('🐷') && texts(panel).includes('Hola 1.'), 'picture card + phrase');
   clickText(panel, /Otra vez/);
   assert.deepEqual(said, ['Hola 1.', 'Hola 1.'], 'Replay says the line again');
-  clickText(panel, /Siguiente/);
-  assert.deepEqual(said.slice(2), ['Vamos.']);
-  assert.ok(texts(panel).includes('🚶'));
+  assert.ok(texts(panel).includes('Misión 1 nombre'), 'the title is on the card');
+  assert.equal(texts(panel).some((t) => /Siguiente|Empezar/.test(t)), false, 'no next step');
   assert.equal(SA.missions.active(), null);
-  clickText(panel, /Empezar/);
+  clickText(panel, /¡Vamos!/);
   assert.equal(SA.missions.active().id, 'm1');
   assert.equal(menu.isOpen(), false);
+});
+
+test('Enter and E press ¡Vamos! while the card shows; ✕ goes back to the board; keys do nothing otherwise', () => {
+  const { SA, keys, cards } = board(3);
+  const kd = keys.find((k) => k.cap);
+  assert.ok(kd, 'a capture-phase keydown listener');
+  const press = (key) => { let stopped = false; kd.f({ key, preventDefault() {}, stopPropagation() { stopped = true; } }); return stopped; };
+  SA.station.open('use');
+  assert.equal(press('Enter'), false, 'no card showing: the key is left alone');
+  assert.equal(SA.missions.active(), null);
+  cards()[0].listeners.click();
+  assert.equal(press('x'), false, 'other keys are ignored');
+  assert.equal(SA.missions.active(), null);
+  assert.equal(press('e'), true, 'E starts it and is swallowed');
+  assert.equal(SA.missions.active().id, 'm1');
+  SA.missions.abandon();
+  SA.station.open('use');
+  cards()[0].listeners.click();
+  assert.equal(press('Enter'), true);
+  assert.equal(SA.missions.active().id, 'm1');
+});
+
+test('✕ on the start card goes back to the board without starting', () => {
+  const { SA, menu, view, cards } = board(3);
+  SA.station.open('use');
+  const panel = menu.element.children[0].children[2].children[1];
+  cards()[0].listeners.click();
+  clickText(panel, /✕/);
+  assert.equal(SA.missions.active(), null);
+  assert.equal(shown(view.element), true);
+  assert.equal(shown(panel), false);
 });
 
 test('opening the station again drops a half-heard intro and shows the board', () => {
@@ -165,8 +196,7 @@ test('pointAndStartFirst opens the board, points at mission 1 and runs its intro
   assert.equal(menu.isOpen(), true);
   assert.deepEqual(said, ['Hola 1.']);
   const panel = menu.element.children[0].children[2].children[1];
-  clickText(panel, /Siguiente/);
-  clickText(panel, /Empezar/);
+  clickText(panel, /¡Vamos!/);
   assert.equal(SA.missions.active().id, 'm1');
   assert.deepEqual(plain(SA.missionsBoard.pointAndStartFirst()), { ok: false, reason: 'busy' });
 });

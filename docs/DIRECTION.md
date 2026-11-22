@@ -49,10 +49,13 @@ current; when your change sets or changes something future tickets must follow, 
   `layout()` sizes a wrapping, scrolling grid so cards never overlap each other or the ✕). Tap done = replay, next = start (the
   scientist's intro comes in the next ticket), active = En curso + Continuar / Abandonar; locked cards are grey numbered silhouettes
   that only say "Misión N". Every card speaks via `SA.audio.say`.
-  **Scientist on the board (AS-0198):** tapping the glowing next card no longer starts it: the scientist speaks the mission's 2-3
-  `intro` lines (data: `intro: [{ es, icon }]`, each ≤ 6 words, validated at load), one picture card each with a "Otra vez" replay,
-  then "Empezar" calls `SA.missions.start` (a done card still replays at once). The talk replaces the grid inside the same station
-  card (never a second overlay). `SA.missionsDialogue` (`missions-dialogue.js`, pure): `begin/view/advance` sequence the lines;
+  **Every prompt needs at most one press; one short line per prompt (AS-0220).** No "Siguiente" steps anywhere. The mission start is
+  ONE card: mission icon, title, one spoken line and a big "¡Vamos!" (tap, Enter or E) that calls `SA.missions.start` at once; 🔊
+  replays, ✕ goes back to the board. The finish cheer is one strip with no button. Data: `intro: { es, icon, en? }` (one object, ≤ 4
+  words, validated at load; arrays are rejected). New prompts must follow this rule.
+  **Scientist on the board (AS-0198, simplified by AS-0220):** tapping the glowing next card no longer starts it: the scientist
+  shows the start card above (a done card still replays at once). The talk replaces the grid inside the same station
+  card (never a second overlay). `SA.missionsDialogue` (`missions-dialogue.js`, pure): `begin/view` build the single card;
   `celebration()` / `markSeen()` give the one-time cheer (fanfare + "¡Lo lograste! ¡Nueva misión!") the first station visit after a
   mission is finished, pointing 👇 at the unlocked card; "seen" is `missions.celebrated: [id]` in the save, so replays never re-cheer.
   **Scientist greeting on every load (AS-0213, replaces the AS-0202 first-run intro):** the long intro that started Mission 1 by

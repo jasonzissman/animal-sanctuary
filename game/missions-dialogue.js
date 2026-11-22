@@ -1,38 +1,33 @@
 /* SA.missionsDialogue: the scientist's talk on the Misiones board (pure; no THREE, no DOM; unit-tested in node:vm).
- * Intro lines are data on each mission row (game/data/missions.js: intro = [{ es, icon }, ...], 2-3 short lines).
+ * The intro is ONE line on each mission row (game/data/missions.js: intro = { es, icon, en? }, es <= 4 words). Every prompt needs at
+ * most one press (AS-0220).
  *
- *   SA.missionsDialogue.begin(row)   -> state | null     row = a mission row (null when it has no lines)
- *   SA.missionsDialogue.view(state)  -> { id, index, total, line: { es, icon }, last, button: 'next' | 'start', label }
- *       One picture card per line (icon + short phrase) with a Replay button (the view calls SA.audio.say(line.es)).
- *       The last line's button is 'start' (label 'Empezar'); every earlier one is 'next' (label 'Siguiente').
- *   SA.missionsDialogue.advance(state) -> state          the next line (stays on the last one; then the view calls missions.start)
+ *   SA.missionsDialogue.begin(row)   -> state | null     row = a mission row (null when it has no line)
+ *   SA.missionsDialogue.view(state)  -> { id, title, icon, line: { es, icon, en? }, button: 'start', label: '¡Vamos!' }
+ *       ONE picture card (mission icon + title + the short line) with a Replay button (the view calls SA.audio.say(line.es)).
+ *       The only button is 'start': pressing it (tap, Enter or E) calls SA.missions.start at once.
  *   SA.missionsDialogue.create({ save?, missions? }) -> { celebration(), markSeen() }  (SA.missionsDialogue has a default instance)
  *       celebration() -> { id, unlockedId | null, icon, lines: [es, ...], sfx } | null: the highest mission finished
  *       that the scientist has not celebrated yet (so a replay never celebrates again), with the card it unlocked.
+ *       It shows on one strip with no button (it needs no press at all).
  *       markSeen() records every finished mission as celebrated in the save (missions.celebrated), so it plays once.
- *   SA.missionsDialogue.EMPEZAR / SIGUIENTE / BRAVO / NUEVA   the short Spanish phrases.
+ *   SA.missionsDialogue.VAMOS / BRAVO / NUEVA   the short Spanish phrases.
  */
 (function (root) {
   'use strict';
   var SA = root.SA;
 
-  var EMPEZAR = 'Empezar', SIGUIENTE = 'Siguiente', BRAVO = '¡Lo lograste!', NUEVA = '¡Nueva misión!';
+  var VAMOS = '¡Vamos!', BRAVO = '¡Lo lograste!', NUEVA = '¡Nueva misión!';
 
   function begin(row) {
-    var lines = row && Array.isArray(row.intro) ? row.intro : [];
-    return lines.length ? { id: row.id, lines: lines.slice(), index: 0 } : null;
+    var l = row && row.intro;
+    if (!l || typeof l !== 'object' || Array.isArray(l) || typeof l.es !== 'string' || !l.es) return null;
+    return { id: row.id, title: row.es || '', icon: row.icon || l.icon, line: l };
   }
 
   function view(state) {
     if (!state) return null;
-    var last = state.index >= state.lines.length - 1;
-    return { id: state.id, index: state.index, total: state.lines.length, line: state.lines[state.index], last: last,
-      button: last ? 'start' : 'next', label: last ? EMPEZAR : SIGUIENTE };
-  }
-
-  function advance(state) {
-    if (!state) return state;
-    return { id: state.id, lines: state.lines, index: Math.min(state.index + 1, state.lines.length - 1) };
+    return { id: state.id, title: state.title, icon: state.icon, line: state.line, button: 'start', label: VAMOS };
   }
 
   function create(opts) {
@@ -67,6 +62,6 @@
   }
 
   var def = create();
-  SA.missionsDialogue = { begin: begin, view: view, advance: advance, create: create, celebration: def.celebration, markSeen: def.markSeen,
-    EMPEZAR: EMPEZAR, SIGUIENTE: SIGUIENTE, BRAVO: BRAVO, NUEVA: NUEVA };
+  SA.missionsDialogue = { begin: begin, view: view, create: create, celebration: def.celebration, markSeen: def.markSeen,
+    VAMOS: VAMOS, BRAVO: BRAVO, NUEVA: NUEVA };
 })(typeof window !== 'undefined' ? window : globalThis);

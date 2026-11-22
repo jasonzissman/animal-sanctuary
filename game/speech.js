@@ -69,7 +69,7 @@
     }
   }
 
-  function speak(text, finish) {
+  function speak(text, finish, pitch) {
     try {
       var synth = root.speechSynthesis;
       if (!synth || typeof root.SpeechSynthesisUtterance !== 'function' || typeof synth.speak !== 'function') return false;
@@ -78,6 +78,7 @@
       u.lang = voice ? voice.lang : 'es-MX';
       if (voice) u.voice = voice;
       u.rate = RATE;
+      if (typeof pitch === 'number' && pitch >= 0.5 && pitch <= 2) u.pitch = pitch;   // a baby animal's squeaky voice
       if (finish) { u.onend = finish; u.onerror = finish; }
       if (typeof synth.cancel === 'function') synth.cancel();   // never queue up a backlog of old words
       synth.speak(u);
@@ -104,7 +105,7 @@
       if (typeof keyOrText === 'string' && keyOrText.trim() && !SA.audio.isMuted()) {
         var entry = SA.vocab && SA.vocab.get(keyOrText);
         if (entry && entry.clip && playClip(entry.clip, entry.es, finish)) result = 'clip';
-        else if (speak(entry ? entry.es : keyOrText, finish)) result = 'speech';
+        else if (speak(entry ? entry.es : keyOrText, finish, entry ? entry.pitch : undefined)) result = 'speech';
       }
     } catch (e) {
       result = null;

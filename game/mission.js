@@ -43,7 +43,7 @@
 
     function animals() {
       var unlocked = SA.save.get().unlockedAnimals;
-      var list = opts.animals || SA.data.all('animals').filter(function (a) { return !a.easterEgg || unlocked.indexOf(a.id) >= 0; });
+      var list = opts.animals || SA.data.all('animals').filter(function (a) { return !a.story && (!a.easterEgg || unlocked.indexOf(a.id) >= 0); });
       return list.map(function (a) { return typeof a === 'string' ? SA.data.get('animals', a) : a; });
     }
 

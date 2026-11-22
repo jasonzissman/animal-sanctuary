@@ -13,6 +13,12 @@
  *             e.g. count 2 -> x = -offset.x and +offset.x; count 4 -> a 2x2 grid; offset y/z are shared.
  *   perch     optional; "tree" = lives in tree canopies (SA.perch: sits on branches and hops between trees, out of
  *             reach from the ground). Omit for ground animals.
+ *   story     optional boolean: true = a story animal (la cerda, el cerdito). It is NOT in the normal world population, clue
+ *             rounds, random mission picks or the album; a mission places it (render code builds it on demand).
+ *   voice     optional vocab key of the sound it makes ('phrase:oinc'); a vocab entry may set `pitch` (1 = normal, higher = squeakier)
+ *   baby      optional { of: <animal id>, scale, headScale, eyeScale }: marks a baby variant of another animal. Its parts list is
+ *             built with SA.animals.babyParts (overall `scale`, the head group `headScale` x bigger, the eyes `eyeScale` x);
+ *             the engine just reads parts, so nothing special-cases an id.
  *   easterEgg boolean (false for real animals)
  *   unlock    easter eggs only: the condition that reveals it (plain data, evaluated by game/unlocks.js)
  * A parts[] entry may also set `pupil` ('#rrggbb'): a dark pupil sphere drawn in front of each instance, so eyes read as
@@ -28,7 +34,7 @@
   var SA = root.SA;
   var fail = SA.data.fail;
   var SIZES = ['pequeño', 'mediano', 'grande'];
-  var COLORS = ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul'];
+  var COLORS = ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul', 'rosa'];
   var MOVEMENTS = ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre', 'repta'];
   var DIETS = ['herbívoro', 'carnívoro', 'omnívoro', 'insectívoro'];
   var PERCHES = ['tree'];
@@ -121,6 +127,16 @@
     a.parts.forEach(function (p, i) { validatePart(p, i, seen); });
     if (a.perch !== undefined) oneOf(a.perch, PERCHES, 'perch');
     if (typeof a.easterEgg !== 'boolean') fail('easterEgg', 'must be true or false');
+    if (a.story !== undefined && typeof a.story !== 'boolean') fail('story', 'must be true or false');
+    if (a.voice !== undefined && (typeof a.voice !== 'string' || !/^[a-z]+:\S+$/.test(a.voice))) fail('voice', 'must be a vocab key like "phrase:oinc"');
+    if (a.baby !== undefined) {
+      var b = a.baby;
+      if (!b || typeof b !== 'object' || typeof b.of !== 'string' || !/^[a-z]+$/.test(b.of)) fail('baby.of', 'must be the id of the adult animal');
+      ['scale', 'headScale', 'eyeScale'].forEach(function (k) {
+        if (!isNum(b[k]) || b[k] <= 0) fail('baby.' + k, 'must be a positive number');
+      });
+      if (b.scale >= 1) fail('baby.scale', 'must be below 1 (a baby is smaller than its adult)');
+    }
     // Easter eggs stay hidden until their data-defined condition is met. game/unlocks.js validates it in depth.
     if (a.easterEgg && (!a.unlock || typeof a.unlock !== 'object' || typeof a.unlock.type !== 'string')) {
       fail('unlock', 'an easterEgg needs an unlock condition { type, ... }');
@@ -173,7 +189,45 @@
     return parts.map(one);
   }
 
+  var HEAD_GROUP = ['cabeza', 'ojos', 'hocico', 'orejas'];
+
+  /** A baby's parts from its adult's: the head group (head, eyes, snout, ears) grows `headScale` x around the head's centre,
+   *  the eyes by `eyeScale` instead, then everything shrinks by `scale` (see shrink). Result: a relatively bigger head and
+   *  eyes on a small body. A pure data transform that works for any animal with a 'cabeza'. */
+  function babyParts(parts, o) {
+    var head = parts.filter(function (e) { return e.part === 'cabeza'; })[0];
+    var c = head ? head.offset : [0, 0, 0];
+    function grow(e, k) {
+      var out = {};
+      Object.keys(e).forEach(function (key) { out[key] = e[key]; });
+      out.scale = Array.isArray(e.scale) ? e.scale.map(function (n) { return n * k; }) : e.scale * k;
+      out.offset = e.offset.map(function (n, i) { return c[i] + (n - c[i]) * o.headScale; });
+      return out;
+    }
+    return shrink(parts.map(function (e) {
+      return HEAD_GROUP.indexOf(e.part) < 0 ? e : grow(e, e.part === 'ojos' ? o.eyeScale : o.headScale);
+    }), o.scale);
+  }
+  SA.animals.babyParts = babyParts;
+
   var CAMEL_SCALE = 0.75;   // AS-0215: the camel was giraffe-tall; this is its overall size factor (the design below is at 1.0)
+
+  var PINK = '#f4a6b8', DEEP_PINK = '#e98aa0', HALF_PI = Math.PI / 2;
+
+  /** The pig at adult size: pink barrel body, round head with a flat disc snout, floppy ears, four short legs and a curly
+   *  tail (a tilted stalk plus two curl balls, all tagged 'cola'). The piglet (el cerdito) is babyParts of this list. */
+  function pigParts() {
+    return [
+      p('cuerpo', PINK, [0.95, 0.8, 1.3], 1, [0, 0.7, 0]), p('cabeza', PINK, 0.6, 1, [0, 0.95, 0.7]),
+      { part: 'hocico', color: DEEP_PINK, builder: 'cylinder', scale: [0.34, 0.16, 0.34], count: 1, offset: [0, 0.9, 1.02], rot: [HALF_PI, 0, 0] },
+      p('orejas', DEEP_PINK, [0.22, 0.3, 0.22], 2, [0.2, 1.3, 0.62]), eyes(0.1, [0.17, 1.06, 0.9]),
+      { part: 'patas', color: DEEP_PINK, builder: 'cylinder', scale: [0.16, 0.55, 0.16], count: 4, offset: [0.25, 0.275, 0], row: 0.35 },
+      { part: 'cola', color: DEEP_PINK, builder: 'cylinder', scale: [0.07, 0.3, 0.07], count: 1, offset: [0, 0.95, -0.72], rot: [-0.9, 0, 0],
+        also: [{ scale: 0.13, count: 1, offset: [0, 1.12, -0.88], builder: 'sphere' }, { scale: 0.11, count: 1, offset: [0, 1.0, -0.98], builder: 'sphere' }] }
+    ];
+  }
+
+  var PIGLET = { of: 'cerda', scale: 0.55, headScale: 1.45, eyeScale: 1.7 };   // AS-0232: ~55% size, bigger head, much bigger eyes
 
   SA.data.register('animals', [
     { id: 'conejo', name: { es: 'conejo', en: 'rabbit', gender: 'm' }, icon: '🐰', biome: 'bosque',
@@ -266,6 +320,13 @@
         p('cola', '#f4f1ea', [0.4, 0.1, 0.7], 1, [0, 0.8, -0.75]), p('patas', '#f2b01e', [0.1, 0.55, 0.1], 2, [0.2, 0.275, 0]),
         eyes(0.1, [0.14, 1.5, 0.49])
       ], easterEgg: false },
+    // Story animals (AS-0232): mission 1 places them; they are not in the normal world population (story: true).
+    { id: 'cerda', name: { es: 'cerda', en: 'sow', gender: 'f' }, icon: '🐖', biome: 'bosque', story: true, voice: 'phrase:oinc',
+      traits: { size: 'mediano', color: 'rosa', movement: 'camina lento', diet: 'omnívoro', legs: 4 },
+      parts: pigParts(), easterEgg: false },
+    { id: 'cerdito', name: { es: 'cerdito', en: 'piglet', gender: 'm' }, icon: '🐷', biome: 'bosque', story: true, voice: 'phrase:oincbebe',
+      baby: PIGLET, traits: { size: 'pequeño', color: 'rosa', movement: 'corre', diet: 'omnívoro', legs: 4 },
+      parts: babyParts(pigParts(), PIGLET), easterEgg: false },
     // Easter egg #1 (original design): a blocky yellow mouse. Hidden until the player has 10 stars AND has tapped the
     // same tree of the forest 5 times. The condition is plain data (see game/unlocks.js).
     { id: 'raton', name: { es: 'ratón chispa', en: 'spark mouse', gender: 'm' }, icon: '🐭', biome: 'bosque',

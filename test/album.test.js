@@ -12,7 +12,7 @@ function setup(store) {
   SA.save.reset();
   return SA;
 }
-const real = (SA) => SA.data.all('animals').filter((a) => !a.easterEgg);
+const real = (SA) => SA.data.all('animals').filter((a) => !a.easterEgg && !a.story);
 
 test('a fresh album shows a silhouette for every real animal and hides easter eggs', () => {
   const SA = setup();

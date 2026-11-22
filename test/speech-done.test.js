@@ -141,3 +141,12 @@ test('clip blocked by autoplay policy: done fires (nothing will play); a failed 
   f.spoken[0].onend();
   assert.equal(e.n, 1);
 });
+
+test('a vocab entry with a pitch speaks at that pitch (the piglet squeaks); others keep the default', () => {
+  const { SA, spoken } = setup();
+  assert.equal(SA.audio.say('phrase:oincbebe'), 'speech');
+  assert.equal(spoken[0].pitch, SA.vocab.get('phrase:oincbebe').pitch);
+  assert.ok(spoken[0].pitch > 1);
+  SA.audio.say('phrase:oinc');
+  assert.equal(spoken[1].pitch, undefined);
+});

@@ -417,6 +417,13 @@ current; when your change sets or changes something future tickets must follow, 
   returns the one-time `reward` only on the first completion. `advance()` steps, `abandon()` drops the active one (back to available/done).
   The board UI (AS-0180) and step runner (AS-0178) build on this; the world never starts a mission.
 
+- **Story animals and baby variants (AS-0232, slice 1 of Mission 1):** `cerda` (la cerda) and `cerdito` (el cerdito) are rows in
+  `game/data/animals.js` with `story: true`: not built into the world, not in clue rounds, random mission picks or the album;
+  the mission places them (render code builds a story animal on demand from `SA.animalPlan.plan(animal)`). The piglet is a data row
+  made with `SA.animals.babyParts(adultParts, { scale: 0.55, headScale, eyeScale })` and marked `baby: { of: 'cerda', ... }`, so a
+  bigger head and eyes on a ~55% body need no engine code. `animal.voice` is a vocab key (`phrase:oinc`, baby `phrase:oincbebe`); a
+  vocab entry's optional `pitch` (1 = normal) is applied by `SA.audio.say` when it falls back to speechSynthesis. `rosa` is a colour.
+
 ## Unchanged from the spec
 
 Visual-first and low-reading, correct Spanish grammar agreement, never punish, original Easter-egg creatures (no

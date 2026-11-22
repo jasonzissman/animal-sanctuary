@@ -42,7 +42,7 @@ test('intermediate example shape: tail + legs count + habitat', () => {
 
 test('challenge: needs a count, every fact is necessary, parts only', () => {
   const SA = load();
-  const all = SA.data.all('animals');
+  const all = SA.data.all('animals').filter((a) => !a.story);
   const clues = SA.clues.leveled(all, 3);
   assert.ok(clues.length > 0);
   for (const c of clues) {

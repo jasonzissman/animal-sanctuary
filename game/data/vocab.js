@@ -7,6 +7,7 @@
  *   id, key   '<group>:<name>', e.g. 'part:orejas', 'animal:conejo', 'size:pequeño', 'color:rojo', 'number:3'
  *   es        Spanish text with article/accents exactly as shown on screen
  *   en        optional English scaffold text (shown only when settings.english is on)
+ *   pitch     optional speech pitch 0.5..2 (1 = normal); a baby animal's voice is higher. Recorded clips ignore it.
  *   clip      relative path to an audio clip or null
  * Groups: part, animal, biome, size, color, movement, diet, number, phrase, adj.
  * Adjective forms: size:/color: keys speak the masculine singular (base) word. Every size and colour adjective
@@ -26,6 +27,7 @@
     if (v.key !== v.id) fail('key', 'must equal id');
     if (typeof v.es !== 'string' || !v.es.trim()) fail('es', 'must be a non-empty string');
     if (v.clip !== null && (typeof v.clip !== 'string' || !v.clip)) fail('clip', 'must be a path string or null');
+    if (v.pitch !== undefined && (typeof v.pitch !== 'number' || !(v.pitch >= 0.5 && v.pitch <= 2))) fail('pitch', 'must be a number from 0.5 to 2');
     if (v.en !== undefined && (typeof v.en !== 'string' || !v.en.trim())) fail('en', 'must be a non-empty string when present');
     // Biome names are spoken with their article (la selva, el desierto) so the gender is always heard.
     if (/^biome:/.test(v.key) && !/^(el|la|los|las) /i.test(v.es)) fail('es', 'a biome name must start with its article (el/la/los/las)');
@@ -39,7 +41,9 @@
     var item = { id: key, key: key, es: es, clip: null };
     if (en) item.en = en;
     items.push(item);
+    return item;
   }
+  var BABY_PITCH = 1.7;   // speechSynthesis pitch of a baby animal's voice (normal is 1)
 
   [['cabeza', 'la cabeza'], ['cuerpo', 'el cuerpo'], ['orejas', 'las orejas'], ['ojos', 'los ojos'],
     ['hocico', 'el hocico'], ['pico', 'el pico'], ['cola', 'la cola'], ['patas', 'las patas'], ['alas', 'las alas'],
@@ -49,7 +53,8 @@
 
   [['conejo', 'el conejo'], ['pato', 'el pato'], ['tortuga', 'la tortuga'], ['mono', 'el mono'],
     ['tucan', 'el tucán'], ['rana', 'la rana'], ['camello', 'el camello'], ['serpiente', 'la serpiente'],
-    ['cabra', 'la cabra'], ['aguila', 'el águila'], ['raton', 'el ratón chispa']].forEach(function (a) { add('animal', a[0], a[1]); });
+    ['cabra', 'la cabra'], ['aguila', 'el águila'], ['raton', 'el ratón chispa'],
+    ['cerda', 'la cerda'], ['cerdito', 'el cerdito']].forEach(function (a) { add('animal', a[0], a[1]); });
 
   add('biome', 'bosque', 'El bosque y el río');
   add('biome', 'selva', 'La selva');
@@ -57,7 +62,7 @@
   add('biome', 'montana', 'La montaña');
 
   ['pequeño', 'mediano', 'grande'].forEach(function (w) { add('size', w, w); });
-  ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul'].forEach(function (w) { add('color', w, w); });
+  ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul', 'rosa'].forEach(function (w) { add('color', w, w); });
   ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre', 'repta'].forEach(function (w) { add('movement', w, w); });
   ['herbívoro', 'carnívoro', 'omnívoro', 'insectívoro'].forEach(function (w) { add('diet', w, w); });
   // Agreeing forms of every size/colour adjective: base -> [m.sg, m.pl, f.sg, f.pl]. Accents kept (marrón/marrones).
@@ -68,7 +73,7 @@
     'marrón': ['marrón', 'marrones', 'marrón', 'marrones'], 'negro': ['negro', 'negros', 'negra', 'negras'],
     'verde': ['verde', 'verdes', 'verde', 'verdes'], 'amarillo': ['amarillo', 'amarillos', 'amarilla', 'amarillas'],
     'naranja': ['naranja', 'naranjas', 'naranja', 'naranjas'], 'rojo': ['rojo', 'rojos', 'roja', 'rojas'],
-    'azul': ['azul', 'azules', 'azul', 'azules']
+    'azul': ['azul', 'azules', 'azul', 'azules'], 'rosa': ['rosa', 'rosas', 'rosa', 'rosas']
   };
   var FORM_INDEX = { m: { sg: 0, pl: 1 }, f: { sg: 2, pl: 3 } };
   var seenAdj = {};
@@ -107,6 +112,9 @@
   add('phrase', 'pasoentrega', '¡Entrega!', 'Deliver it!');
   add('phrase', 'pasorecoge', '¡Recoge!', 'Collect it!');
   add('phrase', 'pasove', '¡Ve allí!', 'Go there!');
+  // The pig's voice (animal.voice): the sow grunts, the piglet squeaks at a higher pitch (speech.js uses entry.pitch).
+  add('phrase', 'oinc', 'Oinc, oinc', 'Oink oink');
+  add('phrase', 'oincbebe', 'Oinc, oinc', 'Oink oink').pitch = BABY_PITCH;
   add('phrase', 'acercate', '¡Acércate!', 'Come closer!');   // the reach cue (SA.reach.speakCue)
 
   SA.data.register('vocab', items);

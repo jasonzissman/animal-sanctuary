@@ -242,7 +242,7 @@ test('every size and colour adjective has masculine, feminine and plural forms s
     gris: ['gris', 'grises', 'gris', 'grises'], marrón: ['marrón', 'marrones', 'marrón', 'marrones'],
     negro: ['negro', 'negros', 'negra', 'negras'], verde: ['verde', 'verdes', 'verde', 'verdes'],
     amarillo: ['amarillo', 'amarillos', 'amarilla', 'amarillas'], naranja: ['naranja', 'naranjas', 'naranja', 'naranjas'],
-    rojo: ['rojo', 'rojos', 'roja', 'rojas'], azul: ['azul', 'azules', 'azul', 'azules'],
+    rojo: ['rojo', 'rojos', 'roja', 'rojas'], azul: ['azul', 'azules', 'azul', 'azules'], rosa: ['rosa', 'rosas', 'rosa', 'rosas'],
   };
   const order = [['m', 'sg'], ['m', 'pl'], ['f', 'sg'], ['f', 'pl']];
   const bases = new Set([...SA.animals.SIZES, ...SA.animals.COLORS]);

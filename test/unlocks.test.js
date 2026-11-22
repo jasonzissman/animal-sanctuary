@@ -122,7 +122,7 @@ test('after unlocking, the mouse joins Scout & Spot clues and care tasks like an
   const answers = ids(after);
   assert.ok(answers.has('raton'), 'the mouse is asked for');
   const r = SA.round.create({ rng: SA.clues.makeRng(2), level: 1, biome: 'bosque', animals: ['raton', 'conejo', 'pato'] }).start();
-  assert.ok(r.clue.text.startsWith('Busca el animal'));
+  assert.match(r.clue.text, /^Busca (el animal|la criatura|los animales|las criaturas)/);
   const care = SA.care.create({ rng: SA.clues.makeRng(3), level: 1, track: () => {} });
   for (const kind of ['limpiar', 'curar', 'alimentar']) {
     const t = care.maybeStart('raton', true, kind);

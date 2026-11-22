@@ -19,7 +19,7 @@ test('peak targets are plain climb data: kind peak, solid base, small circular s
   for (const t of targets) {
     assert.equal(t.kind, 'peak');
     assert.deepEqual(t.top.shape, 'circle');
-    assert.ok(t.top.size >= 1 && t.top.size <= 2, 'summit radius 1-2 player lengths');
+    assert.ok(t.top.size * 2 >= 2 && t.top.size * 2 <= 3, 'summit about 2-3 units across (one or two player lengths)');
     assert.ok(t.radius > 0 && t.topY > t.y + 5, 'steep: well above its foot');
     assert.equal(K.topOf(t), t.topY);
   }

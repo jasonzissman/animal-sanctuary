@@ -22,6 +22,8 @@ test('burstPlan starts on the star badge and every star stays on-screen at touch
   // Star badge: fixed left:12px;bottom:12px, roughly 110x50. The burst box must start inside it.
   const cx = plan.left + plan.size / 2, cy = plan.bottom + plan.size / 2;
   assert.ok(cx >= 12 && cx <= 122 && cy >= 12 && cy <= 62, 'burst starts on the badge');
+  // AS-0066: badge centre from its CSS (2rem text, .1em/.6em padding, .1em border) is ~(65.5, 37.5); stay within a few px.
+  assert.ok(Math.abs(cx - 65.5) <= 4 && Math.abs(cy - 37.5) <= 4, `burst origin (${cx}, ${cy}) matches the badge centre`);
   for (const [w, h] of [[1024, 768], [1280, 720]]) {
     for (const s of plan.stars) {
       const left = plan.left + s.dx, bottom = plan.bottom - s.dy;      // dy < 0 moves up

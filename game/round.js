@@ -8,7 +8,7 @@
  *              data `biome` matches when it has >= MIN_BIOME_ANIMALS of them, else from all animals.
  *              SA.round.biomeForX(cameraTargetX) gives the biome under the camera target.
  *   game.start()  -> round | null    begins a new round with a fresh clue:
- *       { id, clue, answerId, level, hintShown, misses, hints, done }
+ *       { id, clue, answerId, answerPart (part the clue is about, or null; a pick of the right animal on any part is correct), level, hintShown, misses, hints, done }
  *       Beginner (level <= 1) shows the silhouette hint right away; higher levels reveal it with game.hint().
  *   game.pick({ animalId, part }) -> { status: 'ignored' | 'wrong' | 'correct', ... }
  *       Emits part.tap {part, correct}. A wrong pick only counts a miss (no penalty, the round continues).
@@ -78,7 +78,8 @@
       SA.clues.remember(cluesState, clue);
       seq += 1;
       var level = levelNow();
-      round = { id: 'r' + seq + ':' + clue.key, clue: clue, answerId: clue.answer.animalId, level: level,
+      round = { id: 'r' + seq + ':' + clue.key, clue: clue, answerId: clue.answer.animalId,
+        answerPart: typeof clue.answer.part === 'string' ? clue.answer.part : null, level: level,
         hintShown: level <= 1, misses: 0, hints: 0, done: false, picks: 0, biome: typeof biome === 'string' && biome ? biome : null,
         stage: SA.hintStage ? SA.hintStage.initial(level) : (level <= 1 ? 1 : 0), biomeShown: false };
       startedAt = now();

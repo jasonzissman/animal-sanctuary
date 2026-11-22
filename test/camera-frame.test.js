@@ -60,22 +60,23 @@ test('easeFrame is smooth, frame-rate independent and settles in about half a se
 });
 
 // ---- the rig applies it ----
-function makeRig(above) {
+function makeRig(above, ground) {
   const SA = load([...PURE, 'game/player.js', 'game/perch.js', 'game/climb.js', 'game/picking.js', 'game/render/camera-rig.js']);
   const listeners = {};
   const canvas = { style: {}, clientHeight: 600, addEventListener: (t, f) => { listeners[t] = f; } };
   const placed = {};
   const camera = { fov: 45, updated: 0, updateProjectionMatrix() { this.updated++; },
     position: { set: (x, y, z) => { placed.pos = { x, y, z }; } }, lookAt: (x, y, z) => { placed.look = { x, y, z }; } };
-  const rig = SA.render.createCameraRig({}, canvas, camera, { chase: { obstacles: () => [], above: () => above(rig.getPlayer()) } });
+  const rig = SA.render.createCameraRig({}, canvas, camera, { chase: { obstacles: () => [], above: () => above(rig.getPlayer()), ground: ground || (() => false) } });
   return { rig, placed, camera, listeners, SA };
 }
 const run = (rig, n, dt = 0.05) => { for (let i = 0; i < n; i++) rig.update(dt); };
+const ahead = (p, d, up) => ({ x: p.x + Math.sin(p.heading) * d, y: p.y + up, z: p.z + Math.cos(p.heading) * d });   // in front of the player
 const away = (p, placed) => Math.hypot(placed.pos.x - p.x, placed.pos.z - p.z);
 
 test('rig: a bird in the tree above eases the camera back and up, then back to normal on open ground', () => {
   let bird = false;
-  const { rig, placed, camera } = makeRig((p) => (bird ? [{ x: p.x + 2, y: p.y + 5, z: p.z }] : []));
+  const { rig, placed, camera } = makeRig((p) => (bird ? [ahead(p, 2, 5)] : []));
   run(rig, 40);
   const p0 = rig.getPlayer(), normal = away(p0, placed), lookNormal = placed.look.y, fovNormal = camera.fov;
   bird = true;
@@ -84,7 +85,7 @@ test('rig: a bird in the tree above eases the camera back and up, then back to n
   assert.ok(early - normal < 1.6, 'eases, no snap in the first frame');
   run(rig, 20);
   assert.ok(away(p0, placed) > normal + 3, 'pulled back');
-  assert.ok(placed.look.y > lookNormal + 1.5, 'looking higher');
+  assert.ok(placed.look.y > lookNormal + 0.8, 'looking higher (only as much as feet + bird need)');
   assert.ok(camera.fov > fovNormal && camera.updated > 0, 'view widened a little');
   assert.ok(rig.getState().dist > 10, 'getState reports the framed distance');
   bird = false;
@@ -95,7 +96,7 @@ test('rig: a bird in the tree above eases the camera back and up, then back to n
 });
 
 test('rig: dragging the view overrides the framing, then it eases back in', () => {
-  const { rig, placed, listeners } = makeRig((p) => [{ x: p.x + 2, y: p.y + 5, z: p.z }]);
+  const { rig, placed, listeners } = makeRig((p) => [ahead(p, 2, 5)]);
   run(rig, 40);
   const p = rig.getPlayer(), framed = away(p, placed);
   const ev = (o) => ({ pointerId: 1, button: 0, clientX: 100, clientY: 100, preventDefault() {}, ...o });
@@ -115,4 +116,84 @@ test('rig: the camera never leaves the player while framing and stays within the
   const p = rig.getPlayer();
   assert.ok(away(p, placed) < 14 && placed.pos.y > 0);
   assert.ok(rig.getState().pitch >= 10);
+});
+
+// ---- AS-0216: ground target wins, only frame what you face, wait ~0.6 s, keep feet and animal on screen ----
+const bird = (h, d, up) => ({ x: Math.sin(h) * d, y: up, z: Math.cos(h) * d });
+
+test('a usable ground target in reach means no tilt, even under a tree with a perched animal', () => {
+  const C = load(PURE).camera;
+  const P = { x: 0, z: 0, y: 0, heading: 0 };
+  assert.ok(C.frameAbove(P, [bird(0, 2, 5)], null, { ground: false, still: 1 }).weight > 0, 'control: frames without a ground target');
+  assert.equal(C.frameAbove(P, [bird(0, 2, 5)], null, { ground: true, still: 5 }).weight, 0);
+});
+
+test('a perched animal outside the +-50 degree forward cone never frames', () => {
+  const C = load(PURE).camera;
+  const P = { x: 0, z: 0, y: 0, heading: 0 }, ctx = { still: 5 };
+  assert.equal(C.frameAbove(P, [bird(Math.PI, 3, 5)], null, ctx).weight, 0, 'behind');
+  assert.equal(C.frameAbove(P, [bird(Math.PI / 2, 3, 5)], null, ctx).weight, 0, 'to the side');
+  assert.equal(C.frameAbove(P, [bird(55 * Math.PI / 180, 3, 5)], null, ctx).weight, 0, 'just outside 50 degrees');
+  assert.ok(C.frameAbove(P, [bird(45 * Math.PI / 180, 3, 5)], null, ctx).weight > 0, 'inside the cone');
+  assert.ok(C.frameAbove(P, [bird(0.3, 3, 5)], null, ctx).weight > 0, 'nearly dead ahead');
+});
+
+test('facing a perched animal frames only after about 0.6 s standing still (injected dt)', () => {
+  const C = load(PURE).camera;
+  const P = { x: 0, z: 0, y: 0, heading: 0 }, pts = [bird(0, 3, 5)];
+  let hold = 0;
+  hold = C.frameHold(hold, 0, 0.3);
+  assert.equal(C.frameAbove(P, pts, null, { still: hold }).weight, 0, '0.3 s: not yet');
+  hold = C.frameHold(hold, 0.1, 0.3);   // slowed right down: still counting
+  assert.ok(hold >= 0.6 - 1e-9);
+  assert.ok(C.frameAbove(P, pts, null, { still: hold }).weight > 0, '0.6 s: frames');
+  hold = C.frameHold(hold, 3, 0.016);   // walks off: resets at once
+  assert.equal(hold, 0);
+  assert.equal(C.frameAbove(P, pts, null, { still: hold }).weight, 0);
+  assert.equal(C.frameHold(NaN, NaN, NaN), 0, 'junk input is safe');
+});
+
+test('the framed view keeps both the feet and the perched animal inside the vertical view', () => {
+  const C = load(PURE).camera, D = C.DEFAULTS;
+  for (const [d, up] of [[1, 3], [3, 5], [5, 8], [2, 10], [6, 4]]) {
+    const f = C.frameAbove({ x: 0, z: 0, y: 0, heading: 0 }, [bird(0, d, up)], null, { still: 1 });
+    assert.ok(f.weight === 1, `framed at d=${d} up=${up}`);
+    const pos = C.position({ x: 0, z: 0, dist: D.chaseDist + f.addDist, yaw: 0, pitch: C.clampPitch(D.chasePitch + f.addPitch) });
+    const look = D.lookY + f.addLookY, half = (D.fovDeg + f.addFov) / 2;
+    const axis = Math.atan2(pos.y - look, pos.z) * 180 / Math.PI;   // below horizontal, degrees
+    const feetDown = Math.atan2(pos.y, pos.z) * 180 / Math.PI;
+    const topDown = Math.atan2(pos.y - (up + C.FRAME_DEFAULTS.animalTop), pos.z + d) * 180 / Math.PI;
+    assert.ok(Math.abs(feetDown - axis) < half, `feet on screen (d=${d}, up=${up})`);
+    assert.ok(Math.abs(topDown - axis) < half, `animal on screen (d=${d}, up=${up})`);
+    assert.ok(f.addLookY <= C.FRAME_DEFAULTS.maxLook);
+  }
+});
+
+test('up a canopy the framing ignores the cone, the ground target and the wait', () => {
+  const C = load(PURE).camera;
+  const up = { x: 0, z: 0, y: 5.2, heading: 0, climb: { mode: 'canopy' } };
+  assert.equal(C.frameAbove(up, [{ x: 0, y: 6, z: -2 }], null, { ground: true, still: 0 }).weight, 1);
+});
+
+test('rig: a ground target in reach keeps the chase view; without one it frames after the wait', () => {
+  let ground = true;
+  const { rig, placed } = makeRig((p) => [ahead(p, 2, 5)], () => ground);
+  run(rig, 40);
+  const p = rig.getPlayer(), normal = away(p, placed);
+  const open = makeRig(() => []); run(open.rig, 40);
+  assert.ok(Math.abs(normal - away(open.rig.getPlayer(), open.placed)) < 0.05, 'plain chase view under the tree');
+  ground = false;
+  run(rig, 30, 0.05);   // standing the whole time, so no extra wait once the ground target is gone
+  assert.ok(away(p, placed) > normal + 3, 'framed after standing still');
+  ground = true;
+  run(rig, 60);
+  assert.ok(Math.abs(away(p, placed) - normal) < 0.05, 'eases back out when a ground target appears');
+});
+
+test('rig: a perched animal behind the player never tilts the camera', () => {
+  const { rig, placed } = makeRig((p) => [ahead(p, -3, 5)]);
+  run(rig, 40);
+  const open = makeRig(() => []); run(open.rig, 40);
+  assert.ok(Math.abs(away(rig.getPlayer(), placed) - away(open.rig.getPlayer(), open.placed)) < 0.05);
+  assert.ok(Math.abs(placed.look.y - open.placed.look.y) < 0.05);
 });

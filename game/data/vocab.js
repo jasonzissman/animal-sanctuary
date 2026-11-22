@@ -89,6 +89,7 @@
   add('phrase', 'toca', '¡Toca!');
   add('phrase', 'casi', '¡Casi!');
   add('phrase', 'yapuedevolar', '¡Ya puede volar!');
+  add('phrase', 'quefoto', '¡Qué foto! Pero busca…');
 
   SA.data.register('vocab', items);
   SA.vocab = {

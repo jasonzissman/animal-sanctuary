@@ -29,11 +29,15 @@
       return { m: m, rx: m.rotation.x, ry: m.rotation.y, rz: m.rotation.z, sy: m.scale.y, py: pos.y, pz: pos.z };
     }
 
-    // Current [x, z] of every other animal, so a wanderer can pick targets that keep its distance.
+    // Live [x, z, bodyRadius] of every other GROUND animal (wander position, so a flyLoop's circle does not count), so a
+    // wanderer keeps SA.spacing.GAP from them on every step. Treetop animals live in the canopy and are left out.
     function othersOf(id) {
       return function () {
         var pts = [];
-        Object.keys(rigs).forEach(function (k) { if (k !== id) pts.push([rigs[k].g.position.x, rigs[k].g.position.z]); });
+        Object.keys(rigs).forEach(function (k) {
+          var o = rigs[k];
+          if (k !== id && !o.perched) pts.push([o.wx, o.wz, o.r]);
+        });
         return pts;
       };
     }
@@ -56,9 +60,10 @@
         g: g, phase: i * 1.7, ears: parts('orejas'), tail: parts('cola'), eyes: parts('ojos'), cheeks: parts('mejillas'),
         gait: SA.gait.kind(a.traits.movement), amp: 0, wings: parts('alas'), legs: parts('patas'),
         sx: g.scale.x, sy: g.scale.y, sz: g.scale.z,
+        wx: g.position.x, wz: g.position.z, r: SA.spacing ? SA.spacing.bodyRadius(a) : 0, perched: a.perch === 'tree' && !!SA.perch,
         w: a.perch === 'tree' && SA.perch ? perchWalker(a, g, i) : SA.wander.create({
           movement: a.traits.movement, biome: a.biome, home: { x: g.position.x, z: g.position.z },
-          seed: 100 + i, avoid: opts.avoid, others: othersOf(a.id),
+          seed: 100 + i, avoid: opts.avoid, others: othersOf(a.id), bodyRadius: SA.spacing ? SA.spacing.bodyRadius(a) : 0,
         }),
       };
       if (a.perch === 'tree' && SA.perch) g.userData.perched = true;   // up in a canopy: never blocks the walking player
@@ -88,6 +93,7 @@
       Object.keys(rigs).forEach(function (id) {
         var r = rigs[id], g = r.g, p = r.w.update(dt), idle = SA.wander.idle(t, r.phase);
         var spin = 0, loopLift = 0, moving = p.moving;
+        r.wx = p.x; r.wz = p.z;
         g.position.x = p.x;
         g.position.z = p.z;
         // Tangled wing: the bird hops on the ground instead of hovering. Freed: it circles once, spinning, up in the air.

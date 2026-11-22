@@ -59,6 +59,7 @@ globalThis.SA_MANIFEST = {
     'game/render/camera-rig.js',
     'game/render/avatar.js',
     'game/render/hand-item.js',
+    'game/spacing.js',
     'game/wander.js',
     'game/gait.js',
     'game/render/ambient.js',

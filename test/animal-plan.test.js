@@ -163,7 +163,7 @@ test('picking: small parts win over the cabeza/cuerpo boxes around them (conejo)
   assert.equal(pick([0.28, -5, 0.336], [0.28, 0.18, 0.336]).part, 'patas');
   // Plain head and body taps still pick the head and body, and carry the animal id.
   assert.equal(pick([0.3, 1.3, 5], [0.3, 1.3, 0.5]).part, 'cabeza');
-  const body = pick([0, 0.9, -5], [0, 0.9, 0]);
+  const body = pick([0, 0.77, -5], [0, 0.77, 0]);     // between the tail and the fur tuft (el pelo) on the back
   assert.equal(body.part, 'cuerpo');
   assert.equal(body.id, 'conejo');
 });

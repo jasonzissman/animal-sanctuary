@@ -1,12 +1,16 @@
 /* SA.careFlow: wires a care task (SA.care) to the prompt view, audio and the 3D care effects. Pure wiring with
  * injectable collaborators, so it is unit-tested in node:vm with stubs.
  *
- *   var flow = SA.careFlow.create({ care, view, fx?, audio?, later?, onDone? })
- *   flow.offer(animalId) -> boolean   maybe starts a task (shows "Limpia las patas", speaks it, eases the camera in,
- *                                     makes the part rub-able); false when no task was started
+ *   var flow = SA.careFlow.create({ care, view, fx?, audio?, later?, onDone?, react?, inventory? })
+ *   (react(animalId, reaction) plays an animal reaction; inventory defaults to SA.inventory)
+ *   flow.offer(animalId) -> boolean   maybe starts a task (shows "Lava las patas" with the tool's icon, speaks it, makes
+ *                                     the part rub-able); false when no task was started
  *   flow.active()                     a task is in progress
- *   flow.onPick({ animalId, part })   routes a tap/rub: splash + fewer spots; wrong part = boing + its name (no penalty);
- *                                     the last rub celebrates, awards the star (in SA.care) and calls onDone after NEXT_MS
+ *   flow.onPick({ animalId, part, item? })  routes a Space/click/tap/rub with the equipped item: the right tool on the right
+ *                                     part (action table, game/data/actions.js) plays the action's sfx and reaction and takes
+ *                                     spots away; any other pairing = boing + the tool and part names toasted and spoken (no
+ *                                     penalty). The last rub celebrates, awards the star (in SA.care), calls onDone after NEXT_MS.
+ *                                     On a feed task the item must be a food from the inventory: it is given and used up.
  *   flow.onFeed(foodId)               feed task: a tray food was tapped; the asked food is counted aloud, anything else
  *                                     bounces back with a giggle and its name (no penalty); exactly `count` finishes
  *   (curar: "Cura las alas" is one tap on the scraped part; finishing draws a bandage via fx.bandage())
@@ -16,6 +20,7 @@
   'use strict';
   var SA = root.SA;
   var NEXT_MS = 2200;
+  var WORD_GAP_MS = 900;      // pause between the spoken tool name and part name
 
   function create(o) {
     var care = o.care, view = o.view, fx = o.fx, audio = o.audio || SA.audio;
@@ -28,6 +33,13 @@
     function vcall(name, arg) { if (typeof view[name] === 'function') view[name](arg); }
     function food(id) { return SA.data.get('foods', id); }
 
+    // The icon of the tool that fits the task (🪮 🧽 🩹), or an open hand: the prompt shows what to hold.
+    function itemDef(id) { try { return id ? SA.data.get('items', id) : null; } catch (e) { return null; } }
+    function toolIcon(task) {
+      var it = task.item && task.item !== 'hands' && task.item !== 'food' ? itemDef(task.item) : null;
+      return it ? it.icon : '✋';
+    }
+
     function offer(animalId) {
       var task = care.maybeStart(animalId);
       if (!task) return false;
@@ -38,9 +50,9 @@
           items: task.items.map(function (it) { return { icon: food(it.food).icon, count: it.count, given: 0 }; }),
           tray: task.tray.map(function (id) { return { id: id, icon: food(id).icon, label: SA.vocab.get('food:' + id).es }; }) });
       } else {
-        // only cleaning is rubbed; healing is a single tap on the scraped part
-        if (task.kind === 'limpiar' && SA.picking && SA.picking.setRubTarget) SA.picking.setRubTarget(task.animalId, task.part);
-        view.showCare({ text: task.text, icon: task.kind === 'curar' ? '🩹' : '🧽', stars: stars() });
+        // washing, brushing and petting are rubbed; healing is a single tap on the scraped part
+        if (task.kind !== 'curar' && SA.picking && SA.picking.setRubTarget) SA.picking.setRubTarget(task.animalId, task.part);
+        view.showCare({ text: task.text, icon: toolIcon(task), stars: stars() });
       }
       say(task.text);
       return true;
@@ -52,7 +64,8 @@
       if (fx) fx.scrub(0);
       if (res.kind === 'curar' && fx && fx.bandage) fx.bandage();
       vcall('hideFeed');
-      sfx(res.kind === 'alimentar' ? 'pop' : 'splash');
+      sfx(res.sfx || 'pop');
+      react(res.animalId, res.reaction);
       view.celebrate({ icon: '✨', stars: res.stars });
       view.confetti();
       view.toast('¡Muy bien! ⭐');
@@ -63,23 +76,54 @@
       }, NEXT_MS);
     }
 
+    function react(animalId, name) { try { if (o.react && animalId && name) o.react(animalId, name); } catch (e) { /* silent */ } }
+
+    // A wrong tool or part: a funny harmless reaction, then the Spanish names ("el cepillo", "las patas") are said and shown.
+    function wrongPairing(animalId, itemKey, itemEs, part) {
+      sfx('boing');
+      react(animalId, 'wobble');
+      var partDef = part && SA.data.get('parts', part);
+      view.toast('🙈 ' + (itemEs ? itemEs + ' · ' : '') + (partDef ? partDef.label.es : ''));
+      var keys = (itemKey ? ['item:' + itemKey] : []).concat(partDef ? ['part:' + part] : []);
+      keys.forEach(function (k, i) { if (i) later(function () { say(k); }, WORD_GAP_MS); else say(k); });
+    }
+
     function onPick(p) {
+      var cur = care.current();
+      if (cur && cur.kind === 'alimentar') return onFeedPick(cur, p);
       var res = care.tap(p);
       if (res.status === 'scrub') {
-        sfx('splash');
+        sfx(cur.sfx || 'splash');
+        react(cur.animalId, cur.reaction);
         if (fx) fx.scrub(res.spotsLeft);
       } else if (res.status === 'wrong') {
-        sfx('boing');
-        view.toast('🙈 ' + res.label);        // the picking layer already played the part's funny reaction
+        wrongPairing(cur.animalId, res.item, res.itemLabel, res.part);
       } else if (res.status === 'done') {
         finish(res);
       }
       return res;
     }
 
+    // Feeding by hand: Space with a food item equipped gives it to the animal and uses it up. Anything else held (a tool, or
+    // empty hands) is a funny miss that names it. Foods only leave the inventory when the animal accepts them.
+    function onFeedPick(task, p) {
+      if (!p || p.animalId !== task.animalId) return { status: 'ignored' };
+      var held = typeof p.item === 'string' && p.item ? p.item : null;
+      if (!held || !SA.data.get('foods', held)) {
+        var it = itemDef(held);
+        wrongPairing(task.animalId, held, it ? it.name.es : null, p.part);
+        return { status: 'wrong', reason: 'tool', item: held };
+      }
+      var inv = o.inventory || SA.inventory;
+      if (inv && inv.count && inv.count(held) < 1) return { status: 'ignored' };
+      return onFeed(held, inv);
+    }
+
     // A tray food was tapped: each right one is counted aloud ("uno, dos, tres"); anything else bounces back with a giggle.
-    function onFeed(foodId) {
-      var res = care.feed(foodId);
+    // `hand` (the inventory, when the food came from the player's hand) is where an accepted food is removed from.
+    function onFeed(foodId, hand) {
+      var res = care.feed(foodId, !!hand);
+      if (hand && (res.status === 'fed' || res.status === 'done') && hand.remove) hand.remove(foodId, 1);
       if (res.status === 'fed' || res.status === 'done') {
         var t = care.current();
         sfx('pop');

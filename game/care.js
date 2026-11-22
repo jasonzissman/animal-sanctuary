@@ -12,16 +12,21 @@
  *       `words` are the vocab keys of the asked phrase ("number:3", "foodpl:fresa"). Counts are 1-3 at scaffold
  *       level 1, 1-5 at level 2, and 1-8 at level 3+, which can also ask two different foods in any order:
  *       'Dale dos fresas y una zanahoria al conejo' (words: number:2 foodpl:fresa phrase:y number:una foodsg:zanahoria).
- *   care.feed(foodId) -> { status: 'ignored' | 'wrong' | 'fed' | 'done', ... }
+ *   care.feed(foodId, hand?) -> { status: 'ignored' | 'wrong' | 'fed' | 'done', ... }
  *       Only the asked food(s) count. 'fed' carries `given`/`remaining` (totals); the task completes (star,
  *       round.complete) only when every asked item has exactly its count. Any other food, or one too many of an
  *       asked food, is 'wrong' with `reason` 'diet' (the animal does not eat it) | 'other' (it eats it, but it was
  *       not asked) | 'extra', plus the food's Spanish `label`; no penalty, the task continues. Emits care.feed {food, correct}.
- *   care.tap({ animalId, part }) -> { status: 'ignored' | 'wrong' | 'scrub' | 'done', ... }
- *       Emits part.tap {part, correct}. The right part washes one rub away ('scrub' with `remaining`, spots left in
- *       `spotsLeft`); the last rub finishes the task: +1 star, rounds.completed +1, round.complete
- *       {roundId, seconds, misses, hints, level}. A wrong part only counts a miss and returns its Spanish `label`
- *       (a learning moment, no penalty); the task continues.
+ *       A tray food must be on the tray; with `hand` true (a food item from the inventory, given with Space) any known food
+ *       counts. The caller (SA.careFlow) removes the item from the inventory when it was accepted.
+ *   care.tap({ animalId, part, item? }) -> { status: 'ignored' | 'wrong' | 'scrub' | 'done', ... }
+ *       `item` is the equipped item id (absent = empty hands). Each task carries its action (game/data/actions.js):
+ *       `task.action`, `task.item` (the tool that fits: 'esponja' | 'cepillo' | 'venda' | 'hands' | 'food'), `sfx`, `reaction`.
+ *       Emits part.tap {part, correct}. The right tool on the right part washes one rub away ('scrub' with `remaining`,
+ *       spots left in `spotsLeft`); the last rub finishes the task: +1 star, rounds.completed +1, round.complete
+ *       {roundId, seconds, misses, hints, level}. Any other pairing only counts a miss and returns `reason`
+ *       ('tool' | 'part'), the part's Spanish `label` and the held tool's `itemLabel` (a learning moment, no penalty);
+ *       the task continues. Feed tasks ignore tool taps (see feed).
  *   care.active() -> boolean     care.current() -> task | null
  */
 (function (root) {
@@ -67,6 +72,11 @@
       return v ? v.es : key.split(':')[1];
     }
 
+    // "el cepillo" for an item id (null for empty hands or an unknown item).
+    function itemLabel(id) {
+      try { var it = id && SA.data.get('items', id); return it ? it.name.es : null; } catch (e) { return null; }
+    }
+
     function eats(food, diet) { return food.diets.indexOf(diet) >= 0; }
 
     function randInt(lo, hi) { var span = hi - lo + 1; return lo + Math.floor(rng() * span) % span; }
@@ -105,7 +115,7 @@
       var total = items.reduce(function (n, it) { return n + it.count; }, 0);
       seq += 1;
       return { id: 'c' + seq + ':' + animal.id + ':' + target.id, taskId: def.id, kind: 'alimentar', animalId: animal.id,
-        part: null, food: target.id, count: total, given: 0, items: items, words: words, tray: tray, text: text,
+        part: null, action: 'alimentar', item: 'food', sfx: 'pop', reaction: 'boing', food: target.id, count: total, given: 0, items: items, words: words, tray: tray, text: text,
         misses: 0, done: false };
     }
 
@@ -115,7 +125,9 @@
       if (!eligible.length) return null;
       var part = pick(eligible);
       seq += 1;
+      var action = SA.data.get('actions', def.action);
       return { id: 'c' + seq + ':' + animal.id + ':' + part, taskId: def.id, kind: def.kind, animalId: animal.id, part: part,
+        action: action.id, item: action.item, sfx: action.sfx, reaction: action.reaction,
         text: def.prompt.replace('{part}', SA.data.get('parts', part).label.es), rubs: def.rubs, remaining: def.rubs,
         spots: def.rubs * def.spotsPerRub, spotsPerRub: def.spotsPerRub, misses: 0, done: false };
     }
@@ -124,7 +136,11 @@
     function maybeStart(animalId, force, kind) {
       var animal = SA.data.get('animals', animalId);
       if (!animal || (animal.easterEgg && SA.save.get().unlockedAnimals.indexOf(animalId) < 0)) return null;   // hidden eggs have no care
-      var defs = SA.data.all('careTasks').filter(function (d) { return !kind || d.kind === kind; });
+      var has = animal.parts.map(function (p) { return p.part; });
+      // only tasks this animal can really do (a rabbit has el pelo and la barriga, a snake has neither)
+      var defs = SA.data.all('careTasks').filter(function (d) {
+        return (!kind || d.kind === kind) && (d.kind === 'alimentar' || d.parts.some(function (k) { return has.indexOf(k) >= 0; }));
+      });
       if (!defs.length) return null;
       var def = pick(defs);
       if (!force && rng() >= def.chance) return null;
@@ -142,12 +158,15 @@
       var stars = s.stars + 1;
       SA.save.update({ stars: stars, rounds: { completed: s.rounds.completed + 1, streak: s.rounds.streak } });
       track('round.complete', { roundId: task.id, seconds: seconds, misses: task.misses, hints: 0, level: levelNow() });
-      return { status: 'done', kind: task.kind, animalId: task.animalId, part: task.part, seconds: seconds, stars: stars, misses: task.misses };
+      return { status: 'done', kind: task.kind, animalId: task.animalId, part: task.part, seconds: seconds, stars: stars, misses: task.misses,
+        sfx: task.sfx, reaction: task.reaction };
     }
 
     // Feed: one food item given to the animal. Only the asked food counts; the task completes at exactly `count`.
-    function feed(foodId) {
-      if (!task || task.done || task.kind !== 'alimentar' || task.tray.indexOf(foodId) < 0) return { status: 'ignored' };
+    // `hand` (a food item held in the inventory, given with Space) may be any known food, not only one on the tray.
+    function feed(foodId, hand) {
+      if (!task || task.done || task.kind !== 'alimentar' || !SA.data.get('foods', foodId) ||
+        (!hand && task.tray.indexOf(foodId) < 0)) return { status: 'ignored' };
       var animal = SA.data.get('animals', task.animalId), food = SA.data.get('foods', foodId);
       var item = null, asked = false;
       task.items.forEach(function (it) {
@@ -171,12 +190,17 @@
     function tap(p) {
       if (!task || task.done || task.kind === 'alimentar' || !p || p.animalId !== task.animalId) return { status: 'ignored' };
       var part = String(p.part || 'cuerpo');
-      var correct = part === task.part;
+      // The right tool (the equipped item, or empty hands) on the right part progresses the task; anything else is a
+      // funny harmless miss that names the tool and the part ("el cepillo", "las patas").
+      var heldId = typeof p.item === 'string' && p.item ? p.item : null;
+      var toolOk = SA.actions.fits(SA.data.get('actions', task.action), heldId);
+      var correct = toolOk && part === task.part;
       track('part.tap', { part: part, correct: correct });
       if (!correct) {
         task.misses += 1;
         var def = SA.data.get('parts', part);
-        return { status: 'wrong', part: part, label: def ? def.label.es : part, misses: task.misses };
+        return { status: 'wrong', reason: toolOk ? 'part' : 'tool', part: part, label: def ? def.label.es : part,
+          item: heldId, itemLabel: itemLabel(heldId), misses: task.misses };
       }
       task.remaining -= 1;
       if (task.remaining <= 0) { task.remaining = 0; return complete(); }

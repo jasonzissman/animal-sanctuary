@@ -9,7 +9,7 @@ import { loadGame } from './helpers/vm.js';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/clues.js', 'game/clues.js', 'game/clue-levels.js', 'game/save.js', 'game/unlocks.js',
-  'game/picking.js', 'game/round.js', 'game/data/foods.js', 'game/data/care.js', 'game/care.js', 'game/unlock-flow.js'];
+  'game/picking.js', 'game/round.js', 'game/data/foods.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js', 'game/unlock-flow.js'];
 
 function setup(extra = {}) {
   const SA = loadGame(FILES);

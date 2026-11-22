@@ -23,6 +23,15 @@
       return { m: m, rx: m.rotation.x, ry: m.rotation.y, rz: m.rotation.z, sy: m.scale.y, py: pos.y, pz: pos.z };
     }
 
+    // Current [x, z] of every other animal, so a wanderer can pick targets that keep its distance.
+    function othersOf(id) {
+      return function () {
+        var pts = [];
+        Object.keys(rigs).forEach(function (k) { if (k !== id) pts.push([rigs[k].g.position.x, rigs[k].g.position.z]); });
+        return pts;
+      };
+    }
+
     group.children.forEach(function (g, i) {
       var a = data[g.userData.animalId];
       if (!a) return;
@@ -33,7 +42,7 @@
         sx: g.scale.x, sy: g.scale.y, sz: g.scale.z,
         w: SA.wander.create({
           movement: a.traits.movement, biome: a.biome, home: { x: g.position.x, z: g.position.z },
-          seed: 100 + i, avoid: opts.avoid,
+          seed: 100 + i, avoid: opts.avoid, others: othersOf(a.id),
         }),
       };
     });

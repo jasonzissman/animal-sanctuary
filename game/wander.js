@@ -11,6 +11,8 @@
  *
  * The animal stays inside its biome (SA.map.biomeAt, a margin from the border and the map edge), within `radius` of
  * home, off the water and clear of `avoid` points. Movement trait only changes the style/speed (never an animal id).
+ * `others` (optional function -> [[x,z],...], the other animals' current positions) and `minSeparation` (default 2) make
+ * target selection softly avoid other animals; if every candidate is too close it takes the one with most clearance.
  * Speed is capped at MAX_SPEED world units/second so a 7-year-old can always tap it.
  *
  *   SA.wander.idle(t, phase) -> { breath, wiggle, blink }   idle animation factors for the renderer:
@@ -22,7 +24,8 @@
 
   var MAX_SPEED = 1.8;          // hard cap, world units per second (the map is 80 wide; animals are ~1 unit big)
   var MAX_DT = 0.1;
-  var EDGE = 1.5;               // keep this far from the biome border and the map edge
+  var MIN_SEPARATION = 2;       // wander targets stay at least this far from other animals (soft: see pickTarget)
+  var EDGE = 1.5;              // keep this far from the biome border and the map edge
   var STYLES = {                // speed = average walking speed; hop = hop height (0: none); float = hover height
     salta: { speed: 0.9, turn: 3.5, pause: [1.2, 3.2], hop: 0.55, hopRate: 1.6, float: 0 },
     nada: { speed: 0.8, turn: 2.5, pause: [1.5, 4], hop: 0, hopRate: 0, float: 0 },
@@ -33,6 +36,13 @@
     repta: { speed: 0.6, turn: 2, pause: [2, 4.5], hop: 0, hopRate: 0, float: 0 },
   };
   var DEFAULT_STYLE = STYLES.nada;
+
+  // Distance from (x, z) to the nearest of the [x, z] points (Infinity when there are none).
+  function clearance(x, z, pts) {
+    var m = Infinity;
+    for (var i = 0; i < pts.length; i++) m = Math.min(m, Math.hypot(pts[i][0] - x, pts[i][1] - z));
+    return m;
+  }
 
   function angleDiff(a, b) {
     var d = (b - a) % (Math.PI * 2);
@@ -48,6 +58,8 @@
     var home = { x: opts.home.x, z: opts.home.z };
     var radius = opts.radius === undefined ? 3 : opts.radius;
     var avoid = opts.avoid || [];
+    var others = typeof opts.others === 'function' ? opts.others : null;
+    var minSep = opts.minSeparation === undefined ? MIN_SEPARATION : opts.minSeparation;
     var B = M.BOUNDS, biome = opts.biome;
     var s = { x: home.x, z: home.z, heading: rand() * Math.PI * 2 - Math.PI, mode: 'pause', timer: 0.5 + rand() * 2 };
     var target = null, held = 0, phase = 0, t = 0, lift = 0;
@@ -66,13 +78,21 @@
       target = null;
     }
 
+    // Soft avoidance: a candidate must be allowed() and at least minSep from every other animal. If no candidate keeps
+    // that separation, fall back to the allowed one with the most clearance (so the animal is never stuck), and only
+    // pause when nothing is allowed at all.
     function pickTarget() {
+      var near = others ? others() : [], best = null, bestClear = -1;
       for (var i = 0; i < 12; i++) {
         var a = rand() * Math.PI * 2, d = 1 + rand() * (radius - 1);
         var x = home.x + Math.cos(a) * d, z = home.z + Math.sin(a) * d;
-        if (allowed(x, z)) { target = { x: x, z: z }; s.mode = 'turn'; return; }
+        if (!allowed(x, z)) continue;
+        var clear = clearance(x, z, near);
+        if (clear >= minSep) { best = { x: x, z: z }; break; }
+        if (clear > bestClear) { bestClear = clear; best = { x: x, z: z }; }
       }
-      pause();
+      if (!best) return pause();
+      target = best; s.mode = 'turn';
     }
 
     function walk(dt) {
@@ -138,5 +158,5 @@
     };
   }
 
-  SA.wander = { MAX_SPEED: MAX_SPEED, STYLES: STYLES, create: create, idle: idle };
+  SA.wander = { MAX_SPEED: MAX_SPEED, MIN_SEPARATION: MIN_SEPARATION, STYLES: STYLES, create: create, idle: idle };
 })(typeof window !== 'undefined' ? window : globalThis);

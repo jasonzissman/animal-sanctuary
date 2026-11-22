@@ -115,6 +115,49 @@ test('avoid points are kept clear and a crowded animal simply stays put', () => 
   for (const p of run(stuck, 20)) assert.ok(!p.moving);
 });
 
+// positions where a walk ends = the chosen targets (the walker stops within 0.15 of its target)
+function stops(pts) {
+  const out = [];
+  for (let i = 1; i < pts.length; i++) if (pts[i - 1].moving && !pts[i].moving) out.push(pts[i]);
+  return out;
+}
+
+test('targets near another animal are avoided (soft separation), with a fallback so it never gets stuck', () => {
+  const SA = loadGame(FILES);
+  const h = HOMES.bosque, other = [[h.x + 2, h.z]];
+  const near = (p) => Math.hypot(p.x - other[0][0], p.z - other[0][1]);
+  const SEP = SA.wander.MIN_SEPARATION, SLACK = 0.2;
+  let controlNear = 0, stopCount = 0;
+  for (let seed = 1; seed <= 6; seed++) {
+    controlNear += stops(run(make(SA, 'corre', 'bosque', seed), 300)).filter((p) => near(p) < SEP - SLACK).length;
+    const s = stops(run(make(SA, 'corre', 'bosque', seed, { others: () => other }), 300));
+    stopCount += s.length;
+    for (const p of s) assert.ok(near(p) >= SEP - SLACK, `seed ${seed} stopped ${near(p)} from the other animal`);
+  }
+  assert.ok(controlNear > 0, 'without avoid points animals do pick targets near that spot');
+  assert.ok(stopCount > 10, 'the animal still wanders');
+  // a custom separation is honoured
+  const wide = stops(run(make(SA, 'corre', 'bosque', 2, { others: () => other, minSeparation: 3 }), 300));
+  for (const p of wide) assert.ok(near(p) >= 3 - SLACK);
+  // other animals everywhere: no target keeps the separation, so it falls back to the roomiest one and still moves
+  const crowd = [];
+  for (let x = -4; x <= 4; x += 1) for (let z = -4; z <= 4; z += 1) crowd.push([h.x + x, h.z + z]);
+  const w = make(SA, 'corre', 'bosque', 3, { others: () => crowd });
+  assert.ok(run(w, 120).some((p) => p.moving), 'not stuck when everywhere is crowded');
+});
+
+test('ambient hands each wanderer the other animals\' current positions', () => {
+  const SA = loadGame(FILES);
+  SA.picking = { onPick() {} };
+  const animals = fakeGroup(SA);
+  const amb = SA.render.createAmbient({ animals, avoid: [] });
+  for (let i = 0; i < 900; i++) amb.update(1 / 30);
+  const pos = animals.children.map((g) => [g.position.x, g.position.z]);
+  assert.ok(pos.length > 4);
+  // no two animals end up on top of each other after a long wander
+  for (let i = 0; i < pos.length; i++) for (let j = i + 1; j < pos.length; j++) assert.ok(Math.hypot(pos[i][0] - pos[j][0], pos[i][1] - pos[j][1]) > 1.3);
+});
+
 test('idle: breathing, bursty wiggle and short blinks stay in range', () => {
   const SA = loadGame(FILES);
   let blinks = 0, wiggles = 0;

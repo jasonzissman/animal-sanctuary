@@ -2,7 +2,7 @@
  * Pointer events cover mouse AND touch. One pointer drag orbits (left/right = yaw, up/down = pitch); a
  * shift- or right/middle-button drag pans; two pointers pinch (zoom) and drag together (pan).
  * A press that never travels past the tap threshold does nothing, so tapping an animal never turns the view.
- * Keys: arrows/WASD pan, Q/E rotate, R/F tilt, wheel zooms. Everything is clamped by SA.camera.
+ * Keys: arrows/WASD pan, hold Shift to run, Q/E rotate, R/F tilt, wheel zooms. Everything is clamped by SA.camera.
  * Third person only (one camera, always the chase camera): the avatar walks, the camera chases it. There is no
  * overhead, close-up or focus view; to draw attention somewhere glideTo() turns the player toward it.
  * hooks.canOrbit(event) -> false lets a press start something else (e.g. rubbing a muddy part) without orbiting.
@@ -32,6 +32,8 @@
     var padYaw = 0, padPitch = 0; // on-screen rotate/tilt buttons (-1..1): the same axes as Q/E and F/R
     var stickX = 0, stickY = 0;   // on-screen joystick (unit disc, +y down): walks the player like the arrow keys
     var pinchDist = 0, mid = null;
+    var isRunning = false;        // moved forward at run speed this frame (the avatar plays a faster stride)
+    var run = false;            // Shift held: the avatar runs (SA.player RUN_SPEED) while moving forward
 
     function viewH() { return canvas.clientHeight || 600; }
     function ids() { return Object.keys(pointers); }
@@ -111,7 +113,11 @@
       state = C.zoomByWheel(state, e.deltaY, B);
     }
     function isKey(k) { return KEYS[k] || ORBIT_KEYS[k]; }
+    // Shift (either side) = run. Holding it turns "w" into "W", so letters are stored lower-case: releasing Shift before
+    // the letter must not leave the old key stuck. Shift itself does nothing else (the key event is left alone).
+    function keyOf(k) { return k && k.length === 1 ? k.toLowerCase() : k; }
     function onKeyDown(e) {
+      run = !!e.shiftKey;
       // C climbs up when next to a tree and down when up one (Space goes through SA.spaceUse); otherwise it does nothing here.
       if ((e.key === 'c' || e.key === 'C') &&!e.ctrlKey && !e.metaKey && !e.altKey && SA.climb.prompt(player, trees())) {
         e.preventDefault();
@@ -119,9 +125,9 @@
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey || !isKey(e.key)) return;
-      held[e.key] = true; e.preventDefault();
+      held[keyOf(e.key)] = true; e.preventDefault();
     }
-    function onKeyUp(e) { delete held[e.key]; }
+    function onKeyUp(e) { run = !!e.shiftKey; delete held[keyOf(e.key)]; }
 
     canvas.style.touchAction = 'none';
     canvas.addEventListener('pointerdown', onDown);
@@ -132,7 +138,7 @@
     canvas.addEventListener('wheel', onWheel, { passive: false });
     root.addEventListener('keydown', onKeyDown);
     root.addEventListener('keyup', onKeyUp);
-    root.addEventListener('blur', function () { held = {}; pointers = {}; padYaw = 0; padPitch = 0; stickX = 0; stickY = 0; });
+    root.addEventListener('blur', function () { held = {}; run = false; pointers = {}; padYaw = 0; padPitch = 0; stickX = 0; stickY = 0; });
 
     return {
       /** Call once per frame (dt in seconds). */
@@ -144,17 +150,19 @@
         ayaw += padYaw; apitch += padPitch;
         if (ayaw || apitch) orbitWith(function (s) { return C.orbitByKeys(s, ayaw, apitch, dt, B); });
         var before = player;
-        var J = SA.joystick ? SA.joystick.toInput({ x: stickX, y: stickY }) : { forward: 0, back: 0, left: 0, right: 0 };
+        var J = SA.joystick ? SA.joystick.toInput({ x: stickX, y: stickY }) : { forward: 0, back: 0, left: 0, right: 0, run: false };
+        var running = (run && az < 0) || !!J.run;   // Shift only speeds up walking forward; the stick runs at its edge
         player = SA.climb.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
-          left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right }, dt, obstacles());
+          left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running }, dt, obstacles());
         camY += (player.y - camY) * (1 - Math.exp(-5 * Math.min(dt, 0.1)));
         moving = Math.hypot(player.x - before.x, player.z - before.z) > 1e-4 || player.heading !== before.heading;
+        isRunning = moving && running;
         offset = C.decayOffset(offset, az < 0 || J.forward > 0, dt);
         state = C.chaseFollow(state, player, offset, dt, B);
         apply();
       },
       /** The avatar's { x, z, y, heading, climb } (climb: null | 'up' | 'canopy' | 'down') and whether it moved this frame. */
-      getPlayer: function () { return { x: player.x, z: player.z, y: player.y || 0, heading: player.heading, moving: moving, climb: player.climb ? player.climb.mode : null }; },
+      getPlayer: function () { return { x: player.x, z: player.z, y: player.y || 0, heading: player.heading, moving: moving, running: isRunning, climb: player.climb ? player.climb.mode : null }; },
       /** 'up' | 'down' | null: which climb button to show right now (the icon-only UI polls this each frame). */
       climbPrompt: function () { return SA.climb.prompt(player, trees()); },
       toggleClimb: toggleClimb,

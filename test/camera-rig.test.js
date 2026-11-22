@@ -112,6 +112,47 @@ test('keys always move the player, even right after a pick/care step: no mode, n
   assert.notEqual(rig.getPlayer().heading, p1.heading, 'D still turns the player');
 });
 
+test('holding Shift runs (faster than walking); releasing Shift walks again; Shift does nothing else', () => {
+  const dist = (shift) => {
+    const { rig, keys } = chaseRig();
+    const p0 = rig.getPlayer();
+    keys.keydown(ev({ key: shift ? 'W' : 'w', shiftKey: shift }));
+    frames(rig, 10, 0.05);
+    const p = rig.getPlayer();
+    return { d: Math.hypot(p.x - p0.x, p.z - p0.z), running: p.running };
+  };
+  const walking = dist(false), running = dist(true);
+  assert.equal(walking.running, false);
+  assert.equal(running.running, true);
+  assert.ok(Math.abs(running.d / walking.d - 7 / 4) < 0.05, `run is RUN_SPEED/SPEED faster (${running.d} vs ${walking.d})`);
+
+  const { rig, keys } = chaseRig();
+  let prevented = false;
+  keys.keydown(ev({ key: 'Shift', shiftKey: true, preventDefault() { prevented = true; } }));
+  frames(rig, 5);
+  assert.equal(prevented, false, 'Shift alone is left to the browser');
+  assert.equal(rig.getPlayer().moving, false, 'Shift alone moves nothing');
+  // Shift + W, then Shift released while W is still down: back to walking pace, no stuck key
+  keys.keydown(ev({ key: 'W', shiftKey: true }));
+  frames(rig, 2);
+  assert.equal(rig.getPlayer().running, true);
+  keys.keyup(ev({ key: 'Shift', shiftKey: false }));
+  frames(rig, 2);
+  assert.equal(rig.getPlayer().running, false);
+  assert.equal(rig.getPlayer().moving, true, 'still walking');
+  keys.keyup(ev({ key: 'w', shiftKey: false }));
+  frames(rig, 2);
+  assert.equal(rig.getPlayer().moving, false, 'releasing w stops (the shifted W is not stuck)');
+});
+
+test('Shift while backing up does not run', () => {
+  const { rig, keys } = chaseRig();
+  keys.keydown(ev({ key: 'S', shiftKey: true }));
+  frames(rig, 3);
+  assert.equal(rig.getPlayer().moving, true);
+  assert.equal(rig.getPlayer().running, false);
+});
+
 test('A/D turn the avatar and the camera swings round behind it', () => {
   const { rig, keys } = chaseRig();
   const h0 = rig.getPlayer().heading, y0 = rig.getState().yaw;

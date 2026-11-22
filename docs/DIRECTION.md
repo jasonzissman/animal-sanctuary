@@ -34,13 +34,15 @@ current; when your change sets or changes something future tickets must follow, 
   from flat primitives (the sign letters are boxes, no textures; the block font is shared in `render/block-text.js`). Later slices put the scientist and briefing in/at the station.
   **"Lista de misiones" board (AS-0210, slice 1 of AS-0205):** `layout().board` sits on the back wall's inner face facing the door (it is in `collisionBoxes()`);
   `render/station-board.js` builds it (frame, title, scribbles, doodles) and `update()` swaps the title to "Mission list" when the English scaffold is on.
-  Visual only so far: slice 2 makes it the Use target that opens the missions.
-  **The doorway is a Use target (AS-0146).** `game/station-door.js` adds `SA.station.doorTarget()/doorTargets()` (the doorway centre,
-  reach `DOOR_REACH` 2.6) and the menu hook: `SA.station.open(source)` / `close()` / `toggle()` / `isOpen()` / `onOpen(fn)` / `onClose(fn)`
-  (`SAT.track('station.open', { source })` once per opening). `SA.spaceTarget` takes `doors` (kind `'door'`, scored like trees and
-  pickups, so it hands off to the roof climb or a find by proximity); `SA.spaceUse` calls `openDoor(door)` on E / Enter (Space jumps, it
-  never opens it); the door frame group (`station.userData.doorNode`) is what the one outline glows; `render/station-door-tap.js`
-  raycasts an invisible pick volume (`userData.stationDoor`) so a tap/click on the door opens it too. `ui/station-menu-view.js` is only a
+  **The board is the missions entry point (AS-0211, slice 2 of AS-0205; it replaces the AS-0146 door target).** The door frame is no
+  Use target, glows nothing and has no tap volume: walking through the doorway just enters. `game/station-board.js` adds
+  `SA.station.boardTarget()/boardTargets()` (the board's centre from `layout().board`, reach `BOARD_REACH` 3.0, i.e. the back half of the
+  room) and `canTapBoard(player)`, plus the menu hook (unchanged): `SA.station.open(source)` / `close()` / `toggle()` / `isOpen()` /
+  `onOpen(fn)` / `onClose(fn)` (`SAT.track('station.open', { source: 'board' | 'tap' })` once per opening). `SA.spaceTarget` takes `boards`
+  (kind `'board'`, scored like trees and pickups, so it hands off by proximity and facing) and `npcs` (kind `'npc'`, the scientist);
+  `SA.spaceUse` calls `openBoard(board)` (scene.js: `SA.station.toggle('board')`) or `talk(npc)` on E / Enter (Space jumps, it never
+  opens it); the board group (`station.userData.board.group`) is what the one outline glows; `render/station-board-tap.js` raycasts the
+  board's invisible pick volume (`userData.stationBoardPick`) so a tap/click on it calls `SA.station.open('tap')` too. `ui/station-menu-view.js` is only a
   placeholder card (⚛️ + "La estación" + ✕); the customizer (AS-0144) attaches via `SA.station.onOpen` and renders into the view's `body`.
   **Misiones board (AS-0197):** `ui/missions-board-view.js` renders into that `body` (re-rendered on every open) from the pure
   `SA.missionsBoard` (`missions-board.js`: `cards()` maps `SA.missions.list()` to done ✅ / next ⭐ / active ▶️ / locked 🔒 cards,
@@ -64,7 +66,7 @@ current; when your change sets or changes something future tickets must follow, 
   the save is retired: new saves do not get it, existing saves keep it untouched (nothing reads it; no version bump).
   **Hook for the board (AS-0142):** `SA.missionsBoard.pointAndStartFirst()` opens the station, points at the next card
   (mission 1 on a fresh save) and runs its intro; returns `{ ok, id }` or `{ ok:false, reason:'busy'|'none'|'no-board' }`.
-  **Using the scientist (AS-0204, slice 3/3 of AS-0142):** E / Enter (she is a second target in `SA.spaceUse`'s doors list, kind `'npc'`,
+  **Using the scientist (AS-0204, slice 3/3 of AS-0142):** E / Enter (she is a target in `SA.spaceUse`'s `npcs` list, kind `'npc'`,
   `SA.npc.useTarget()`) or a tap on her invisible pick volume (`userData.scientist`, `render/scientist-tap.js`) calls `SA.npc.talk(source)`.
   `ui/scientist-view.js` shows a card and speaks it: the one-line mission "Ayuda a los animales: busca, ayuda, foto", then the current
   mission (title + icon) and the step it is on, or "Elige una misión en la estación" when none runs. Text comes from the pure

@@ -195,6 +195,11 @@ test('the missions board model has a title that switches Spanish <-> English wit
   english = false;
   board.update();
   assert.equal(meshes(board.title), esBlocks, 'back to "Lista de misiones"');
+  // One invisible, enlarged tap volume in front of the board (AS-0211).
+  const picks = []; board.group.traverse((o) => { if (o.userData && o.userData.stationBoardPick) picks.push(o); });
+  assert.equal(picks.length, 1);
+  assert.equal(picks[0].visible, false);
+  assert.ok(picks[0].geometry.parameters.width > B.width && picks[0].geometry.parameters.height > B.height);
   // Flat colours only, placed at the layout's board.
   board.group.traverse((o) => { if (o.isMesh) assert.ok(o.material.flatShading && !o.material.map); });
   assert.equal(board.group.position.x, B.x);

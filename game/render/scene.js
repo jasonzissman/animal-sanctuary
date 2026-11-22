@@ -112,26 +112,28 @@
     // Collectable finds (SA.pickups): fruit up in the canopies, rocks/flowers/leaves on the ground, fish on the banks.
     var pickups = SA.render.createPickups && SA.pickups ? SA.render.createPickups(THREE, { getPlayer: rig.getPlayer, trees: trees, avoid: avoid, seed: 80, container: container }) : null;
     if (pickups) scene.add(pickups.group);
-    // Use targets of the station area: the doorway (AS-0146) and the scientist (AS-0204), one stable list.
-    var useTargets = (SA.station && SA.station.doorTargets ? SA.station.doorTargets() : []).concat(scientist && SA.npc.useTargets ? SA.npc.useTargets() : []);
+    // Use targets of the station area: the missions board inside (AS-0211) and the scientist (AS-0204), stable lists. The doorway is none.
+    var boardTargets = SA.station && SA.station.boardTargets ? SA.station.boardTargets() : [];
+    var npcTargets = scientist && SA.npc.useTargets ? SA.npc.useTargets() : [];
     // The one Space key: acts on the single chosen target (aim part > tree/pickup in reach), see game/space-use.js.
     var spaceUse = SA.spaceUse ? SA.spaceUse.create({ getPlayer: rig.getPlayer, trees: function () { return climbables; }, picking: picking, rig: rig,
       pickups: pickups ? pickups.world : null, collect: pickups ? pickups.collectSpot : function () { return null; },
-      // The station doorway (AS-0146) is a Use target: E / Enter opens the station menu hook (and closes it again).
-      // The porch scientist (AS-0204) is a second "door"-kind Use target (kind 'npc' on the ref): E / Enter talks to her.
-      doors: function () { return useTargets; },
-      openDoor: function (t) {
-        if (t && t.kind === 'npc') return !SA.picking.isPaused() && SA.npc.talk('use');
+      // The missions board in the station (AS-0211) is a Use target: E / Enter opens the missions via the station hook (and closes it again).
+      // The porch scientist (AS-0204) is an 'npc' Use target: E / Enter talks to her.
+      boards: function () { return boardTargets; },
+      npcs: function () { return npcTargets; },
+      openBoard: function () {
         if (!SA.station || !SA.station.toggle) return false;
-        SA.station.toggle('use');
+        SA.station.toggle('board');
         return true;
-      }, root: root }) : null;
-    // Tapping or clicking the doorway does the same (the invisible pick volume sits in the station's door frame); a tap on the
+      },
+      talk: function () { return !SA.picking.isPaused() && SA.npc.talk('use'); }, root: root }) : null;
+    // Tapping or clicking the board does the same (an invisible pick volume in its group); a tap on the
     // scientist's pick volume talks to her, and wins where the two volumes overlap.
     var scientistTap = scientist && SA.render.createScientistTap && SA.npc ? SA.render.createScientistTap(THREE, { canvas: renderer.domElement,
       camera: camera, node: scientist.group, getPlayer: rig.getPlayer, hitsAnimal: function (x, y) { return !!picking.pickAt(x, y); } }) : null;
-    if (station && station.userData.doorNode && SA.render.createStationDoorTap && SA.station && SA.station.canTapDoor) {
-      SA.render.createStationDoorTap(THREE, { canvas: renderer.domElement, camera: camera, node: station.userData.doorNode,
+    if (station && station.userData.board && SA.render.createStationBoardTap && SA.station && SA.station.canTapBoard) {
+      SA.render.createStationBoardTap(THREE, { canvas: renderer.domElement, camera: camera, node: station.userData.board.group,
         getPlayer: rig.getPlayer, hitsAnimal: function (x, y) { return !!picking.pickAt(x, y) || !!(scientistTap && scientistTap.hits(x, y)); } });
     }
     // The one outline: whatever spaceUse chose (part, tree or pickup) glows, nothing else (AS-0101).
@@ -144,10 +146,8 @@
         if (ref && ref.id) decor.children.concat(station ? [station] : []).forEach(function (o) { if (o.userData && o.userData.climbId === ref.id) found = o; });
         return found;
       }
-      if (kind === 'door') {
-        if (ref && ref.kind === 'npc') return scientist ? scientist.group : null;   // her pick volume is invisible, so only the model glows
-        return station && station.userData ? station.userData.doorNode || null : null;
-      }
+      if (kind === 'npc') return scientist ? scientist.group : null;   // her pick volume is invisible, so only the model glows
+      if (kind === 'board') return station && station.userData && station.userData.board ? station.userData.board.group : null;
       return kind === 'pickup' && pickups ? pickups.nodeFor(ref) : null;
     } }) : null;
     // The filling ring round a trunk while the player pushes into it (AS-0157, SA.climb.autoStep).

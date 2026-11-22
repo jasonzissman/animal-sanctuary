@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './helpers/vm.js';
 
-const FILES = ['game/sa.js', 'game/data-registry.js', 'game/save.js', 'game/map.js', 'game/station.js', 'game/station-door.js', 'game/data/missions.js', 'game/missions.js',
+const FILES = ['game/sa.js', 'game/data-registry.js', 'game/save.js', 'game/map.js', 'game/station.js', 'game/station-board.js', 'game/data/missions.js', 'game/missions.js',
   'game/missions-board.js', 'game/missions-dialogue.js', 'game/ui/station-menu-view.js', 'game/ui/missions-board-view.js'];
 
 const row = (n) => ({ id: 'm' + n, n, es: 'Misión ' + n + ' nombre', en: 'Mission ' + n, icon: '🐷', intro: [{ es: 'Hola ' + n + '.', icon: '👋' }, { es: 'Vamos.', icon: '🚶' }],

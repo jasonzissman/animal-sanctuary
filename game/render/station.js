@@ -51,20 +51,10 @@
     // Lintel over the door and a frame so the opening reads clearly.
     var d = L.door, dx0 = d.x - d.width / 2, dx1 = d.x + d.width / 2, fz = d.z;
     g.add(slab(THREE, m.wall, dx0, dx1, y0 + d.height, yTop, fz - t, fz + t));
-    // The frame is its own group: it is what glows when the doorway is the Use target (AS-0146), and it carries an invisible,
-    // generous pick volume (userData.stationDoor) so a tap or click on the doorway opens the station menu.
-    var frame = new THREE.Group();
-    frame.userData.stationDoor = true;
-    frame.userData.doorId = 'station-door';
-    frame.add(slab(THREE, m.trim, dx0 - 0.12, dx0, y0, y0 + d.height + 0.1, fz - t - 0.04, fz + t + 0.04));
-    frame.add(slab(THREE, m.trim, dx1, dx1 + 0.12, y0, y0 + d.height + 0.1, fz - t - 0.04, fz + t + 0.04));
-    frame.add(slab(THREE, m.trim, dx0 - 0.12, dx1 + 0.12, y0 + d.height, y0 + d.height + 0.12, fz - t - 0.04, fz + t + 0.04));
-    var pick = slab(THREE, m.trim, dx0 - 0.4, dx1 + 0.4, y0, y0 + d.height + 0.5, fz - 0.9, fz + 0.9);
-    pick.visible = false;   // never drawn and never outlined, but still raycast
-    pick.userData = { stationDoor: true, pick: true };
-    frame.add(pick);
-    g.add(frame);
-    g.userData.doorNode = frame;
+    // The frame is plain decoration: the doorway is no Use target and has no tap volume (AS-0211); walking through just enters.
+    g.add(slab(THREE, m.trim, dx0 - 0.12, dx0, y0, y0 + d.height + 0.1, fz - t - 0.04, fz + t + 0.04));
+    g.add(slab(THREE, m.trim, dx1, dx1 + 0.12, y0, y0 + d.height + 0.1, fz - t - 0.04, fz + t + 0.04));
+    g.add(slab(THREE, m.trim, dx0 - 0.12, dx1 + 0.12, y0 + d.height, y0 + d.height + 0.12, fz - t - 0.04, fz + t + 0.04));
 
     // Window: a glass pane set into the front wall, with a frame.
     var w = L.window;

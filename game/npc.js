@@ -10,7 +10,7 @@
  *       wave: 0..1 how far the wave pose has eased in (smooth blend), t: seconds of animation time for the idle/wave cycles
  *   SA.npc.distance(npc, player)      -> metres on the x/z plane (Infinity when the player has no finite x/z)
  *   SA.npc.obstacle()                 -> [x, z, r] a circle so the player walks around her
- *   SA.npc.useTarget() / useTargets() -> { id:'scientist', kind:'npc', x, z, reach } (stable; SA.spaceUse's doors list takes it, E / Enter)
+ *   SA.npc.useTarget() / useTargets() -> { id:'scientist', kind:'npc', x, z, reach } (stable; SA.spaceUse's npcs list takes it, E / Enter)
  *   SA.npc.canTap(player)             -> true within TAP_REACH of her (a tap on her generous pick volume may talk)
  *   SA.npc.talk(source) / onTalk(fn)  the hook: talk fires the listeners (game/ui/scientist-view.js shows the reminder card);
  *                                     it never starts a mission. Returns true when a listener handled it.

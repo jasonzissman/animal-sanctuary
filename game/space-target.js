@@ -1,12 +1,13 @@
 /* SA.spaceTarget: the ONE thing Space acts on (pure, no THREE or DOM; loads in node:vm).
  *   var chooser = SA.spaceTarget.create();
- *   chooser.choose({ player, part, trees, pickups, doors }) -> { kind: 'part'|'tree'|'pickup'|'door', ref } | null
+ *   chooser.choose({ player, part, trees, pickups, boards, npcs }) -> { kind: 'part'|'tree'|'pickup'|'board'|'npc', ref } | null
  *     player   { x, z, heading, climb? }   (heading 0 faces +z, like SA.player)
  *     part     the AS-0081 aim target (an in-reach body part hit, or null/undefined)
  *     trees    [{ x, z, ... }]: climbable when within SA.climb.RANGE and the player is not already up a tree
  *     pickups  [{ x, z, ... }]: finds already in collect reach (SA.pickups world.reachable(player, SPACE_RADIUS, out))
- *     doors    [{ x, z, reach? }]: e.g. the station doorway (AS-0146); in reach within `reach` (default DOOR_REACH) of its centre.
- *              It scores like everything else (distance, penalty for behind), so it hands off to a tree/pickup by proximity.
+ *     boards   [{ x, z, reach? }]: the "Lista de misiones" board inside the station (AS-0211); in reach within `reach` (default BOARD_REACH).
+ *     npcs     [{ x, z, reach? }]: the scientist (AS-0204); in reach within `reach` (default NPC_REACH). The door frame is no target.
+ *              Both score like everything else (distance, penalty for behind), so they hand off to a tree/pickup by proximity.
  *   Priority: the aim-target part first; otherwise the best trees/pickups, scored by distance with a penalty for being
  *   behind the player (nearest AND most in front wins). Hysteresis: the current target stays until it leaves reach or a
  *   rival scores clearly better (under KEEP of its score), so the choice (and the outline built on it) never flickers.
@@ -19,7 +20,8 @@
   var BEHIND_PENALTY = 0.6;   // score = distance * (1 + 0.6 * (1 - cos(angle off heading))): 1x dead ahead, 2.2x directly behind
   var KEEP = 0.75;            // a rival must score under 75% of the current target to take over
   var FALLBACK_RANGE = 3.2;
-  var DOOR_REACH = 2.6;       // default reach of a door target, from its centre
+  var BOARD_REACH = 3.0;      // default reach of the missions board, from its centre (the room is ~4.7 deep: its back half)
+  var NPC_REACH = 2.8;        // default reach of an npc, from its centre
 
   function create() {
     var out = { kind: null, ref: null };
@@ -66,16 +68,18 @@
           if (s < bestScore) { bestScore = s; bestKind = 'pickup'; bestRef = o; }
         }
       }
-      list = input.doors;
-      if (list) {
+      for (var k = 0; k < 2; k++) {
+        var kind = k === 0 ? 'board' : 'npc', reach = k === 0 ? BOARD_REACH : NPC_REACH;
+        list = k === 0 ? input.boards : input.npcs;
+        if (!list) continue;
         for (i = 0; i < list.length; i++) {
           o = list[i];
           if (!o || !num(o.x) || !num(o.z)) continue;
-          var dr = num(o.reach) ? o.reach : DOOR_REACH;
+          var dr = num(o.reach) ? o.reach : reach;
           if ((o.x - p.x) * (o.x - p.x) + (o.z - p.z) * (o.z - p.z) > dr * dr) continue;
           s = score(p, o.x, o.z);
-          if (curKind === 'door' && curRef === o) curScore = s;
-          if (s < bestScore) { bestScore = s; bestKind = 'door'; bestRef = o; }
+          if (curKind === kind && curRef === o) curScore = s;
+          if (s < bestScore) { bestScore = s; bestKind = kind; bestRef = o; }
         }
       }
       if (bestKind === null) { curKind = curRef = null; return null; }
@@ -87,5 +91,5 @@
     return { choose: choose, reset: function () { curKind = curRef = null; } };
   }
 
-  SA.spaceTarget = { DOOR_REACH: DOOR_REACH, BEHIND_PENALTY: BEHIND_PENALTY, KEEP: KEEP, create: create };
+  SA.spaceTarget = { BOARD_REACH: BOARD_REACH, NPC_REACH: NPC_REACH, BEHIND_PENALTY: BEHIND_PENALTY, KEEP: KEEP, create: create };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -268,3 +268,52 @@ test('easeToward also eases pitch when the target has one, and ignores junk pitc
   assert.equal(C.easeToward(s, { x: 0, z: 0, dist: 7 }, 0.1, 4, B).pitch, 16, 'no pitch target keeps pitch');
   assert.equal(C.easeToward(s, { x: 0, z: 0, dist: 7, pitch: NaN }, 0.1, 4, B).pitch, 16);
 });
+
+// ---- chase camera collision ----
+const P0 = { x: 0, z: 0 };
+
+test('clearPath returns the full distance when nothing is on the line', () => {
+  assert.equal(C.clearPath(P0, { x: 0, z: 7 }, []), 7);
+  assert.equal(C.clearPath(P0, { x: 0, z: 7 }), 7, 'no obstacle list');
+  assert.equal(C.clearPath(P0, { x: 0, z: 7 }, [[5, 3, 1], [0, -4, 2], [0, 12, 1]]), 7, 'beside, behind and beyond the camera');
+  assert.equal(C.clearPath(P0, { x: 3, z: 4 }, []), 5, 'diagonal');
+});
+
+test('clearPath shortens to just outside the blocking obstacle (radius + margin)', () => {
+  const m = C.DEFAULTS.camMargin;
+  assert.ok(Math.abs(C.clearPath(P0, { x: 0, z: 7 }, [[0, 5, 1]]) - (5 - 1 - m)) < 1e-9);
+  const near = C.clearPath(P0, { x: 0, z: 7 }, [[0, 6, 1], [0, 4, 1]]);
+  assert.ok(Math.abs(near - (4 - 1 - m)) < 1e-9, 'nearest of several wins');
+  assert.ok(C.clearPath(P0, { x: 0, z: 7 }, [[0.5, 5, 1]]) < 7, 'off-centre still blocks');
+  assert.ok(C.clearPath(P0, { x: 0, z: 7 }, [[0, 7, 1]]) < 7, 'camera spot inside the obstacle');
+});
+
+test('clearPath never goes below the minimum distance and never past the full distance', () => {
+  const D = C.DEFAULTS;
+  assert.equal(C.clearPath(P0, { x: 0, z: 7 }, [[0, 2.5, 1]]), D.minClear, 'tree right behind the player');
+  assert.equal(C.clearPath(P0, { x: 0, z: 7 }, [[0, 2.5, 1]], { camMargin: 0.6, minClear: 3 }), 3, 'custom minimum');
+  assert.equal(C.clearPath(P0, { x: 0, z: 1 }, [[0, 0.8, 0.3]]), 1, 'already closer than the minimum: never extended');
+  assert.equal(C.clearPath(P0, P0, [[0, 0, 1]]), 0, 'zero-length line');
+});
+
+test('clearPath ignores obstacles the player is hugging or inside, and junk entries', () => {
+  // Player 1.2 from a radius-1 tree (inside the margin ring but outside the trunk).
+  assert.equal(C.clearPath(P0, { x: 0, z: -7 }, [[0, 1.2, 1]]), 7, 'tree ahead of the player, camera behind');
+  assert.equal(C.clearPath(P0, { x: 0, z: 7 }, [[0, 1.2, 1]]), C.DEFAULTS.minClear, 'tree between player and camera');
+  assert.equal(C.clearPath(P0, { x: 0, z: 7 }, [[0, 0.5, 1]]), 7, 'player inside the circle: ignored');
+  assert.equal(C.clearPath(P0, { x: 0, z: 7 }, [null, [NaN, 2, 1], [0, 3, 0], [0, 3], 'x']), 7);
+  assert.equal(C.clearPath(null, { x: NaN, z: NaN }, [[0, 3, 1]]), 0, 'junk positions are safe');
+});
+
+test('easeClearance pulls in fast, relaxes slowly, is frame-rate independent and clamped', () => {
+  const inK = C.easeClearance(1, 0.3, 0.1), outK = C.easeClearance(0.3, 1, 0.1);
+  assert.ok(inK < 1 && inK > 0.3 && outK > 0.3 && outK < 1);
+  assert.ok((1 - inK) / 0.7 > (outK - 0.3) / 0.7, 'in-step covers a bigger share of its gap than out-step');
+  let a = 1, b = 1;
+  for (let i = 0; i < 10; i++) a = C.easeClearance(a, 0.4, 0.05);
+  for (let i = 0; i < 50; i++) b = C.easeClearance(b, 0.4, 0.01);
+  assert.ok(Math.abs(a - b) < 1e-9);
+  assert.equal(C.easeClearance(0.5, 1, 0), 0.5, 'dt 0 stays put');
+  assert.equal(C.easeClearance(NaN, 5, 1e6), 1);
+  assert.equal(C.easeClearance(2, -3, 1e6), 0);
+});

@@ -13,6 +13,8 @@
     minPitch: 10, maxPitch: 89, yawPerPx: 0.3, pitchPerPx: 0.2, yawKeySpeed: 90, pitchKeySpeed: 45,
     // Third-person chase camera: a few metres behind and slightly above the player, looking ahead at animal height.
     chaseDist: 7, chasePitch: 16, lookAhead: 3, lookY: 1, followRate: 8, turnRate: 6, offsetDecay: 1.5,
+    // Collision: the camera stays camMargin outside obstacle circles but never comes closer than minClear to the player.
+    camMargin: 0.6, minClear: 1.5, clearInRate: 14, clearOutRate: 2.5,
   };
   var RAD = Math.PI / 180;
 
@@ -164,7 +166,45 @@
     return moving ? wrapYaw(w * Math.exp(-o.offsetDecay * Math.max(0, finite(dt, 0)))) : w;
   }
 
+  /** How far along the ground line from the player to the wanted camera spot the camera may sit without being inside an
+   * obstacle. playerPos/desiredCamPos are { x, z }; obstacles are [[x, z, r], ...] (the SA.blocking shape); no ids are read.
+   * Returns the full distance when the line is clear, else the distance to just outside the nearest blocking circle
+   * (radius + camMargin), never below minClear (nor above the full distance). An obstacle the player stands inside
+   * (or hugs) is skipped, so a player next to a tree still gets a camera: only the margin is dropped for it. */
+  function clearPath(playerPos, desiredCamPos, obstacles, o) {
+    o = o || DEFAULTS;
+    var px = finite(playerPos && playerPos.x, 0), pz = finite(playerPos && playerPos.z, 0);
+    var dx = finite(desiredCamPos && desiredCamPos.x, px) - px, dz = finite(desiredCamPos && desiredCamPos.z, pz) - pz;
+    var full = Math.sqrt(dx * dx + dz * dz);
+    if (!(full > 0)) return 0;
+    var ux = dx / full, uz = dz / full, best = full, list = obstacles || [];
+    for (var i = 0; i < list.length; i++) {
+      var ob = list[i], cx = finite(ob && ob[0], NaN) - px, cz = finite(ob && ob[1], NaN) - pz, r = finite(ob && ob[2], 0);
+      if (!(r > 0) || cx !== cx || cz !== cz) continue;
+      var near = cx * cx + cz * cz;
+      var rr = near < (r + o.camMargin) * (r + o.camMargin) ? r : r + o.camMargin;   // hugging it: no margin
+      if (near <= rr * rr) continue;                                                   // standing inside it: ignore
+      var b = cx * ux + cz * uz;
+      if (b <= 0) continue;
+      var disc = rr * rr - (near - b * b);
+      if (disc < 0) continue;
+      var t = b - Math.sqrt(disc);
+      if (t < best) best = t;
+    }
+    return Math.min(full, Math.max(best, Math.min(o.minClear, full)));
+  }
+
+  /** Smooth the kept fraction (0..1) of the camera's reach: it pulls in fast (so it does not clip) and relaxes out slowly
+   * (so it does not jitter as the player brushes past things). Frame-rate independent. */
+  function easeClearance(cur, target, dt, o) {
+    o = o || DEFAULTS;
+    var c = clamp(finite(cur, 1), 0, 1), t = clamp(finite(target, 1), 0, 1);
+    var k = 1 - Math.exp(-(t < c ? o.clearInRate : o.clearOutRate) * Math.max(0, finite(dt, 0)));
+    return c + (t - c) * k;
+  }
+
   SA.camera = {
+    clearPath: clearPath, easeClearance: easeClearance,
     easeAngle: easeAngle, chaseTarget: chaseTarget, chaseStart: chaseStart, chaseFollow: chaseFollow, decayOffset: decayOffset,
     easeToward: easeToward, DEFAULTS: DEFAULTS, clampState: clampState, worldPerPixel: worldPerPixel, panByPixels: panByPixels,
     panByKeys: panByKeys, orbitByPixels: orbitByPixels, orbitByKeys: orbitByKeys, clampOrbit: clampOrbit,

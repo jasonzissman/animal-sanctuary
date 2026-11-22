@@ -34,6 +34,7 @@
     var pinchDist = 0, mid = null;
     var isRunning = false;        // moved forward at run speed this frame (the avatar plays a faster stride)
     var run = false;            // Shift held: the avatar runs (SA.player RUN_SPEED) while moving forward
+    var clearK = 1;             // smoothed fraction (0..1) of the camera's reach kept by SA.camera.clearPath
 
     function viewH() { return canvas.clientHeight || 600; }
     function ids() { return Object.keys(pointers); }
@@ -48,8 +49,10 @@
 
     function apply() {
       var p = C.position(state);
+      // Pull the camera in along the line from the player when a tree/prop/big animal would be between them (or around it).
+      var px = player.x + (p.x - player.x) * clearK, pz = player.z + (p.z - player.z) * clearK;
       // camY: the chase camera rises with the player (up a tree, up a hill); it never dips below the terrain under it.
-      camera.position.set(p.x, SA.map.cameraHeight(p.y + camY, p.x, p.z), p.z);
+      camera.position.set(px, SA.map.cameraHeight(p.y + camY, px, pz), pz);
       camera.lookAt(state.x, C.DEFAULTS.lookY + camY, state.z);   // look at about animal height
     }
     function obstacles() { return hooks && hooks.chase && hooks.chase.obstacles ? hooks.chase.obstacles() : []; }
@@ -159,6 +162,9 @@
         isRunning = moving && running;
         offset = C.decayOffset(offset, az < 0 || J.forward > 0, dt);
         state = C.chaseFollow(state, player, offset, dt, B);
+        var want = C.position(state), full = Math.hypot(want.x - player.x, want.z - player.z);
+        var kept = full > 1e-6 ? C.clearPath(player, want, player.climb ? [] : obstacles()) / full : 1;   // up a tree: nothing in the way
+        clearK = C.easeClearance(clearK, kept, dt);
         apply();
       },
       /** The avatar's { x, z, y, heading, climb } (climb: null | 'up' | 'canopy' | 'down') and whether it moved this frame. */

@@ -22,6 +22,7 @@
     var state = C.clampState(initial || { x: 0, z: 5, dist: 40 }, B);
     var pointers = {};            // id -> { x, y, sx, sy, mode, moved }
     var held = {};                // key -> true
+    var padYaw = 0, padPitch = 0; // on-screen rotate/tilt buttons (-1..1): the same axes as Q/E and F/R
     var pinchDist = 0, mid = null;
     var glide = false;            // true while `focus` is a glideTo that ends by itself
     var focus = null;            // { x, z, dist }: while set the camera eases there; only orbit input is accepted
@@ -104,7 +105,7 @@
     canvas.addEventListener('wheel', onWheel, { passive: false });
     root.addEventListener('keydown', onKeyDown);
     root.addEventListener('keyup', onKeyUp);
-    root.addEventListener('blur', function () { held = {}; pointers = {}; });
+    root.addEventListener('blur', function () { held = {}; pointers = {}; padYaw = 0; padPitch = 0; });
 
     return {
       /** Call once per frame (dt in seconds). */
@@ -118,9 +119,12 @@
           if (glide && Math.hypot(state.x - focus.x, state.z - focus.z) < 0.4) { focus = null; glide = false; }
         }
         else if (ax || az) state = C.panByKeys(state, ax, az, dt, B);
+        ayaw += padYaw; apitch += padPitch;
         if (ayaw || apitch) state = C.orbitByKeys(state, ayaw, apitch, dt, B);
         apply();
       },
+      /** On-screen buttons hold yaw/pitch axes (-1, 0, 1); update() runs them through the same clamped orbitByKeys path as the keys. */
+      setOrbitAxes: function (yaw, pitch) { padYaw = yaw > 0 ? 1 : yaw < 0 ? -1 : 0; padPitch = pitch > 0 ? 1 : pitch < 0 ? -1 : 0; },
       /** Ease in on a ground point (care tasks); pan/zoom are ignored until release(), orbit still works. */
       focusOn: function (x, z, dist) { glide = false; focus =C.clampState({ x: x, z: z, dist: dist }, B); },
       release: function () { focus = null; glide = false; },

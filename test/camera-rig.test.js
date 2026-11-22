@@ -89,6 +89,26 @@ test('Q/E rotate and R/F tilt via the keyboard; update() places the camera low a
   keys.keydown(ev({ key: 'r', ctrlKey: true, metaKey: true }));   // browser shortcuts are not swallowed
 });
 
+test('setOrbitAxes (on-screen buttons) matches the keys: same yaw/pitch change, clamped, and stops at 0', () => {
+  const key = make(), pad = make();
+  key.keys.keydown(ev({ key: 'e' })); key.keys.keydown(ev({ key: 'f' }));
+  key.rig.update(0.5);
+  pad.rig.setOrbitAxes(1, -1);
+  pad.rig.update(0.5);
+  assert.equal(pad.rig.getState().yaw, key.rig.getState().yaw);
+  assert.equal(pad.rig.getState().pitch, key.rig.getState().pitch);
+  pad.rig.setOrbitAxes(0, -1);
+  pad.rig.update(1000);
+  assert.equal(pad.rig.getState().pitch, 10);
+  pad.rig.setOrbitAxes(0, 5);
+  pad.rig.update(1000);
+  assert.equal(pad.rig.getState().pitch, 89);
+  pad.rig.setOrbitAxes(0, 0);
+  const s = pad.rig.getState();
+  pad.rig.update(1);
+  assert.deepEqual(pad.rig.getState(), s);
+});
+
 test('orbit still works while focused on a care target, but wheel zoom is ignored', () => {
   const { rig, listeners } = make();
   rig.focusOn(5, 5, 20);

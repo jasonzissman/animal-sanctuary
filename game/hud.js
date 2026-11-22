@@ -150,5 +150,24 @@
     return res;
   }
 
-  SA.hud = { IDS: IDS, ZONES: ZONES, SIZES: SIZES, COMPACT_BELOW: COMPACT_BELOW, mode: mode, layout: layout, overlaps: hit, onScreen: inside };
+  // A copy of `r` kept on-screen (inside the margin) and moved the shortest way (left/right/up/down) clear of every rect in `others`.
+  function nudge(r, others, W, H) {
+    function clamp(x, y) { return rect(Math.max(MARGIN, Math.min(x, W - MARGIN - r.width)), Math.max(MARGIN, Math.min(y, H - MARGIN - r.height)), r.width, r.height); }
+    var base = clamp(r.left, r.top), blockers = others.filter(function (o) { return hit(base, o); });
+    if (!blockers.length) return base;
+    var cands = [];
+    others.forEach(function (o) {
+      cands.push(clamp(o.left - r.width - 4, base.top), clamp(o.left + o.width + 4, base.top),
+        clamp(base.left, o.top - r.height - 4), clamp(base.left, o.top + o.height + 4));
+    });
+    var best = null, bestD = Infinity;
+    cands.forEach(function (c) {
+      if (others.some(function (o) { return hit(c, o); })) return;
+      var d = Math.abs(c.left - base.left) + Math.abs(c.top - base.top);
+      if (d < bestD) { best = c; bestD = d; }
+    });
+    return best || base;
+  }
+
+  SA.hud = { IDS: IDS, ZONES: ZONES, SIZES: SIZES, COMPACT_BELOW: COMPACT_BELOW, mode: mode, layout: layout, nudge: nudge, overlaps: hit, onScreen: inside };
 })(typeof window !== 'undefined' ? window : globalThis);

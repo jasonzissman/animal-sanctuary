@@ -123,7 +123,7 @@ test('hotbar view: one big icon button per item, count badge, highlighted equipp
   assert.equal(bar.children.length, 4);
   assert.deepEqual(bar.children.map((b) => b.textContent), ['📷', '🪮', '🧽', '🩹']);
   assert.equal(bar.children[0].attrs['aria-label'], 'la cámara');
-  assert.ok(bar.children.every((b) => /width:72px;height:72px/.test(b.style.cssText)));
+  assert.ok(bar.children.every((b) => b.style.width === '72px' && b.style.height === '72px'));
   assert.ok(bar.children.every((b) => b.children.length === 0 && b.attrs['aria-pressed'] === 'false'));
 
   bar.children[1].on.pointerdown({ preventDefault() {}, stopPropagation() {} });   // tap slot 2

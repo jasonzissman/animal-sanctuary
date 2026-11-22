@@ -10,33 +10,46 @@
   'use strict';
   var SA = root.SA;
 
-  var SLOT = 'position:relative;width:72px;height:72px;margin:0;padding:0;border-radius:.6em;border:.12em solid #24543a;' +
+  var SLOT = 'position:relative;margin:0;padding:0;border-radius:.6em;border:.12em solid #24543a;' +
     'background:rgba(255,248,214,.92);font:700 2.2rem system-ui,sans-serif;line-height:1;cursor:pointer;touch-action:manipulation;' +
     'user-select:none;-webkit-user-select:none;box-shadow:0 .1em .4em rgba(0,0,0,.3);pointer-events:auto;';
   var ON = 'border-color:#ff9f1c;background:#fff;box-shadow:0 0 0 .14em #ff9f1c,0 .1em .5em rgba(0,0,0,.4);transform:translateY(-6px);';
   var BADGE = 'position:absolute;right:2px;bottom:2px;min-width:1.3em;padding:0 .25em;border-radius:1em;background:#24543a;' +
     'color:#fff;font:700 1rem system-ui,sans-serif;line-height:1.4;text-align:center;pointer-events:none;';
 
-  var CHIP = 'position:fixed;left:50%;bottom:98px;transform:translateX(-50%);z-index:4;display:none;align-items:center;' +
-    'gap:.4em;padding:.2em .8em;border-radius:1em;background:rgba(255,248,214,.95);border:.1em solid #ff9f1c;color:#24543a;' +
+  var CHIP = 'position:fixed;z-index:4;display:none;align-items:center;justify-content:center;box-sizing:border-box;overflow:hidden;' +
+    'gap:.4em;padding:0 .8em;border-radius:1em;background:rgba(255,248,214,.95);border:.1em solid #ff9f1c;color:#24543a;' +
     'font:700 1.6rem system-ui,sans-serif;box-shadow:0 .1em .4em rgba(0,0,0,.3);pointer-events:none;white-space:nowrap;';
 
   function create(doc) {
     var none = { update: function () {}, setHidden: function () {}, element: null };
     if (!doc || typeof doc.createElement !== 'function' || !doc.body || !SA.hotbar) return none;
     var bar = doc.createElement('div');
-    bar.style.cssText = 'position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:4;display:flex;gap:8px;' +
-      'max-width:100vw;pointer-events:none;';
+    // Rects come from SA.hud: 'hotbar' (the slots shrink to fit narrow screens) and 'hotbarChip' (the name flash).
+    bar.style.cssText = 'position:fixed;z-index:4;display:flex;gap:8px;justify-content:center;align-items:flex-end;' +
+      'box-sizing:border-box;pointer-events:none;';
     doc.body.appendChild(bar);
     var chip = doc.createElement('div');
     chip.style.cssText = CHIP;
     chip.setAttribute('aria-live', 'polite');
     doc.body.appendChild(chip);
     var shown = null, hidden = false, buttons = [], chipId = SA.inventory ? SA.inventory.equipped() : null;
+    var barRect = null, slot = 72;
+    function relayout() { if (SA.hudPlace) SA.hudPlace.refresh(); }
+    function sizeSlots() {
+      var rect = barRect || { width: 9999, height: 72 }, gap = 8, n = Math.max(1, buttons.length);
+      slot = Math.max(28, Math.min(rect.height, Math.floor((rect.width - gap * (n - 1)) / n)));
+      buttons.forEach(function (b) { b.style.width = slot + 'px'; b.style.height = slot + 'px'; b.style.fontSize = Math.round(slot * 0.4) + 'px'; });
+    }
+    if (SA.hudPlace) {
+      SA.hudPlace.register('hotbar', bar, { reserve: true, onPlace: function (r) { barRect = r; sizeSlots(); } });
+      SA.hudPlace.register('hotbarChip', chip, { onPlace: function (r) { chip.style.fontSize = Math.round(r.height * 0.5) + 'px'; } });
+    }
 
     function showChip(c) {
       chip.textContent = c.icon + ' ' + c.text;
       chip.style.display = hidden ? 'none' : 'flex';
+      relayout();
     }
 
     // Show/hide the name chip when the equipped item changes; speak it on equip (not for the item restored from the save).
@@ -45,7 +58,7 @@
       if (id === chipId) return;
       chipId = id;
       var c = SA.hotbar.nameChip(id);
-      if (!c) { chip.style.display = 'none'; return; }
+      if (!c) { chip.style.display = 'none'; relayout(); return; }
       showChip(c);
       if (SA.audio && SA.audio.say) SA.audio.say(c.key);
     }
@@ -71,6 +84,7 @@
         bar.appendChild(b);
         buttons.push(b);
       });
+      sizeSlots();
     }
 
     function update() {
@@ -90,6 +104,7 @@
         hidden = !!h;
         bar.style.display = hidden ? 'none' : 'flex';
         chip.style.display = hidden || !chipId ? 'none' : 'flex';
+        relayout();
       },
       element: bar
     };

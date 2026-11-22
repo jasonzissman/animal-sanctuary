@@ -30,9 +30,10 @@
       return b;
     }
 
-    var gear = el('button', 'position:fixed;right:12px;bottom:12px;z-index:8;width:48px;height:48px;font-size:1.5rem;' +
+    var gear = el('button', 'position:fixed;z-index:8;' +      // rect from SA.hud ('settings', top-right column)
       'border-radius:50%;border:3px solid #24543a;background:#fff8d6;opacity:.7;cursor:pointer;padding:0;touch-action:manipulation;', '⚙️');
     gear.type = 'button';
+    if (SA.hudPlace) SA.hudPlace.register('settings', gear, { reserve: true, onPlace: function (r) { gear.style.fontSize = Math.round(r.height * 0.31) + 'px'; } });
     gear.setAttribute('aria-label', 'Settings (press and hold)');
     gear.title = 'Hold to open';
     var isOpen = false;
@@ -100,7 +101,7 @@
     function fallbackCopy(text) {
       var ok = false;
       try {
-        var ta = el('textarea', 'position:fixed;left:-999px;top:0;');
+        var ta = el('textarea', 'position:fixed;left:0;top:0;opacity:0;pointer-events:none;');
         ta.value = text; doc.body.appendChild(ta); ta.select();
         ok = !!doc.execCommand('copy');
         doc.body.removeChild(ta);

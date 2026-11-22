@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { loadGame } from './helpers/vm.js';
 
 const LOGIC = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
-  'game/data/vocab.js', 'game/data/foods.js', 'game/data/items.js', 'game/ui/use-button.js'];
+  'game/data/vocab.js', 'game/data/foods.js', 'game/data/items.js', 'game/hud.js', 'game/ui/hud-place.js', 'game/ui/use-button.js'];
 
 function fakeDoc() {
   const el = { style: {}, listeners: {}, attrs: {}, textContent: '',
@@ -45,16 +45,11 @@ test('on a touch screen it shows while a part is highlighted, with the equipped 
   assert.equal(s.used.length, 1);
 });
 
-test('it is placed left of the orbit pad (right 12-132px, bottom 72-192px) and never covers it', () => {
+test('its rect comes from SA.hud and covers no other HUD element', () => {
   const s = setup({ coarse: true });
-  const right = parseInt(/right:(\d+)px/.exec(s.el.style.cssText)[1], 10);
-  const bottom = parseInt(/bottom:(\d+)px/.exec(s.el.style.cssText)[1], 10);
-  const size = parseInt(/width:(\d+)px/.exec(s.el.style.cssText)[1], 10);
-  const overlapsX = right < 132 && right + size > 12;
-  const overlapsY = bottom < 192 && bottom + size > 72;
-  assert.ok(!(overlapsX && overlapsY), 'no overlap with the orbit pad');
-  // The climb button sits at right 12, bottom 200, 72px.
-  assert.ok(!(right < 84 && bottom < 272 && bottom + size > 200), 'no overlap with the climb button');
+  const L = s.SA.hudPlace.layout(), r = L.use;
+  assert.deepEqual([s.el.style.left, s.el.style.top, s.el.style.width, s.el.style.height], [r.left + 'px', r.top + 'px', r.width + 'px', r.height + 'px']);
+  for (const id of s.SA.hud.IDS) if (id !== 'use') assert.ok(!s.SA.hud.overlaps(r, L[id]), `use vs ${id}`);
 });
 
 test('the first touch enables the button on a non-coarse device', () => {

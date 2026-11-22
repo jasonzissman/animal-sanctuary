@@ -22,14 +22,20 @@
       return e;
     }
 
-    var toggleBtn = el('button', BTN + 'position:fixed;right:12px;top:84px;z-index:5;width:76px;height:76px;font-size:2.6rem;', '🏡');
+    var place = SA.hudPlace ? SA.hudPlace.register : function () { return { refresh: noop }; };
+    var toggleBtn = el('button', BTN + 'position:fixed;z-index:5;font-size:2.6rem;', '🏡');   // rect from SA.hud ('sandbox')
     toggleBtn.type = 'button';
     toggleBtn.setAttribute('aria-label', 'Hábitat');
     toggleBtn.addEventListener('click', function () { if (handlers.toggle) handlers.toggle(); });
+    place('sandbox', toggleBtn, { reserve: true, onPlace: function (r) { toggleBtn.style.fontSize = Math.round(r.height * 0.34) + 'px'; } });
 
-    var tray = el('div', 'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:5;display:none;' +
-      'align-items:center;gap:.4em;padding:.3em .5em;background:#fff8d6;border:.1em solid #24543a;border-radius:1em;' +
-      'box-shadow:0 .15em .6em rgba(0,0,0,.3);');
+    // The prop tray sits in the bottom-centre tray slot ('feedTray': feeding and building never happen together): an
+    // invisible full-slot container with the visible card centred on its bottom edge.
+    var trayBox = el('div', 'position:fixed;z-index:5;display:none;box-sizing:border-box;justify-content:center;align-items:flex-end;' +
+      'pointer-events:none;');
+    var tray = el('div', 'display:flex;align-items:center;gap:.4em;padding:.3em .5em;background:#fff8d6;border:.1em solid #24543a;' +
+      'border-radius:1em;box-shadow:0 .15em .6em rgba(0,0,0,.3);pointer-events:auto;');
+    trayBox.appendChild(tray);
     var starsEl = el('div', 'font:700 2rem system-ui,sans-serif;color:#24543a;padding:0 .3em;', '⭐ 0');
     tray.appendChild(starsEl);
     var buttons = {};
@@ -42,15 +48,21 @@
       buttons[p.id] = { el: b, cost: p.cost };
       tray.appendChild(b);
     });
-    var toastEl = el('div', 'position:fixed;top:30%;left:50%;transform:translateX(-50%);z-index:6;display:none;' +
-      'padding:.2em .8em;background:#fff;color:#24543a;border-radius:1em;font:700 2.2rem system-ui,sans-serif;' +
-      'box-shadow:0 .15em .6em rgba(0,0,0,.3);pointer-events:none;');
-    doc.body.appendChild(toggleBtn); doc.body.appendChild(tray); doc.body.appendChild(toastEl);
+    // Gentle messages use the transient 'toast' slot (the same one the prompt's toast uses).
+    var toastEl = el('div', 'position:fixed;z-index:6;display:none;box-sizing:border-box;align-items:center;justify-content:center;' +
+      'white-space:nowrap;overflow:hidden;padding:0 .4em;background:#fff;color:#24543a;border-radius:1em;' +
+      'font:700 2.2rem system-ui,sans-serif;box-shadow:0 .15em .6em rgba(0,0,0,.3);pointer-events:none;');
+    doc.body.appendChild(toggleBtn); doc.body.appendChild(trayBox); doc.body.appendChild(toastEl);
+    place('feedTray', trayBox, { reserve: true, onPlace: function (r) {
+      var s = Math.max(48, Math.min(96, r.height - 24));
+      Object.keys(buttons).forEach(function (k) { var b = buttons[k].el.style; b.minWidth = s + 'px'; b.height = s + 'px'; b.fontSize = Math.round(s * 0.29) + 'px'; });
+    } });
+    place('toast', toastEl, { reserve: true, onPlace: function (r) { toastEl.style.fontSize = Math.max(10, Math.round(r.height * 0.62)) + 'px'; } });
 
     var timer = null, stars = 0;
     return {
       setActive: function (on) {
-        tray.style.display = on ? 'flex' : 'none';
+        trayBox.style.display = on ? 'flex' : 'none';
         toggleBtn.textContent = on ? '🎮' : '🏡';
         toggleBtn.style.background = on ? '#ffe9a8' : '#fff';
         if (!on) toastEl.style.display = 'none';
@@ -68,7 +80,7 @@
       },
       toast: function (msg) {
         toastEl.textContent = msg;
-        toastEl.style.display = 'block';
+        toastEl.style.display = 'flex';
         if (typeof root.setTimeout !== 'function') return;
         if (timer !== null) root.clearTimeout(timer);
         timer = root.setTimeout(function () { toastEl.style.display = 'none'; timer = null; }, 1400);

@@ -27,7 +27,7 @@ test('combine: opposite buttons cancel, different axes add, junk is ignored', ()
 });
 
 test('orbit pad: buttons are >= 44px, hold sets axes on the rig, release clears them, no DOM is a no-op', () => {
-  const SA = loadGame(['game/sa.js', 'game/orbit-buttons.js', 'game/ui/orbit-pad.js']);
+  const SA = loadGame(['game/sa.js', 'game/hud.js', 'game/ui/hud-place.js', 'game/orbit-buttons.js', 'game/ui/orbit-pad.js']);
   assert.doesNotThrow(() => SA.orbitPad.create(null, {}).release());
   const el = (tag) => ({ tag, style: {}, children: [], l: {}, attrs: {}, appendChild(c) { this.children.push(c); },
     addEventListener(t, f) { this.l[t] = f; }, setAttribute(k, v) { this.attrs[k] = v; } });
@@ -39,8 +39,8 @@ test('orbit pad: buttons are >= 44px, hold sets axes on the rig, release clears 
   assert.equal(wrap.children.length, 4);
   assert.ok(/pointer-events:none/.test(wrap.style.cssText), 'wrapper never blocks picking');
   for (const b of wrap.children) {
-    const m = /width:(\d+)px;height:(\d+)px/.exec(b.style.cssText);
-    assert.ok(+m[1] >= 44 && +m[2] >= 44);
+    assert.ok(parseInt(b.style.width, 10) >= 44 && parseInt(b.style.height, 10) >= 44);
+    assert.equal(wrap.style.width, '120px', 'the block takes its rect from SA.hud (1280x800 fallback viewport)');
     assert.ok(b.attrs['aria-label']);
   }
   const [left, , up] = wrap.children;

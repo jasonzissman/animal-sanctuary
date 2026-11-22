@@ -262,6 +262,11 @@ current; when your change sets or changes something future tickets must follow, 
   'Toma una foto' 📷). `SA.missionPill` (`game/mission-pill.js`, pure) is polled by `main.js` after `SA.focus.update()`: it calls
   `view.showStep` and speaks the line via `SA.audio.say` on every step change; Replay 🔊 repeats it. When the mission ends the focus
   rule calls `ctl.begin()` and the pill shows its free-roam text again. A new mission's steps must each have a `line`.
+  **Step engine (AS-0229, slice 1 of AS-0178):** `SA.missionRun` (`game/mission-run.js`, pure) runs steps `{ kind, ...params, line }` against
+  rows in `game/data/step-kinds.js` (`SA.data` kind `stepKinds`: event type, required/optional params, match rule, optional counted
+  progress). `start(steps)` validates (clear errors for an unknown kind or missing params), `step(state, event)` -> `{ state, advanced,
+  progressed, done }` is pure and reports `done` once. Events are `{ type, ...fields }`: found, helped, followed, carried, delivered,
+  collected, arrived, talked, photo. A new kind is a new row, never engine code. Not yet wired to `SA.missions` or the step card (slices 2-3).
 - **Proximity only (AS-0225, slice 2 of AS-0217): clue rounds and encounters never start or show unless their animal is near.**
   `SA.taskGate` (`game/task-gate.js`, pure wiring) is polled each frame by `main.js` (`ctl.updateTasks()`, after `SA.focus.update()`).
   With no round, it asks `SA.nearbyTask`; when an animal is near and in view it calls `missionFlow.begin(animalId)`, so

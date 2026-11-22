@@ -6,6 +6,9 @@
  *       lines: [{ role: 'general'|'mission'|'step'|'board', es, icon, key }]   in the order they are spoken; key is a vocab key
  *              (or the Spanish text itself for a mission title) that SA.audio.say plays
  *       missionId: id | null }
+ *   Each line also has `en` (scaffold text, '' when none). `icon` stays in the data (board cards etc.) but NO card draws it next to the
+ *   message (AS-0227): the startup greeting (ui/greeting-view.js) and the talk card (ui/scientist-view.js) both render exactly these
+ *   lines, so what she says at startup and when you talk to her always match.
  *   Line 1 is always the one-line general mission ("Ayuda a los animales: busca, ayuda, foto"). Then the current mission's title
  *   card (its icon) plus the step it is on (find / help / follow / photo ...), or "choose a mission at the board" when none runs.
  *   It only reads SA.missions (active / next); it never starts, advances or abandons anything: missions start only at the
@@ -30,16 +33,18 @@
     photo: { es: 'Tómale una foto', icon: '📷', key: 'phrase:tomalefoto' }
   };
 
-  function copy(o) { return { role: o.role, es: o.es, icon: o.icon, key: o.key }; }
+  // English scaffold text (shown only when the English toggle is on) comes from the vocab entry of the line's key.
+  function enOf(key) { try { var v = SA.vocab && SA.vocab.get(key); return (v && v.en) || ''; } catch (e) { return ''; } }
+  function copy(o) { return { role: o.role, es: o.es, en: enOf(o.key), icon: o.icon, key: o.key }; }
 
   function reminder(opts) {
     var m = (opts && opts.missions) || SA.missions, lines = [copy(GENERAL)], state = 'done', id = null, act = null, nxt = null;
     try { act = m && m.active ? m.active() : null; } catch (e) { act = null; }
     if (act && act.mission) {
       state = 'active'; id = act.id;
-      lines.push({ role: 'mission', es: act.mission.es, icon: act.mission.icon, key: act.mission.es });
+      lines.push({ role: 'mission', es: act.mission.es, en: act.mission.en || '', icon: act.mission.icon, key: act.mission.es });
       var st = act.stepData && STEPS[act.stepData.kind];
-      if (st) lines.push({ role: 'step', es: st.es, icon: st.icon, key: st.key });
+      if (st) lines.push({ role: 'step', es: st.es, en: enOf(st.key), icon: st.icon, key: st.key });
     } else {
       try { nxt = m && m.next ? m.next() : null; } catch (e) { nxt = null; }
       if (nxt) { state = 'choose'; lines.push(copy(BOARD)); } else lines.push(copy(ALL_DONE));

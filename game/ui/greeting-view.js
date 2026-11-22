@@ -2,9 +2,9 @@
  *   o.onToggle(isOpen)   optional, e.g. main.js pauses picking while it shows.
  *   o.auto               false = do not open at once (tests); default: opens as soon as it is created (the world is shown).
  *   o.player()           optional: where the kid stands now (to notice walking away); update(player) is also called every frame.
- * Same card style as the scientist's reminder card (ui/scientist-view.js): 🧑‍🔬, then BOTH lines at once (picture + short phrase;
- * the English line only when the English toggle is on), 🔊 replay and ✕. It closes on ✕, Enter / E, a tap anywhere, or as soon as the
- * kid starts walking. Logic: SA.greeting (game/greeting.js). Voice: SA.audio.say, line 1 then line 2. It never starts a mission.
+ * Same card, same text as the scientist's reminder card (ui/scientist-view.js; AS-0227): every line of SA.scientistTalk.reminder() at
+ * once, plain text with NO icons (the English line only when the English toggle is on), 🔊 replay and ✕. It closes on ✕, Enter / E, a tap anywhere, or as soon as the
+ * kid starts walking. Logic: SA.greeting (game/greeting.js). Voice: SA.audio.say, line by line. It never starts a mission.
  */
 (function (root) {
   'use strict';
@@ -34,12 +34,12 @@
     shade.appendChild(card);
     doc.body.appendChild(shade);
 
-    var token = 0;
+    var token = 0, current = [];   // current: the scientist's lines as they were when the card opened
     function stopVoice() { token += 1; if (SA.audio && SA.audio.stopVoice) { try { SA.audio.stopVoice(); } catch (e) { /* silent */ } } }
     // Line 1 then line 2; a newer call (Replay, close) cancels the older chain.
     function speak() {
       stopVoice();
-      var mine = token, ls = SA.greeting.lines(), i = 0;
+      var mine = token, ls = current, i = 0;
       function step() {
         if (mine !== token || !G.isOpen() || i >= ls.length) return;
         var key = ls[i++].key;
@@ -59,13 +59,11 @@
 
     function render() {
       while (card.children.length) card.removeChild(card.children[0]);
-      card.appendChild(el('div', 'font-size:2.6rem;line-height:1;', '🧑‍🔬'));
       var en = english();
-      SA.greeting.lines().forEach(function (l) {
+      current.forEach(function (l) {
         var row = el('div', 'display:flex;flex-direction:column;align-items:center;');
-        row.appendChild(el('div', 'font-size:3.6rem;line-height:1.1;overflow-wrap:anywhere;', l.icon));
-        row.appendChild(el('div', 'font-size:1.5rem;line-height:1.15;overflow-wrap:anywhere;', l.es));
-        if (en) row.appendChild(el('div', 'font-size:1rem;font-weight:400;line-height:1.15;', l.en));
+        row.appendChild(el('div', 'font-size:1.7rem;line-height:1.2;overflow-wrap:anywhere;', l.es));
+        if (en && l.en) row.appendChild(el('div', 'font-size:1rem;font-weight:400;line-height:1.15;', l.en));
         card.appendChild(row);
       });
       var btns = el('div', 'display:flex;flex-wrap:wrap;gap:12px;justify-content:center;');
@@ -83,6 +81,7 @@
     function open(player) {
       var p = player || (o.player ? o.player() : null);
       if (!G.open(p)) return false;
+      current = SA.greeting.lines();
       render();
       shade.style.display = 'flex';
       if (o.onToggle) o.onToggle(true);

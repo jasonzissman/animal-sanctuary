@@ -1,8 +1,9 @@
 /* SA.greeting: the scientist's one-card hello on every load (AS-0213; pure, no THREE, no DOM; unit-tested in node:vm).
  * Replaces the long first-run intro: it starts nothing. Missions are chosen at the board in the station.
- * Both lines show on ONE card at the same time; one press (or walking away) closes it. Never stepped through.
+ * All lines show on ONE card at the same time; one press (or walking away) closes it. Never stepped through.
+ * The text is the scientist's own message (AS-0227): the same lines, in the same order, as SA.scientistTalk.reminder().
  *
- *   SA.greeting.lines()            -> [{ es, en, icon, key }, x2]   2 short lines (<= 6 words each), key = vocab key for SA.audio.say
+ *   SA.greeting.lines()            -> [{ es, en, key }, ...]   = SA.scientistTalk.reminder().lines (no icons), key = vocab key for SA.audio.say
  *   SA.greeting.create({ moveDist?, track? }) -> a controller (SA.greeting is the default instance's functions too):
  *       open(player?)   -> true       shows it (player = { x, z } where the kid stands, to notice walking away); false if already open
  *       isOpen()        -> bool
@@ -18,13 +19,13 @@
   'use strict';
   var SA = root.SA;
 
-  var LINES = [
-    { es: '¡Hola! Elige una misión en la estación.', en: 'Pick a mission in the station.', icon: '🏠📋', key: 'phrase:saludo1' },
-    { es: 'O explora y ayuda a los animales.', en: 'Or explore and help the animals.', icon: '🧭🐾', key: 'phrase:saludo2' }
-  ];
   var MOVE_KEYS = { w: 1, a: 1, s: 1, d: 1, arrowup: 1, arrowdown: 1, arrowleft: 1, arrowright: 1 };
 
-  function lines() { return LINES.map(function (l) { return { es: l.es, en: l.en, icon: l.icon, key: l.key }; }); }
+  // AS-0227: the startup card says exactly what talking to the scientist says right now (SA.scientistTalk.reminder()).
+  function lines() {
+    var r = root.SA.scientistTalk && root.SA.scientistTalk.reminder ? root.SA.scientistTalk.reminder() : { lines: [] };
+    return r.lines.map(function (l) { return { es: l.es, en: l.en || '', key: l.key }; });
+  }
 
   function create(opts) {
     opts = opts || {};

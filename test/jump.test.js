@@ -70,7 +70,7 @@ function makeRig(obstacles = [], audioLog = [], trees = null) {
     { addEventListener: (t, f) => { keys[t] = f; } });
   const canvas = { style: {}, clientHeight: 600, addEventListener() {} };
   const camera = { position: { set() {} }, lookAt() {} };
-  const rig = SA.render.createCameraRig({}, canvas, camera, null, { chase: { obstacles: () => obstacles, trees: () => trees || [] } });
+  const rig = SA.render.createCameraRig({}, canvas, camera, { chase: { obstacles: () => obstacles, trees: () => trees || [] } });
   const ev = (o) => ({ preventDefault() {}, ...o });
   return { SA, rig, keys, ev, frames: (n, dt = 1 / 60) => { for (let i = 0; i < n; i++) rig.update(dt); } };
 }

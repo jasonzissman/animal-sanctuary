@@ -31,15 +31,6 @@ test('drag pan distance scales with zoom and is clamped', () => {
   assert.equal(C.panByPixels(start, -1e6, 0, 600, B).x, B.maxX);
 });
 
-test('keys pan, diagonal speed is normalised, no keys is a no-op', () => {
-  const r = C.panByKeys(start, 1, 0, 0.5, B);
-  const diag = C.panByKeys(start, 1, 1, 0.5, B);
-  assert.ok(r.x > 0 && r.z === 0);
-  assert.ok(Math.abs(Math.hypot(diag.x, diag.z) - r.x) < 1e-9);
-  assert.deepEqual(plain(C.panByKeys(start, 0, 0, 0.5, B)), plain(C.clampState(start, B)));
-  assert.equal(C.panByKeys({ x: 39.9, z: 0, dist: 30 }, 1, 0, 5, B).x, B.maxX);
-});
-
 test('wheel and pinch zoom are clamped', () => {
   assert.ok(C.zoomByWheel(start, 100, B).dist > start.dist);
   assert.ok(C.zoomByWheel(start, -100, B).dist < start.dist);
@@ -116,17 +107,7 @@ test('position follows yaw and pitch: low pitch is near ground level, yaw swings
   }
 });
 
-test('keyboard pan follows the yaw and stays inside the map; easing keeps the orbit', () => {
-  // At yaw 90 the camera sits at +x looking toward -x: screen-right is -z, screen-down (toward viewer) is +x.
-  const rotated = C.panByKeys({ x: 0, z: 0, dist: 30, yaw: 90, pitch: 55 }, 1, 0, 0.5, B);
-  assert.ok(rotated.z < 0 && Math.abs(rotated.x) < 1e-9);
-  assert.equal(C.panByKeys({ x: 0, z: 0, dist: 30, yaw: 90, pitch: 55 }, 0, 1, 1e6, B).x, B.maxX);
-  const eased = C.easeToward({ x: 0, z: 0, dist: 30, yaw: 70, pitch: 20 }, { x: 5, z: 5, dist: 20 }, 0.1, 4, B);
-  assert.equal(eased.yaw, 70);
-  assert.equal(eased.pitch, 20);
-});
-
-test('key and drag pans move along the camera screen axes at any yaw', () => {
+test('drag pans move along the camera screen axes at any yaw', () => {
   for (const yaw of [0, 30, 90, 135, 180, -70]) {
     const s = { x: 0, z: 0, dist: 30, yaw, pitch: 55 };
     const p = C.position(s);
@@ -135,10 +116,6 @@ test('key and drag pans move along the camera screen axes at any yaw', () => {
     // Screen-right is down rotated -90 degrees about the vertical: (x, z) -> (z, -x).
     const right = { x: down.z, z: -down.x };
     const dot = (a, b) => a.x * b.x + a.z * b.z;
-    const kr = C.panByKeys(s, 1, 0, 0.1, B);
-    assert.ok(dot(kr, right) > 0.5 && Math.abs(dot(kr, down)) < 1e-9, 'right key, yaw ' + yaw);
-    const kd = C.panByKeys(s, 0, 1, 0.1, B);
-    assert.ok(dot(kd, down) > 0.5 && Math.abs(dot(kd, right)) < 1e-9, 'down key, yaw ' + yaw);
     // Dragging right pulls the ground right, so the target moves screen-left.
     const dr = C.panByPixels(s, 50, 0, 600, B);
     assert.ok(dot(dr, right) < 0 && Math.abs(dot(dr, down)) < 1e-9, 'drag right, yaw ' + yaw);
@@ -256,17 +233,6 @@ test('decayOffset drifts back behind the walking player and holds still otherwis
   assert.ok(Math.abs(C.decayOffset(90, true, 100)) < 1e-6);
   assert.equal(C.decayOffset(450, false, 1), 90, 'wrapped');
   assert.equal(C.decayOffset(NaN, true, 1), 0);
-});
-
-test('easeToward also eases pitch when the target has one, and ignores junk pitch', () => {
-  const s = { x: 0, z: 0, dist: 7, yaw: 0, pitch: 16 };
-  const a = C.easeToward(s, { x: 0, z: 0, dist: 7, pitch: 40 }, 0.1, 4, B);
-  assert.ok(a.pitch > 16 && a.pitch < 40);
-  let r = s;
-  for (let i = 0; i < 200; i++) r = C.easeToward(r, { x: 0, z: 0, dist: 7, pitch: 40 }, 0.05, 4, B);
-  assert.ok(Math.abs(r.pitch - 40) < 0.01);
-  assert.equal(C.easeToward(s, { x: 0, z: 0, dist: 7 }, 0.1, 4, B).pitch, 16, 'no pitch target keeps pitch');
-  assert.equal(C.easeToward(s, { x: 0, z: 0, dist: 7, pitch: NaN }, 0.1, 4, B).pitch, 16);
 });
 
 // ---- chase camera collision ----

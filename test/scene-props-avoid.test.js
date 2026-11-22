@@ -18,7 +18,7 @@ function setup() {
       buildWorld: noop,
       buildDecor: () => ({ children: [{ position: { x: 1, z: 2 } }] }),
       buildAnimals: () => ({ children: [{ position: { x: 7, z: 8 } }] }),
-      createCameraRig: (t, c, cam, init, hooks) => { rigHooks.push(hooks); return {}; },
+      createCameraRig: (t, c, cam, hooks) => { rigHooks.push(hooks); return {}; },
       createAvatar: () => ({ group: {}, update() {} }), createPicking: noop, createTreeTap: noop, createRoundFx: noop, createCareFx: noop,
       createProps: () => propsApi,
       createAmbient: () => ({ setAvoid(a) { calls.push(a); } }),

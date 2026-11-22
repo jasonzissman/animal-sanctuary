@@ -126,7 +126,7 @@ function makeRig() {
     vm.runInContext(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'), ctx, { filename: f });
   }
   const camera = { position: { set() {} }, lookAt() {} };
-  const rig = ctx.window.SA.render.createCameraRig({}, canvas, camera, null, { chase: { obstacles: () => [] } });
+  const rig = ctx.window.SA.render.createCameraRig({}, canvas, camera, { chase: { obstacles: () => [] } });
   return { rig, listeners };
 }
 const run = (rig, n) => { for (let i = 0; i < n; i++) rig.update(1 / 30); };

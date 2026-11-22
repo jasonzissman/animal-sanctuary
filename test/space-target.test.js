@@ -191,7 +191,7 @@ test('rig.climbTree climbs the given tree only when in range', () => {
   }
   const S = ctx.window.SA, spawn = S.player.spawn();
   const near = { x: spawn.x + 2, z: spawn.z, y: 0, scale: 1, kind: 'jungle' }, far = { x: spawn.x + 20, z: spawn.z, y: 0, scale: 1, kind: 'jungle' };
-  const r = S.render.createCameraRig({}, { style: {}, clientHeight: 600, addEventListener() {} }, { position: { set() {} }, lookAt() {} }, null,
+  const r = S.render.createCameraRig({}, { style: {}, clientHeight: 600, addEventListener() {} }, { position: { set() {} }, lookAt() {} },
     { chase: { obstacles: () => [], trees: () => [near, far] } });
   r.climbTree(far);
   assert.equal(r.getPlayer().climb, null);

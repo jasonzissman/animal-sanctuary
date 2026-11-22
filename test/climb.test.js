@@ -159,7 +159,7 @@ test('rig: C climbs when next to a tree and down again, and getPlayer reports y'
   const camera = { position: { set: (x, y, z) => { placed.y = y; } }, lookAt() {} };
   const spawn = ctx.window.SA.player.spawn();
   const tree = { x: spawn.x + 2, z: spawn.z, y: 0, scale: 1, kind: 'jungle' };
-  const rig = ctx.window.SA.render.createCameraRig({}, canvas, camera, null, { chase: { obstacles: () => [], trees: () => [tree] } });
+  const rig = ctx.window.SA.render.createCameraRig({}, canvas, camera, { chase: { obstacles: () => [], trees: () => [tree] } });
   const frames = (n) => { for (let i = 0; i < n; i++) rig.update(0.05); };
   assert.equal(rig.climbPrompt(), 'up');
   let prevented = 0;
@@ -195,7 +195,7 @@ test('rig: C does nothing (and is not swallowed) away from a tree', () => {
     vm.runInContext(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'), ctx, { filename: f });
   }
   const camera = { position: { set() {} }, lookAt() {} };
-  const rig = ctx.window.SA.render.createCameraRig({}, { style: {}, clientHeight: 600, addEventListener() {} }, camera, null, {});
+  const rig = ctx.window.SA.render.createCameraRig({}, { style: {}, clientHeight: 600, addEventListener() {} }, camera, {});
   let prevented = 0;
   keys.keydown({ key: 'c', preventDefault() { prevented++; } });
   assert.equal(prevented, 0);

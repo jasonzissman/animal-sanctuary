@@ -45,11 +45,45 @@ test('holding Space never chains hops: it must be released and pressed again', (
   state = J.step(state, { jump: false }, 1 / 60);   // release
   state = J.step(state, { jump: true }, 1 / 60);    // press again
   assert.equal(state.event, 'takeoff');
-  // pressing again in the air does nothing extra: the same hop continues and lands
-  const mid = run(state, { jump: false }, 0.2).state;
-  const again = J.step(J.step(mid, { jump: true }, 1 / 60), { jump: true }, 1 / 60);
-  assert.ok(again.vy < state.vy, 'still on the same arc');
-  assert.notEqual(again.event, 'takeoff');
+  // holding in the air (never released since takeoff) does nothing extra: the same hop continues and lands
+  const held = run(state, { jump: true }, 0.4).state;
+  assert.equal(held.jumps, 1);
+  assert.ok(held.vy < state.vy, 'still on the same arc');
+});
+
+test('double jump: a fresh press in the air gives one more full hop; a third does nothing until landing', () => {
+  let s = J.step(J.create(), { jump: true }, 1 / 60);
+  assert.equal(s.jumps, 1);
+  s = run(s, { jump: false }, 0.3).state;
+  const before = s.lift;
+  s = J.step(s, { jump: true }, 1 / 60);
+  assert.equal(s.event, 'double');
+  assert.equal(s.jumps, 2);
+  assert.ok(Math.abs(s.vy - J.TAKEOFF_SPEED) < J.GRAVITY / 60 + 1e-9, 'a full second boost');
+  assert.ok(s.lift >= before, 'from the current height');
+  let peak = s.lift;
+  s = run(s, { jump: false }, 0.05).state;
+  const third = J.step(J.step(s, { jump: false }, 1 / 60), { jump: true }, 1 / 60);
+  assert.notEqual(third.event, 'double', 'no third hop');
+  assert.equal(third.jumps, 2);
+  for (let i = 0, t = third; i < 200 && t.air; i++) { t = J.step(t, { jump: false }, 1 / 60); peak = Math.max(peak, t.lift); s = t; }
+  assert.ok(peak > 1.8, `double jump goes higher than a single hop (${peak})`);
+  assert.equal(s.air, false);
+  assert.equal(s.jumps, 0, 'landing resets the count');
+  const again = J.step(J.step(s, { jump: false }, 1 / 60), { jump: true }, 1 / 60);
+  assert.equal(again.event, 'takeoff', 'a fresh takeoff after landing');
+});
+
+test('holding Space never double jumps; cancel resets; allowed=false blocks both', () => {
+  const held = run(J.create(), { jump: true }, 0.3);
+  assert.equal(held.trace.filter((x) => x.event === 'double').length, 0);
+  const air = run(J.step(J.create(), { jump: true }, 1 / 60), { jump: false }, 0.2).state;
+  const c = J.cancel(J.step(air, { jump: true }, 1 / 60));
+  assert.equal(c.jumps, 0);
+  const blocked = J.step(air, { jump: true }, 1 / 60, false);
+  assert.notEqual(blocked.event, 'double');
+  assert.equal(blocked.jumps, 1);
+  assert.equal(J.step(J.create(), { jump: true }, 1 / 60, false).jumps, 0);
 });
 
 test('a takeoff can be blocked (up a tree) and cancel drops back to the ground', () => {
@@ -146,21 +180,45 @@ test('a solid obstacle still blocks the player in the air', () => {
 });
 
 // --- the touch jump button (AS-0114) ---
-test('rig.jump() hops exactly like Space: one hop per landing, none in the air', () => {
+test('rig.jump() hops exactly like Space: two taps per landing (hop + double), a third is ignored', () => {
   const log = [];
   const { rig, frames } = makeRig([], log);
   frames(3);
   assert.equal(rig.jump(), true);
   frames(2);
   assert.ok(rig.getPlayer().lift > 0, 'in the air after a tap');
-  assert.equal(rig.jump(), false, 'a tap in the air is ignored (and not buffered)');
-  frames(60);
-  assert.equal(rig.getPlayer().lift, 0, 'landed, no second hop chained');
-  assert.deepEqual(log, ['hop']);
+  assert.equal(rig.jump(), true, 'a second tap in the air double jumps');
+  frames(2);
+  assert.deepEqual(log, ['hop', 'hop2']);
+  assert.equal(rig.jump(), false, 'a third tap is ignored (and not buffered)');
+  frames(80);
+  assert.equal(rig.getPlayer().lift, 0, 'landed, no extra hop chained');
+  assert.deepEqual(log, ['hop', 'hop2']);
+  log.length = 0;
   assert.equal(rig.jump(), true, 'a new tap after landing hops again');
   frames(2);
   assert.ok(rig.getPlayer().lift > 0);
-  assert.deepEqual(log, ['hop', 'hop']);
+  assert.deepEqual(log, ['hop']);
+});
+
+test('Space twice in the air double jumps with hop2; held Space does not', () => {
+  const log = [];
+  const { rig, keys, ev, frames } = makeRig([], log);
+  frames(3);
+  keys.keydown(ev({ key: ' ', code: 'Space' }));
+  frames(10);
+  keys.keydown(ev({ key: ' ', code: 'Space', repeat: true }));   // auto-repeat of the held key
+  frames(5);
+  assert.deepEqual(log, ['hop'], 'holding does not double jump');
+  keys.keyup(ev({ key: ' ', code: 'Space' }));
+  frames(2);
+  keys.keydown(ev({ key: ' ', code: 'Space' }));
+  frames(2);
+  assert.deepEqual(log, ['hop', 'hop2']);
+  keys.keyup(ev({ key: ' ', code: 'Space' }));
+  keys.keydown(ev({ key: ' ', code: 'Space' }));
+  frames(2);
+  assert.deepEqual(log, ['hop', 'hop2'], 'a third press does nothing');
 });
 
 test('jump button: big round icon-only button, shown at the first touch, taps call rig.jump', () => {

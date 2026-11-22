@@ -152,7 +152,7 @@
     }
     function onKeyDown(e) {
       run = !!e.shiftKey;
-      if (isJumpKey(e)) { e.preventDefault(); jumpHeld = true; if (hop && !e.repeat && !hop.air) hop.armed = true; return; }   // a fresh press (not key auto-repeat) re-arms on the ground   // preventDefault: Space must not scroll the page
+      if (isJumpKey(e)) { e.preventDefault(); jumpHeld = true; if (hop && !e.repeat) hop.armed = true; return; }   // a fresh press (not key auto-repeat) re-arms: takeoff on the ground, double jump in the air   // preventDefault: Space must not scroll the page
       // C climbs up when next to a tree and down when up one (E / Enter go through SA.spaceUse); otherwise it does nothing here.
       if ((e.key === 'c' || e.key === 'C') &&!e.ctrlKey && !e.metaKey && !e.altKey && SA.climb.prompt(player, trees())) {
         e.preventDefault();
@@ -220,7 +220,7 @@
           hop = climbing() ? SA.jump.cancel(hop) : SA.jump.step(hop, { jump: jumpHeld || jumpTap }, dt, true,
             player.climb ? 0 : SA.player.floorAt(player.x, player.z, obs, hop.lift));   // lands / stands on a low rock
           jumpTap = false;
-          if (hop.event === 'takeoff' && SA.audio && SA.audio.sfx) SA.audio.sfx('hop');
+          if ((hop.event === 'takeoff' || hop.event === 'double') && SA.audio && SA.audio.sfx) SA.audio.sfx(hop.event === 'double' ? 'hop2' : 'hop');
         }
         camY += (player.y - camY) * (1 - Math.exp(-5 * Math.min(dt, 0.1)));
         moving = Math.hypot(player.x - before.x, player.z - before.z) > 1e-4 || player.heading !== before.heading;
@@ -250,10 +250,10 @@
       toggleClimb: toggleClimb,
       /** { tree, progress 0..1 } while the player pushes into a climbable trunk (the filling ring), else null. */
       autoClimb: function () { return autoTimer && autoTimer.tree && autoTimer.progress > 0 ? { tree: autoTimer.tree, progress: autoTimer.progress } : null; },
-      /** The touch jump button: a fresh Space press. Only a grounded avatar hops (no buffering in the air, none up a tree). */
+      /** The touch jump button: a fresh Space press (two taps = hop + double jump). None up a tree or once both hops are used. */
       jump: function () {
-        if (!hop || hop.air || climbing()) return false;
-        hop = { lift: hop.lift, vy: hop.vy, air: false, armed: true, event: hop.event };
+        if (!hop || climbing() || (hop.air && (hop.jumps || 0) >= SA.jump.MAX_JUMPS)) return false;
+        hop = { lift: hop.lift, vy: hop.vy, air: hop.air, armed: true, jumps: hop.jumps, event: hop.event };
         jumpTap = true;
         return true;
       },

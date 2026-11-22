@@ -1,6 +1,7 @@
 /* SA.player: pure walking model for the kid avatar (no THREE, no DOM; node:vm tested). Needs SA.map (BOUNDS).
  *
- *   SA.player.spawn()                 -> { x, z, heading } in the first biome (bosque), on dry land
+ *   SA.player.spawn()                 -> { x, z, heading } in the first biome (bosque), on dry land; just outside the
+ *                                        research station's door when SA.station is loaded (AS-0145), else a fixed spot
  *   SA.player.step(state, input, dt, obstacles?) -> new state (the input state is never mutated)
  *     state     { x, z, heading }  heading in radians; forward = (sin heading, cos heading) on the (x, z) plane, so a
  *               chase camera behind the player uses yaw = heading + PI (see SA.camera: camera sits at +(sin yaw, cos yaw))
@@ -38,6 +39,9 @@
   var SPAWN_CLEAR = 5;    // nothing seeded (decor, animals) within this distance of the spawn at load
   var SLACK = 0.02;       // overlap smaller than this is just float noise from the last push-out
   var SPAWN = { x: -9, z: 14, heading: Math.PI };   // bosque, dry land, facing the map centre (-z)
+
+  /** Where the game starts: just outside the research station's door (SA.station, AS-0145), else the fixed fallback above. */
+  function spawnPoint() { return SA.station && SA.station.spawn ? SA.station.spawn() : SPAWN; }
 
   function num(v, d) { return typeof v === 'number' && isFinite(v) ? v : d; }
   function axis(v) { return typeof v === 'number' ? Math.max(-1, Math.min(1, num(v, 0))) : v ? 1 : 0; }
@@ -106,9 +110,10 @@
   function heightAt(x, z) { return SA.map.groundHeight(x, z); }
 
   function step(state, input, dt, obstacles) {
-    state = state || SPAWN;
+    var S = spawnPoint();
+    state = state || S;
     input = input || {};
-    var h = num(state.heading, 0), p = { x: num(state.x, SPAWN.x), z: num(state.z, SPAWN.z) };
+    var h = num(state.heading, 0), p = { x: num(state.x, S.x), z: num(state.z, S.z) };
     dt = Math.max(0, Math.min(MAX_DT, num(dt, 0)));
     var fwd = axis(input.forward) - axis(input.back), side = axis(input.right) - axis(input.left);
     var fx = Math.sin(h), fz = Math.cos(h), dx = 0, dz = 0;
@@ -136,9 +141,9 @@
     return { x: p.x, z: p.z, heading: h };
   }
 
-  function spawn() { return { x: SPAWN.x, z: SPAWN.z, heading: SPAWN.heading }; }
-  function inSpawnZone(x, z, pad) { return Math.hypot(x - SPAWN.x, z - SPAWN.z) < SPAWN_CLEAR + (pad || 0); }
-  function spawnZone() { return [SPAWN.x, SPAWN.z, SPAWN_CLEAR]; }
+  function spawn() { var S = spawnPoint(); return { x: S.x, z: S.z, heading: S.heading }; }
+  function inSpawnZone(x, z, pad) { var S = spawnPoint(); return Math.hypot(x - S.x, z - S.z) < SPAWN_CLEAR + (pad || 0); }
+  function spawnZone() { var S = spawnPoint(); return [S.x, S.z, SPAWN_CLEAR]; }
 
   SA.player = { step: step, heightAt: heightAt, spawn: spawn, SPEED: SPEED, RUN_SPEED: RUN_SPEED, BACK_SPEED: BACK_SPEED, TURN_RATE: TURN_RATE, RADIUS: RADIUS,
     SPAWN_CLEAR: SPAWN_CLEAR, inSpawnZone: inSpawnZone, spawnZone: spawnZone };

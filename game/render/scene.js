@@ -33,7 +33,12 @@
     scene.add(SA.render.buildWorld(THREE));
     var decor = SA.render.buildDecor(THREE);
     scene.add(decor);
+    // The research station beside the spawn (AS-0145): its walls block the player (obstacles below), its footprint stays clear.
+    var station = SA.render.buildStation && SA.station ? SA.render.buildStation(THREE) : null;
+    if (station) scene.add(station);
+    var stationWalls = SA.station ? SA.station.obstacles() : [];
     var avoid = decor.children.map(function (o) { return [o.position.x, o.position.z]; });
+    if (SA.station) avoid = avoid.concat(SA.station.avoidPoints());
     var animals = SA.render.buildAnimals(THREE, { avoid: avoid });
     scene.add(animals);
 
@@ -45,14 +50,14 @@
     // Only things that should stop the player count: trees, rocks, ponds, bridges and big animals. Flowers, grass and small
     // animals are soft (SA.blocking reads that from data), so the player walks straight through them.
     function obstacles() {
-      return SA.blocking.obstacles({
+      return stationWalls.concat(SA.blocking.obstacles({
         decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor }; }),
         propPoints: solidPropPoints,
         animals: animals.children.map(function (g) {
           var u = g.userData || {};
           return { x: g.position.x, z: g.position.z, animalId: u.animalId, perched: u.perched };
         }),
-      });
+      }));
     }
     // Perched (tree-dwelling) animals' world positions: the chase camera frames them when they are above the player (SA.camera.frameAbove).
     function perchedAnimals() {

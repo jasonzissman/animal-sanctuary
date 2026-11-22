@@ -107,6 +107,8 @@ current; when your change sets or changes something future tickets must follow, 
   several tree kinds, moving water, faceted rocks, soft shadows. Each biome has character (forest paths, streams and fallen
   logs to jump; desert dunes, arch, oasis; mountain trail, waterfall; jungle giant trees, vines, waterfall). Keep adding
   variety with discretion: fun, never cluttered, ~60 fps (instancing, auto quality).
+  Things to climb and cross (AS-0158 to AS-0160): river bridges, a rope bridge between mountain peaks, ladders up the
+  station and lookout towers. Walkable surfaces and climb targets are generic data, so more can be added freely.
 - **Animals keep an arm's length apart (AS-0153).** Never bunched: at least ~1.5 units of gap between any two animals'
   bodies at all times (hard rule, not a soft preference), so tapping one never hits another.
 - **Small inventory (AS-0154, AS-0155).** Tools (cámara, cepillo, esponja, venda), la fresa as the only food, and rocks.
@@ -220,3 +222,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: animals keep an arm's length apart (AS-0153).
 - 2026-11-22: small inventory: no flor/hoja, strawberries are the only food (AS-0154, AS-0155).
 - 2026-11-22: cactus prick bounce-back (AS-0156); auto-climb by pushing into a tree (AS-0157).
+- 2026-11-22: bridges, rope bridge between peaks, ladders and lookout towers (AS-0158 to AS-0160).

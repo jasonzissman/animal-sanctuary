@@ -16,14 +16,15 @@
  * (2) from the leader, stops at GAP_STOP (1.75) and turns to face them, and steps back if pushed closer than GAP_MIN (1.5).
  * It walks around solids and never enters water. When the leader jumps a gap (> HOP_GAP of travel in the air) it hops the
  * same gap. Farther than POP_DIST (15) behind, or stuck for STUCK_SECONDS (3) while it wants to move, it pops to a free
- * dry spot just behind the leader. It always ends on dry ground outside every solid.
+ * dry spot just behind the leader, but never across water: then it waits at the edge facing them. When the leader
+ * comes back within GAP_START its old footprints are cleared and it follows fresh ones. It always ends on dry ground outside every solid.
  */
 (function (root) {
   'use strict';
   var SA = root.SA;
 
   var GAP_MIN = 1.5, GAP_STOP = 1.75, GAP_START = 2;   // distances to the leader (arm's length rule)
-  var POP_DIST = 15, STUCK_SECONDS = 3;
+  var POP_DIST = 15, STUCK_SECONDS = 3, STUCK_PROGRESS = 0.3;   // stuck: under 0.3 units of net progress toward the target
   var BODY = 0.4;             // follower body radius (added to each solid's radius; two followers keep 2 x BODY apart)
   var CRUMB = 0.5;            // spacing of the leader's breadcrumbs
   var REACH = 0.4;            // a crumb this close counts as reached
@@ -80,7 +81,7 @@
   function create(o) {
     o = o || {};
     return { x: num(o.x, 0), z: num(o.z, 0), heading: num(o.heading, 0), lift: 0, moving: false, pop: null,
-      trail: [], hop: null, pendingHop: false, stuck: 0, side: 1 };
+      trail: [], hop: null, pendingHop: false, stuck: 0, mark: null, side: 1, hold: null };
   }
 
   function turnTo(f, want, dt) {
@@ -104,8 +105,18 @@
     if (f.trail.length > MAX_TRAIL) f.trail.shift();
   }
 
-  /** Pop to a free dry spot just behind the leader (puff of sparkles: `f.pop` holds where from and to). */
-  function popBehind(f, leader, solids) {
+  /** Any water on the straight line from a to b (sampled every ~0.4 units). */
+  function waterBetween(a, b) {
+    var n = Math.max(1, Math.ceil(dist(a, b) / 0.4));
+    for (var i = 1; i < n; i++) {
+      if (SA.map.isWater(a.x + (b.x - a.x) * i / n, a.z + (b.z - a.z) * i / n)) return true;
+    }
+    return false;
+  }
+
+  /** Pop to a free dry spot just behind the leader (puff of sparkles: `f.pop` holds where from and to).
+   *  With `dry` it never pops across water: it returns null (nothing changed) so the follower waits at the edge instead. */
+  function popBehind(f, leader, solids, dry) {
     var from = { x: f.x, z: f.z }, h = num(leader.heading, 0), spot = null;
     for (var r = GAP_STOP; r <= 4 && !spot; r += 0.75) {
       for (var k = 0; k < 12 && !spot; k++) {
@@ -115,8 +126,9 @@
       }
     }
     if (!spot && free(leader.x, leader.z, solids)) spot = { x: leader.x, z: leader.z };
+    if (dry && spot && waterBetween(from, spot)) return null;
     if (spot) { f.x = spot.x; f.z = spot.z; }
-    f.trail = []; f.hop = null; f.pendingHop = false; f.stuck = 0; f.lift = 0; f.moving = false;
+    f.trail = []; f.hop = null; f.pendingHop = false; f.stuck = 0; f.mark = null; f.lift = 0; f.moving = false; f.hold = null;
     f.heading = Math.atan2(leader.x - f.x, leader.z - f.z);
     f.pop = { fromX: from.x, fromZ: from.z, x: f.x, z: f.z };
     return f;
@@ -168,14 +180,20 @@
     dt = clamp(num(dt, 0), 0, MAX_DT);
     solids = solids || [];
     f.pop = null;
+    // The leader is back within reach: old footprints (e.g. from the far bank of a river) are stale, so follow fresh from here.
+    if (dist(f, leader) <= GAP_START && !f.hop && !f.pendingHop && num(leader.lift, 0) <= AIR_LIFT) f.trail = [];
     record(f, leader, solids);
     var d = dist(f, leader);
-    if (d > POP_DIST) return popBehind(f, leader, solids);
+    if (d > POP_DIST && popBehind(f, leader, solids, true)) return f;   // water in the way: keep walking / waiting instead
     if (f.hop) return advanceHop(f, leader, solids, dt);
 
+    if (f.hold !== null) {                                   // waiting at the water's edge for the leader to come back
+      if (d <= GAP_START || d < f.hold - 1) f.hold = null;   // they are back (or clearly closer): follow again, fresh
+      else { f.stuck = 0; f.lift = 0; f.moving = false; faceLeader(f, leader, dt); return f; }
+    }
     var want = d > GAP_START || (f.moving && d > GAP_STOP);
     if (!want) {
-      f.stuck = 0; f.lift = 0;
+      f.stuck = 0; f.lift = 0; f.mark = null;
       if (d < GAP_MIN) {                                   // pushed too close: step back to arm's length
         var r = walk(f, 2 * f.x - leader.x, 2 * f.z - leader.z, Math.min(BACK_SPEED * dt, GAP_MIN - d + 0.05), solids);
         f.moving = r.moved > 0;
@@ -190,11 +208,24 @@
     if (target.hop) { f.trail.shift(); startHop(f, target); return advanceHop(f, leader, solids, dt); }
 
     var speed = clamp(MIN_SPEED + CATCH_UP * (d - GAP_STOP), MIN_SPEED, MAX_SPEED);
-    var r2 = walk(f, target.x, target.z, Math.min(speed * dt, Math.max(dist(f, target), 0.001)), solids);
-    f.moving = true;
-    f.stuck = r2.moved < 0.2 * speed * dt ? f.stuck + dt : 0;
+    var before = dist(f, target);
+    var m = f.mark;
+    if (!m || m.target !== target) {                  // a new target (e.g. a crumb was reached) counts as progress
+      m = f.mark = { x: f.x, z: f.z, ux: (target.x - f.x) / Math.max(before, 0.001), uz: (target.z - f.z) / Math.max(before, 0.001), target: target };
+      f.stuck = 0;
+    }
+    var r2 = walk(f, target.x, target.z, Math.min(speed * dt, Math.max(before, 0.001)), solids);
+    f.moving = r2.moved > 0;
+    // stuck = no progress toward the target: net movement along the way to it (shuffling or sliding along a bank is not progress)
+    if ((f.x - m.x) * m.ux + (f.z - m.z) * m.uz > STUCK_PROGRESS) f.mark = null; else f.stuck += dt;
+    if (!f.mark) f.stuck = 0;
     turnTo(f, r2.moved > 0 ? r2.angle : Math.atan2(target.x - f.x, target.z - f.z), dt);
-    if (f.stuck > STUCK_SECONDS) return popBehind(f, leader, solids);
+    if (f.stuck > STUCK_SECONDS) {
+      if (popBehind(f, leader, solids, true)) return f;
+      // water between us: no teleport. Drop the footprints and wait at the edge facing the leader.
+      f.trail = []; f.stuck = 0; f.mark = null; f.moving = false; f.hold = d;
+      faceLeader(f, leader, dt);
+    }
     return f;
   }
 

@@ -155,6 +155,48 @@ test('say() prefers a clip over speech; falls back to speech if the clip cannot 
   assert.equal(SA3.audio.say('animal:pato'), 'speech');
 });
 
+test('turning mute on cancels speech already being spoken; unmuting does not replay it', () => {
+  const { spoken, cancelled, globals } = speechGlobals();
+  const SA = loadGame(ALL, globals);
+  SA.audio.say('part:cola');
+  assert.equal(spoken.length, 1);
+  const before = cancelled.n;            // say() itself cancels the old backlog once
+  SA.audio.setMuted(true);
+  assert.equal(cancelled.n, before + 1);
+  SA.audio.setMuted(false);
+  assert.equal(cancelled.n, before + 1); // unmuting does not cancel...
+  assert.equal(spoken.length, 1);        // ...and does not re-speak anything
+  SA.audio.toggleMute();                 // toggling on cancels again
+  assert.equal(cancelled.n, before + 2);
+});
+
+test('turning mute on pauses a playing voice clip, once', () => {
+  const { globals } = speechGlobals();
+  const paused = [];
+  globals.Audio = class { constructor(p) { this.p = p; } play() { return Promise.resolve(); } pause() { paused.push(this.p); } };
+  const SA = loadGame(ALL, globals);
+  SA.data.get('vocab', 'animal:pato').clip = 'game/audio/pato.mp3';
+  assert.equal(SA.audio.say('animal:pato'), 'clip');
+  SA.audio.setMuted(true);
+  assert.deepEqual(paused, ['game/audio/pato.mp3']);
+  SA.audio.setMuted(true);
+  assert.equal(paused.length, 1);        // nothing playing any more
+});
+
+test('turning mute on is safe without speechSynthesis, or when cancel/pause throw', () => {
+  const SA = loadGame(ALL, { localStorage: fakeStorage() });
+  assert.equal(SA.audio.setMuted(true), true);
+  SA.audio.stopVoice();
+
+  const { globals } = speechGlobals();
+  globals.speechSynthesis.cancel = () => { throw new Error('boom'); };
+  globals.Audio = class { play() { return Promise.resolve(); } pause() { throw new Error('boom'); } };
+  const SA2 = loadGame(ALL, globals);
+  SA2.data.get('vocab', 'animal:pato').clip = 'x.mp3';
+  assert.equal(SA2.audio.say('animal:pato'), 'clip');
+  assert.equal(SA2.audio.setMuted(true), true);
+});
+
 test('say() swallows a rejected clip play() promise', async () => {
   const { globals } = speechGlobals();
   globals.Audio = class { play() { return Promise.reject(new Error('blocked')); } };

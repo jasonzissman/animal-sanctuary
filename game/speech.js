@@ -24,10 +24,28 @@
     return best;
   }
 
+  var currentClip = null;
+
+  // Stops any clip or utterance that is playing right now. Never throws; fine without speechSynthesis.
+  function stopVoice() {
+    try {
+      if (currentClip) {
+        var a = currentClip;
+        currentClip = null;
+        if (typeof a.pause === 'function') a.pause();
+      }
+    } catch (e) { /* best effort */ }
+    try {
+      var synth = root.speechSynthesis;
+      if (synth && typeof synth.cancel === 'function') synth.cancel();
+    } catch (e) { /* best effort */ }
+  }
+
   function playClip(path) {
     try {
       if (typeof root.Audio !== 'function') return false;
       var a = new root.Audio(path);
+      currentClip = a;
       var p = a.play();
       if (p && typeof p.catch === 'function') p.catch(function () {});
       return true;
@@ -65,5 +83,7 @@
   }
 
   SA.audio.say = say;
+  SA.audio.stopVoice = stopVoice;
+  if (typeof SA.audio.onMute === 'function') SA.audio.onMute(stopVoice);
   SA.audio.pickVoice = pickVoice;
 })(typeof window !== 'undefined' ? window : globalThis);

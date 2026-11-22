@@ -99,6 +99,7 @@ globalThis.SA_MANIFEST = {
     'game/space-target.js',
     'game/space-use.js',
     'game/render/target-outline.js',
+    'game/render/auto-climb-ring.js',
     'game/hotbar.js',
     'game/data/actions.js',
     'game/data/care.js',

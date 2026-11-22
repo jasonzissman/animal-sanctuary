@@ -35,6 +35,10 @@ current; when your change sets or changes something future tickets must follow, 
   away over ~0.25 s (eased, little hop, red flash), shortened so it never ends in or crosses another solid or leaves the map; the
   `ouch` SFX + `phrase:ay` play at most once per 2 s. The camera rig runs it after the walking step.
   Keep pushing forward into a tree for 0.6 s and you climb it (a filling ring shows it coming); C/E still climb instantly.
+  Built (AS-0157): `SA.climb.autoStep(timer, before, after, input, trees, dtMs)` (pure; `AUTO_CLIMB_MS` = 600) runs after the walking
+  step in `camera-rig.js`; it needs forward held (keys or joystick), a climbable tree within ~2.2 units, facing within 45 degrees,
+  and no real progress (blocked). Only the climb-target list is passed in, so cacti and rocks never trigger it. The ring is
+  `render/auto-climb-ring.js` (fed by `rig.autoClimb()`). New climb targets (peaks, station) join by being in that list.
 - **Movement has sound (AS-0118 to AS-0120).** Soft footsteps (quicker when running, splashy in water, leafy in a
   canopy), a hop and a landing thump, a splash entering water, a rustle while climbing. Short, quiet, never spammy; mute silences all.
 - **Uncluttered screen, nothing overlaps (AS-0147 to AS-0149).** All HUD positions come from one pure layout (SA.hud),

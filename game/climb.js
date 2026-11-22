@@ -12,6 +12,7 @@
  *   SA.climb.toggle(state, trees)     -> start when prompt is 'up', stop when 'down'; else unchanged
  *   SA.climb.step(state, input, dt, obstacles?) -> new state. On the ground this is SA.player.step (plus y 0). Up a
  *       tree you walk on the canopy (obstacles ignored, map-clamped); walking off its edge starts the climb down.
+ *   SA.climb.autoStep(timer, before, after, input, trees, dtMs) -> { ms, tree, progress, climb }: the AS-0157 push timer (AUTO_CLIMB_MS)
  *   SA.climb.active(state) -> true while up, on or coming down a tree
  * Climbing down always ends on dry, in-bounds ground outside the trunk (never a fall, never damage): the landing is
  * the point just beyond the canopy edge, or the spot you started climbing from when that is water.
@@ -132,7 +133,40 @@
     return copy(state, { x: lerp(c.from.x, c.to.x, m), z: lerp(c.from.z, c.to.z, m), y: lerp(c.from.y, c.to.y, k), heading: heading, climb: next });
   }
 
+  // ---- Auto-climb (AS-0157): keep pushing forward into a tree and you climb it. Pure timer, the rig feeds it each frame. ----
+  var AUTO_CLIMB_MS = 600;     // data constant: how long a blocked forward push lasts before the climb starts
+  var AUTO_TURN_AWAY = Math.PI / 4;   // facing more than ~45 degrees away from the tree resets the push
+  var AUTO_PUSH_RANGE = 2.2;   // only a push against the trunk itself (obstacle ~1 + body 0.6 + slack), not a tree 3 units away
+  var AUTO_BLOCKED = 0.35;     // moved less than this fraction of the free-walk distance = blocked
+
+  var AUTO_IDLE = { ms: 0, tree: null, progress: 0, climb: false };
+
+  function angleBetween(a, b) {
+    var d = Math.abs(a - b) % (Math.PI * 2);
+    return d > Math.PI ? Math.PI * 2 - d : d;
+  }
+
+  /** One frame of the push timer. `timer` is the previous result (or null), `before`/`after` the player state either side of
+   *  SA.climb.step, `input` the walking input that frame (forward > 0 = held, joystick forward counts), dtMs the frame time in
+   *  milliseconds. -> { ms, tree, progress 0..1, climb } where climb is true on the frame the push is long enough: the caller
+   *  then calls SA.climb.start(after, tree). Anything else (released, turned away, moved freely, already climbing, no tree,
+   *  or only a cactus/rock nearby: those are never in `trees`) gives the idle timer again. */
+  function autoStep(timer, before, after, input, trees, dtMs) {
+    if (!before || !after || active(before) || active(after) || !input || !(input.forward > 0.3)) return AUTO_IDLE;
+    var tree = nearest(after, trees);
+    if (!tree || Math.hypot(tree.x - after.x, tree.z - after.z) > AUTO_PUSH_RANGE) return AUTO_IDLE;
+    var aim = Math.atan2(tree.x - after.x, tree.z - after.z);
+    if (angleBetween(num(after.heading, 0), aim) > AUTO_TURN_AWAY) return AUTO_IDLE;
+    var dt = Math.max(0, num(dtMs, 0)) / 1000, speed = input.run ? SA.player.RUN_SPEED : SA.player.SPEED;
+    var moved = Math.hypot(after.x - before.x, after.z - before.z);
+    if (dt > 0 && moved > AUTO_BLOCKED * speed * Math.min(1, input.forward) * dt) return AUTO_IDLE;   // still moving freely
+    var ms = (timer && timer.tree === tree ? timer.ms : 0) + Math.max(0, num(dtMs, 0));
+    var done = ms >= AUTO_CLIMB_MS;
+    return { ms: ms, tree: tree, progress: Math.min(1, ms / AUTO_CLIMB_MS), climb: done };
+  }
+
   SA.climb = { RANGE: RANGE, UP_TIME: UP_TIME, DOWN_TIME: DOWN_TIME, TRUNK_R: TRUNK_R, nearest: nearest, prompt: prompt,
-    start: start, stop: stop, toggle: toggle, step: step, active: active, edgeRadius: edgeOf, topOf: topOf };
+    start: start, stop: stop, toggle: toggle, step: step, active: active, edgeRadius: edgeOf, topOf: topOf,
+    AUTO_CLIMB_MS: AUTO_CLIMB_MS, autoStep: autoStep };
   if (SA.player) SA.player.climb = SA.climb;
 })(typeof window !== 'undefined' ? window : globalThis);

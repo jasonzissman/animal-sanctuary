@@ -225,3 +225,117 @@ test('climb button shows the right icon and toggles through the rig', () => {
   assert.equal(made[0].style.display, 'none');
   assert.equal(SA2.climbButton.create(null, rig).element, null);
 });
+
+// ---- Auto-climb (AS-0157): push forward into a trunk for AUTO_CLIMB_MS ----
+const TRUNK = [[TREE.x, TREE.z, 1]];   // the tree's blocking circle (decor default radius 1)
+const FWD = { forward: 1 };
+// One frame: walk (blocked by the trunk), then feed the push timer.
+function push(s, timer, input = FWD, trees = TREES, dt = DT) {
+  const after = K.step(s, input, dt, TRUNK);
+  return { s: after, t: K.autoStep(timer, s, after, input, trees, dt * 1000) };
+}
+function pushFor(s, ms, input = FWD, trees = TREES) {
+  let t = null, climbed = null;
+  for (let e = 0; e < ms - 1e-6 && !climbed; e += DT * 1000) {
+    const r = push(s, t, input, trees); s = r.s; t = r.t;
+    if (t.climb) climbed = t;
+  }
+  return { s, t, climbed };
+}
+const FACING = at(TREE.x, TREE.z + 1.62, { heading: Math.PI });   // touching the trunk (circle 1 + body 0.6), facing it
+
+test('autoStep: holding forward against a tree for 600 ms starts the climb', () => {
+  assert.equal(K.AUTO_CLIMB_MS, 600);
+  const early = pushFor(FACING, 400);
+  assert.equal(early.climbed, null);
+  assert.ok(early.t.progress > 0.4 && early.t.progress < 1, 'the ring is filling');
+  const r = pushFor(FACING, 700);
+  assert.ok(r.climbed, 'climb fires');
+  assert.ok(r.climbed.ms >= 600 && r.climbed.ms < 600 + DT * 1000 + 1e-6);
+  assert.equal(r.climbed.tree, TREE);
+  assert.equal(K.start(r.s, r.climbed.tree).climb.mode, 'up');
+});
+
+test('autoStep: the joystick pushed forward works too (analog forward)', () => {
+  assert.ok(pushFor(FACING, 700, { forward: 0.8 }).climbed);
+  assert.ok(pushFor(FACING, 700, { forward: 1, run: true }).climbed);
+  assert.equal(pushFor(FACING, 700, { forward: 0.1 }).climbed, null, 'a feather touch is not a push');
+});
+
+test('autoStep: releasing, turning away or moving freely resets the timer', () => {
+  const mid = pushFor(FACING, 400);
+  const released = push(mid.s, mid.t, {});
+  assert.equal(released.t.ms, 0);
+  assert.equal(released.t.progress, 0);
+  assert.equal(pushFor(mid.s, 400, FWD).climbed, null, 'starts again from 0: 400 ms is not enough');
+  assert.equal(push({ ...mid.s, heading: Math.PI + 1.2 }, mid.t).t.ms, 0, 'turned more than 45 degrees away');
+  const away = at(NEAR.x, NEAR.z, { heading: 0 });   // facing away from the tree: walks freely
+  assert.equal(K.autoStep(mid.t, away, K.step(away, FWD, DT, TRUNK), FWD, TREES, DT * 1000).ms, 0);
+});
+
+test('autoStep: nothing on cacti or rocks (never in the tree list), while climbing, or away from a trunk', () => {
+  assert.equal(pushFor(FACING, 1000, FWD, []).climbed, null);
+  assert.equal(pushFor(FACING, 1000, FWD, [{ x: TREE.x + 30, z: TREE.z }]).climbed, null);
+  const up = K.start(FACING, TREE);
+  assert.equal(K.autoStep(null, up, K.step(up, FWD, DT, TRUNK), FWD, TREES, 1000).climb, false, 'already climbing');
+  assert.equal(K.autoStep(null, null, null, FWD, TREES, 16).climb, false);
+  assert.equal(K.autoStep(null, FACING, FACING, null, TREES, 16).climb, false);
+  const far = at(NEAR.x, TREE.z + 2.9, { heading: Math.PI });   // in climb range, but not pushing against the trunk
+  assert.equal(K.autoStep(null, far, far, FWD, TREES, 1000).climb, false);
+  const other = { x: TREE.x, z: TREE.z };
+  assert.equal(K.autoStep({ ms: 590, tree: { x: 1, z: 1 }, progress: 1, climb: false }, FACING, FACING, FWD, [other], 10).ms, 10, 'a different tree restarts the count');
+});
+
+test('rig: holding Up against a tree climbs it after 0.6 s, releasing first does not', () => {
+  const keys = {};
+  const ctx = vm.createContext({ console });
+  ctx.window = ctx;
+  ctx.addEventListener = (t, f) => { keys[t] = f; };
+  for (const f of ['game/sa.js', 'game/map.js', 'game/camera.js', 'game/player.js', 'game/perch.js', 'game/climb.js', 'game/picking.js', 'game/render/camera-rig.js']) {
+    vm.runInContext(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'), ctx, { filename: f });
+  }
+  const S = ctx.window.SA, sp = S.player.spawn();
+  const tree = { x: sp.x + Math.sin(sp.heading) * 2.2, z: sp.z + Math.cos(sp.heading) * 2.2, y: 0, scale: 1, kind: 'jungle' };
+  const camera = { position: { set() {} }, lookAt() {} };
+  const mk = () => S.render.createCameraRig({}, { style: {}, clientHeight: 600, addEventListener() {} }, camera,
+    { chase: { obstacles: () => [[tree.x, tree.z, 1]], trees: () => [tree] } });
+  const rig = mk();
+  keys.keydown({ key: 'ArrowUp', preventDefault() {} });
+  for (let i = 0; i < 8; i++) rig.update(0.05);   // 0.4 s of pushing
+  assert.equal(rig.getPlayer().climb, null);
+  assert.ok(rig.autoClimb() && rig.autoClimb().progress > 0, 'the ring has something to show');
+  keys.keyup({ key: 'ArrowUp' });
+  rig.update(0.05);
+  assert.equal(rig.autoClimb(), null, 'released: ring gone');
+  keys.keydown({ key: 'ArrowUp', preventDefault() {} });
+  for (let i = 0; i < 16; i++) rig.update(0.05);
+  assert.equal(rig.getPlayer().climb === 'up' || rig.getPlayer().climb === 'canopy', true, 'climbing after 0.6 s of pushing');
+  assert.equal(rig.autoClimb(), null);
+});
+
+test('auto-climb ring: shows the arc while pushing, hides otherwise', () => {
+  const SA2 = loadGame(['game/sa.js', 'game/map.js', 'game/render/auto-climb-ring.js']);
+  const added = [];
+  class Geo { constructor(i, o, s, p, a, l) { this.theta = l; } dispose() {} }
+  class Mesh { constructor(g) { this.geometry = g; this.rotation = {}; this.visible = true; this.position = { set: (x, y, z) => Object.assign(this.position, { x, y, z }) }; } }
+  const THREE = { RingGeometry: Geo, Mesh, MeshBasicMaterial: class {}, DoubleSide: 2 };
+  let cur = null;
+  const ring = SA2.render.createAutoClimbRing(THREE, { scene: { add: (m) => added.push(m) }, getAutoClimb: () => cur });
+  assert.equal(added[0], ring.mesh);
+  ring.update(0.016);
+  assert.equal(ring.mesh.visible, false);
+  cur = { tree: { x: 3, z: 4, y: 1 }, progress: 0.5 };
+  ring.update(0.016);
+  assert.equal(ring.mesh.visible, true);
+  assert.equal(ring.mesh.position.x, 3);
+  assert.ok(Math.abs(ring.mesh.geometry.theta) > 3);
+  const g1 = ring.mesh.geometry;
+  cur = { tree: cur.tree, progress: 0.51 };
+  ring.update(0.016);
+  assert.equal(ring.mesh.geometry, g1, 'no rebuild for a tiny change');
+  cur = { tree: { x: 3, z: 4 }, progress: 1 };
+  ring.update(0.016);
+  assert.notEqual(ring.mesh.geometry, g1);
+  cur = null; ring.update(0.016);
+  assert.equal(ring.mesh.visible, false);
+});

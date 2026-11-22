@@ -70,7 +70,9 @@
       // Pull the camera in along the line from the player when a tree/prop/big animal would be between them (or around it).
       var px = player.x + (p.x - player.x) * clearK, pz = player.z + (p.z - player.z) * clearK;
       // camY: the chase camera rises with the player (up a tree, up a hill); it never dips below the terrain under it.
-      camera.position.set(px, SA.map.cameraHeight(p.y + camY, px, pz), pz);
+      var py = SA.map.cameraHeight(p.y + camY, px, pz);
+      if (SA.peaks && SA.peaks.cameraY) py = SA.peaks.cameraY(px, py, pz, player.x, (player.y || 0) + 1, player.z, 0.4);   // never inside / behind a peak (AS-0214)
+      camera.position.set(px, py, pz);
       camera.lookAt(state.x, C.DEFAULTS.lookY + frame.addLookY + camY, state.z);   // look at about animal height (higher near treetops)
       if (typeof camera.fov === 'number' && Math.abs(baseFov + frame.addFov - lastFov) > 0.01) {
         lastFov = baseFov + frame.addFov; camera.fov = lastFov;

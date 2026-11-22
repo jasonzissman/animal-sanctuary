@@ -4,8 +4,11 @@
  * and the camera all agree on the mound; the summit is exactly topY everywhere inside SUMMIT_R.
  *   SA.peaks.LIST                  the data: [{ id, x, z, height }]
  *   SA.peaks.raise(x, z, base)     -> terrain height with the mounds applied on top of `base` (SA.map.baseHeight)
+ *   SA.peaks.moundY(x, z)          -> the RENDERED grey cone's height there (its 8 flat faces, PAD included), or -Infinity off every peak
+ *   SA.peaks.surfaceY(x, z)        -> the visible surface: max(SA.map.baseHeight, moundY). The terrain IS this (AS-0214), so walking, the
+ *                                     climb animations and the camera floor agree with the rock the renderer draws: never inside a peak
  *   SA.peaks.targets()             -> SA.climb target data: [{ kind: 'peak', id, x, z, y (base), radius, topY, top: { shape: 'circle', size } }]
- *   SA.peaks.shape(peak)           -> { baseY, topY, baseR, topR, pad } for the renderer (the visible grey cone encloses the mound)
+ *   SA.peaks.shape(peak)           -> { baseY, topY, baseR, topR, pad, segments } for the renderer (drawn SKIN wider than moundY)
  * Content is data: add a row to LIST (keep it off the station, the spawn and the water; test/peaks.test.js checks that).
  */
 (function (root) {
@@ -15,7 +18,10 @@
   var SUMMIT_R = 1.4;     // flat top radius (the climb target's top.size)
   var BASE_R = 3.8;       // where the mound meets the terrain
   var SOLID_R = 2.5;      // the decor 'pico' obstacle (game/data/decor.js): the walking player stops here, so this is the climb footprint
-  var PAD = 0.15;         // the rendered cone is this much wider than the terrain mound, so it always hides it
+  var PAD = 0.15;         // the cone is this much wider than the straight BASE_R..SUMMIT_R mound (the walkable surface is this cone)
+  var SKIN = 0.02;        // the drawn rock is this much wider again than the walkable surface, so the terrain mesh never z-fights it
+  var SEGMENTS = 8;       // radial sides of the drawn cone (CylinderGeometry): the surface follows its flat faces, not a smooth circle
+  var HALF_SIDE = Math.PI / SEGMENTS;
 
   var LIST = [
     { id: 'pico-n1', x: -70, z: -18, height: 6.5 }, { id: 'pico-n2', x: -60, z: -15, height: 7.5 }, { id: 'pico-n3', x: -50, z: -20, height: 6 },
@@ -29,18 +35,47 @@
   }
   function topY(p) { return baseY(p) + p.height; }
 
-  function raise(x, z, base) {
-    var h = base;
+  /** Height above the peak's base of its rendered 8-sided cone at offset (dx, dz), or -1 outside it. */
+  function coneRel(p, dx, dz) {
+    var r = Math.sqrt(dx * dx + dz * dz);
+    if (r >= BASE_R + PAD) return -1;
+    // The drawn cone is a polygon: along a face its radius is cos(half side) / cos(angle off the face centre) of the corner radius.
+    // CylinderGeometry corners sit at angle k * 2 * HALF_SIDE from +z (x = sin, z = cos), so the face centres are HALF_SIDE past them.
+    var phi = Math.atan2(dx, dz) - HALF_SIDE, off = phi - Math.round(phi / (2 * HALF_SIDE)) * 2 * HALF_SIDE;
+    var rho = r * Math.cos(off) / Math.cos(HALF_SIDE);   // the corner radius of the cone ring this point sits on
+    if (rho >= BASE_R + PAD) return -1;
+    return rho <= SUMMIT_R + PAD ? p.height : p.height * (BASE_R + PAD - rho) / (BASE_R - SUMMIT_R);
+  }
+
+  function moundY(x, z) {
+    var h = -Infinity;
     for (var i = 0; i < LIST.length; i++) {
       var p = LIST[i], dx = x - p.x;
-      if (dx > BASE_R || dx < -BASE_R) continue;
-      var r = Math.sqrt(dx * dx + (z - p.z) * (z - p.z));
-      if (r >= BASE_R) continue;
-      var s = r <= SUMMIT_R ? 1 : (BASE_R - r) / (BASE_R - SUMMIT_R);   // 0 at the foot .. 1 on the summit, a straight cone side
-      var m = baseY(p) + p.height * s;
-      if (m > h) h = m;
+      if (dx > BASE_R + 1 || dx < -BASE_R - 1) continue;
+      var rel = coneRel(p, dx, z - p.z);
+      if (rel >= 0 && baseY(p) + rel > h) h = baseY(p) + rel;
     }
     return h;
+  }
+
+  function raise(x, z, base) {
+    var m = moundY(x, z);
+    return m > base ? m : base;
+  }
+
+  function surfaceY(x, z) { return raise(x, z, SA.map.baseHeight(x, z)); }
+
+  /** Camera height (>= cy) so the sight line from the camera (cx, cy, cz) to the player's body (tx, ty, tz) stays `clearance` above the
+   *  rock the whole way: the camera never ends up inside a peak or looks through one (AS-0214; the rig calls this every frame). */
+  function cameraY(cx, cy, cz, tx, ty, tz, clearance) {
+    var y = cy, c = typeof clearance === 'number' ? clearance : 0.4, N = 12;
+    for (var i = 1; i <= N; i++) {
+      var f = i / N, m = moundY(tx + (cx - tx) * f, tz + (cz - tz) * f);
+      if (m === -Infinity) continue;
+      var need = ty + (m + c - ty) / f;   // the line's height at fraction f is ty + (y - ty) * f
+      if (need > y) y = need;
+    }
+    return y;
   }
 
   function targets() {
@@ -49,7 +84,7 @@
     });
   }
 
-  function shape(p) { return { baseY: baseY(p), topY: topY(p), baseR: BASE_R, topR: SUMMIT_R, pad: PAD }; }
+  function shape(p) { return { baseY: baseY(p), topY: topY(p), baseR: BASE_R, topR: SUMMIT_R, pad: PAD + SKIN, segments: SEGMENTS }; }
 
-  SA.peaks = { LIST: LIST, SUMMIT_R: SUMMIT_R, BASE_R: BASE_R, SOLID_R: SOLID_R, raise: raise, targets: targets, shape: shape };
+  SA.peaks = { LIST: LIST, SUMMIT_R: SUMMIT_R, BASE_R: BASE_R, SOLID_R: SOLID_R, PAD: PAD, raise: raise, moundY: moundY, surfaceY: surfaceY, cameraY: cameraY, targets: targets, shape: shape };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -32,7 +32,8 @@ test('terrain is exactly flat at topY over the whole summit and falls away beyon
       assert.ok(Math.abs(h - t.topY) < 1e-9, `${t.id} r=${r}`);
     }
     assert.ok(M.groundHeight(t.x + 2.5, t.z) < t.topY - 1.5, 'steep sides');
-    assert.ok(Math.abs(M.groundHeight(t.x + P.BASE_R + 0.01, t.z) - M.baseHeight(t.x + P.BASE_R + 0.01, t.z)) < 1e-9, 'terrain is untouched beyond the foot');
+    const far = t.x + P.BASE_R + P.PAD + 0.01;   // the foot is the rendered cone's (AS-0214: PAD wider than the straight mound)
+    assert.ok(Math.abs(M.groundHeight(far, t.z) - M.baseHeight(far, t.z)) < 1e-9, 'terrain is untouched beyond the foot');
   }
 });
 

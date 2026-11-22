@@ -59,10 +59,11 @@
     var g = new THREE.Group(), h = p.topY - p.baseY, slope = (p.baseR - p.topR) / h;
     var r = function (y) { return p.topR + p.pad + (h - y) * slope; };   // cone radius at height y (a hair wider than the terrain)
     var split = 0.72 * h, foot = -1.5;                                   // the foot is buried below the base so no gap shows
-    var body = new THREE.Mesh(new THREE.CylinderGeometry(r(split), r(foot), split - foot, 8), m.stone);
+    var sides = p.segments || 8;   // SA.peaks.moundY follows exactly these flat faces (AS-0214): the flat top is at topY, not above it
+    var body = new THREE.Mesh(new THREE.CylinderGeometry(r(split), r(foot), split - foot, sides), m.stone);
     body.position.y = (split + foot) / 2;
-    var cap = new THREE.Mesh(new THREE.CylinderGeometry(r(h), r(split) + 0.04, h - split + 0.03, 8), m.snow);
-    cap.position.y = (split + h + 0.03) / 2;
+    var cap = new THREE.Mesh(new THREE.CylinderGeometry(r(h), r(split) + 0.04, h - split, sides), m.snow);
+    cap.position.y = (split + h) / 2;
     g.add(body, cap);
     return g;
   }

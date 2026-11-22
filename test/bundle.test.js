@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
-import { buildBundle, writeBundle } from '../scripts/bundle.js';
+import { fileURLToPath } from 'node:url';
+import { buildBundle, writeBundle, inlineVoiceClips } from '../scripts/bundle.js';
 
 function fixture(files) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-bundle-'));
@@ -63,6 +64,34 @@ test('the real project bundles into one self-contained file, byte-identical acro
   assert.ok(html.includes('REVISION'), 'three.js is inlined');
   // every inline script is valid JavaScript
   for (const m of html.matchAll(/<script>\n([\s\S]*?)\n<\/script>/g)) new vm.Script(m[1]);
+});
+
+test('inlineVoiceClips: clips become data URIs, missing clips become empty (TTS fallback)', () => {
+  const dir = fixture({ 'assets/voice/a.m4a': 'AUDIO' });
+  const src = 'x({"k:a": "assets/voice/a.m4a", \'k:b\': \'assets/voice/missing.m4a\'});';
+  const out = inlineVoiceClips(src, dir);
+  assert.ok(out.includes(`"data:audio/mp4;base64,${Buffer.from('AUDIO').toString('base64')}"`));
+  assert.ok(out.includes("'k:b': ''"));
+  assert.ok(!out.includes('assets/voice'));
+  assert.equal(inlineVoiceClips(src, dir), out, 'deterministic');
+});
+
+test('bundle inlines voice clips; builds without assets/voice', () => {
+  const page = '<body><script src="c.js"></script></body>';
+  const js = 'var m = {"k": "assets/voice/a.m4a"};\n';
+  const withClips = buildBundle({ root: fixture({ 'index.html': page, 'c.js': js, 'assets/voice/a.m4a': 'AUDIO' }) });
+  assert.ok(withClips.includes('data:audio/mp4;base64,') && !withClips.includes('assets/voice'));
+  const without = buildBundle({ root: fixture({ 'index.html': page, 'c.js': js }) });
+  assert.ok(without.includes('var m = {"k": ""};') && !without.includes('assets/voice'));
+});
+
+test('the real bundle has no assets/voice references and embeds data URIs', () => {
+  const html = buildBundle();
+  // (only a generated-file header comment still mentions the folder name; no clip path string survives)
+  assert.ok(!/["']assets\/voice\//.test(html), 'no quoted clip paths remain');
+  assert.ok(!/\.m4a/.test(html), 'no .m4a file references remain');
+  const voiceDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'voice');
+  if (fs.existsSync(path.join(voiceDir, 'part-cola.m4a'))) assert.ok(html.includes('"part:cola": "data:audio/mp4;base64,'));
 });
 
 test('classroom bundle: telemetry never calls fetch', async () => {

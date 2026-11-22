@@ -16,7 +16,8 @@
  *       and ends the round ({ status: 'correct', animalId, seconds, stars }).
  *   game.hint() -> round | null       reveals the silhouette (counts a hint when it was hidden).
  *   game.biomeHint() -> biomeId | null   second-stage hint (see SA.hintStage): counts one hint, once per round.
- *   game.current() -> round | null
+ *   game.current() -> round | null      (round.biome = the biome it was rolled for; round.picks = picks made so far)
+ *   game.hasBiomePool(id) -> boolean    the biome has enough animals of its own (see SA.reroll)
  */
 (function (root) {
   'use strict';
@@ -78,7 +79,7 @@
       seq += 1;
       var level = levelNow();
       round = { id: 'r' + seq + ':' + clue.key, clue: clue, answerId: clue.answer.animalId, level: level,
-        hintShown: level <= 1, misses: 0, hints: 0, done: false,
+        hintShown: level <= 1, misses: 0, hints: 0, done: false, picks: 0, biome: typeof biome === 'string' && biome ? biome : null,
         stage: SA.hintStage ? SA.hintStage.initial(level) : (level <= 1 ? 1 : 0), biomeShown: false };
       startedAt = now();
       return round;
@@ -105,6 +106,7 @@
     function pick(p) {
       if (!round || round.done || !p || typeof p.animalId !== 'string') return { status: 'ignored' };
       var correct = p.animalId === round.answerId;
+      round.picks += 1;
       track('part.tap', { part: String(p.part || 'cuerpo'), correct: correct });
       if (correct) return complete();
       round.misses += 1;
@@ -133,7 +135,14 @@
       return round;
     }
 
-    return { start: start, pick: pick, hint: hint, biomeHint: biomeHint, pointerHint: pointerHint, current: function () { return round; } };
+    /** True when `biomeId` has enough animals of its own to roll a round from (else rounds use every animal). */
+    function hasBiomePool(biomeId) {
+      if (typeof biomeId !== 'string' || !biomeId) return false;
+      var list = animals();
+      return candidatesForBiome(list, biomeId) !== list;
+    }
+
+    return { start: start, pick: pick, hasBiomePool: hasBiomePool, hint: hint, biomeHint: biomeHint, pointerHint: pointerHint, current: function () { return round; } };
   }
 
   SA.round = { TYPES: TYPES, MIN_BIOME_ANIMALS: MIN_BIOME_ANIMALS, candidatesForBiome: candidatesForBiome,

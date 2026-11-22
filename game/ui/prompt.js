@@ -98,7 +98,21 @@
       if (id && biomeFx) { try { biomeFx.show(id); } catch (e) { /* the glow never breaks play */ } }
     }
 
-    return { begin: begin, onPick: onPick, replay: replay, hint: hint };
+    /** Scout & Spot is the active loop (no care task, round not yet answered). */
+    function canReroll() {
+      var r = game.current();
+      return !!r && !r.done && !(care && care.active());
+    }
+
+    /** The camera settled in another biome: quietly swap to a new round from there. No miss, no round.complete, no scolding. */
+    function reroll() {
+      if (!canReroll()) return null;
+      var r = begin();
+      if (r) view.toast('🌿');
+      return r;
+    }
+
+    return { begin: begin, onPick: onPick, replay: replay, hint: hint, canReroll: canReroll, reroll: reroll };
   }
 
   var BAR_CSS = 'position:fixed;top:12px;left:12px;right:90px;z-index:4;display:flex;align-items:center;gap:.5em;' +

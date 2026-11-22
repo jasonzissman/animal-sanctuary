@@ -48,6 +48,7 @@ globalThis.SA_MANIFEST = {
     'game/render/tree-tap.js',
     'game/hint-stage.js',
     'game/round.js',
+    'game/reroll.js',
     'game/render/round-fx.js',
     'game/render/biome-glow.js',
     'game/ui/prompt.js',

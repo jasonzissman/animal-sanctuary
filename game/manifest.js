@@ -142,6 +142,7 @@ globalThis.SA_MANIFEST = {
     'game/prop-avoid.js',
     'game/blocking.js',
     'game/follow.js',
+    'game/mission-baby.js',
     'game/ghost-refresh.js',
     'game/ghost-state.js',
     'game/sandbox.js',

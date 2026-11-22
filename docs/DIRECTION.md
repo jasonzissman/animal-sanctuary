@@ -45,6 +45,9 @@ current; when your change sets or changes something future tickets must follow, 
   friendly "¡Acércate!", never a wrong answer. Rule: `SA.reach.canReach(player, animal, part?)` (game/reach.js, player
   `y` is its standing height so climbing raises reach); `render/picking.js` gates every pick and rub through it and
   fires `SA.reach.notifyFar` (bubble + hint-arrow nudge) instead of `SA.picking.emit`.
+  Every click or tap gets gentle feedback (AS-0096): `SA.clickOutcome.decide` (game/click-outcome.js, pure) says pick / far /
+  ripple / none. A click that picks nothing (ground, sky, the player's own avatar, which is never a pick volume) shows a
+  small ripple (`render/click-fx.js`) and, if an animal is on screen but out of reach, the "¡Acércate!" cue.
 - **Go vertical.** Birds, monkeys and toucans live in tree canopies, so you climb trees to reach them (and the fruit
   up there). Climbing down is always safe. Data: animal `perch: "tree"` (mono, tucán); `SA.perch` (game/perch.js, pure,
   seeded) picks canopy branch spots on the biome's trees and hops between them; they are out of reach from the ground

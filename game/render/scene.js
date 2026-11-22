@@ -63,8 +63,9 @@
     var handItem = SA.render.createHandItem ? SA.render.createHandItem(THREE, { hand: avatar.parts.armR }) : null;
     // Taps on an animal out of the walking player's reach show "¡Acércate!" above the avatar (SA.reach) instead of picking.
     var reachCue = SA.render.createReachCue ? SA.render.createReachCue(THREE, { camera: camera, container: container, getPlayer: rig.getPlayer }) : null;
+    var clickFx = SA.render.createClickFx ? SA.render.createClickFx({ container: container }) : null;   // ripple where a click found nothing
     picking = SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container,
-      getPlayer: rig.getPlayer, reachCue: reachCue });
+      getPlayer: rig.getPlayer, reachCue: reachCue, clickFx: clickFx });
 
     var treeTap = SA.render.createTreeTap(THREE, { canvas: renderer.domElement, camera: camera, decor: decor,
       hitsAnimal: function (x, y) { return !!picking.pickAt(x, y); },
@@ -126,7 +127,7 @@
       scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize,
       animals: animals, treeTap: treeTap, onTreeTap: null,
       avatar: avatar, pickups: pickups, spaceUse: spaceUse,
-      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (reachCue) reachCue.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
+      render: function (dt) { rig.update(dt); avatar.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (reachCue) reachCue.update(dt); if (clickFx) clickFx.update(dt); treeTap.update(dt); ambient.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); renderer.render(scene, camera); },
     };
     return stageApi;
   };

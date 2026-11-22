@@ -2,6 +2,7 @@
  *
  * Shape: { version, stars, unlockedAnimals, placedProps, rounds: {completed, streak},
  *          settings: {muted, english, scaffold}, stats, inventory }.
+ *          missions = { done: [id], active: null | { id, step, seed, replay } } (AS-0177, SA.missions; absent until used).
  *          album = { '<animalId>': 'YYYY-MM-DD' }: first-photo date per photographed animal (SA.album; no image data).
  *          inventory = { items: [{ id, count }], equipped: id|null } (added in v3; an array so removals persist
  *          through update()'s deep merge). New and migrated saves get the starting kit (STARTING_KIT).
@@ -121,6 +122,7 @@
     }
     out.inventory = normalizeInventory(s.inventory);
     if (s.album !== undefined) out.album = normalizeAlbum(s.album);   // optional, like photos: absent until the first photo
+    if (s.missions !== undefined) out.missions = normalizeMissions(s.missions);   // optional: absent until the first mission starts
     return out;
   }
 
@@ -131,6 +133,21 @@
     Object.keys(a).forEach(function (id) {
       if (/^[a-z0-9_-]+$/.test(id) && typeof a[id] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a[id])) out[id] = a[id];
     });
+    return out;
+  }
+
+  // Missions (AS-0177): done = unique mission ids, active = null or { id, step, seed, replay } (one at a time).
+  function normalizeMissions(m) {
+    var out = { done: [], active: null };
+    if (!isObj(m)) return out;
+    var ok = /^[a-z][a-z0-9-]*$/;
+    (Array.isArray(m.done) ? m.done : []).forEach(function (id) {
+      if (typeof id === 'string' && ok.test(id) && out.done.indexOf(id) < 0) out.done.push(id);
+    });
+    var a = m.active;
+    if (isObj(a) && typeof a.id === 'string' && ok.test(a.id)) {
+      out.active = { id: a.id, step: count(a.step, 0), seed: count(a.seed, 0), replay: a.replay === true };
+    }
     return out;
   }
 

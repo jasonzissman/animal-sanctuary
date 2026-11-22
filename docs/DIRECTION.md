@@ -284,6 +284,13 @@ current; when your change sets or changes something future tickets must follow, 
   Missions are data rows on a step runner (AS-0178). Order: 1 ¿Dónde está mamá? (piglet), 2 El huevo perdido, 3 Rescate en
   el río, 4 Cumpleaños del mono, 5 Doctor del santuario, 6 El nido del águila, 7 Censo de animales, 8 Los ladrones de fresas,
   9 Construir un hogar, 10 La carrera, 11 Mensaje perdido, 12 Noche de estrellas (AS-0173, AS-0181 to AS-0191).
+  Built (AS-0177): rows are data in `game/data/missions.js` (kind `missions`: `{ id, n, es, en, icon, intro, steps, reward }`; n contiguous
+  from 1; a new mission = a new row). `SA.missions` (`game/missions.js`, pure) keeps progress in the save as optional
+  `missions: { done: [id], active: { id, step, seed, replay } | null }` (no version bump). `list()` gives each row a status
+  `done | active | available | locked`; `start(id)` (called only by the station board, gated by `create({ canStart })`) refuses
+  `locked`, `unknown` and `busy` (one active at a time); replays get a fresh `seed` (runner picks other spots) and `complete()`
+  returns the one-time `reward` only on the first completion. `advance()` steps, `abandon()` drops the active one (back to available/done).
+  The board UI (AS-0180) and step runner (AS-0178) build on this; the world never starts a mission.
 
 ## Unchanged from the spec
 

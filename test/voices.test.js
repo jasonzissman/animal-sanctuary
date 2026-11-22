@@ -131,6 +131,27 @@ test('every feed vocab key (number:un/una, phrase:y, foodsg:*, foodpl:*) is in t
   assert.ok(!isCoreKey('number:3'));
 });
 
+test('manifest includes vocab keys from props.js, clues.js and clue-levels.js, without duplicates', () => {
+  const manifest = loadManifest(ROOT);
+  const keys = manifest.map((e) => e.key);
+  assert.equal(new Set(keys).size, keys.length, 'no duplicate keys');
+  const es = (k) => (manifest.find((e) => e.key === k) || {}).es;
+  assert.equal(es('prop:arbol'), 'el árbol');
+  assert.equal(es('prop:flores'), 'las flores');
+  assert.equal(es('adj:largas'), 'largas');
+  assert.equal(es('adj:cortos'), 'cortos');
+  assert.equal(es('phrase:buscaanimalcon'), 'Busca el animal con');
+  assert.equal(es('phrase:viveen'), 'vive en');
+  assert.equal(es('phrase:tocaanimalcon'), 'Toca el animal con');
+  // Independent load of the same data files: every prop:/adj: key the game registers is in the manifest.
+  const SA = loadGame(['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
+    'game/data/animals.js', 'game/data/vocab.js', 'game/data/props.js', 'game/data/clues.js']);
+  const gameKeys = SA.data.all('vocab').map((v) => v.key).filter((k) => /^(prop|adj):/.test(k));
+  assert.ok(gameKeys.length >= 5);
+  for (const k of gameKeys) assert.ok(keys.includes(k), k + ' is in the voice manifest');
+  assert.ok(!isCoreKey('prop:arbol') && !isCoreKey('adj:largas'));
+});
+
 test('generate falls back to aiff + afconvert when say cannot write AAC', () => {
   const root = tempRoot();
   const { exec, calls } = fakeExec({ failAac: true });

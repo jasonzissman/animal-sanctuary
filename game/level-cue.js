@@ -22,7 +22,9 @@
   }
 
   // Star-burst placement (CSS px). The star badge is fixed at left:12px;bottom:12px (about 110x50), so its centre is
-  // roughly (67, 37) from the bottom-left corner. Each star (a 2.2rem emoji, ~36px box) starts centred on the badge
+  // roughly (67, 37) from the bottom-left corner. (AS-0066 check: the badge is 2rem bold text "⭐ 0" + .1em/.6em padding +
+  // .1em border = ~107x51 px, so its centre is ~(65.5, 37.5); the badge is anchored to the bottom-left corner, so this is the
+  // same at 1024x768 and 1280x720, and 67,37 is within ~2px: no change needed.) Each star (a 2.2rem emoji, ~36px box) starts centred on the badge
   // and fans out over the upper-right quarter only, so nothing ever leaves the left or bottom edge of the screen.
   var BURST = { centerX: 67, centerBottom: 37, size: 36, count: 6, distance: 110, fromDeg: 10, toDeg: 100 };
 

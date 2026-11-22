@@ -232,3 +232,40 @@ test('say() does nothing and never throws without speechSynthesis or on bad inpu
   delete noGetVoices.speechSynthesis.cancel;
   assert.equal(loadGame(ALL, noGetVoices).audio.say('part:cola'), 'speech');
 });
+
+test('every size and colour adjective has masculine, feminine and plural forms speakable via say()', () => {
+  const { spoken, globals } = speechGlobals();
+  const SA = loadGame([...ALL.slice(0, 2), 'game/save.js', 'game/audio.js', ...DATA.slice(2), 'game/data/clues.js', 'game/speech.js'], globals);
+  const expected = {
+    pequeño: ['pequeño', 'pequeños', 'pequeña', 'pequeñas'], mediano: ['mediano', 'medianos', 'mediana', 'medianas'],
+    grande: ['grande', 'grandes', 'grande', 'grandes'], blanco: ['blanco', 'blancos', 'blanca', 'blancas'],
+    gris: ['gris', 'grises', 'gris', 'grises'], marrón: ['marrón', 'marrones', 'marrón', 'marrones'],
+    negro: ['negro', 'negros', 'negra', 'negras'], verde: ['verde', 'verdes', 'verde', 'verdes'],
+    amarillo: ['amarillo', 'amarillos', 'amarilla', 'amarillas'], naranja: ['naranja', 'naranjas', 'naranja', 'naranjas'],
+    rojo: ['rojo', 'rojos', 'roja', 'rojas'], azul: ['azul', 'azules', 'azul', 'azules'],
+  };
+  const order = [['m', 'sg'], ['m', 'pl'], ['f', 'sg'], ['f', 'pl']];
+  const bases = new Set([...SA.animals.SIZES, ...SA.animals.COLORS]);
+  SA.data.all('animals').forEach((a) => { bases.add(a.traits.size); bases.add(a.traits.color); });
+  SA.data.all('clueTemplates').forEach((t) => (t.values || []).forEach((v) => { if (t.trait === 'size' || t.trait === 'color') bases.add(v); }));
+  assert.deepEqual([...bases].sort(), Object.keys(expected).sort());
+  bases.forEach((base) => order.forEach(([g, n], i) => {
+    const key = SA.vocab.adjKey(base, g, n);
+    assert.ok(key, `${base} ${g} ${n}`);
+    const entry = SA.vocab.get(key);
+    assert.ok(entry && entry.es.trim(), `missing or empty vocab ${key}`);
+    assert.equal(entry.es, expected[base][i]);
+    spoken.length = 0;
+    assert.equal(SA.audio.say(key), 'speech', key);
+    assert.equal(spoken[0].text, expected[base][i]);
+  }));
+  // the length adjectives game/data/clues.js registers (largo/corto) are speakable in all four forms too
+  SA.data.all('clueTemplates').forEach((t) => (t.adjectives || []).forEach((adj) => ['m', 'f'].forEach((g) => ['sg', 'pl'].forEach((n) => {
+    const e = SA.vocab.get('adj:' + adj.forms[g][n]);
+    assert.ok(e && e.es === adj.forms[g][n], `adj ${adj.forms[g][n]}`);
+  }))));
+  assert.equal(SA.vocab.adjKey('enorme', 'm', 'sg'), null);
+  assert.equal(SA.vocab.adjKey('blanco', 'x', 'sg'), null);
+  assert.equal(SA.vocab.adjKey('blanco', 'm', 'dual'), null);
+  assert.equal(SA.vocab.adjKey('constructor', 'm', 'sg'), null);
+});

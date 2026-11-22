@@ -38,8 +38,12 @@
     scene.add(animals);
 
     var camera = new THREE.PerspectiveCamera(SA.camera.DEFAULTS.fovDeg, 1, 0.5, 400);
-    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera);
-    var picking = SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container });
+    var picking;
+    // While a care task is rubbing a part, a drag that starts on that part rubs it instead of orbiting.
+    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, null, { canOrbit: function (e) {
+      return !(SA.picking.hasRubTarget() && picking && SA.picking.isRubTarget(picking.pickAt(e.clientX, e.clientY)));
+    } });
+    picking = SA.render.createPicking(THREE, { canvas: renderer.domElement, camera: camera, animals: animals, container: container });
 
     var ambient = SA.render.createAmbient({ animals: animals, avoid: avoid });
     var fx = SA.render.createRoundFx({ animals: animals });

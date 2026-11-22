@@ -42,8 +42,13 @@ current; when your change sets or changes something future tickets must follow, 
   `climbables` (trees + peaks + station). The Space chooser measures reach with `SA.climb.edgeDistance` for every kind, and the
   outline finds a target's node by `userData.climbId === target.id` (peaks, station), so no kind-specific branches remain.
   Jumping on any top works as on the ground (lift on top of topY); jumping past the edge is the normal walk-off fall.
-  Treetop hopping (AS-0166): treetops are flat standable tops, and a landing assist lands you on the tree you jump
-  roughly toward (~7 units, ~40 degrees). Be generous: kids should chain tree to tree easily.
+  Treetop hopping (AS-0166): treetops are flat standable tops (decor draws a flat leafy pad at canopy height), and a landing
+  assist lands you on the tree you jump roughly toward (~7 units, ~40 degrees). Be generous: kids should chain tree to tree easily.
+  Built: `SA.climb.landAssist(state, targets, lift)` (`game/climb-assist.js`, pure; `ASSIST_RANGE` 7, 40 degrees, top at most
+  0.6 above y + lift, so a hop (1.2) or double jump (2.4) never pulls you up a much taller tree). `SA.climb.step(state, input, dt,
+  obstacles, targets)` calls it when you leave a top (jump or plain walk-off; `input.lift` is the hop lift): a 0.5-0.9 s hop (climb mode
+  `'down'` with `assist: true`) that ends standing ON the new top with the usual `land` frame. No target = the safe fall. The rig passes
+  the climbables list; targets are generic, so peaks and the station roof can be hop targets too.
 - **The world reacts to bumping (AS-0156, AS-0157).** A cactus pricks: bounce back with "¡Ay! ¡Pica!" (never a penalty).
   Built (`SA.prick`, pure): decor data `prick: true` marks a prickly solid; touching it knocks the player ~1.5 units straight
   away over ~0.25 s (eased, little hop, red flash), shortened so it never ends in or crosses another solid or leaves the map; the

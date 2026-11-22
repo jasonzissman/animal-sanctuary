@@ -23,6 +23,9 @@
  *       freely on the flat top (y = topY, obstacles ignored, map-clamped); walking off its edge starts a short FALL arc
  *       (mode 'down', fall: true) to dry in-bounds ground just beyond the edge, no damage. The frame it lands the state
  *       carries land: { x, z, y, kind } (one frame only; SA.climb.landed(state)) so the caller can track it.
+ *       5th arg `targets` (AS-0166, optional): walking off a top then asks SA.climb.landAssist (game/climb-assist.js) for a tree/peak/roof
+ *       roughly ahead (~7 units, ~40 degrees, not much higher than you): a short hop (mode 'down', fall + assist) that lands ON its top
+ *       (mode 'canopy' / 'top', same `land` frame). input.lift (the jump lift) raises the reachable height. No target = the fall above.
  *   SA.climb.edgeDistance(target, x, z) -> distance from the point to the target's base edge (0 inside): the one "in reach" measure
  *   SA.climb.autoStep(timer, before, after, input, targets, dtMs) -> { ms, tree, progress, climb }: the AS-0157 push timer
  *   SA.climb.active(state) -> true while up, on or coming down a target
@@ -42,6 +45,7 @@
   var EDGE_PAD = 1.2;       // canopy walkable radius = canopy radius * scale + this
   var LAND_PAD = 0.6;       // land this far beyond the edge
   var MAX_DT = 0.1;
+  var ASSIST_ARC = 0.9;     // extra height at the middle of the landing-assist hop between two tops
 
   function num(v, d) { return typeof v === 'number' && isFinite(v) ? v : d; }
   function ease(k) { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); }
@@ -182,7 +186,16 @@
     return Math.hypot(dx, dz) > 1e-6 ? Math.atan2(dx, dz) : heading;
   }
 
-  function step(state, input, dt, obstacles) {
+  /** Walking off a top (jumping or not): with a climb target roughly ahead (SA.climb.landAssist) fly to its top, else fall to the ground. */
+  function leave(walked, c, input, targets) {
+    var a = targets && SA.climb.landAssist ? SA.climb.landAssist(walked, targets, input && input.lift) : null, nn = a && norm(a.target);
+    if (!nn) return down(walked, c, true);
+    var from = { x: walked.x, z: walked.z, y: walked.y + Math.max(0, num(input && input.lift, 0)) };   // the avatar's drawn height: no pop
+    return copy(walked, { y: from.y, climb: { mode: 'down', t: 0, dur: a.dur, fall: true, assist: true, tree: a.target, target: nn,
+      from: from, to: a.to, safe: c.safe } });
+  }
+
+  function step(state, input, dt, obstacles, targets) {
     state = state || SA.player.spawn();
     var c = state.climb;
     if (!c) {
@@ -195,13 +208,21 @@
     if (c.mode === 'canopy' || c.mode === 'top') {
       var w = SA.player.step(state, input, dt, []);
       var walked = copy(state, { x: w.x, z: w.z, heading: w.heading, y: n.topY });
-      if (edgeDist(n.top, n.x, n.z, w.x, w.z) > 0) return down(walked, c, true);   // walked off the edge: a short fall
+      if (edgeDist(n.top, n.x, n.z, w.x, w.z) > 0) return leave(walked, c, input, targets);   // walked off the edge: a fall, or the landing assist
       return walked;
     }
     var dur = c.dur || (c.mode === 'up' ? UP_TIME : DOWN_TIME), t = Math.min(1, c.t + dt / dur), k = ease(t);
     var move = ease(Math.min(1, t * 3));   // slide to / from the base quickly, then it is mostly a vertical climb
-    var next = { mode: c.mode, t: t, dur: c.dur, fall: c.fall, tree: c.tree, target: n, from: c.from, to: c.to, safe: c.safe };
+    var next = { mode: c.mode, t: t, dur: c.dur, fall: c.fall, assist: c.assist, tree: c.tree, target: n, from: c.from, to: c.to, safe: c.safe };
     var heading = c.mode === 'up' ? face(c.from, n, state.heading) : c.fall ? state.heading : face(n, c.to, state.heading);
+    if (c.assist) {   // the landing assist (AS-0166): a hop over to the next top, landing ON it (standing at its topY)
+      if (t >= 1) {
+        return copy(state, { x: c.to.x, z: c.to.z, y: n.topY, heading: heading, land: { x: c.to.x, z: c.to.z, y: n.topY, kind: n.kind },
+          climb: { mode: n.kind === 'tree' ? 'canopy' : 'top', t: 1, dur: c.dur, tree: c.tree, target: n, from: c.from, to: c.to, safe: c.safe } });
+      }
+      return copy(state, { x: lerp(c.from.x, c.to.x, k), z: lerp(c.from.z, c.to.z, k), y: lerp(c.from.y, c.to.y, k) + ASSIST_ARC * Math.sin(Math.PI * t),
+        heading: heading, climb: next });
+    }
     if (t >= 1) {
       if (c.mode === 'up') {
         return copy(state, { x: c.to.x, z: c.to.z, y: c.to.y, heading: heading,

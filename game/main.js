@@ -105,6 +105,13 @@
       // Misiones board (AS-0197) renders into the station card: done (replay), next (start), locked and En curso cards.
       if (stationMenu && stationMenu.body && SA.missionsBoardView) SA.missionsBoardView.create(root.document, { body: stationMenu.body });
     } catch (e) { report('station.menu', e); }
+    // The scientist's intro (AS-0202): plays once on a new save (introSeen false), then Mission 1 starts and la cámara is in the hotbar.
+    try {
+      if (SA.introView) SA.introView.create(root.document, { onToggle: function (on) {
+        SA.picking.setPaused(on);
+        if (!on && hotbar) hotbar.update();
+      } });
+    } catch (e) { report('intro.start', e); }
     // Grown-up drawer (press-and-hold gear, an item of the 🎒 menu). Never blocks the main loop.
     var menuView = null;
     try { if (SA.settingsView) SA.settingsView.create(root.document, { onOpen: function () { if (menuView) menuView.used('settings'); } }); }

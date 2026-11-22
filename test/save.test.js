@@ -35,10 +35,10 @@ test('first load returns defaults and writes nothing', () => {
   const { save, storage } = setup();
   const s = save.load();
   assert.deepEqual(plain(s), {
-    version: 3, stars: 0, unlockedAnimals: [], placedProps: [],
+    version: 4, stars: 0, unlockedAnimals: [], placedProps: [],
     rounds: { completed: 0, streak: 0 },
     settings: { muted: false, english: false, scaffold: 1 }, stats: { unlocks: {} },
-    inventory: { items: KIT, equipped: null },
+    inventory: { items: KIT, equipped: null }, introSeen: false,
   });
   assert.equal(storage._m.size, 0);
 });
@@ -98,7 +98,7 @@ test('corrupt JSON is preserved under the _corrupt key and defaults are used', (
   assert.equal(storage.getItem(CORRUPT), '{not json');
   fire();
   assert.equal(storage.getItem(CORRUPT), '{not json');
-  assert.equal(JSON.parse(storage.getItem(KEY)).version, 3);
+  assert.equal(JSON.parse(storage.getItem(KEY)).version, 4);
 });
 
 test('non-object, unknown or future versions are kept as corrupt copies', () => {
@@ -116,7 +116,7 @@ test('unversioned legacy save is migrated, keeping data and filling defaults', (
   const storage = fakeStorage({ [KEY]: JSON.stringify({ stars: 4, extra: 'keep', rounds: { completed: 3 } }) });
   const { save } = setup({ storage });
   const s = save.load();
-  assert.equal(s.version, 3);
+  assert.equal(s.version, 4);
   assert.equal(s.stars, 4);
   assert.equal(s.extra, 'keep');
   assert.deepEqual(plain(s.rounds), { completed: 3, streak: 0 });
@@ -180,10 +180,10 @@ test('v1 save migrates to v2: stats.unlocks added, everything else kept', () => 
     settings: { muted: true, english: true, scaffold: 2 }, stats: { parts: { orejas: { taps: 3, misses: 1 } } }, extra: 'keep' };
   const storage = fakeStorage({ [KEY]: JSON.stringify(old) });
   const s = plain(setup({ storage }).save.load());
-  assert.equal(s.version, 3);
+  assert.equal(s.version, 4);
   assert.deepEqual(s.stats, { parts: { orejas: { taps: 3, misses: 1 } }, unlocks: {} });
   assert.deepEqual(s.inventory, { items: KIT, equipped: null });
-  const { inventory, ...rest } = s;
+  const { inventory, introSeen, ...rest } = s;
   assert.deepEqual({ ...rest, version: 1, stats: old.stats }, old);
   assert.equal(storage.getItem(CORRUPT), null);
 });

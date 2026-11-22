@@ -2,6 +2,8 @@
  *
  * Shape: { version, stars, unlockedAnimals, placedProps, rounds: {completed, streak},
  *          settings: {muted, english, scaffold}, stats, inventory }.
+ *          introSeen = true once the scientist's intro conversation was played or skipped (v4, AS-0202). New saves: false;
+ *          saves from before v4 migrate to true (those players already started, so it never auto-plays for them).
  *          missions = { done: [id], active: null | { id, step, seed, replay }, celebrated?: [id] } (AS-0177, SA.missions; AS-0198 celebrated; absent until used).
  *          album = { '<animalId>': 'YYYY-MM-DD' }: first-photo date per photographed animal (SA.album; no image data).
  *          inventory = { items: [{ id, count }], equipped: id|null } (added in v3; an array so removals persist
@@ -20,7 +22,7 @@
 
   var KEY = 'santuario_save_v1';
   var CORRUPT_KEY = 'santuario_save_v1_corrupt';
-  var VERSION = 3;
+  var VERSION = 4;
   var STARTING_KIT = ['camara', 'cepillo', 'esponja', 'venda'];
   var DEBOUNCE_MS = 500;
   var RETIRED_ITEMS = { flor: true, hoja: true, platano: true, zanahoria: true, pez: true };   // removed items (AS-0154 flor/hoja, AS-0155 other foods): dropped from saved inventories
@@ -40,7 +42,8 @@
       rounds: { completed: 0, streak: 0 },
       settings: { muted: false, english: false, scaffold: 1 },
       stats: { unlocks: {} },
-      inventory: startingInventory()
+      inventory: startingInventory(),
+      introSeen: false
     };
   }
 
@@ -66,6 +69,12 @@
     2: function (old) {
       old.inventory = startingInventory();
       old.version = 3;
+      return old;
+    },
+    // v4 adds introSeen. An existing save already started playing, so the scientist's intro must not auto-play for it.
+    3: function (old) {
+      old.introSeen = true;
+      old.version = 4;
       return old;
     }
   };
@@ -121,6 +130,7 @@
       });
     }
     out.inventory = normalizeInventory(s.inventory);
+    out.introSeen = typeof s.introSeen === 'boolean' ? s.introSeen : d.introSeen;
     if (s.album !== undefined) out.album = normalizeAlbum(s.album);   // optional, like photos: absent until the first photo
     if (s.missions !== undefined) out.missions = normalizeMissions(s.missions);   // optional: absent until the first mission starts
     return out;

@@ -97,6 +97,11 @@
   add('phrase', 'tomalefoto', 'Tómale una foto', 'Take its photo');   // the photo step of a rescue mission (SA.missionFlow)
   add('phrase', 'estabien', '¡Está bien!', 'It is OK!');   // the rescue proof card stamp (SA.missionFlow)
   add('phrase', 'ay','¡Ay! ¡Pica!', 'Ouch! Prickly!');   // the cactus prick (SA.prick)
+  // The scientist's intro conversation (SA.introDialogue, data in game/data/intro.js).
+  add('phrase', 'introhola', '¡Hola! Eres mi ayudante.', 'Hi! You are my helper.');
+  add('phrase', 'introayuda', 'Los animales necesitan ayuda.', 'The animals need help.');
+  add('phrase', 'introplan', 'Busca, ayuda y toma una foto.', 'Find, help and take a photo.');
+  add('phrase', 'introvamos', '¡Vamos a las misiones!', "Let's go to the missions!");
   add('phrase', 'acercate', '¡Acércate!', 'Come closer!');   // the reach cue (SA.reach.speakCue)
 
   SA.data.register('vocab', items);

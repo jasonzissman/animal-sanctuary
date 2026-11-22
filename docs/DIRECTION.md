@@ -43,9 +43,16 @@ current; when your change sets or changes something future tickets must follow, 
   card (never a second overlay). `SA.missionsDialogue` (`missions-dialogue.js`, pure): `begin/view/advance` sequence the lines;
   `celebration()` / `markSeen()` give the one-time cheer (fanfare + "¡Lo lograste! ¡Nueva misión!") the first station visit after a
   mission is finished, pointing 👇 at the unlocked card; "seen" is `missions.celebrated: [id]` in the save, so replays never re-cheer.
-  **Hook for the intro conversation (AS-0142):** `SA.missionsBoard.pointAndStartFirst()` opens the station, points at the next card
-  (mission 1 on a fresh save) and runs its intro; returns `{ ok, id }` or `{ ok:false, reason:'busy'|'none'|'no-board' }`. AS-0142
-  does not exist yet: when it lands it should call this at the end of its talk.
+  **Scientist intro conversation (AS-0202, slice 1 of AS-0142):** on a new save (`introSeen` false in the save, v4; older saves migrate
+  to true so it never plays for them) a full-screen card plays 4 spoken lines (data `game/data/intro.js`, `{ es, icon, vocabKey }`,
+  vocab `phrase:intro*`): who you are, animals need help, busca / ayuda / foto, "¡Vamos a las misiones!". `SA.introDialogue`
+  (`intro-dialogue.js`, pure: `shouldPlay/begin/view/next/skip/finish`) is the state machine; `ui/intro-view.js` is the overlay (tap
+  = next line, one ⏭️ tap skips all, 🔊 replays, lines also move on by themselves after the voice). `finish()` sets `introSeen`, puts
+  la cámara back in the inventory if missing and starts the next mission (Mission 1) via `SA.missions.start`. After that, new
+  missions start only from the Misiones board.
+  **Hook for the board (AS-0142):** `SA.missionsBoard.pointAndStartFirst()` opens the station, points at the next card
+  (mission 1 on a fresh save) and runs its intro; returns `{ ok, id }` or `{ ok:false, reason:'busy'|'none'|'no-board' }`. The
+  Scientist NPC slices (AS-0142 2/3, 3/3) may use it; the first-run intro does not (it starts Mission 1 directly).
 - **Climb anything too steep to walk (AS-0163 to AS-0165).** Trees, mountain peaks and the station all climb the same way:
   face it -> outline -> E/Enter, or push forward 0.6 s. Tops are flat enough to stand and turn (peaks: a 2-3 unit summit);
   walk or jump off the edge to drop down safely. Climb targets are data; anything new that is too steep joins them.

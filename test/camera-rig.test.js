@@ -20,7 +20,7 @@ function make(hooks) {
     lookAt: (x, y, z) => { placed.look = { x, y, z }; },
   };
   const SA = ctx.window.SA;
-  const rig = SA.render.createCameraRig({}, canvas, camera, null, hooks);
+  const rig = SA.render.createCameraRig({}, canvas, camera, hooks);
   return { rig, listeners, keys, placed, SA };
 }
 

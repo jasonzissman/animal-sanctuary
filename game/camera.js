@@ -9,7 +9,7 @@
   var SA = root.SA;
 
   var DEFAULTS = {
-    minDist: 4, maxDist: 55, tiltDeg: 55, fovDeg: 45, keySpeed: 0.9, wheelK: 0.0012,
+    minDist: 4, maxDist: 55, tiltDeg: 55, fovDeg: 45, wheelK: 0.0012,
     minPitch: 10, maxPitch: 89, yawPerPx: 0.3, pitchPerPx: 0.2, yawKeySpeed: 90, pitchKeySpeed: 45,
     // Third-person chase camera: a few metres behind and slightly above the player, looking ahead at animal height.
     chaseDist: 7, chasePitch: 16, lookAhead: 3, lookY: 1, followRate: 10, turnRate: 6, offsetDecay: 1.5,
@@ -74,16 +74,6 @@
     return clampState(moved(s, s.x + m.x, s.z + m.z, s.dist), bounds, o);
   }
 
-  /** Keyboard pan. ax: +1 right / -1 left; az: +1 down (toward viewer) / -1 up. Follows the yaw. dt in seconds. */
-  function panByKeys(s, ax, az, dt, bounds, o) {
-    o = o || DEFAULTS;
-    var len = Math.sqrt(ax * ax + az * az);
-    if (!len) return clampState(s, bounds, o);
-    var step = o.keySpeed * s.dist * dt;
-    var m = groundMove(s, (ax / len) * step, (az / len) * step);
-    return clampState(moved(s, s.x + m.x, s.z + m.z, s.dist), bounds, o);
-  }
-
   /** Drag orbit: dragging right swings the view right (yaw); dragging down looks more from above (pitch). */
   function orbitByPixels(s, dx, dy, bounds, o) {
     o = o || DEFAULTS;
@@ -116,17 +106,6 @@
     o = o || DEFAULTS;
     var t = clampPitch(s.pitch, o) * RAD, y = finite(s.yaw, 0) * RAD, h = s.dist * Math.cos(t);
     return { x: s.x + h * Math.sin(y), y: s.dist * Math.sin(t), z: s.z + h * Math.cos(y) };
-  }
-
-  /** Frame-rate independent ease of the state toward `target` ({x,z,dist}, optional pitch); rate ~4 settles in about a second. */
-  function easeToward(s, target, dt, rate, bounds, o) {
-    var k = 1 - Math.exp(-(rate || 4) * Math.max(0, dt));
-    var r = moved(s, s.x + (target.x - s.x) * k, s.z + (target.z - s.z) * k, s.dist + (target.dist - s.dist) * k);
-    if (typeof target.pitch === 'number' && isFinite(target.pitch)) {
-      var cur = clampPitch(s.pitch, o);
-      r.pitch = cur + (clampPitch(target.pitch, o) - cur) * k;
-    }
-    return clampState(r, bounds, o);
   }
 
   /** Shortest-way ease of an angle (degrees) toward `target`; frame-rate independent. */
@@ -206,8 +185,8 @@
   SA.camera = {
     clearPath: clearPath, easeClearance: easeClearance,
     easeAngle: easeAngle, chaseTarget: chaseTarget, chaseStart: chaseStart, chaseFollow: chaseFollow, decayOffset: decayOffset,
-    easeToward: easeToward, DEFAULTS: DEFAULTS, clampState: clampState, worldPerPixel: worldPerPixel, panByPixels: panByPixels,
-    panByKeys: panByKeys, orbitByPixels: orbitByPixels, orbitByKeys: orbitByKeys, clampOrbit: clampOrbit,
+    DEFAULTS: DEFAULTS, clampState: clampState, worldPerPixel: worldPerPixel, panByPixels: panByPixels,
+    orbitByPixels: orbitByPixels, orbitByKeys: orbitByKeys, clampOrbit: clampOrbit,
     wrapYaw: wrapYaw, clampPitch: clampPitch, zoomByWheel: zoomByWheel, zoomByScale: zoomByScale, position: position,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

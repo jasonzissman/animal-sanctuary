@@ -119,8 +119,6 @@ test('camera target stays inside the map bounds for extreme pan, pinch, wheel an
       for (const b of EXTREMES) {
         inBounds(C.panByPixels(s0, a, b, 600, B), `drag ${a},${b}`);
         inBounds(C.orbitByPixels(s0, a, b, B), `orbit ${a},${b}`);
-        inBounds(C.panByKeys(s0, a, b, 1, B), `wasd ${a},${b}`);
-        inBounds(C.panByKeys(s0, a, b, 1e6, B), `wasd long ${a},${b}`);
       }
       inBounds(C.zoomByWheel(s0, a, B), `wheel ${a}`);
       inBounds(C.zoomByScale(s0, a, B), `pinch ${a}`);

@@ -67,7 +67,7 @@ function makeRig(above) {
   const placed = {};
   const camera = { fov: 45, updated: 0, updateProjectionMatrix() { this.updated++; },
     position: { set: (x, y, z) => { placed.pos = { x, y, z }; } }, lookAt: (x, y, z) => { placed.look = { x, y, z }; } };
-  const rig = SA.render.createCameraRig({}, canvas, camera, null, { chase: { obstacles: () => [], above: () => above(rig.getPlayer()) } });
+  const rig = SA.render.createCameraRig({}, canvas, camera, { chase: { obstacles: () => [], above: () => above(rig.getPlayer()) } });
   return { rig, placed, camera, listeners, SA };
 }
 const run = (rig, n, dt = 0.05) => { for (let i = 0; i < n; i++) rig.update(dt); };

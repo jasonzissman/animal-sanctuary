@@ -210,18 +210,6 @@ test('prompt controller: a correct pick can lead into a care task, then the next
   assert.deepEqual(calls, ['round', 'care', 'round']);
 });
 
-test('camera easeToward moves smoothly toward the target and never overshoots', () => {
-  const { SA } = setup();
-  const B = { minX: -50, maxX: 50, minZ: -50, maxZ: 50 };
-  const target = { x: 10, z: -4, dist: 18 };
-  let s = { x: 0, z: 5, dist: 40 };
-  const first = SA.camera.easeToward(s, target, 0.1, 4, B);
-  assert.ok(first.x > 0 && first.x < 10 && first.dist < 40 && first.dist > 18);
-  for (let i = 0; i < 200; i++) s = SA.camera.easeToward(s, target, 0.05, 4, B);
-  assert.ok(Math.abs(s.x - 10) < 0.01 && Math.abs(s.dist - 18) < 0.01);
-  assert.deepEqual(SA.camera.easeToward(s, target, 0, 4, B), s);
-});
-
 test('index.html loads the care scripts before scene.js', () => {
   const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   const at = (f) => html.indexOf(f);

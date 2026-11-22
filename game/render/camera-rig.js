@@ -1,4 +1,4 @@
-/* SA.render.createCameraRig(THREE, canvas, camera, initial, hooks): input -> SA.camera math -> THREE camera.
+/* SA.render.createCameraRig(THREE, canvas, camera, hooks): input -> SA.camera math -> THREE camera.
  * Pointer events cover mouse AND touch. One pointer drag orbits (left/right = yaw, up/down = pitch); a
  * shift- or right/middle-button drag pans; two pointers pinch (zoom) and drag together (pan).
  * A press that never travels past the tap threshold does nothing, so tapping an animal never turns the view.
@@ -22,7 +22,7 @@
   // E is the "use" key (AS-0111, SA.spaceUse) so it no longer orbits: swing right is T now (Q left, R/F tilt); drag and the pad also orbit.
   var ORBIT_KEYS = { q: [-1, 0], Q: [-1, 0], t: [1, 0], T: [1, 0], r: [0, 1], R: [0, 1], f: [0, -1], F: [0, -1] };
 
-  SA.render.createCameraRig = function (THREE, canvas, camera, initial, hooks) {
+  SA.render.createCameraRig = function (THREE, canvas, camera, hooks) {
     var C = SA.camera, B = SA.map.BOUNDS;
     var threshold = (SA.picking && SA.picking.DRAG_THRESHOLD) || 10;
     // hooks.chase = { obstacles() -> [[x, z, r], ...] }: WASD/arrows walk the SA.player avatar (up/down = walk,

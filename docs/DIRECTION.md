@@ -11,6 +11,9 @@ current; when your change sets or changes something future tickets must follow, 
 - **One camera: the chase camera.** Everything happens from behind the player: finding animals, care, reveals. No
   overhead, close-up or focus views, and no camera that leaves the player. To draw attention to something, turn the
   player and chase camera toward it.
+- **No modes: keys always move the player.** Arrow keys/WASD only ever walk the player; nothing (finding an animal,
+  care, menus) switches the keyboard to controlling something else, and there is never an "Escape to unlock". The
+  mouse or a tap clicks on things (body parts, items); Space uses the equipped item.
 - **Being close matters.** Inspecting, caring and photographing need the player within reach. Too far gives a
   friendly "¡Acércate!", never a wrong answer. Rule: `SA.reach.canReach(player, animal, part?)` (game/reach.js, player
   `y` is its standing height so climbing raises reach); `render/picking.js` gates every pick and rub through it and
@@ -40,3 +43,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: pivot to third-person free roam, reach, climbing, inventory, tools, photo missions and album
   (tickets AS-0069 to AS-0085). Mouse/tap on a part works as well as Space.
 - 2026-11-22: chase camera only. The care close-up ("on top of the player" view) is removed (AS ticket from Jason's playtest).
+- 2026-11-22: no keyboard lock-in. Part-cycling with arrows/Escape is removed (AS-0093); keys always move the player, mouse/tap picks parts.

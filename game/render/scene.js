@@ -104,7 +104,15 @@
     if (pickups) scene.add(pickups.group);
     // The one Space key: acts on the single chosen target (aim part > tree/pickup in reach), see game/space-use.js.
     var spaceUse = SA.spaceUse ? SA.spaceUse.create({ getPlayer: rig.getPlayer, trees: function () { return climbables; }, picking: picking, rig: rig,
-      pickups: pickups ? pickups.world : null, collect: pickups ? pickups.collectSpot : function () { return null; }, root: root }) : null;
+      pickups: pickups ? pickups.world : null, collect: pickups ? pickups.collectSpot : function () { return null; },
+      // The station doorway (AS-0146) is a Use target: E / Enter opens the station menu hook (and closes it again).
+      doors: function () { return SA.station && SA.station.doorTargets ? SA.station.doorTargets() : null; },
+      openDoor: function () { if (!SA.station || !SA.station.toggle) return false; SA.station.toggle('use'); return true; }, root: root }) : null;
+    // Tapping or clicking the doorway does the same (the invisible pick volume sits in the station's door frame).
+    if (station && station.userData.doorNode && SA.render.createStationDoorTap && SA.station && SA.station.canTapDoor) {
+      SA.render.createStationDoorTap(THREE, { canvas: renderer.domElement, camera: camera, node: station.userData.doorNode,
+        getPlayer: rig.getPlayer, hitsAnimal: function (x, y) { return !!picking.pickAt(x, y); } });
+    }
     // The one outline: whatever spaceUse chose (part, tree or pickup) glows, nothing else (AS-0101).
     var outline = spaceUse && SA.render.createTargetOutline ? SA.render.createTargetOutline(THREE, { getTarget: spaceUse.target, nodeFor: function (kind, ref) {
       if (kind === 'part') return ref && ref.mesh || null;
@@ -115,6 +123,7 @@
         if (ref && ref.id) decor.children.concat(station ? [station] : []).forEach(function (o) { if (o.userData && o.userData.climbId === ref.id) found = o; });
         return found;
       }
+      if (kind === 'door') return station && station.userData ? station.userData.doorNode || null : null;
       return kind === 'pickup' && pickups ? pickups.nodeFor(ref) : null;
     } }) : null;
     // The filling ring round a trunk while the player pushes into it (AS-0157, SA.climb.autoStep).

@@ -25,6 +25,13 @@ current; when your change sets or changes something future tickets must follow, 
   `obstacles()` (those boxes as circle chains, appended to the player's obstacle list in scene.js), `spawn()` (what `SA.player.spawn()`
   returns when the module is loaded) and `inFootprint()` (decor and animal placement keep out). `game/render/station.js` builds the model
   from flat primitives (the sign letters are boxes, no textures). Later slices put the scientist and briefing in/at the station.
+  **The doorway is a Use target (AS-0146).** `game/station-door.js` adds `SA.station.doorTarget()/doorTargets()` (the doorway centre,
+  reach `DOOR_REACH` 2.6) and the menu hook: `SA.station.open(source)` / `close()` / `toggle()` / `isOpen()` / `onOpen(fn)` / `onClose(fn)`
+  (`SAT.track('station.open', { source })` once per opening). `SA.spaceTarget` takes `doors` (kind `'door'`, scored like trees and
+  pickups, so it hands off to the roof climb or a find by proximity); `SA.spaceUse` calls `openDoor(door)` on E / Enter (Space jumps, it
+  never opens it); the door frame group (`station.userData.doorNode`) is what the one outline glows; `render/station-door-tap.js`
+  raycasts an invisible pick volume (`userData.stationDoor`) so a tap/click on the door opens it too. `ui/station-menu-view.js` is only a
+  placeholder card (⚛️ + "La estación" + ✕); the customizer (AS-0144) attaches via `SA.station.onOpen` and renders into the view's `body`.
 - **Climb anything too steep to walk (AS-0163 to AS-0165).** Trees, mountain peaks and the station all climb the same way:
   face it -> outline -> E/Enter, or push forward 0.6 s. Tops are flat enough to stand and turn (peaks: a 2-3 unit summit);
   walk or jump off the edge to drop down safely. Climb targets are data; anything new that is too steep joins them.

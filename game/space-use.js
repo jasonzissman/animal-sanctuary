@@ -6,6 +6,7 @@
  * a tree it still climbs down (rig.climbPrompt() === 'down'). The C key (camera rig) and the touch use/climb buttons are
  * separate paths. Arrow keys / WASD are never touched here. No THREE or DOM needed; deps are injected.
  *   getPlayer() -> { x, z, heading, climb }   trees() -> [tree]   pickups.reachable(player, radius, out) fills `out`
+ *   doors() -> [{ x, z, reach? }] (AS-0146: the station doorway)   openDoor(door) -> true when it did something (opens the station menu)
  *   picking { target(), useTarget() }   rig { climbTree(tree), toggleClimb(), climbPrompt() }
  */
 (function (root) {
@@ -22,7 +23,7 @@
   };
 
   SA.spaceUse.create = function (opts) {
-    var chooser = SA.spaceTarget.create(), found = [], input = { player: null, part: null, trees: null, pickups: found };
+    var chooser = SA.spaceTarget.create(), found = [], input = { player: null, part: null, trees: null, pickups: found, doors: null };
     var current = null;
     var radius = SA.pickups && SA.pickups.SPACE_RADIUS ? SA.pickups.SPACE_RADIUS : 2.4;
 
@@ -31,6 +32,7 @@
       input.player = p;
       input.part = opts.picking && opts.picking.target ? opts.picking.target() : null;
       input.trees = opts.trees ? opts.trees() : null;
+      input.doors = opts.doors ? opts.doors() : null;
       found.length = 0;
       if (p && !input.part && opts.pickups && opts.pickups.reachable) opts.pickups.reachable(p, radius, found);
       current = chooser.choose(input);
@@ -46,6 +48,7 @@
         if (t.kind === 'part') return !!opts.picking.useTarget();
         if (t.kind === 'tree') { opts.rig.climbTree(t.ref); return true; }
         if (t.kind === 'pickup') return !!opts.collect(t.ref);
+        if (t.kind === 'door') return !!(opts.openDoor && opts.openDoor(t.ref));
         return false;
       }
       if (canDescend()) { opts.rig.toggleClimb(); return true; }

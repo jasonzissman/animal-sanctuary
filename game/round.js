@@ -46,6 +46,7 @@
 
     function start() {
       cluesState.animals = animals();
+      cluesState.level = levelNow();
       var clue = SA.clues.pickClue(cluesState, rng);
       if (!clue) {                       // everything was used recently: forget history and try again
         cluesState.recent = [];
@@ -69,7 +70,14 @@
       SA.save.update({ stars: stars, rounds: {
         completed: s.rounds.completed + 1, streak: round.misses ? 0 : s.rounds.streak + 1 } });
       track('round.complete', { roundId: round.id, seconds: seconds, misses: round.misses, hints: round.hints, level: round.level });
-      return { status: 'correct', animalId: round.answerId, seconds: seconds, stars: stars, misses: round.misses };
+      var adapt = null;      // adapt the saved level for the next round (only when it is read from the save)
+      try {
+        if (opts.level === undefined && SA.scaffold) {
+          adapt = SA.scaffold.record({ seconds: seconds, misses: round.misses, hints: round.hints });
+        }
+      } catch (e) { /* adaptivity never breaks play */ }
+      return { status: 'correct', animalId: round.answerId, seconds: seconds, stars: stars, misses: round.misses,
+        levelChange: adapt ? adapt.change : null };
     }
 
     function pick(p) {

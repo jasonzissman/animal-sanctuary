@@ -38,6 +38,7 @@
     }
 
     function track(type, fields) {
+      if (type === 'part.tap' && SA.stats) SA.stats.recordTap(fields.part, fields.correct);
       try {
         if (opts.track) opts.track(type, fields);
         else if (root.SAT && root.SAT.track) root.SAT.track(type, fields);

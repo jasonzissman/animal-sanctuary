@@ -40,6 +40,8 @@
         view.setStars(SA.save.get().stars);
       }
     } catch (e) { report('sandbox.start', e); }
+    // Grown-up drawer (press-and-hold gear). Never blocks the main loop.
+    try { if (SA.settingsView) SA.settingsView.create(root.document); } catch (e) { report('settings.start', e); }
     var last = null;
     function loop(now) {
       var dt = last === null ? 0 : Math.min((now - last) / 1000, 0.25);

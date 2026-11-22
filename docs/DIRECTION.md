@@ -9,7 +9,9 @@ current; when your change sets or changes something future tickets must follow, 
   little above them. You walk up to animals to do things. The old top-down/orbit view is no longer the main view;
   the orbit keys and buttons now swing the camera around the player.
 - **Being close matters.** Inspecting, caring and photographing need the player within reach. Too far gives a
-  friendly "¡Acércate!", never a wrong answer.
+  friendly "¡Acércate!", never a wrong answer. Rule: `SA.reach.canReach(player, animal, part?)` (game/reach.js, player
+  `y` is its standing height so climbing raises reach); `render/picking.js` gates every pick and rub through it and
+  fires `SA.reach.notifyFar` (bubble + hint-arrow nudge) instead of `SA.picking.emit`.
 - **Go vertical.** Birds, monkeys and toucans live in tree canopies, so you climb trees to reach them (and the fruit
   up there). Climbing down is always safe.
 - **Tasks while roaming.** Missions ("Busca un animal con orejas largas") sit on a card while you explore freely. You

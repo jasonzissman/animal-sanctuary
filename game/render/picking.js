@@ -9,6 +9,8 @@
  * - Keyboard: Enter/Space (with no button focused) starts part-cycling on the animal nearest the screen centre; then
  *   arrows/Tab cycle its parts (highlight + chip + spoken label), Enter/Space select through the same path as a tap,
  *   Escape (or 8 s idle, or a pointer press) ends it so the arrows pan the camera again.
+ * - Reach: with opts.getPlayer() (the walking avatar) a pick on an out-of-reach animal never reaches SA.picking.emit; it
+ *   shows opts.reachCue ("¡Acércate!") and calls SA.reach.notifyFar instead. Rubbing out of reach is silently ignored.
  * Returns { update(dt), pickAt(clientX, clientY) -> {animalId, part, ...}|null }. Call update(dt) every frame.
  */
 (function (root) {
@@ -132,8 +134,28 @@
     function tap(x, y) { select(pickAt(x, y)); }
 
     // The one pick path: a tap and the keyboard's Enter/Space both end up here.
+    // Reach rule (SA.reach): too far from the animal = a friendly "¡Acércate!" bubble, the part glows and the hint arrow
+    // points the way. It is never a wrong pick: nothing is emitted, so rounds and care tasks just keep waiting.
+    var wp = new THREE.Vector3();
+    function inReach(hit) {
+      var player = opts.getPlayer && opts.getPlayer();
+      var g = animals.getObjectByName(hit.animalId);
+      if (!player || !g || !SA.reach) return true;   // no walking player (or no rule): behave as before
+      hit.mesh.getWorldPosition(wp);
+      return SA.reach.canReach({ x: player.x, y: player.y || 0, z: player.z }, { x: g.position.x, y: g.position.y, z: g.position.z }, { y: wp.y });
+    }
+
+    function nudgeCloser(hit) {
+      tapped.forEach(function (t) { if (t.mesh !== hit.mesh) setGlow(t.mesh, restLevel(t.mesh)); });
+      tapped = [{ mesh: hit.mesh, left: GLOW_SECONDS }];
+      setGlow(hit.mesh, 2);
+      if (opts.reachCue) opts.reachCue.show();
+      SA.reach.notifyFar({ animalId: hit.animalId, part: hit.part });
+    }
+
     function select(hit) {
       if (!hit || !hit.mesh) return;
+      if (!inReach(hit)) { nudgeCloser(hit); return; }
       var def = SA.data.get('parts', hit.part);
       tapped.forEach(function (t) { if (t.mesh !== hit.mesh) setGlow(t.mesh, restLevel(t.mesh)); });
       tapped = [{ mesh: hit.mesh, left: GLOW_SECONDS }];
@@ -150,7 +172,7 @@
     var rubDist = 0, rubLast = null;
     function rub(e) {
       var hit = pickAt(e.clientX, e.clientY);
-      if (!SA.picking.isRubTarget(hit)) { rubLast = null; return; }
+      if (!SA.picking.isRubTarget(hit) || !hit.mesh || !inReach(hit)) { rubLast = null; return; }
       if (rubLast) rubDist += Math.hypot(e.clientX - rubLast.x, e.clientY - rubLast.y);
       rubLast = { x: e.clientX, y: e.clientY };
       if (rubDist >= RUB_PX) {

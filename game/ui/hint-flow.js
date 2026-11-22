@@ -21,6 +21,8 @@
       glide: function (x, z) { o.rig.glideTo(x, z); },
     });
 
+    if (SA.reach && SA.reach.onFar) SA.reach.onFar(function () { pointer.nudge(); });   // too-far tap: point the way now
+
     function viewport() {   // pixel size of the window; null (no avoidance) outside a browser
       var w = root.innerWidth, h = root.innerHeight;
       return w > 0 && h > 0 ? { w: w, h: h } : null;

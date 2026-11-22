@@ -88,6 +88,10 @@ current; when your change sets or changes something future tickets must follow, 
   the animal gives a soft `chirp` (`SA.audio.sfx('chirp', volume)`, quieter with distance) while the player is within
   `SA.treetopTell.NEAR` (16 m), and a round shadow sits on the ground under it. Pure seeded timing in
   `game/treetop-tell.js`; thin THREE layer in `game/render/treetop-tell.js`. No text, no per-frame allocation.
+- **Animals look like the real animal (AS-0127).** Low-poly but recognisable: real proportions and silhouette (neck, legs,
+  head shape), parts attached with no floating gaps, no pale blobs. A kid should name it without the label.
+- **Parts light up only while helping (AS-0128).** Outside a care/help task an animal is one whole target: no part glow,
+  chip or speech. During a task on it, its parts glow, show their chip and say their names.
 - **Every animal that fits counts (AS-0122).** A clue accepts ANY animal matching it (a duck and a turtle both swim; every
   grey animal is grey). Never a single hidden right answer.
 - **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
@@ -181,3 +185,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: messages always win; the item-name chip only flashes on equip (AS-0121).
 - 2026-11-22: any matching animal counts (AS-0122); rescue missions: find, help 1-2 times, photo proof (AS-0123 to AS-0125).
 - 2026-11-22: double jump: Space again in mid-air (AS-0126).
+- 2026-11-22: realistic animals, starting with the camel (AS-0127); parts light up only while helping (AS-0128).

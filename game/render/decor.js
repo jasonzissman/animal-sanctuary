@@ -96,7 +96,8 @@
       if (SA.peaks) SA.peaks.LIST.forEach(function (p) {
         var obj = tag(b.peak(THREE, dm, SA.peaks.shape(p)), 'pico');
         obj.position.set(p.x, SA.peaks.shape(p).baseY, p.z);
-        obj.userData.peak = p.id;   // the Space-target outline finds the mesh by this id
+        obj.userData.peak = p.id;
+        obj.userData.climbId = p.id;   // the Space-target outline finds the mesh by its climb target's id
         group.add(obj);
         taken.push([p.x, p.z]);
         for (var a = 0; a < 8; a++) taken.push([p.x + 2 * Math.cos(a * Math.PI / 4), p.z + 2 * Math.sin(a * Math.PI / 4)]);   // keeps pines off the slope

@@ -14,6 +14,9 @@
  *   SA.station.spawn()             -> { x, z, heading } just outside the door, facing out (heading PI = looking toward -z)
  *   SA.station.inFootprint(x, z, pad?) true within pad of the building, bench and crates (decor and animals keep out)
  *   SA.station.avoidPoints()       -> [[x, z], ...] sparse points across the footprint for placement code that spaces by distance
+ *   SA.station.climbTarget()       -> the station as a generic SA.climb target (AS-0194), plain data:
+ *       { kind: 'building', id: 'station', x, z, footprint: { w, d } (the walls' outer box), topY (roof surface),
+ *         top: { shape: 'rect', size: { w, d } } (the flat roof incl. its overhang) }
  * SA.player.spawn() reads SA.station.spawn() when this module is loaded, so there is one source for where the game starts.
  */
 (function (root) {
@@ -104,6 +107,12 @@
     return out;
   }
 
+  function climbTarget() {
+    var L = layout(), o = L.roof.overhang;
+    return { kind: 'building', id: 'station', x: L.cx, z: L.cz, footprint: { w: 2 * L.halfW + L.wallT, d: 2 * L.halfD + L.wallT },
+      topY: L.roof.y + L.roof.thickness, top: { shape: 'rect', size: { w: 2 * (L.halfW + o), d: 2 * (L.halfD + o) } } };
+  }
+
   function spawn() { var s = layout().spawn; return { x: s.x, z: s.z, heading: s.heading }; }
 
   function inFootprint(x, z, pad) {
@@ -120,6 +129,6 @@
     return out;
   }
 
-  SA.station = { layout: layout, collisionBoxes: collisionBoxes, obstacles: obstacles, spawn: spawn, inFootprint: inFootprint, avoidPoints: avoidPoints,
+  SA.station = { layout: layout, collisionBoxes: collisionBoxes, obstacles: obstacles, spawn: spawn, inFootprint: inFootprint, avoidPoints: avoidPoints, climbTarget: climbTarget,
     DOOR_W: DOOR_W, SPAWN_GAP: SPAWN_GAP };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -17,7 +17,10 @@ current; when your change sets or changes something future tickets must follow, 
   care, menus) switches the keyboard to controlling something else, and there is never an "Escape to unlock". The
   mouse or a tap clicks on things (body parts, items); Space uses the equipped item.
 - **Soft things don't block.** The player walks through flowers, grass and small animals; only trees, rocks, ponds and
-  big animals block. You never start stuck or have to wait for an animal to move.
+  big animals block. You never start stuck or have to wait for an animal to move. Built (AS-0105): the spawn is fixed
+  (`SA.player` SPAWN) with a clear radius `SA.player.SPAWN_CLEAR` (5): seeded decor skips it, `animal-plan` placements
+  stay SPAWN_CLEAR + 1 away, wanderers get `SA.player.spawnZone()` as an avoid point, and `SA.player.step` lets a player
+  who overlaps obstacles (wedged between trees and an animal) walk or slide out instead of being pinned.
 - **Being close matters.** Inspecting, caring and photographing need the player within reach. Too far gives a
   friendly "¡Acércate!", never a wrong answer. Rule: `SA.reach.canReach(player, animal, part?)` (game/reach.js, player
   `y` is its standing height so climbing raises reach); `render/picking.js` gates every pick and rub through it and

@@ -62,6 +62,7 @@
       var x = x0 + rand() * (x1 - x0), z = z0 + rand() * (z1 - z0);
       var y = M.groundHeight(x, z);
       if (y < M.WATER_LEVEL + 0.45) continue;
+      if (SA.player && SA.player.inSpawnZone(x, z)) continue;   // the spawn stays clear (SA.player.SPAWN_CLEAR)
       var ok = true;
       for (var i = 0; i < taken.length; i++) {
         var dx = taken[i][0] - x, dz = taken[i][1] - z;

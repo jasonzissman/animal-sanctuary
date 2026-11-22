@@ -225,3 +225,12 @@ test('pupils: the plan carries the data pupil colour; the renderer adds it as a 
     assert.ok(g.userData.pickVolumes.every((v) => v.userData.part && !v.userData.pupil), 'pupils are not pick targets');
   }
 });
+
+test('placements keep every animal out of the spawn circle (and its 1-unit margin)', () => {
+  const SA = loadGame([...DATA, 'game/player.js']);
+  const s = SA.player.spawn();
+  const spots = SA.animalPlan.placements(SA.data.all('animals'), {});
+  for (const [id, p] of Object.entries(spots)) {
+    assert.ok(Math.hypot(p.x - s.x, p.z - s.z) >= SA.player.SPAWN_CLEAR + 1, `${id} starts too close to the spawn`);
+  }
+});

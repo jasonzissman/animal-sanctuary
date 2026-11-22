@@ -116,3 +116,41 @@ test('junk obstacle entries are ignored', () => {
   const s = P.step({ x: 0, z: 0, heading: 0 }, { forward: true }, DT, [null, [NaN, 0, 1], [0, 0, 0], [0, 0.1, -2], [1, 1]]);
   near(s.z, P.SPEED * DT);
 });
+
+test('spawn zone helpers: spawn is inside, far away is not, and the zone is an avoid point', () => {
+  const s = P.spawn();
+  assert.ok(P.inSpawnZone(s.x, s.z));
+  assert.ok(!P.inSpawnZone(s.x + P.SPAWN_CLEAR + 0.1, s.z));
+  assert.ok(P.inSpawnZone(s.x + P.SPAWN_CLEAR + 0.1, s.z, 1));
+  assert.deepEqual(Array.from(P.spawnZone()), [s.x, s.z, P.SPAWN_CLEAR]);
+});
+
+test('wedged between two trees and an animal, the player can still walk out (every direction)', () => {
+  // Trunks left and right plus a rabbit in front, all overlapping the player: the old push-out pinned them here.
+  const obstacles = [[-1.4, 0, 1], [1.4, 0, 1], [0, 1.6, 1.3]];
+  for (const heading of [Math.PI, Math.PI + 0.7, Math.PI - 0.7]) {   // the open side, away from the rabbit
+    const start = { x: 0, z: 0, heading };
+    const s = walk(start, { forward: true }, 1.5, obstacles);
+    assert.ok(Math.hypot(s.x - start.x, s.z - start.z) > 1.5, `heading ${heading}: moved ${Math.hypot(s.x, s.z)}`);
+  }
+  // Facing the rabbit: walking forward is blocked, but turning around (left/right still turn in place) frees the way.
+  let t = walk({ x: 0, z: 0, heading: 0 }, { forward: true }, 1, obstacles);
+  t = walk(t, { left: true }, 1.4, obstacles);
+  t = walk(t, { forward: true }, 1.5, obstacles);
+  assert.ok(Math.hypot(t.x, t.z) > 1.5, `turned then walked: ${Math.hypot(t.x, t.z)}`);
+  const b = walk({ x: 0, z: 0, heading: 0 }, { back: true }, 1.5, obstacles);
+  assert.ok(Math.hypot(b.x, b.z) > 1);
+});
+
+test('wedged player ends up clear of the obstacles it walked out of', () => {
+  const obstacles = [[-1.4, 0, 1], [1.4, 0, 1], [0, 1.6, 1.3]];
+  const s = walk({ x: 0, z: 0, heading: Math.PI }, { forward: true }, 3, obstacles);
+  for (const o of obstacles) assert.ok(Math.hypot(s.x - o[0], s.z - o[1]) >= o[2] + P.RADIUS - 0.03);
+});
+
+test('standing on top of two obstacles the player escapes; a free player is still blocked by a tree', () => {
+  const s = walk({ x: 0, z: 0, heading: 0 }, { forward: true }, 2, [[0, 0, 1], [0.1, 0, 1]]);
+  assert.ok(Math.hypot(s.x, s.z) > 1.5);
+  const t = walk({ x: 0, z: -5, heading: 0 }, { forward: true }, 3, [[0, 0, 1]]);
+  assert.ok(Math.hypot(t.x, t.z) >= 1 + P.RADIUS - 0.03);
+});

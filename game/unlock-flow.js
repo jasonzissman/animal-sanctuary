@@ -25,7 +25,7 @@
       sfx('fanfare');
       sfx('sparkle');
       if (o.fx) o.fx.play(animal.id, 'boing');
-      var icon = (SA.prompt && SA.prompt.ICONS && SA.prompt.ICONS[animal.id]) || '🐾';
+      var icon = animal.icon || '🐾';
       if (o.celebrate) o.celebrate('✨ ' + icon + ' ' + (SA.vocab && SA.vocab.get('animal:' + animal.id) ? SA.vocab.get('animal:' + animal.id).es : animal.name.es) + ' ✨');
       later(function () { try { if (audio && audio.say) audio.say('animal:' + animal.id); } catch (e) { /* silent */ } }, SAY_DELAY_MS);
       return true;

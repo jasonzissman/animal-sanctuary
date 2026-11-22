@@ -3,6 +3,7 @@
  *
  * Animal shape (JSON-serialisable):
  *   id, name { es: 'conejo', en: 'rabbit', gender: 'm'|'f' }   (article is derived from gender)
+ *   icon      required short emoji string shown in the prompt bar and celebrations (e.g. '🐰')
  *   biome     id of a registered biome
  *   traits    { size, color, movement, diet, legs }   values from SA.animals.SIZES / COLORS / ...
  *             color is the masculine/base Spanish colour word; the clue engine inflects it for gender.
@@ -60,6 +61,9 @@
     if (typeof a.name.es !== 'string' || !a.name.es.trim()) fail('name.es', 'must be a non-empty string');
     if (typeof a.name.en !== 'string' || !a.name.en.trim()) fail('name.en', 'must be a non-empty string');
     oneOf(a.name.gender, ['m', 'f'], 'name.gender');
+    if (typeof a.icon !== 'string' || !a.icon.trim() || a.icon.length > 8) {
+      fail('icon', 'must be a short non-empty emoji string (got ' + JSON.stringify(a.icon) + ')');
+    }
     if (typeof a.biome !== 'string' || !SA.data.get('biomes', a.biome)) {
       fail('biome', 'unknown biome ' + JSON.stringify(a.biome) + ' (not registered in kind "biomes")');
     }
@@ -89,7 +93,7 @@
   }
 
   SA.data.register('animals', [
-    { id: 'conejo', name: { es: 'conejo', en: 'rabbit', gender: 'm' }, biome: 'bosque',
+    { id: 'conejo', name: { es: 'conejo', en: 'rabbit', gender: 'm' }, icon: '🐰', biome: 'bosque',
       traits: { size: 'pequeño', color: 'gris', movement: 'salta', diet: 'herbívoro', legs: 4 },
       parts: [
         p('cuerpo', '#a9a9b0', 1, 1, [0, 0.5, 0]), p('cabeza', '#a9a9b0', 0.7, 1, [0, 1.0, 0.5]),
@@ -97,7 +101,7 @@
         p('patas', '#8e8e96', 0.35, 4, [0.28, 0.18, 0]), p('ojos', '#222222', 0.16, 2, [0.17, 1.08, 0.77]),
         p('hocico', '#f4b6c2', 0.14, 1, [0, 0.96, 0.84])
       ], easterEgg: false },
-    { id: 'pato', name: { es: 'pato', en: 'duck', gender: 'm' }, biome: 'bosque',
+    { id: 'pato', name: { es: 'pato', en: 'duck', gender: 'm' }, icon: '🦆', biome: 'bosque',
       traits: { size: 'mediano', color: 'amarillo', movement: 'nada', diet: 'omnívoro', legs: 2 },
       parts: [
         p('cuerpo', '#f2d33c', 1, 1, [0, 0.5, 0]), p('cabeza', '#f2d33c', 0.55, 1, [0, 1.1, 0.5]),
@@ -105,14 +109,14 @@
         p('patas', '#f08a24', [0.12, 0.3, 0.12], 2, [0.2, 0.15, 0.05]), p('cola', '#e0bd22', 0.25, 1, [0, 0.6, -0.6]),
         p('ojos', '#222222', 0.13, 2, [0.14, 1.17, 0.71])
       ], easterEgg: false },
-    { id: 'tortuga', name: { es: 'tortuga', en: 'turtle', gender: 'f' }, biome: 'bosque',
+    { id: 'tortuga', name: { es: 'tortuga', en: 'turtle', gender: 'f' }, icon: '🐢', biome: 'bosque',
       traits: { size: 'mediano', color: 'verde', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
       parts: [
         p('cuerpo', '#7ab86b', [1.1, 0.4, 1.3], 1, [0, 0.4, 0]), p('caparazon', '#3f7d3a', 1.2, 1, [0, 0.7, 0]),
         p('cabeza', '#7ab86b', 0.4, 1, [0, 0.6, 0.9]), p('patas', '#7ab86b', 0.25, 4, [0.45, 0.15, 0]),
         p('cola', '#7ab86b', [0.1, 0.1, 0.3], 1, [0, 0.4, -0.8]), p('ojos', '#222222', 0.1, 2, [0.11, 0.68, 1.0])
       ], easterEgg: false },
-    { id: 'mono', name: { es: 'mono', en: 'monkey', gender: 'm' }, biome: 'selva',
+    { id: 'mono', name: { es: 'mono', en: 'monkey', gender: 'm' }, icon: '🐵', biome: 'selva',
       traits: { size: 'mediano', color: 'marrón', movement: 'trepa', diet: 'omnívoro', legs: 4 },
       parts: [
         p('cuerpo', '#8a5a34', 1, 1, [0, 0.8, 0]), p('cabeza', '#8a5a34', 0.65, 1, [0, 1.6, 0.3]),
@@ -120,7 +124,7 @@
         p('cola', '#6d4423', [0.12, 0.12, 1.8], 1, [0, 0.8, -0.9]), p('patas', '#6d4423', [0.2, 0.7, 0.2], 4, [0.3, 0.35, 0]),
         p('ojos', '#222222', 0.14, 2, [0.15, 1.68, 0.56])
       ], easterEgg: false },
-    { id: 'tucan', name: { es: 'tucán', en: 'toucan', gender: 'm' }, biome: 'selva',
+    { id: 'tucan', name: { es: 'tucán', en: 'toucan', gender: 'm' }, icon: '🦜', biome: 'selva',
       traits: { size: 'mediano', color: 'negro', movement: 'vuela', diet: 'herbívoro', legs: 2 },
       parts: [
         p('cuerpo', '#1e1e24', 0.9, 1, [0, 0.8, 0]), p('cabeza', '#1e1e24', 0.5, 1, [0, 1.5, 0.3]),
@@ -128,13 +132,13 @@
         p('cola', '#2b2b34', [0.3, 0.1, 0.75], 1, [0, 0.7, -0.8]), p('patas', '#4aa3c7', [0.1, 0.35, 0.1], 2, [0.15, 0.18, 0]),
         p('ojos', '#ffffff', 0.17, 2, [0.15, 1.58, 0.47])
       ], easterEgg: false },
-    { id: 'rana', name: { es: 'rana', en: 'frog', gender: 'f' }, biome: 'selva',
+    { id: 'rana', name: { es: 'rana', en: 'frog', gender: 'f' }, icon: '🐸', biome: 'selva',
       traits: { size: 'pequeño', color: 'verde', movement: 'salta', diet: 'insectívoro', legs: 4 },
       parts: [
         p('cuerpo', '#4cc04a', [0.9, 0.6, 1], 1, [0, 0.4, 0]), p('cabeza', '#4cc04a', 0.5, 1, [0, 0.7, 0.5]),
         p('ojos', '#f4f4a0', 0.22, 2, [0.18, 1.0, 0.55]), p('patas', '#2f9a35', [0.15, 0.5, 0.3], 4, [0.4, 0.22, 0])
       ], easterEgg: false },
-    { id: 'camello', name: { es: 'camello', en: 'camel', gender: 'm' }, biome: 'desierto',
+    { id: 'camello', name: { es: 'camello', en: 'camel', gender: 'm' }, icon: '🐫', biome: 'desierto',
       traits: { size: 'grande', color: 'marrón', movement: 'corre', diet: 'herbívoro', legs: 4 },
       parts: [
         p('cuerpo', '#c99a5b', [1.1, 0.9, 1.9], 1, [0, 1.5, 0]), p('joroba', '#b8864a', 0.75, 1, [0, 2.15, -0.1]),
@@ -142,13 +146,13 @@
         p('orejas', '#a87a40', [0.15, 0.2, 0.15], 2, [0.2, 2.55, 1.15]), p('cola', '#a87a40', [0.1, 0.1, 0.5], 1, [0, 1.6, -1.1]),
         p('patas', '#b8864a', [0.22, 1.2, 0.22], 4, [0.4, 0.6, 0]), p('ojos', '#222222', 0.1, 2, [0.2, 2.3, 1.5])
       ], easterEgg: false },
-    { id: 'serpiente', name: { es: 'serpiente', en: 'snake', gender: 'f' }, biome: 'desierto',
+    { id: 'serpiente', name: { es: 'serpiente', en: 'snake', gender: 'f' }, icon: '🐍', biome: 'desierto',
       traits: { size: 'mediano', color: 'naranja', movement: 'repta', diet: 'carnívoro', legs: 0 },
       parts: [
         p('cuerpo', '#e08a3c', [0.45, 0.45, 2.4], 1, [0, 0.3, 0]), p('cabeza', '#e08a3c', 0.55, 1, [0, 0.4, 1.4]),
         p('ojos', '#222222', 0.1, 2, [0.17, 0.55, 1.62]), p('cola', '#c06a24', [0.2, 0.2, 0.7], 1, [0, 0.2, -1.5])
       ], easterEgg: false },
-    { id: 'cabra', name: { es: 'cabra', en: 'goat', gender: 'f' }, biome: 'montana',
+    { id: 'cabra', name: { es: 'cabra', en: 'goat', gender: 'f' }, icon: '🐐', biome: 'montana',
       traits: { size: 'mediano', color: 'blanco', movement: 'trepa', diet: 'herbívoro', legs: 4 },
       parts: [
         p('cuerpo', '#f2efe6', [0.9, 0.8, 1.3], 1, [0, 0.9, 0]), p('cabeza', '#f2efe6', 0.5, 1, [0, 1.4, 0.8]),
@@ -156,7 +160,7 @@
         p('hocico', '#d8d2c4', 0.2, 1, [0, 1.3, 1.1]), p('cola', '#d8d2c4', [0.15, 0.15, 0.45], 1, [0, 1.1, -0.8]),
         p('patas', '#c8c2b4', [0.14, 0.6, 0.14], 4, [0.28, 0.3, 0]), p('ojos', '#222222', 0.09, 2, [0.16, 1.5, 1.04])
       ], easterEgg: false },
-    { id: 'aguila', name: { es: 'águila', en: 'eagle', gender: 'f' }, biome: 'montana',
+    { id: 'aguila', name: { es: 'águila', en: 'eagle', gender: 'f' }, icon: '🦅', biome: 'montana',
       traits: { size: 'grande', color: 'marrón', movement: 'vuela', diet: 'carnívoro', legs: 2 },
       parts: [
         p('cuerpo', '#6b4a2b', 0.95, 1, [0, 0.9, 0]), p('cabeza', '#f4f1ea', 0.5, 1, [0, 1.5, 0.35]),
@@ -166,7 +170,7 @@
       ], easterEgg: false },
     // Easter egg #1 (original design): a blocky yellow mouse. Hidden until the player has 10 stars AND has tapped the
     // same tree of the forest 5 times. The condition is plain data (see game/unlocks.js).
-    { id: 'raton', name: { es: 'ratón chispa', en: 'spark mouse', gender: 'm' }, biome: 'bosque',
+    { id: 'raton', name: { es: 'ratón chispa', en: 'spark mouse', gender: 'm' }, icon: '🐭', biome: 'bosque',
       traits: { size: 'pequeño', color: 'amarillo', movement: 'corre', diet: 'omnívoro', legs: 4 },
       parts: [
         { part: 'cuerpo', builder: 'box', color: '#f6d63a', scale: [0.7, 0.6, 0.8], count: 1, offset: [0, 0.45, 0] },

@@ -21,7 +21,7 @@ current; when your change sets or changes something future tickets must follow, 
   widening, eased ~0.5 s; a drag overrides it; `hooks.chase.above()` supplies perched animals). Space jumps everywhere, including in a canopy (AS-0115).
 - **Movement has sound (AS-0118 to AS-0120).** Soft footsteps (quicker when running, splashy in water, leafy in a
   canopy), a hop and a landing thump, a splash entering water, a rustle while climbing. Short, quiet, never spammy; mute silences all.
-- **Uncluttered screen, nothing overlaps (AS-0145 to AS-0147).** All HUD positions come from one pure layout (SA.hud),
+- **Uncluttered screen, nothing overlaps (AS-0147 to AS-0149).** All HUD positions come from one pure layout (SA.hud),
   tested for overlaps at phone to desktop sizes. The mission is a small pill (tap = replay), not a banner: audio carries
   instructions. Few icons: pill, stars, hotbar and one 🎒 menu; touch controls only on touch. When in doubt, remove an icon.
 - **Messages always win (AS-0121).** No HUD element may cover a message, animal name or part label. The equipped-item
@@ -200,4 +200,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: realistic animals, starting with the camel (AS-0127); parts light up only while helping (AS-0128).
 - 2026-11-22: higher-fidelity world, 2x map, biome landmarks, detailed avatar/animals, more animals and species (AS-0129 to AS-0140).
 - 2026-11-22: research station start, scientist briefing, photo board, character customizer (AS-0141 to AS-0144).
-- 2026-11-22: declutter: one HUD layout with no overlaps, small mission pill, one menu (AS-0145 to AS-0147).
+- 2026-11-22: declutter: one HUD layout with no overlaps, small mission pill, one menu (AS-0147 to AS-0149).

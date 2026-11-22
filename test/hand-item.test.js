@@ -70,14 +70,14 @@ test('the equipped item appears in the hand, swaps on change and is removed when
   h.update();   // unchanged: the same model stays
   assert.equal(h.group.children[0], model);
 
-  equipped = 'pez';
+  equipped = 'roca';
   const before = disposed;
   h.update();
-  assert.equal(h.current(), 'pez');
+  assert.equal(h.current(), 'roca');
   assert.equal(h.group.children.length, 1);
   assert.notEqual(h.group.children[0], model);
   assert.ok(disposed > before, 'old geometry and materials are freed');
-  assert.ok(h.group.children[0].children.some((m) => m.scale.x === 1.6), 'scaled parts are applied');
+  assert.ok(h.group.children[0].children.some((m) => m.scale.x === 1.1), 'scaled parts are applied');
 
   equipped = null;
   h.update();

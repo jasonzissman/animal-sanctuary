@@ -4,7 +4,7 @@
  * Food shape (JSON-serialisable):
  *   id, icon    emoji shown on the tray button
  *   label       { es: 'fresa', plural: 'fresas', gender: 'f' }   singular/plural noun and its grammatical gender
- *   diets       animal diets (traits.diet) that eat it; every diet needs at least one food
+ *   diets       animal diets (traits.diet) that eat it; a diet with no food (carnívoro, insectívoro) gets no feed task
  * The spoken/shown vocab text is the singular with its article ("la fresa"); prompts use the plural ("tres fresas").
  */
 (function (root) {
@@ -28,15 +28,9 @@
   }
 
   var foods = [
-    food('fresa', '🍓', 'fresa', 'fresas', 'f', ['herbívoro', 'omnívoro']),
-    food('zanahoria', '🥕', 'zanahoria', 'zanahorias', 'f', ['herbívoro', 'omnívoro']),
-    food('manzana', '🍎', 'manzana', 'manzanas', 'f', ['herbívoro', 'omnívoro']),
-    food('platano', '🍌', 'plátano', 'plátanos', 'm', ['herbívoro', 'omnívoro']),
-    food('lechuga', '🥬', 'lechuga', 'lechugas', 'f', ['herbívoro']),
-    food('gusano', '🐛', 'gusano', 'gusanos', 'm', ['insectívoro', 'omnívoro']),
-    food('grillo', '🦗', 'grillo', 'grillos', 'm', ['insectívoro']),
-    food('pez', '🐟', 'pez', 'peces', 'm', ['carnívoro', 'omnívoro']),
-    food('carne', '🍖', 'carne', 'carnes', 'f', ['carnívoro'])
+    // Only la fresa is active (AS-0155): one simple food. The foods kind stays so more can be added later; carnivores and
+    // insectivores have no food here, so they never get a feed task.
+    food('fresa', '🍓', 'fresa', 'fresas', 'f', ['herbívoro', 'omnívoro'])
   ];
 
   SA.data.defineKind('foods', validateFood);

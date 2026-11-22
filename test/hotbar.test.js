@@ -58,18 +58,21 @@ test('tapping a slot equips it, tapping it again unequips, other slots switch, b
 
 test('slots show counts, follow inventory changes and cap at nine', () => {
   const { SA } = setup();
-  SA.inventory.add('platano', 3);
+  SA.inventory.add('fresa', 3);
   SA.inventory.add('roca', 2);
   const s = SA.hotbar.slots();
   assert.equal(s.length, 6);
-  assert.deepEqual(plain(s.slice(4).map((x) => [x.slot, x.id, x.count])),[[5, 'platano', 3], [6, 'roca', 2]]);
-  assert.equal(SA.hotbar.pressKey('5').id, 'platano');
+  assert.deepEqual(plain(s.slice(4).map((x) => [x.slot, x.id, x.count])),[[5, 'fresa', 3], [6, 'roca', 2]]);
+  assert.equal(SA.hotbar.pressKey('5').id, 'fresa');
   assert.equal(SA.hotbar.slots()[4].equipped, true);
   // using up the equipped item empties hands and the slot closes up
-  SA.inventory.remove('platano', 3);
+  SA.inventory.remove('fresa', 3);
   assert.equal(SA.inventory.equipped(), null);
   assert.equal(SA.hotbar.slotItem(5), 'roca');
-  for (const id of ['platano', 'fresa', 'zanahoria', 'pez']) SA.inventory.add(id);
+  // the shipped items no longer fill nine slots: register a few fixture finds to hit the cap
+  const extra = ['aaa', 'bbb', 'ccc', 'ddd'].map((id) => ({ id, icon: '?', name: { es: 'la ' + id, en: id }, gender: 'f', kind: 'find', stackable: true }));
+  SA.data.register('items', extra);
+  for (const id of ['fresa', 'aaa', 'bbb', 'ccc', 'ddd']) SA.inventory.add(id);
   assert.equal(SA.hotbar.slots().length, SA.hotbar.MAX_SLOTS);
   assert.equal(SA.hotbar.slotItem(10), null);
 });
@@ -78,8 +81,8 @@ test('signature changes with slots, counts and the equipped item', () => {
   const { SA } = setup();
   const seen = new Set([SA.hotbar.signature()]);
   SA.hotbar.pressKey('1'); seen.add(SA.hotbar.signature());
-  SA.inventory.add('pez', 1); seen.add(SA.hotbar.signature());
-  SA.inventory.add('pez', 1); seen.add(SA.hotbar.signature());
+  SA.inventory.add('fresa', 1); seen.add(SA.hotbar.signature());
+  SA.inventory.add('fresa', 1); seen.add(SA.hotbar.signature());
   SA.hotbar.pressKey('0'); seen.add(SA.hotbar.signature());
   assert.equal(seen.size, 5);
   assert.equal(SA.hotbar.signature(), SA.hotbar.signature());
@@ -133,7 +136,7 @@ test('hotbar view: one big icon button per item, count badge, highlighted equipp
   assert.equal(view.inventory.equipped(), null);
   assert.ok(bar.children.every((b) => b.attrs['aria-pressed'] === 'false'));
 
-  view.inventory.add('platano', 4);                                                // external change, picked up by update()
+  view.inventory.add('fresa', 4);                                               // external change, picked up by update()
   v.update();
   assert.equal(bar.children.length, 5);
   assert.equal(bar.children[4].children[0].textContent, '4');

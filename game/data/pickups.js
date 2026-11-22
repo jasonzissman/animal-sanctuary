@@ -1,4 +1,4 @@
-/* Pickups: registers kind "pickups" (SA.data) plus a vocab entry "found:<item>" ("¡Un plátano!") for each collectable item.
+/* Pickups: registers kind "pickups" (SA.data) plus a vocab entry "found:<item>" ("¡Una fresa!") for each collectable item.
  * Pure data; no THREE, no DOM. Load after game/data/items.js and game/map.js. Placement/respawn logic is game/pickups.js.
  *
  * Pickup rule shape (JSON-serialisable):
@@ -31,10 +31,10 @@
   }
 
   var rules = [
-    rule('platano-arbol', 'platano', 'tree', ['selva'], 4, 60),
-    rule('fresa-arbol', 'fresa', 'tree', ['bosque'], 3, 60),
-    rule('roca-suelo', 'roca', 'ground', ['bosque', 'montana', 'desierto'], 3, 45),
-    rule('pez-agua', 'pez', 'water', ['bosque', 'selva'], 2, 60)
+    // Strawberries are the only food (AS-0155): on trees where there are canopies, on bushes (ground) in every biome.
+    rule('fresa-arbol', 'fresa', 'tree', ['bosque', 'selva'], 3, 60),
+    rule('fresa-arbusto', 'fresa', 'ground', ['bosque', 'selva', 'montana', 'desierto'], 3, 60),
+    rule('roca-suelo', 'roca', 'ground', ['bosque', 'montana', 'desierto'], 3, 45)
   ];
 
   SA.data.defineKind('pickups', validatePickup);

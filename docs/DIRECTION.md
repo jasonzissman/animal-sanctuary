@@ -151,8 +151,10 @@ current; when your change sets or changes something future tickets must follow, 
   silent. Easter-egg creatures only appear once photographed. `SA.album` (game/album.js, pure) reads/writes save `album: { animalId:
   'YYYY-MM-DD' }` (first-photo date, no images; `SA.photo.record` calls `SA.album.add`) and builds the cards from animal/part data
   (parts carry an optional `icon`); `game/ui/album-view.js` is the DOM page and pauses picking while open.
-- **Inventory and tools.** You start with *cámara, cepillo, esponja, venda* and find more (*plátanos, fresas, rocas, peces*;
-  no flor/hoja items: flowers are walk-through decor only; `SA.save` drops retired `flor`/`hoja` from old saves). Equip an item from the hotbar (tap or 1-9) and use it with **Space, a mouse click or a tap** on
+- **Inventory and tools.** You start with *cámara, cepillo, esponja, venda* and find more (*fresas, rocas*;
+  no flor/hoja items: flowers are walk-through decor only; `SA.save` drops retired `flor`/`hoja`/`platano`/`zanahoria`/`pez` from old saves).
+  Food (AS-0155): `fresa` is the only active food in `foods.js` (kind kept for later); strawberries grow on trees and ground bushes
+  in every biome; feed tasks ask only for fresas (counts stay) and the tray is just fresas; carnívoro/insectívoro animals get no feed task. Equip an item from the hotbar (tap or 1-9) and use it with **Space, a mouse click or a tap** on
   the highlighted part. Clicking and touching animals directly stays first-class.
   Model (AS-0078): items are data in `game/data/items.js` (kind tool|food|find, food ids reuse `foods.js`);
   `SA.inventory` (game/inventory.js, pure) does add/remove/count/list/equip/equipped over `SA.save` (save v3,
@@ -166,7 +168,7 @@ current; when your change sets or changes something future tickets must follow, 
   spheres, cones, flat colours, validated; a test fails if an item has none). `SA.render.createHandItem` builds it on the
   avatar's right arm and swaps/removes it as `SA.inventory.equipped()` changes. It is never part of any pick volume.
 - **Collectible finds (AS-0080).** Pickups are data in `game/data/pickups.js` (rule: item, where `tree|ground|water`, biomes,
-  count, respawn seconds; vocab `found:<item>` = "¡Un plátano!"). `SA.pickups` (game/pickups.js, pure, seeded) lays them out
+  count, respawn seconds; vocab `found:<item>` = "¡Una fresa!"). `SA.pickups` (game/pickups.js, pure, seeded) lays them out
   (fruit on canopy branches via `SA.perch.spots`, so you climb for it) and handles collect + respawn; `game/render/pickups.js`
   draws them (item model, bob, sparkle). Walking into one or pressing Space next to one adds it to `SA.inventory`, with pop
   SFX and the spoken name. Keep new finds as data rules, not special cases.

@@ -10,26 +10,47 @@ const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'gam
   'game/data/vocab.js', 'game/data/foods.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/picking.js',
   'game/camera.js', 'game/round.js', 'game/data/items.js', 'game/inventory.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js', 'game/ui/care-flow.js', 'game/ui/prompt.js'];
 
+// Only fresa ships as a food (AS-0155). The engine still supports several foods (distractors, two-food asks),
+// so those tests register these fixture foods with setup({ extraFoods: true }); they are never shipped.
+const FIXTURE_FOODS = [
+  { id: 'zanahoria', icon: '🥕', label: { es: 'zanahoria', plural: 'zanahorias', gender: 'f' }, diets: ['herbívoro', 'omnívoro'] },
+  { id: 'platano', icon: '🍌', label: { es: 'plátano', plural: 'plátanos', gender: 'm' }, diets: ['herbívoro', 'omnívoro'] },
+  { id: 'pez', icon: '🐟', label: { es: 'pez', plural: 'peces', gender: 'm' }, diets: ['carnívoro', 'omnívoro'] }
+];
+
 function setup(opts = {}) {
+  const { extraFoods, ...careOpts } = opts;
   const SA = loadGame(FILES);
   SA.save.reset();
+  if (extraFoods) {
+    SA.data.register('foods', FIXTURE_FOODS);
+    SA.data.register('vocab', FIXTURE_FOODS.flatMap((f) => [
+      { id: 'food:' + f.id, key: 'food:' + f.id, es: (f.label.gender === 'f' ? 'la ' : 'el ') + f.label.es, clip: null },
+      { id: 'foodpl:' + f.id, key: 'foodpl:' + f.id, es: f.label.plural, clip: null },
+      { id: 'foodsg:' + f.id, key: 'foodsg:' + f.id, es: f.label.es, clip: null }]));
+  }
   let t = 1000;
   const events = [];
-  const care = SA.care.create({ rng: SA.clues.makeRng(5), now: () => t, level: 1, track: (type, f) => events.push({ type, ...f }), ...opts });
+  const care = SA.care.create({ rng: SA.clues.makeRng(5), now: () => t, level: 1, track: (type, f) => events.push({ type, ...f }), ...careOpts });
   return { SA, care, events, advance: (ms) => { t += ms; } };
 }
 
 const realAnimals = (SA) => SA.data.all('animals').filter((a) => !a.easterEgg);
+const feedable = (SA) => realAnimals(SA).filter((a) => SA.data.all('foods').some((f) => f.diets.includes(a.traits.diet)));
 
-test('foods are data with es labels, gender, plural and vocab entries; every diet has a food', () => {
+test('fresa is the only food: data with es labels, gender, plural and vocab; carnivores and insectivores have none', () => {
   const { SA } = setup();
+  assert.deepEqual([...SA.data.all('foods').map((f) => f.id)], ['fresa']);
   for (const f of SA.data.all('foods')) {
     const v = SA.vocab.get('food:' + f.id);
     assert.ok(v, 'vocab for ' + f.id);
     assert.equal(v.es, (f.label.gender === 'f' ? 'la ' : 'el ') + f.label.es);
     assert.ok(f.label.plural.length > 0 && f.icon);
   }
-  for (const d of SA.animals.DIETS) assert.ok(SA.data.all('foods').some((f) => f.diets.includes(d)), 'food for ' + d);
+  assert.equal(SA.vocab.get('food:fresa').es, 'la fresa');
+  for (const id of ['platano', 'zanahoria', 'pez', 'manzana', 'lechuga', 'gusano', 'grillo', 'carne']) assert.ok(!SA.data.get('foods', id), id);
+  for (const d of ['herbívoro', 'omnívoro']) assert.ok(SA.data.all('foods').some((f) => f.diets.includes(d)), 'food for ' + d);
+  for (const d of ['carnívoro', 'insectívoro']) assert.ok(!SA.data.all('foods').some((f) => f.diets.includes(d)), 'no food for ' + d);
   assert.throws(() => SA.data.register('foods', [{ id: 'x', icon: '?', label: { es: 'x', plural: 'xs', gender: 'm' }, diets: ['nope'] }]), /diet/);
   assert.throws(() => SA.data.register('foods', [{ id: 'y', icon: '?', label: { es: 'y', plural: 'ys', gender: 'q' }, diets: ['herbívoro'] }]), /gender/);
 });
@@ -50,7 +71,7 @@ test('feed tasks ask for 1-3 at level 1 and 1-5 at level 2, with agreeing Spanis
   const seen = { 1: new Set(), 2: new Set() };
   for (const level of [1, 2]) {
     const { SA, care } = setup({ level });
-    for (const a of realAnimals(SA)) {
+    for (const a of feedable(SA)) {
       for (let i = 0; i < 30; i++) {
         const task = care.maybeStart(a.id, true, 'alimentar');
         const food = SA.data.get('foods', task.food);
@@ -59,8 +80,9 @@ test('feed tasks ask for 1-3 at level 1 and 1-5 at level 2, with agreeing Spanis
         const word = task.count === 1 ? (food.label.gender === 'f' ? 'una' : 'un') : SA.vocab.get('number:' + task.count).es;
         assert.equal(task.text, `Dale ${word} ${task.count === 1 ? food.label.es : food.label.plural} ${who}`);
         assert.ok(food.diets.includes(a.traits.diet), `${a.id} eats ${food.id}`);
-        assert.ok(task.tray.includes(task.food) && new Set(task.tray).size === task.tray.length);
-        assert.ok(task.tray.some((id) => !SA.data.get('foods', id).diets.includes(a.traits.diet)), 'tray has foods it does not eat');
+        assert.equal(task.food, 'fresa');
+        assert.deepEqual([...task.tray], ['fresa'], 'the tray shows only fresas');
+        assert.deepEqual([...task.items.map((it) => it.food)], ['fresa']);
         assert.equal(task.given, 0);
         assert.equal(task.part, null);
       }
@@ -68,6 +90,37 @@ test('feed tasks ask for 1-3 at level 1 and 1-5 at level 2, with agreeing Spanis
   }
   assert.deepEqual([...seen[1]].sort(), [1, 2, 3]);
   assert.deepEqual([...seen[2]].sort(), [1, 2, 3, 4, 5]);
+});
+
+test('carnivores and insectivores never get a feed task, every herbivore and omnivore does (real data)', () => {
+  for (const level of [1, 2, 3]) {
+    const { SA, care } = setup({ level });
+    const animals = realAnimals(SA);
+    assert.ok(animals.some((a) => a.traits.diet === 'carnívoro') && animals.some((a) => a.traits.diet === 'insectívoro'));
+    for (const a of animals) {
+      const eats = a.traits.diet === 'herbívoro' || a.traits.diet === 'omnívoro';
+      for (let i = 0; i < 10; i++) {
+        const t = care.maybeStart(a.id, true, 'alimentar');
+        if (eats) assert.equal(t.food, 'fresa', a.id);
+        else assert.equal(t, null, a.id + ' (' + a.traits.diet + ') gets no feed task');
+      }
+      // a random forced task for a non-eater is still some other care task, never a feed
+      const any = care.maybeStart(a.id, true);
+      if (any) assert.ok(!(any.kind === 'alimentar' && !eats), a.id);
+    }
+  }
+});
+
+test('feed tasks keep counting: 1-3 fresas at level 1 up to 8 at challenge level, never two foods', () => {
+  const { SA, care } = setup({ level: 3 });
+  const counts = new Set();
+  for (const a of feedable(SA)) for (let i = 0; i < 40; i++) {
+    const t = care.maybeStart(a.id, true, 'alimentar');
+    assert.equal(t.items.length, 1);
+    counts.add(t.count);
+  }
+  assert.equal(Math.max(...counts), 8);
+  assert.equal(Math.min(...counts), 1);
 });
 
 test('exact text for known cases: "Dale una fresa al conejo", "Dale cinco fresas al conejo"', () => {
@@ -83,10 +136,11 @@ test('exact text for known cases: "Dale una fresa al conejo", "Dale cinco fresas
 });
 
 test('feeding completes only at exactly the asked count; the asked food is counted, others bounce back', () => {
-  const { SA, care, events, advance } = setup();
+  const { SA, care, events, advance } = setup({ extraFoods: true });
   let task;
   do { task = care.maybeStart('conejo', true, 'alimentar'); } while (task.count < 3);
-  const wrongDiet = task.tray.find((id) => !SA.data.get('foods', id).diets.includes('herbívoro'));
+  const wrongDiet = 'pez';                                 // fixture food rabbits do not eat: always on the tray as a distractor
+  assert.ok(task.tray.includes(wrongDiet));
   const label = SA.vocab.get('food:' + wrongDiet).es;
   advance(6000);
 
@@ -126,7 +180,7 @@ test('feeding completes only at exactly the asked count; the asked food is count
 });
 
 test('a food the animal eats but was not asked for is "other"; foods outside the tray and part taps are ignored', () => {
-  const { SA, care } = setup();
+  const { SA, care } = setup({ extraFoods: true });
   let task;
   const eatsIt = (f) => f.diets.includes('herbívoro');
   for (let i = 0; i < 80; i++) {            // find a tray that holds a second food the rabbit eats
@@ -149,9 +203,9 @@ test('a food the animal eats but was not asked for is "other"; foods outside the
 
 // ---- challenge level (scaffold 3): bigger counts and two-food asks ----
 function challengeTasks(n = 40) {
-  const { SA, care, ...rest } = setup({ level: 3 });
+  const { SA, care, ...rest } = setup({ level: 3, extraFoods: true });
   const tasks = [];
-  for (const a of realAnimals(SA)) for (let i = 0; i < n; i++) tasks.push(care.maybeStart(a.id, true, 'alimentar'));
+  for (const a of feedable(SA)) for (let i = 0; i < n; i++) tasks.push(care.maybeStart(a.id, true, 'alimentar'));
   return { SA, care, tasks, ...rest };
 }
 
@@ -185,7 +239,7 @@ test('exact two-food text: "Dale dos fresas y una zanahoria al conejo" and mascu
   // rng order at level 3: def pick, target (fresa), pair chance, second (zanahoria), count 1 (2), count 2 (1)
   const seq = [0, 0, 0, 0, 0.25, 0];
   let i = 0;
-  const { care, SA } = setup({ level: 3, rng: () => (i < seq.length ? seq[i++] : 0) });
+  const { care, SA } = setup({ level: 3, extraFoods: true, rng: () => (i < seq.length ? seq[i++] : 0) });
   const t = care.maybeStart('conejo', true, 'alimentar');
   assert.equal(t.text, 'Dale dos fresas y una zanahoria al conejo');
   assert.deepEqual([...t.words], ['number:2', 'foodpl:fresa', 'phrase:y', 'number:una', 'foodsg:zanahoria']);
@@ -198,7 +252,7 @@ test('exact two-food text: "Dale dos fresas y una zanahoria al conejo" and mascu
 test('levels 1 and 2 never ask two foods or exceed their count range', () => {
   for (const [level, max] of [[1, 3], [2, 5]]) {
     const { SA, care } = setup({ level });
-    for (const a of realAnimals(SA)) {
+    for (const a of feedable(SA)) {
       for (let i = 0; i < 30; i++) {
         const t = care.maybeStart(a.id, true, 'alimentar');
         assert.equal(t.items.length, 1);
@@ -209,9 +263,9 @@ test('levels 1 and 2 never ask two foods or exceed their count range', () => {
 });
 
 test('a two-food ask completes only when both counts are fed; wrong or extra food bounces back without penalty', () => {
-  const { SA, care, events } = setup({ level: 3 });
+  const { SA, care, events } = setup({ level: 3, extraFoods: true });
   let task;
-  do { task = care.maybeStart('conejo', true, 'alimentar'); } while (task.items.length < 2);
+  do { task = care.maybeStart('conejo', true, 'alimentar'); } while (task.items.length < 2 || task.tray.length < 3);
   const [a, b] = task.items;
   const other = task.tray.find((id) => id !== a.food && id !== b.food);
   assert.equal(care.feed(other).status, 'wrong');
@@ -243,7 +297,7 @@ test('feed data validates the challenge fields', () => {
 
 test('flow (two-food): counts each food aloud on its own and the dots show one group per food', () => {
   const { SA, care, calls } = (() => {
-    const t = setup({ level: 3 });
+    const t = setup({ level: 3, extraFoods: true });
     return { ...t, calls: [] };
   })();
   const only = { ...care, maybeStart: (id) => { let x; do { x = care.maybeStart(id, true, 'alimentar'); } while (x.items.length < 2); return x; } };
@@ -339,11 +393,7 @@ test('flow (feed): shows the tray, counts aloud, bounces wrong food with a giggl
   assert.equal(f.SA.picking.hasRubTarget(), false);
 
   f.calls.length = 0;
-  const bad = task.tray.find((id) => id !== task.food);
-  flow.onFeed(bad);
-  assert.deepEqual(f.calls.map((c) => c[0]), ['sfx', 'bounceFood', 'toast', 'say']);
-  assert.equal(f.calls[0][1], 'giggle');
-  assert.equal(f.calls[3][1], 'food:' + bad);
+  assert.deepEqual([...task.tray], ['fresa'], 'only fresas on the tray, no distractors');
   assert.equal(f.SA.save.get().stars, 0);
 
   f.calls.length = 0;

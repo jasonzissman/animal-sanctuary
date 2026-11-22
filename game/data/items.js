@@ -38,10 +38,7 @@
     item('cepillo', '🪮', 'el cepillo', 'brush', 'm', 'tool', false),
     item('esponja', '🧽', 'la esponja', 'sponge', 'f', 'tool', false),
     item('venda', '🩹', 'la venda', 'bandage', 'f', 'tool', false),
-    item('platano', '🍌', 'el plátano', 'banana', 'm', 'food', true),
     item('fresa', '🍓', 'la fresa', 'strawberry', 'f', 'food', true),
-    item('zanahoria', '🥕', 'la zanahoria', 'carrot', 'f', 'food', true),
-    item('pez', '🐟', 'el pez', 'fish', 'm', 'food', true),
     item('roca', '🪨', 'la roca', 'rock', 'f', 'find', true)
   ];
 

@@ -7,11 +7,13 @@
  *       With the task's `chance` (or always when force) picks a part from the task data that the animal really has:
  *       { id, taskId, kind, animalId, part, text: 'Limpia las patas', rubs, remaining, spots, misses, done }
  *       A feed task has no part: { ..., kind: 'alimentar', food: 'fresa', count: 3, given: 0, tray: [foodIds],
- *       items: [{ food, count, given }], words: [vocabKeys], text: 'Dale tres fresas al conejo' }; the tray mixes
- *       the asked food(s) with other foods (some the animal does not eat). `count`/`given` are totals over `items`;
- *       `words` are the vocab keys of the asked phrase ("number:3", "foodpl:fresa"). Counts are 1-3 at scaffold
- *       level 1, 1-5 at level 2, and 1-8 at level 3+, which can also ask two different foods in any order:
- *       'Dale dos fresas y una zanahoria al conejo' (words: number:2 foodpl:fresa phrase:y number:una foodsg:zanahoria).
+ *       items: [{ food, count, given }], words: [vocabKeys], text: 'Dale tres fresas al conejo' }; the tray holds the
+ *       asked food(s) plus any other active foods (AS-0155: fresa is the only active food in game/data/foods.js, so the
+ *       tray is just ['fresa'] and an animal whose diet has no food, carnívoro/insectívoro, never gets a feed task).
+ *       `count`/`given` are totals over `items`; `words` are the vocab keys of the asked phrase ("number:3",
+ *       "foodpl:fresa"). Counts are 1-3 at scaffold level 1, 1-5 at level 2, and 1-8 at level 3+, which can also ask two
+ *       different foods once more than one food is active: 'Dale dos fresas y una zanahoria al conejo'
+ *       (words: number:2 foodpl:fresa phrase:y number:una foodsg:zanahoria).
  *   care.feed(foodId, hand?) -> { status: 'ignored' | 'wrong' | 'fed' | 'done', ... }
  *       Only the asked food(s) count. 'fed' carries `given`/`remaining` (totals); the task completes (star,
  *       round.complete) only when every asked item has exactly its count. Any other food, or one too many of an
@@ -140,9 +142,11 @@
       var animal = SA.data.get('animals', animalId);
       if (!animal || (animal.easterEgg && SA.save.get().unlockedAnimals.indexOf(animalId) < 0)) return null;   // hidden eggs have no care
       var has = animal.parts.map(function (p) { return p.part; });
-      // only tasks this animal can really do (a rabbit has el pelo and la barriga, a snake has neither)
+      // only tasks this animal can really do (a rabbit has el pelo and la barriga, a snake has neither); an animal whose
+      // diet has no food (only fresas exist: carnívoro, insectívoro) never gets a feed task
+      var feeds = SA.data.all('foods').some(function (f) { return eats(f, animal.traits.diet); });
       var defs = SA.data.all('careTasks').filter(function (d) {
-        return (!kind || d.kind === kind) && (d.kind === 'alimentar' || d.parts.some(function (k) { return has.indexOf(k) >= 0; }));
+        return (!kind || d.kind === kind) && (d.kind === 'alimentar' ? feeds : d.parts.some(function (k) { return has.indexOf(k) >= 0; }));
       });
       if (!defs.length) return null;
       var def = pick(defs);

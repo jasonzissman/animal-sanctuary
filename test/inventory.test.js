@@ -22,7 +22,7 @@ test('items data: starting tools, foods reusing foods.js ids, finds; articles ag
   const SA = setup();
   const items = SA.data.all('items');
   const ids = items.map((i) => i.id);
-  for (const id of ['camara', 'cepillo', 'esponja', 'venda', 'platano', 'fresa', 'zanahoria', 'pez', 'roca']) {
+  for (const id of ['camara', 'cepillo', 'esponja', 'venda', 'fresa', 'roca']) {
     assert.ok(ids.includes(id), id);
   }
   for (const id of ['flor', 'hoja']) {
@@ -30,7 +30,9 @@ test('items data: starting tools, foods reusing foods.js ids, finds; articles ag
     assert.equal(SA.data.all('vocab').filter((v) => v.key === 'item:' + id || v.key === 'found:' + id).length, 0, id + ' has no vocab');
   }
   assert.equal(SA.data.get('items', 'camara').name.es, 'la cámara');
-  assert.equal(SA.data.get('items', 'platano').name.es, 'el plátano');
+  assert.equal(SA.data.get('items', 'fresa').name.es, 'la fresa');
+  assert.deepEqual(plain(items.filter((i) => i.kind === 'food').map((i) => i.id)), ['fresa'], 'strawberries are the only food item');
+  assert.deepEqual(plain(SA.data.all('foods').map((f) => f.id)), ['fresa']);
   assert.ok(items.filter((i) => i.kind === 'food').every((i) => SA.data.get('foods', i.id)));
   assert.ok(items.filter((i) => i.kind === 'tool').every((i) => !i.stackable));
   assert.equal(SA.data.get('vocab', 'item:roca').es, 'la roca');
@@ -55,15 +57,16 @@ test('a new save starts with camera, brush, sponge and bandage; nothing equipped
   assert.deepEqual(plain(SA.inventory.list()), ['camara', 'cepillo', 'esponja', 'venda'].map((id) => ({ id, count: 1 })));
   assert.equal(SA.inventory.equipped(), null);
   assert.equal(SA.inventory.has('camara'), true);
-  assert.equal(SA.inventory.count('pez'), 0);
+  assert.equal(SA.inventory.count('fresa'), 0);
 });
 
 test('add/remove/count: stackables stack, tools do not, unknown or bad amounts are refused', () => {
   const SA = setup();
   const inv = SA.inventory;
-  assert.equal(inv.add('platano'), true);
-  assert.equal(inv.add('platano', 2), true);
-  assert.equal(inv.count('platano'), 3);
+  assert.equal(inv.add('fresa'), true);
+  assert.equal(inv.add('fresa', 2), true);
+  assert.equal(inv.count('fresa'), 3);
+  for (const gone of ['platano', 'zanahoria', 'pez']) assert.equal(inv.add(gone), false, gone + ' is no longer an item');
   assert.equal(inv.add('camara'), false);
   assert.equal(inv.count('camara'), 1);
   for (const bad of ['nope', undefined, null, 42]) assert.equal(inv.add(bad), false);
@@ -71,42 +74,42 @@ test('add/remove/count: stackables stack, tools do not, unknown or bad amounts a
   assert.equal(inv.count('roca'), 0);
   assert.equal(inv.add('hoja'), false);
   assert.equal(inv.add('flor'), false);
-  assert.equal(inv.remove('platano'), true);
-  assert.equal(inv.count('platano'), 2);
-  assert.equal(inv.remove('platano', 3), false);
-  assert.equal(inv.count('platano'), 2);
-  assert.equal(inv.remove('platano', 2), true);
-  assert.equal(inv.has('platano'), false);
-  assert.equal(inv.remove('platano'), false);
+  assert.equal(inv.remove('fresa'), true);
+  assert.equal(inv.count('fresa'), 2);
+  assert.equal(inv.remove('fresa', 3), false);
+  assert.equal(inv.count('fresa'), 2);
+  assert.equal(inv.remove('fresa', 2), true);
+  assert.equal(inv.has('fresa'), false);
+  assert.equal(inv.remove('fresa'), false);
   assert.equal(inv.remove('roca', 0), false);
 });
 
 test('list() follows items.js order and ignores unknown ids kept in the save', () => {
   const SA = setup();
   SA.inventory.add('roca');
-  SA.inventory.add('pez', 2);
+  SA.inventory.add('fresa', 2);
   SA.save.update({ inventory: { items: [...SA.save.get().inventory.items, { id: 'mystery', count: 1 }] } });
-  assert.deepEqual(plain(SA.inventory.list().map((i) => i.id)), ['camara', 'cepillo', 'esponja', 'venda', 'pez', 'roca']);
-  assert.equal(SA.inventory.list().find((i) => i.id === 'pez').count, 2);
+  assert.deepEqual(plain(SA.inventory.list().map((i) => i.id)), ['camara', 'cepillo', 'esponja', 'venda', 'fresa', 'roca']);
+  assert.equal(SA.inventory.list().find((i) => i.id === 'fresa').count, 2);
 });
 
 test('equip works only for items you hold; removing the equipped item unequips it', () => {
   const SA = setup();
   const inv = SA.inventory;
-  assert.equal(inv.equip('platano'), false);
+  assert.equal(inv.equip('fresa'), false);
   assert.equal(inv.equip('nope'), false);
   assert.equal(inv.equipped(), null);
   assert.equal(inv.equip('cepillo'), true);
   assert.equal(inv.equipped(), 'cepillo');
-  assert.equal(inv.equip('platano'), false);
+  assert.equal(inv.equip('fresa'), false);
   assert.equal(inv.equipped(), 'cepillo');
-  inv.add('platano', 2);
-  assert.equal(inv.equip('platano'), true);
-  inv.remove('platano');
-  assert.equal(inv.equipped(), 'platano');
+  inv.add('fresa', 2);
+  assert.equal(inv.equip('fresa'), true);
+  inv.remove('fresa');
+  assert.equal(inv.equipped(), 'fresa');
   inv.add('roca');
-  assert.equal(inv.equipped(), 'platano');
-  inv.remove('platano');
+  assert.equal(inv.equipped(), 'fresa');
+  inv.remove('fresa');
   assert.equal(inv.equipped(), null);
   inv.equip('venda');
   inv.unequip();
@@ -159,15 +162,15 @@ test('save normalises a damaged inventory: bad entries dropped, unowned equip cl
   assert.deepEqual(n({ items: [{ id: 'roca', count: 1 }], equipped: 'roca' }), { items: [{ id: 'roca', count: 1 }], equipped: 'roca' });
 });
 
-test('old saves holding flor/hoja load cleanly with them removed (also the equipped one)', () => {
-  for (const equipped of ['flor', 'hoja', 'platano']) {
-    const inventory = { items: [{ id: 'camara', count: 1 }, { id: 'flor', count: 3 }, { id: 'platano', count: 2 }, { id: 'hoja', count: 5 }], equipped };
+test('old saves holding flor/hoja or other foods load cleanly with them removed (also the equipped one)', () => {
+  for (const equipped of ['flor', 'hoja', 'platano', 'zanahoria', 'pez', 'fresa']) {
+    const inventory = { items: [{ id: 'camara', count: 1 }, { id: 'flor', count: 3 }, { id: 'platano', count: 2 }, { id: 'hoja', count: 5 },
+      { id: 'zanahoria', count: 1 }, { id: 'pez', count: 4 }, { id: 'fresa', count: 2 }], equipped };
     const SA = setup(fakeStorage({ [KEY]: JSON.stringify({ version: 3, stars: 4, inventory }) }));
-    assert.deepEqual(plain(SA.save.get().inventory), { items: [{ id: 'camara', count: 1 }, { id: 'platano', count: 2 }], equipped: equipped === 'platano' ? 'platano' : null });
-    assert.deepEqual(plain(SA.inventory.list().map((i) => i.id)), ['camara', 'platano']);
-    assert.equal(SA.inventory.count('flor') + SA.inventory.count('hoja'), 0);
+    assert.deepEqual(plain(SA.save.get().inventory), { items: [{ id: 'camara', count: 1 }, { id: 'fresa', count: 2 }], equipped: equipped === 'fresa' ? 'fresa' : null });
+    assert.deepEqual(plain(SA.inventory.list().map((i) => i.id)), ['camara', 'fresa']);
+    for (const gone of ['flor', 'hoja', 'platano', 'zanahoria', 'pez']) assert.equal(SA.inventory.count(gone), 0, gone);
     assert.equal(SA.save.get().stars, 4);
-    assert.deepEqual(plain(SA.hotbar ? SA.hotbar.slots().map((s) => s.id) : ['camara', 'platano']), ['camara', 'platano']);
   }
 });
 

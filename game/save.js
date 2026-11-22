@@ -22,7 +22,7 @@
   var VERSION = 3;
   var STARTING_KIT = ['camara', 'cepillo', 'esponja', 'venda'];
   var DEBOUNCE_MS = 500;
-  var RETIRED_ITEMS = { flor: true, hoja: true };   // removed collectibles (AS-0154): dropped from saved inventories
+  var RETIRED_ITEMS = { flor: true, hoja: true, platano: true, zanahoria: true, pez: true };   // removed items (AS-0154 flor/hoja, AS-0155 other foods): dropped from saved inventories
 
   var state = null;
   var dirty = false;

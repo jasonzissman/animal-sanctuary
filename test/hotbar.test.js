@@ -151,3 +151,66 @@ test('hotbar view: one big icon button per item, count badge, highlighted equipp
   assert.equal(view.hotbarView.create(null).element, null);
   assert.ok(SA);
 });
+
+test('nameChip gives every starting item its Spanish name with the right article, a vocab key and the icon', () => {
+  const { SA } = setup();
+  const expected = { camara: 'la cámara', cepillo: 'el cepillo', esponja: 'la esponja', venda: 'la venda' };
+  for (const [id, text] of Object.entries(expected)) {
+    const c = SA.hotbar.nameChip(id);
+    assert.equal(c.text, text);
+    assert.equal(c.key, 'item:' + id);
+    assert.equal(c.icon, SA.data.get('items', id).icon);
+    assert.equal(SA.vocab.get(c.key).es, text);   // what is spoken matches what is shown
+  }
+  assert.equal(SA.hotbar.nameChip('nope'), null);
+  assert.equal(SA.hotbar.nameChip(null), null);
+});
+
+test('every item (tool, food, find) has a chip whose article agrees with its gender and a vocab entry', () => {
+  const { SA } = setup();
+  for (const it of SA.data.all('items')) {
+    const c = SA.hotbar.nameChip(it.id);
+    assert.equal(c.text, it.name.es);
+    assert.match(c.text, it.gender === 'm' ? /^el / : /^la /);
+    assert.ok(SA.vocab.get(c.key));
+  }
+});
+
+test('hotbar view: equipping shows the name chip and speaks it, unequipping hides it, a restored item is shown but not spoken', () => {
+  const said = [];
+  const stub = (SA) => { SA.audio = { say: (k) => said.push(k) }; };
+  const g = loadGame([...FILES, stub, 'game/ui/hotbar-view.js'], { localStorage: fakeStorage() });
+  g.save.load();
+  const { made, doc } = fakeDoc();
+  const v = g.hotbarView.create(doc);
+  const chip = made[1];
+  assert.match(chip.style.cssText, /display:none/);                                       // hidden until something is equipped
+
+  v.element.children[1].on.pointerdown({ preventDefault() {}, stopPropagation() {} });   // equip el cepillo
+  assert.equal(chip.textContent, '🪮 el cepillo');
+  assert.equal(chip.style.display, 'flex');
+  assert.deepEqual(said, ['item:cepillo']);
+
+  g.hotbar.pressKey('1');                                                                 // switch, then update()
+  v.update();
+  assert.equal(chip.textContent, '📷 la cámara');
+  assert.deepEqual(said, ['item:cepillo', 'item:camara']);
+
+  v.setHidden(true);
+  assert.equal(chip.style.display, 'none');
+  v.setHidden(false);
+  assert.equal(chip.style.display, 'flex');
+
+  g.hotbar.pressKey('0');
+  v.update();
+  assert.equal(chip.style.display, 'none');
+  assert.equal(said.length, 2);                                                           // unequip is silent
+
+  // a new view with an item already in hand: chip shows, nothing is spoken
+  g.hotbar.pressKey('4');
+  const before = said.length;
+  const { made: made2, doc: doc2 } = fakeDoc();
+  g.hotbarView.create(doc2);
+  assert.equal(made2[1].textContent, '🩹 la venda');
+  assert.equal(said.length, before);
+});

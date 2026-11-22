@@ -87,13 +87,13 @@
     { id: 'part-length', type: 'partAdjective', lead: lead.withPart, adjectives: lengthAdjectives,
       parts: ['orejas', 'cola', 'pico', 'patas', 'alas', 'cuernos', 'ojos'] },
     { id: 'trait-movement', type: 'trait', lead: lead.that, trait: 'movement',
-      values: ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre'] },
+      values: ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre', 'repta'] },
     { id: 'trait-size', type: 'trait', lead: lead.plain, trait: 'size', values: ['pequeño', 'mediano', 'grande'] },
     { id: 'trait-color', type: 'trait', lead: lead.plain, trait: 'color',
       values: ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul'] },
     { id: 'touch-part', type: 'touchPart', lead: lead.touch,
       parts: ['cabeza', 'orejas', 'ojos', 'hocico', 'pico', 'cola', 'patas', 'alas', 'caparazon', 'cuernos', 'aletas',
-        'plumas', 'nariz'] }
+        'plumas', 'nariz', 'joroba'] }
   ];
   SA.data.register('clueTemplates', templates);
 

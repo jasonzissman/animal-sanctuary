@@ -38,7 +38,7 @@
   var both = ['bosque', 'selva'];
   var props = [
     prop('flores', '🌼', 'las flores', 'flowers', 1, 'flowers', both, 'land'),
-    prop('roca', '🪨', 'la roca', 'rock', 1, 'rock', both, 'land'),
+    prop('roca', '🪨', 'la roca', 'rock', 1, 'rock', ['bosque', 'selva', 'desierto', 'montana'], 'land'),
     prop('arbol', '🌳', 'el árbol', 'tree', 2, 'tree', both, 'land'),
     prop('charca', '💧', 'la charca', 'pond', 3, 'pond', both, 'land'),
     prop('puente', '🌉', 'el puente', 'bridge', 3, 'bridge', ['bosque'], 'shore')

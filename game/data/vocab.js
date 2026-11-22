@@ -33,17 +33,20 @@
   [['cabeza', 'la cabeza'], ['cuerpo', 'el cuerpo'], ['orejas', 'las orejas'], ['ojos', 'los ojos'],
     ['hocico', 'el hocico'], ['pico', 'el pico'], ['cola', 'la cola'], ['patas', 'las patas'], ['alas', 'las alas'],
     ['caparazon', 'el caparazón'], ['cuernos', 'los cuernos'], ['aletas', 'las aletas'], ['plumas', 'las plumas'],
-    ['nariz', 'la nariz']].forEach(function (p) { add('part', p[0], p[1]); });
+    ['nariz', 'la nariz'], ['joroba', 'la joroba']].forEach(function (p) { add('part', p[0], p[1]); });
 
   [['conejo', 'el conejo'], ['pato', 'el pato'], ['tortuga', 'la tortuga'], ['mono', 'el mono'],
-    ['tucan', 'el tucán'], ['rana', 'la rana']].forEach(function (a) { add('animal', a[0], a[1]); });
+    ['tucan', 'el tucán'], ['rana', 'la rana'], ['camello', 'el camello'], ['serpiente', 'la serpiente'],
+    ['cabra', 'la cabra'], ['aguila', 'el águila']].forEach(function (a) { add('animal', a[0], a[1]); });
 
   add('biome', 'bosque', 'El bosque y el río');
   add('biome', 'selva', 'La selva');
+  add('biome', 'desierto', 'El desierto');
+  add('biome', 'montana', 'La montaña');
 
   ['pequeño', 'mediano', 'grande'].forEach(function (w) { add('size', w, w); });
   ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul'].forEach(function (w) { add('color', w, w); });
-  ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre'].forEach(function (w) { add('movement', w, w); });
+  ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre', 'repta'].forEach(function (w) { add('movement', w, w); });
   ['herbívoro', 'carnívoro', 'omnívoro', 'insectívoro'].forEach(function (w) { add('diet', w, w); });
   ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'].forEach(function (w, i) { add('number', String(i + 1), w); });
 

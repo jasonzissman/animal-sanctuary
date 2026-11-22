@@ -20,7 +20,7 @@
 
   var ICONS = {
     cabeza: '🙂', cuerpo: '🧸', orejas: '👂', ojos: '👀', hocico: '🐽', pico: '🐦', cola: '➰', patas: '🐾',
-    alas: '🪶', caparazon: '🐢', cuernos: '🦌', aletas: '🐟', plumas: '🪶', nariz: '👃',
+    alas: '🪶', caparazon: '🐢', cuernos: '🦌', aletas: '🐟', plumas: '🪶', nariz: '👃', joroba: '🐪',
   };
 
   var listeners = [];

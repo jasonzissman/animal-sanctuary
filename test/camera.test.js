@@ -158,10 +158,29 @@ test('position sits behind and above the target', () => {
   assert.ok(Math.abs(Math.hypot(p.y, p.z - 4) - 20) < 1e-9);
 });
 
-test('map: biomes split at x=0, river and pond are water, rng is deterministic', () => {
+test('map: four biome strips, dry dunes and snowy peaks, river and pond are water, rng is deterministic', () => {
   const M = SA.map;
   assert.equal(M.biomeAt(-5), 'bosque');
   assert.equal(M.biomeAt(5), 'selva');
+  assert.equal(M.biomeAt(-60), 'montana');
+  assert.equal(M.biomeAt(60), 'desierto');
+  assert.equal(M.biomeAt(-79.9), 'montana');
+  assert.equal(M.biomeAt(500), 'desierto');
+  assert.equal(M.biomeRange('desierto').centerX, 60);
+  assert.equal(M.biomeRange('luna'), null);
+  assert.equal(M.BOUNDS.minX, -80);
+  let peak = 0, dune = 0;
+  for (let x = -80; x <= 80; x += 1) {
+    for (let z = -25; z <= 25; z += 1) {
+      const h = M.groundHeight(x, z);
+      if (x < -45) peak = Math.max(peak, h);
+      if (x > 45) dune = Math.max(dune, h);
+      if (x > 48) { assert.ok(!M.isWater(x, z), `desert is dry at ${x},${z}`); }
+      if (x < -48) assert.ok(!M.isWater(x, z), `mountain is dry at ${x},${z}`);
+    }
+  }
+  assert.ok(peak > 4, 'montaña has tall peaks');
+  assert.ok(dune > 1.2 && dune < 3.2, 'desierto has gentle dunes');
   assert.ok(M.isWater(M.riverX(0), 0));
   assert.ok(M.isWater(M.POND.x, M.POND.z));
   assert.ok(!M.isWater(-35, -20));

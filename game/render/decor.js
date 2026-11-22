@@ -51,11 +51,11 @@
     return g;
   }
 
-  /** Scatter `count` items inside [x0,x1] x [-23,23], spaced apart, on dry ground. */
-  function scatter(group, rand, count, x0, x1, make, minGap, taken) {
-    var M = SA.map, placed = 0, tries = 0;
+  /** Scatter `count` items inside [x0,x1] x zr (default [-23,23]), spaced apart, on dry ground. */
+  function scatter(group, rand, count, x0, x1, make, minGap, taken, zr) {
+    var M = SA.map, placed = 0, tries = 0, z0 = zr ? zr[0] : -23, z1 = zr ? zr[1] : 23;
     while (placed < count && tries++ < count * 40) {
-      var x = x0 + rand() * (x1 - x0), z = -23 + rand() * 46;
+      var x = x0 + rand() * (x1 - x0), z = z0 + rand() * (z1 - z0);
       var y = M.groundHeight(x, z);
       if (y < M.WATER_LEVEL + 0.45) continue;
       var ok = true;
@@ -72,6 +72,22 @@
       placed++;
     }
     return placed;
+  }
+
+  /** Desierto: cacti + sandstone. Montaña: snowy pines + big peaks kept at the north/south edges (animals live between). */
+  function addDry(THREE, group, rand, sz, taken) {
+    var D = SA.render.dryDecor, b = D.builders, dm = D.materials(THREE);
+    var desert = SA.map.biomeRange('desierto'), mount = SA.map.biomeRange('montana');
+    if (desert) {
+      scatter(group, rand, 22, desert.lo + 2, desert.hi - 1.5, function (r) { return b.cactus(THREE, dm, sz(r)); }, 3, taken);
+      scatter(group, rand, 10, desert.lo + 2, desert.hi - 1.5, function (r) { return b.sandRock(THREE, dm, 0.8 + r()); }, 2, taken);
+    }
+    if (mount) {
+      var peak = function (r) { return b.peak(THREE, dm, 0.9 + r() * 0.7); };
+      scatter(group, rand, 6, mount.lo + 3, mount.hi - 6, peak, 6, taken, [-23, -11]);
+      scatter(group, rand, 3, mount.lo + 3, mount.hi - 6, peak, 6, taken, [16, 23]);
+      scatter(group, rand, 24, mount.lo + 1.5, mount.hi - 4, function (r) { return b.snowPine(THREE, dm, sz(r)); }, 3, taken);
+    }
   }
 
   SA.render.buildDecor = function (THREE) {
@@ -91,6 +107,7 @@
     scatter(group, rand, 34, 1.5, 38, function (r) { return jungleTree(THREE, m, sz(r)); }, 3.2, taken);
     scatter(group, rand, 8, 1.5, 38, function (r) { return rock(THREE, m, 0.8 + r()); }, 2, taken);
     scatter(group, rand, 16, 1.5, 38, function () { return flower(THREE, m); }, 1.5, taken);
+    if (SA.render.dryDecor) addDry(THREE, group, rand, sz, taken);
     return group;
   };
 })(typeof window !== 'undefined' ? window : globalThis);

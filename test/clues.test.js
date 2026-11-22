@@ -139,6 +139,22 @@ test('selection is seeded and deterministic', () => {
   for (let i = 0; i < 100; i++) { const v = r(); assert.ok(v >= 0 && v < 1); }
 });
 
+test('with all 10 animals every clue has one answer; the new animals get clues (joroba, repta, cuernos)', () => {
+  const SA = load();
+  const ids = SA.data.all('animals').map((a) => a.id);
+  assert.equal(ids.length, 10);
+  const clues = SA.clues.candidates(ids, null);
+  const byText = Object.fromEntries(clues.map((c) => [c.text, c.answer.animalId]));
+  assert.equal(byText['Toca la joroba'], 'camello');
+  assert.equal(byText['Toca los cuernos'], 'cabra');
+  assert.equal(byText['Busca el animal que repta'], 'serpiente');
+  assert.equal(byText['Busca el animal con alas largas'], 'aguila');
+  assert.equal(byText['Busca el animal con patas largas'], 'camello');
+  assert.equal(byText['Busca el animal con cola larga'], 'mono');
+  for (const c of clues) c.vocabKeys.forEach((k) => assert.ok(SA.vocab.get(k), `missing vocab ${k}`));
+  for (const id of ['camello', 'serpiente', 'cabra', 'aguila', 'mono']) assert.ok(clues.some((c) => c.answer.animalId === id), id);
+});
+
 test('types filter restricts which clue kinds are generated', () => {
   const SA = load();
   const only = (types) => new Set(SA.clues.candidates(['conejo', 'tucan'], types).map((c) => c.type));

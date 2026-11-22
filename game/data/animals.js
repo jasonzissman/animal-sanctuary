@@ -17,7 +17,7 @@
   var fail = SA.data.fail;
   var SIZES = ['pequeño', 'mediano', 'grande'];
   var COLORS = ['blanco', 'gris', 'marrón', 'negro', 'verde', 'amarillo', 'naranja', 'rojo', 'azul'];
-  var MOVEMENTS = ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre'];
+  var MOVEMENTS = ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre', 'repta'];
   var DIETS = ['herbívoro', 'carnívoro', 'omnívoro', 'insectívoro'];
   var HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -114,8 +114,8 @@
       traits: { size: 'mediano', color: 'negro', movement: 'vuela', diet: 'herbívoro', legs: 2 },
       parts: [
         p('cuerpo', '#1e1e24', 0.9, 1, [0, 0.8, 0]), p('cabeza', '#1e1e24', 0.5, 1, [0, 1.5, 0.3]),
-        p('pico', '#f5a623', [0.35, 0.3, 1.1], 1, [0, 1.45, 0.9]), p('alas', '#2b2b34', [0.1, 0.7, 0.9], 2, [0.55, 0.9, 0]),
-        p('cola', '#2b2b34', [0.3, 0.1, 0.8], 1, [0, 0.7, -0.8]), p('patas', '#4aa3c7', [0.1, 0.35, 0.1], 2, [0.15, 0.18, 0]),
+        p('pico', '#f5a623', [0.35, 0.3, 1.1], 1, [0, 1.45, 0.9]), p('alas', '#2b2b34', [0.1, 0.7, 0.75], 2, [0.55, 0.9, 0]),
+        p('cola', '#2b2b34', [0.3, 0.1, 0.75], 1, [0, 0.7, -0.8]), p('patas', '#4aa3c7', [0.1, 0.35, 0.1], 2, [0.15, 0.18, 0]),
         p('ojos', '#ffffff', 0.17, 2, [0.15, 1.58, 0.47])
       ], easterEgg: false },
     { id: 'rana', name: { es: 'rana', en: 'frog', gender: 'f' }, biome: 'selva',
@@ -123,6 +123,36 @@
       parts: [
         p('cuerpo', '#4cc04a', [0.9, 0.6, 1], 1, [0, 0.4, 0]), p('cabeza', '#4cc04a', 0.5, 1, [0, 0.7, 0.5]),
         p('ojos', '#f4f4a0', 0.22, 2, [0.18, 1.0, 0.55]), p('patas', '#2f9a35', [0.15, 0.5, 0.3], 4, [0.4, 0.22, 0])
+      ], easterEgg: false },
+    { id: 'camello', name: { es: 'camello', en: 'camel', gender: 'm' }, biome: 'desierto',
+      traits: { size: 'grande', color: 'marrón', movement: 'corre', diet: 'herbívoro', legs: 4 },
+      parts: [
+        p('cuerpo', '#c99a5b', [1.1, 0.9, 1.9], 1, [0, 1.5, 0]), p('joroba', '#b8864a', 0.75, 1, [0, 2.15, -0.1]),
+        p('cabeza', '#c99a5b', 0.6, 1, [0, 2.2, 1.25]), p('hocico', '#a87a40', [0.3, 0.25, 0.3], 1, [0, 2.1, 1.6]),
+        p('orejas', '#a87a40', [0.15, 0.2, 0.15], 2, [0.2, 2.55, 1.15]), p('cola', '#a87a40', [0.1, 0.1, 0.5], 1, [0, 1.6, -1.1]),
+        p('patas', '#b8864a', [0.22, 1.2, 0.22], 4, [0.4, 0.6, 0]), p('ojos', '#222222', 0.1, 2, [0.2, 2.3, 1.5])
+      ], easterEgg: false },
+    { id: 'serpiente', name: { es: 'serpiente', en: 'snake', gender: 'f' }, biome: 'desierto',
+      traits: { size: 'mediano', color: 'naranja', movement: 'repta', diet: 'carnívoro', legs: 0 },
+      parts: [
+        p('cuerpo', '#e08a3c', [0.45, 0.45, 2.4], 1, [0, 0.3, 0]), p('cabeza', '#e08a3c', 0.55, 1, [0, 0.4, 1.4]),
+        p('ojos', '#222222', 0.1, 2, [0.17, 0.55, 1.62]), p('cola', '#c06a24', [0.2, 0.2, 0.7], 1, [0, 0.2, -1.5])
+      ], easterEgg: false },
+    { id: 'cabra', name: { es: 'cabra', en: 'goat', gender: 'f' }, biome: 'montana',
+      traits: { size: 'mediano', color: 'blanco', movement: 'trepa', diet: 'herbívoro', legs: 4 },
+      parts: [
+        p('cuerpo', '#f2efe6', [0.9, 0.8, 1.3], 1, [0, 0.9, 0]), p('cabeza', '#f2efe6', 0.5, 1, [0, 1.4, 0.8]),
+        p('cuernos', '#8a7a62', [0.1, 0.4, 0.1], 2, [0.16, 1.8, 0.75]), p('orejas', '#d8d2c4', [0.3, 0.14, 0.1], 2, [0.3, 1.5, 0.75]),
+        p('hocico', '#d8d2c4', 0.2, 1, [0, 1.3, 1.1]), p('cola', '#d8d2c4', [0.15, 0.15, 0.45], 1, [0, 1.1, -0.8]),
+        p('patas', '#c8c2b4', [0.14, 0.6, 0.14], 4, [0.28, 0.3, 0]), p('ojos', '#222222', 0.09, 2, [0.16, 1.5, 1.04])
+      ], easterEgg: false },
+    { id: 'aguila', name: { es: 'águila', en: 'eagle', gender: 'f' }, biome: 'montana',
+      traits: { size: 'grande', color: 'marrón', movement: 'vuela', diet: 'carnívoro', legs: 2 },
+      parts: [
+        p('cuerpo', '#6b4a2b', 0.95, 1, [0, 0.9, 0]), p('cabeza', '#f4f1ea', 0.5, 1, [0, 1.5, 0.35]),
+        p('pico', '#f2b01e', [0.22, 0.2, 0.5], 1, [0, 1.45, 0.8]), p('alas', '#4e331b', [0.1, 0.9, 1.7], 2, [0.8, 1.0, 0]),
+        p('cola', '#f4f1ea', [0.4, 0.1, 0.7], 1, [0, 0.8, -0.8]), p('patas', '#f2b01e', [0.1, 0.4, 0.1], 2, [0.2, 0.2, 0]),
+        p('ojos', '#222222', 0.1, 2, [0.14, 1.58, 0.62])
       ], easterEgg: false }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

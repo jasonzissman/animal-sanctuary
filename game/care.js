@@ -76,7 +76,8 @@
       var others = shuffled(yes.filter(function (f) { return f !== target; })).slice(0, def.trayMatching);
       var wrong = shuffled(foods.filter(function (f) { return !eats(f, diet); })).slice(0, def.trayOther);
       var tray = shuffled([target].concat(others, wrong)).map(function (f) { return f.id; });
-      var who = (animal.name.gender === 'f' ? 'a la ' : 'al ') + animal.name.es;
+      // Feminine nouns that start with a stressed "á" take "el" (el águila), so "al águila", not "a la águila".
+      var who = (animal.name.gender === 'f' && !/^á/.test(animal.name.es) ? 'a la ' : 'al ') + animal.name.es;
       var text = def.prompt.replace('{count}', countWord(count, target.label.gender))
         .replace('{food}', count === 1 ? target.label.es : target.label.plural).replace('{animal}', who);
       seq += 1;

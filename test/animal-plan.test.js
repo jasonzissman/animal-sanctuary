@@ -106,7 +106,7 @@ test('buildAnimals: groups per animal; every part mesh and pick volume carries u
   }
   const { SA, THREE } = ctx;
   const group = SA.render.buildAnimals(THREE);
-  assert.equal(group.children.length, 6);
+  assert.equal(group.children.length, 10);
   for (const g of group.children) {
     const animal = SA.data.get('animals', g.userData.animalId);
     const parts = g.children.filter((m) => !m.userData.pick);

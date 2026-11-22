@@ -30,6 +30,7 @@
     trepa: { speed: 0.7, turn: 3, pause: [1.5, 3.5], hop: 0, hopRate: 0, float: 0 },
     'camina lento': { speed: 0.3, turn: 1.6, pause: [3, 6], hop: 0, hopRate: 0, float: 0 },
     corre: { speed: 1.4, turn: 4, pause: [1.5, 3.5], hop: 0, hopRate: 0, float: 0 },
+    repta: { speed: 0.6, turn: 2, pause: [2, 4.5], hop: 0, hopRate: 0, float: 0 },
   };
   var DEFAULT_STYLE = STYLES.nada;
 

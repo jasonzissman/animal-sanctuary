@@ -143,8 +143,8 @@
       traits: { size: 'mediano', color: 'verde', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
       parts: [
         p('cuerpo', '#7ab86b', [1.1, 0.4, 1.3], 1, [0, 0.4, 0]), p('caparazon', '#3f7d3a', 1.2, 1, [0, 0.7, 0]),
-        p('cabeza', '#7ab86b', 0.4, 1, [0, 0.6, 0.9]), p('patas', '#7ab86b', 0.25, 4, [0.45, 0.15, 0]),
-        p('cola', '#7ab86b', [0.1, 0.1, 0.3], 1, [0, 0.4, -0.8]), eyes(0.1, [0.11, 0.68, 1.03])
+        p('cabeza', '#7ab86b', 0.4, 1, [0, 0.6, 0.75]), p('patas', '#7ab86b', 0.25, 4, [0.45, 0.15, 0]),
+        p('cola', '#7ab86b', [0.1, 0.1, 0.3], 1, [0, 0.4, -0.8]), eyes(0.1, [0.11, 0.68, 0.88])
       ], easterEgg: false },
     { id: 'mono', name: { es: 'mono', en: 'monkey', gender: 'm' }, icon: '🐵', biome: 'selva', perch: 'tree',
       traits: { size: 'mediano', color: 'marrón', movement: 'trepa', diet: 'omnívoro', legs: 4 },
@@ -158,10 +158,10 @@
     { id: 'tucan', name: { es: 'tucán', en: 'toucan', gender: 'm' }, icon: '🦜', biome: 'selva', perch: 'tree',
       traits: { size: 'mediano', color: 'negro', movement: 'vuela', diet: 'herbívoro', legs: 2 },
       parts: [
-        p('cuerpo', '#1e1e24', 0.9, 1, [0, 0.8, 0]), p('cabeza', '#1e1e24', 0.5, 1, [0, 1.5, 0.3]),
-        p('pico', '#f5a623', [0.35, 0.3, 1.1], 1, [0, 1.45, 0.9]), p('alas', '#2b2b34', [0.1, 0.7, 0.75], 2, [0.55, 0.9, 0]),
+        p('cuerpo', '#1e1e24', 0.9, 1, [0, 0.8, 0]), p('cabeza', '#1e1e24', 0.5, 1, [0, 1.4, 0.3]),
+        p('pico', '#f5a623', [0.35, 0.3, 1.1], 1, [0, 1.35, 0.9]), p('alas', '#2b2b34', [0.1, 0.7, 0.75], 2, [0.55, 0.9, 0]),
         p('cola', '#2b2b34', [0.3, 0.1, 0.75], 1, [0, 0.7, -0.8]), p('patas', '#4aa3c7', [0.1, 0.5, 0.1], 2, [0.15, 0.25, 0]),
-        eyes(0.17, [0.15, 1.58, 0.47])
+        eyes(0.17, [0.15, 1.48, 0.47])
       ], easterEgg: false },
     { id: 'rana', name: { es: 'rana', en: 'frog', gender: 'f' }, icon: '🐸', biome: 'selva',
       traits: { size: 'pequeño', color: 'verde', movement: 'salta', diet: 'insectívoro', legs: 4 },

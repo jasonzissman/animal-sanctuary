@@ -3,6 +3,8 @@
  *   fx.show(task)        brown mud spots on every instance of task.part
  *   fx.scrub(spotsLeft)  keeps only the first `spotsLeft` spots; each removed spot bursts into splash sparkles
  *   fx.hide()            removes any leftover spots
+ *   fx.fly(animalId)     tangled wing finished: frees the bird (ambient.setTangled false) and starts its happy loop
+ *                        (a tangled task puts flat green leaf bits on ONE wing and makes the bird hop, not fly)
  *   opts.ambient         optional SA.render.createAmbient: the animal being cared for stands still until hide()
  *   fx.update(dt)        call every frame (animates the sparkle particles)
  * Spots are small flattened spheres added to the animal group (part meshes are non-uniformly scaled, so they are
@@ -22,6 +24,7 @@
     var mats = [new THREE.MeshLambertMaterial({ color: MUD }), new THREE.MeshLambertMaterial({ color: MUD_DARK })];
     var scrapeMats = [new THREE.MeshLambertMaterial({ color: 0xd9534f }), new THREE.MeshLambertMaterial({ color: 0xb03a36 })];
     var tangleMats = [new THREE.MeshLambertMaterial({ color: 0xb08a4a }), new THREE.MeshLambertMaterial({ color: 0x8a6a34 })];
+    var leafMats = [new THREE.MeshLambertMaterial({ color: 0x4caf50 }), new THREE.MeshLambertMaterial({ color: 0x7a5a2e })];   // leaf, twig
     var bandageMat = new THREE.MeshLambertMaterial({ color: 0xf6e3c4 }), crossMat = new THREE.MeshLambertMaterial({ color: 0xe8706b });
     var group = null, spots = [], bits = [], lastSpot = null;
     var seed = 1;
@@ -43,17 +46,19 @@
       if (!group) return false;
       var meshes = partMeshes(group, task.part);
       if (task.part && !meshes.length) return false;      // a feed task has no part: only the zoom below
-      var palette = task.kind === 'curar' ? scrapeMats : task.kind === 'cepillar' ? tangleMats : mats;   // sore / tangled / muddy
+      var palette = task.kind === 'curar' ? scrapeMats : task.kind === 'cepillar' ? tangleMats : task.tangled ? leafMats : mats;   // sore / tangled / leaf / muddy
       var count = task.kind === 'acariciar' ? 0 : task.spots;      // petting la barriga has nothing to wash off
+      if (task.tangled && ambient && ambient.setTangled) ambient.setTangled(task.animalId, true);   // the bird hops instead of flying
       for (var i = 0; task.part && i < count; i++) {
-        var m = meshes[i % meshes.length];
+        var m = task.tangled ? meshes[0] : meshes[i % meshes.length];      // a stuck leaf is on ONE wing
         var spot = new THREE.Mesh(geo, palette[i % 2]);
         // a point on the ellipsoid around the part, biased upward so the mud shows from the tilted camera
         var a = rand() * Math.PI * 2, el = rand() * 1.1 - 0.1, h = Math.sqrt(Math.max(0, 1 - el * el));
         spot.position.set(m.position.x + Math.cos(a) * h * m.scale.x * 0.5,
           m.position.y + el * m.scale.y * 0.5, m.position.z + Math.sin(a) * h * m.scale.z * 0.5);
         var r = Math.min(0.14, Math.max(0.05, Math.min(m.scale.x, m.scale.y, m.scale.z) * 0.4)) * (0.8 + rand() * 0.4);
-        spot.scale.set(r, r * 0.6, r);
+        if (task.tangled) { r *= 1.3; spot.scale.set(r * 1.8, r * 0.3, r * 1.1); spot.rotation.set(0, a, 0.4 * (i - 1)); }   // flat leaf bits
+        else spot.scale.set(r, r * 0.6, r);
         spot.userData = { mud: true, index: i };
         group.add(spot);
         spots.push(spot);
@@ -97,9 +102,16 @@
       spots.push(b);
     }
 
+    // Tangled wing done: the bird flaps, spins and flies a happy loop (ambient.flyLoop); it is free to fly again.
+    function fly(animalId) {
+      if (!ambient) return;
+      if (ambient.setTangled) ambient.setTangled(animalId, false);
+      if (ambient.flyLoop) ambient.flyLoop(animalId);
+    }
+
     function hide() {
       clear();
-      if (ambient && held) { ambient.release(held); held = null; }
+      if (ambient && held) { if (ambient.setTangled) ambient.setTangled(held, false); ambient.release(held); held = null; }
     }
 
     function update(dt) {
@@ -114,6 +126,6 @@
       });
     }
 
-    return { show: show, scrub: scrub, bandage: bandage, hide: hide, update: update, spotCount: function () { return spots.length; } };
+    return { show: show, scrub: scrub, bandage: bandage, fly: fly, hide: hide, update: update, spotCount: function () { return spots.length; } };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

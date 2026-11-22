@@ -27,9 +27,9 @@ function setup(kind) {
 test('the action table is validated: items, parts, verbs, reactions and sounds', () => {
   const { SA } = setup();
   const ids = SA.data.all('actions').map((a) => a.id);
-  assert.deepEqual([...ids], ['cepillar', 'lavar', 'curar', 'acariciar', 'alimentar']);
+  assert.deepEqual([...ids], ['cepillar', 'lavar', 'curar', 'acariciar', 'desenredar', 'alimentar']);
   const tools = Object.fromEntries(SA.data.all('actions').map((a) => [a.id, a.item]));
-  assert.deepEqual({ ...tools }, { cepillar: 'cepillo', lavar: 'esponja', curar: 'venda', acariciar: 'hands', alimentar: 'food' });
+  assert.deepEqual({ ...tools }, { cepillar: 'cepillo', lavar: 'esponja', curar: 'venda', acariciar: 'hands', desenredar: 'hands', alimentar: 'food' });
   for (const a of SA.data.all('actions')) assert.ok(a.item === 'hands' || a.item === 'food' || SA.data.get('items', a.item), a.id);
   const base = SA.data.get('actions', 'lavar');
   const bad = (patch, re) => assert.throws(() => SA.data.register('actions', [{ ...base, id: 'prueba', ...patch }]), re);

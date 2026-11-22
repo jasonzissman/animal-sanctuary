@@ -13,6 +13,8 @@
  *                                     On a feed task the item must be a food from the inventory: it is given and used up.
  *   flow.onFeed(foodId)               feed task: a tray food was tapped; the asked food is counted aloud, anything else
  *                                     bounces back with a giggle and its name (no penalty); exactly `count` finishes
+ *   (desenredar: "Quita la hoja de las alas"; each tug pulls a leaf bit off; the last one calls fx.fly(animalId), adds the
+ *   action's `gives` item (la hoja) to the inventory and speaks the action's `say` ("¡Ya puede volar!"))
  *   (curar: "Cura las alas" is one tap on the scraped part; finishing draws a bandage via fx.bandage())
  *   flow.replay()                   speaks the prompt again (a feed ask word by word, pulsing each food: view.pulseFood(id))
  */
@@ -68,8 +70,13 @@
       react(res.animalId, res.reaction);
       view.celebrate({ icon: '✨', stars: res.stars });
       view.confetti();
-      view.toast('¡Muy bien! ⭐');
-      say('phrase:muybien');
+      // A tangled wing (action.tangled): the bird flies a happy loop, the leaf is yours, and "¡Ya puede volar!" is said.
+      if (res.tangled && fx && fx.fly) fx.fly(res.animalId);
+      var inv = o.inventory || SA.inventory;
+      if (res.gives && inv && inv.add) { try { inv.add(res.gives, 1); } catch (e) { /* inventory never breaks play */ } }
+      var phrase = res.say && SA.vocab && SA.vocab.get(res.say);
+      view.toast((phrase ? phrase.es : '¡Muy bien!') + ' ⭐');
+      say(phrase ? res.say : 'phrase:muybien');
       later(function () {
         if (fx) fx.hide();
         if (o.onDone) o.onDone();

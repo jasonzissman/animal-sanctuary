@@ -3,6 +3,8 @@
  *   ambient.update(dt)         call every frame BEFORE round-fx/care-fx (they override pose while a reaction plays)
  *   ambient.hold(id, seconds?) stop one animal wandering (while inspected / cared for); no seconds = until release
  *   ambient.release(id)        let it wander again
+ *   ambient.setTangled(id, on)  a stuck leaf on a wing: the flyer hops on the ground with drooping wings until freed
+ *   ambient.flyLoop(id)         freed: one spinning circle in the air with wide wing beats, then normal again
  *   ambient.setAvoid(points)   replace the [[x, z, r?],...] points wanderers keep clear of (decor + placed props)
  * opts.trees = [{ x, z, y?, scale?, kind? }] are the canopies tree-dwellers (animal data perch: "tree") perch in.
  * Wandering comes from SA.wander (driven by traits.movement). Idle animation: breathing (group scale), ear and tail
@@ -14,6 +16,8 @@
   SA.render = SA.render || {};
 
   var PART_HOLD = 5;   // seconds an animal stays put after a tap
+  var HOP_RATE = 7, HOP_HEIGHT = 0.18, DROOP = 0.6;            // tangled wing: hop speed (rad/s), height, wing droop (rad)
+  var LOOP_SECONDS = 1.9, LOOP_RADIUS = 1.1, LOOP_LIFT = 1.3;   // freed bird's happy loop (shorter than care-flow NEXT_MS)
 
   SA.render.createAmbient = function (opts) {
     var group = opts.animals, rigs = {}, t = 0;
@@ -65,7 +69,10 @@
     function animateLimbs(r, moving, dt) {
       var G = SA.gait;
       r.amp = G.ease(r.amp, moving, Math.min(dt, 0.1));
-      if (r.gait === 'flap') {
+      if (r.gait === 'flap' && r.tangled && !r.loop) {
+        // a leaf is stuck: the wings droop and do not flap (the bird hops, see update)
+        r.wings.forEach(function (e) { e.m.rotation.z = e.rz - (e.m.userData.side === 'right' ? -1 : 1) * DROOP; });
+      } else if (r.gait === 'flap') {
         r.wings.forEach(function (e) { e.m.rotation.z = e.rz + G.flap(t, r.amp, e.m.userData.side, r.phase); });
       } else if (r.gait === 'swing') {
         r.legs.forEach(function (e) {
@@ -80,15 +87,26 @@
       t += Math.min(dt, 0.1);
       Object.keys(rigs).forEach(function (id) {
         var r = rigs[id], g = r.g, p = r.w.update(dt), idle = SA.wander.idle(t, r.phase);
+        var spin = 0, loopLift = 0, moving = p.moving;
         g.position.x = p.x;
         g.position.z = p.z;
-        g.position.y = p.perched ? p.y : SA.map.groundHeight(p.x, p.z) + p.lift;
-        g.rotation.y = p.heading;
+        // Tangled wing: the bird hops on the ground instead of hovering. Freed: it circles once, spinning, up in the air.
+        var lift = r.tangled ? Math.abs(Math.sin(t * HOP_RATE + r.phase)) * HOP_HEIGHT : p.perched ? 0 : p.lift;
+        if (r.loop) {
+          r.loop.t += Math.min(dt, 0.1);
+          var u = Math.min(1, r.loop.t / LOOP_SECONDS), a = u * Math.PI * 2;
+          g.position.x += LOOP_RADIUS * (Math.cos(a) - 1);
+          g.position.z += LOOP_RADIUS * Math.sin(a);
+          spin = a; loopLift = LOOP_LIFT * Math.sin(u * Math.PI); moving = true;
+          if (u >= 1) r.loop = null;
+        }
+        g.position.y = (p.perched ? p.y : SA.map.groundHeight(p.x, p.z)) + lift + loopLift;
+        g.rotation.y = p.heading + spin;
         g.scale.set(r.sx / Math.sqrt(idle.breath), r.sy * idle.breath, r.sz / Math.sqrt(idle.breath));
         r.ears.forEach(function (e) { e.m.rotation.z = e.rz + idle.wiggle * 0.25 * (e.m.userData.side === 'right' ? -1 : 1); });
         r.tail.forEach(function (e) { e.m.rotation.y = e.ry + idle.wiggle * 0.5; });
         r.eyes.forEach(function (e) { e.m.scale.y = e.sy * (1 - 0.9 * idle.blink); });
-        animateLimbs(r, p.moving, dt);
+        animateLimbs(r, moving && !(r.tangled && !r.loop), dt);
         // Rosy cheeks sparkle: a quick shimmering pulse (phase-shifted per cheek).
         r.cheeks.forEach(function (e, k) { e.m.scale.y = e.sy * (1 + 0.3 * Math.abs(Math.sin(t * 5 + r.phase + k * 1.3))); });
       });
@@ -96,11 +114,15 @@
 
     function hold(id, seconds) { if (rigs[id]) rigs[id].w.hold(seconds); }
     function release(id) { if (rigs[id]) rigs[id].w.release(); }
+    // Tangled wing (care task with action.tangled): the animal hops with drooping wings instead of flying until freed.
+    function setTangled(id, on) { if (rigs[id]) rigs[id].tangled = !!on; }
+    // Freed: one happy spinning circle in the air with wide wing beats (LOOP_SECONDS), then back to normal.
+    function flyLoop(id) { if (rigs[id]) { rigs[id].tangled = false; rigs[id].loop = { t: 0 }; } }
 
     if (SA.picking && SA.picking.onPick) SA.picking.onPick(function (pick) { if (pick && pick.animalId) hold(pick.animalId, PART_HOLD); });
 
     function setAvoid(points) { Object.keys(rigs).forEach(function (id) { rigs[id].w.setAvoid(points); }); }
 
-    return { update: update, hold: hold, release: release, setAvoid: setAvoid, rigs: rigs };
+    return { update: update, hold: hold, release: release, setTangled: setTangled, flyLoop: flyLoop, setAvoid: setAvoid, rigs: rigs };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

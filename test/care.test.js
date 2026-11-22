@@ -265,3 +265,37 @@ test('care fx: mud spots appear on the target part, wash away with sparkles, and
   assert.equal(fx.show({ animalId: 'nadie', part: 'patas', spots: 2 }), false);
   assert.equal(fx.show({ animalId: 'tortuga', part: 'alas', spots: 2 }), false);   // a part it does not have
 });
+
+test('care fx: a tangled wing shows leaf bits on ONE wing, tells ambient the bird is stuck, and fly() frees it', () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const ctx = vm.createContext({ console });
+  ctx.window = ctx;
+  ctx.self = ctx;
+  for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
+    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
+    vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
+  }
+  const { SA, THREE } = ctx;
+  const animals = SA.render.buildAnimals(THREE, {});
+  const calls = [];
+  const ambient = { hold: (id) => calls.push(['hold', id]), release: (id) => calls.push(['release', id]),
+    setTangled: (id, on) => calls.push(['tangled', id, on]), flyLoop: (id) => calls.push(['loop', id]) };
+  const fx = SA.render.createCareFx(THREE, { animals, ambient });
+  const id = animals.children.map((g) => g.userData.animalId).find((a) => SA.data.get('animals', a).parts.some((p) => p.part === 'alas'));
+  const group = animals.getObjectByName(id);
+  const before = group.children.length;
+  assert.equal(fx.show({ animalId: id, part: 'alas', spots: 3, kind: 'desenredar', tangled: true }), true);
+  assert.equal(fx.spotCount(), 3);
+  assert.equal(group.children.length, before + 3);
+  const wings = group.children.filter((m) => !m.userData.pick && m.userData.part === 'alas');
+  const leaves = group.children.filter((m) => m.userData.mud);
+  const nearest = (leaf) => wings.map((w) => w.position.distanceTo(leaf.position)).indexOf(Math.min(...wings.map((w) => w.position.distanceTo(leaf.position))));
+  assert.equal(new Set(leaves.map(nearest)).size, 1, 'all the leaf bits are on the same wing');
+  assert.deepEqual(calls.filter((c) => c[0] === 'tangled'), [['tangled', id, true]]);
+  fx.scrub(0);
+  fx.fly(id);
+  assert.deepEqual(calls.slice(-2), [['tangled', id, false], ['loop', id]]);
+  fx.hide();
+  assert.equal(group.children.length, before);
+  assert.deepEqual(calls.slice(-1)[0], ['release', id]);
+});

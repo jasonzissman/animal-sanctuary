@@ -26,7 +26,12 @@
  *       5th arg `targets` (AS-0166, optional): walking off a top then asks SA.climb.landAssist (game/climb-assist.js) for a tree/peak/roof
  *       roughly ahead (~7 units, ~40 degrees, not much higher than you): a short hop (mode 'down', fall + assist) that lands ON its top
  *       (mode 'canopy' / 'top', same `land` frame). input.lift (the jump lift) raises the reachable height. No target = the fall above.
- *   SA.climb.edgeDistance(target, x, z) -> distance from the point to the target's base edge (0 inside): the one "in reach" measure
+ *   SA.climb.edgeDistance(target, x, z) -> distance from the point to the target's base edge (0 inside): the one "in reach" measure.
+ *       Infinity inside one of the target's optional `noClimb: [{ x0, x1, z0, z1 }]` ground zones (AS-0165: the station doorway and its
+ *       room never climb), so nearest/start/auto-climb and the Space chooser all skip the target from there.
+ *       Optional `top.solids: [[x, z, r], ...]` are circles you cannot walk through on the flat top (the station's dish and antenna).
+ *   SA.climb.focusPoint(target, x, z) -> { x, z }: where the Space chooser measures "facing" to: the nearest point of a rectangular
+ *       base, else the centre (so a wall beside the doorway is nearer than the building's middle and beats the door)
  *   SA.climb.autoStep(timer, before, after, input, targets, dtMs) -> { ms, tree, progress, climb }: the AS-0157 push timer
  *   SA.climb.active(state) -> true while up, on or coming down a target
  * Coming down (button or fall) always ends on dry, in-bounds ground outside the base, never damage: the landing is the point
@@ -99,7 +104,8 @@
     else foot = circle(num(d.radius, 1) > 0 ? num(d.radius, 1) : 1);
     var top = topShape(d.top, circle(Math.max(1.5, foot.r)));
     if (!top) return null;
-    var n = { kind: d.kind || 'tree', x: d.x, z: d.z, topY: d.topY, foot: foot, top: top, inset: generic && d.kind !== 'tree' ? 0 : TRUNK_R };
+    var n = { kind: d.kind || 'tree', x: d.x, z: d.z, topY: d.topY, foot: foot, top: top, inset: generic && d.kind !== 'tree' ? 0 : TRUNK_R,
+      solids: d.top && Array.isArray(d.top.solids) ? d.top.solids : [], noClimb: Array.isArray(d.noClimb) ? d.noClimb : [] };
     if (cache) cache.set(t, n);
     return n;
   }
@@ -108,7 +114,20 @@
   function edgeOf(t) { var n = norm(t); return n ? n.top.r : 0; }
 
   /** Distance from the (x, z) point to the target's solid base edge (0 inside it); Infinity for junk. The one "in reach" measure. */
-  function edgeDistance(t, x, z) { var n = norm(t); return n ? edgeDist(n.foot, n.x, n.z, x, z) : Infinity; }
+  function edgeDistance(t, x, z) { var n = norm(t); return n ? reach(n, x, z) : Infinity; }
+
+  /** Reach measure on normalised data: the edge distance, Infinity inside a noClimb zone (AS-0165: the station doorway and its room). */
+  function reach(n, x, z) {
+    for (var i = 0; i < n.noClimb.length; i++) { var b = n.noClimb[i]; if (x >= b.x0 && x <= b.x1 && z >= b.z0 && z <= b.z1) return Infinity; }
+    return edgeDist(n.foot, n.x, n.z, x, z);
+  }
+
+  /** Where "facing" is measured to: the nearest point of a rectangular base, else the target's centre. */
+  function focusPoint(t, x, z) {
+    var n = norm(t);
+    if (!n || n.foot.round) return { x: t && t.x, z: t && t.z };
+    return { x: Math.max(n.x - n.foot.hw, Math.min(n.x + n.foot.hw, x)), z: Math.max(n.z - n.foot.hd, Math.min(n.z + n.foot.hd, z)) };
+  }
 
   function copy(s, patch) {
     var o = { x: s.x, z: s.z, heading: s.heading, y: num(s.y, 0), climb: s.climb || null };
@@ -126,7 +145,7 @@
     targets.forEach(function (t) {
       var n = norm(t);
       if (!n) return;
-      var d = edgeDist(n.foot, n.x, n.z, state.x, state.z);
+      var d = reach(n, state.x, state.z);
       if (d <= bd) { best = t; bd = d; }
     });
     return best;
@@ -141,7 +160,7 @@
   function start(state, target) {
     var n = norm(target);
     if (!state || !n || active(state)) return state;
-    if (edgeDist(n.foot, n.x, n.z, state.x, state.z) > EDGE_RANGE) return state;
+    if (reach(n, state.x, state.z) > EDGE_RANGE) return state;
     var dx = state.x - n.x, dz = state.z - n.z, d = Math.hypot(dx, dz);
     if (d < 1e-6) { dx = -Math.sin(state.heading || 0); dz = -Math.cos(state.heading || 0); d = 1; }
     var ux = dx / d, uz = dz / d;
@@ -206,7 +225,7 @@
     dt = Math.max(0, Math.min(MAX_DT, num(dt, 0)));
     var n = c.target;
     if (c.mode === 'canopy' || c.mode === 'top') {
-      var w = SA.player.step(state, input, dt, []);
+      var w = SA.player.step(state, input, dt, n.solids);   // the flat top is open, bar its solids (the station's dish and antenna)
       var walked = copy(state, { x: w.x, z: w.z, heading: w.heading, y: n.topY });
       if (edgeDist(n.top, n.x, n.z, w.x, w.z) > 0) return leave(walked, c, input, targets);   // walked off the edge: a fall, or the landing assist
       return walked;
@@ -261,7 +280,7 @@
   function autoStep(timer, before, after, input, targets, dtMs) {
     if (!before || !after || active(before) || active(after) || !input || !(input.forward > 0.3)) return AUTO_IDLE;
     var tree = nearest(after, targets), n = norm(tree);
-    if (!n || edgeDist(n.foot, n.x, n.z, after.x, after.z) > AUTO_PUSH_RANGE) return AUTO_IDLE;
+    if (!n || reach(n, after.x, after.z) > AUTO_PUSH_RANGE) return AUTO_IDLE;
     var px = n.foot.round ? n.x : Math.max(n.x - n.foot.hw, Math.min(n.x + n.foot.hw, after.x));   // nearest point of the base
     var pz = n.foot.round ? n.z : Math.max(n.z - n.foot.hd, Math.min(n.z + n.foot.hd, after.z));
     var aim = Math.atan2(px - after.x, pz - after.z);
@@ -276,6 +295,6 @@
 
   SA.climb = { RANGE: RANGE, EDGE_RANGE: EDGE_RANGE, UP_TIME: UP_TIME, DOWN_TIME: DOWN_TIME, TRUNK_R: TRUNK_R, nearest: nearest, prompt: prompt,
     start: start, stop: stop, toggle: toggle, step: step, active: active, onTop: onTop, landed: landed, fromTree: fromTree,
-    edgeRadius: edgeOf, edgeDistance: edgeDistance, topOf: topOf, AUTO_CLIMB_MS: AUTO_CLIMB_MS, autoStep: autoStep };
+    edgeRadius: edgeOf, edgeDistance: edgeDistance, focusPoint: focusPoint, topOf: topOf, AUTO_CLIMB_MS: AUTO_CLIMB_MS, autoStep: autoStep };
   if (SA.player) SA.player.climb = SA.climb;
 })(typeof window !== 'undefined' ? window : globalThis);

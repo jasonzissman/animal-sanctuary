@@ -24,8 +24,12 @@ function trees(SA) {
 
 test('pickup data validates and every item has a spoken exclamation agreeing in gender', () => {
   const SA = fresh();
-  assert.equal(SA.vocab.get('found:platano').es, '¡Un plátano!');
   assert.equal(SA.vocab.get('found:fresa').es, '¡Una fresa!');
+  assert.deepEqual([...new Set(SA.data.all('pickups').map((r) => r.item))].sort(), ['fresa', 'roca'], 'fresa is the only food pickup');
+  const feedable = new Set(SA.data.all('animals').filter((a) => !a.easterEgg && SA.data.all('foods').some((f) => f.diets.includes(a.traits.diet))).map((a) => a.biome));
+  for (const biome of feedable) {
+    assert.ok(SA.data.all('pickups').some((r) => r.item === 'fresa' && r.biomes.includes(biome)), 'strawberries grow in ' + biome);
+  }
   assert.equal(SA.data.all('pickups').filter((r) => r.item === 'flor' || r.item === 'hoja').length, 0, 'no flower/leaf pickups');
   assert.equal(SA.data.all('pickups').filter((r) => /^(flor|hoja)-/.test(r.id)).length, 0, 'no flor-suelo / hoja-suelo rules');
   assert.equal(SA.vocab.get('found:roca').es, '¡Una roca!');
@@ -60,9 +64,10 @@ test('layout fills each rule per biome: canopy fruit, ground finds, bank fish', 
     else assert.ok(s.y < SA.map.groundHeight(s.x, s.z) + 1, s.id + ' is near the ground');
     if (s.where === 'water') assert.ok(SA.map.nearWater(s.x, s.z, 3.5), s.id + ' is by the water');
   }
-  assert.ok(spots.some((s) => s.item === 'platano' && s.where === 'tree'));
+  assert.ok(spots.some((s) => s.item === 'fresa' && s.where === 'tree'));
+  assert.ok(spots.some((s) => s.item === 'fresa' && s.where === 'ground'));
   assert.ok(spots.some((s) => s.item === 'roca' && s.where === 'ground'));
-  assert.ok(spots.some((s) => s.item === 'pez' && s.where === 'water'));
+  for (const biome of ['bosque', 'selva', 'montana', 'desierto']) assert.ok(spots.some((s) => s.item === 'fresa' && s.biome === biome), 'a fresa in ' + biome);
 });
 
 test('ground finds keep clear of decor and of each other', () => {
@@ -98,11 +103,12 @@ test('space radius is wider than the walk radius', () => {
 
 test('canopy fruit needs the player up the tree', () => {
   const SA = fresh(), w = SA.pickups.create({ trees: trees(SA), seed: 5 });
-  const banana = w.list().find((s) => s.item === 'platano');
-  assert.equal(w.collectNear({ x: banana.x, z: banana.z, y: SA.map.groundHeight(banana.x, banana.z) }), null, 'from the ground');
-  const got = w.collectNear({ x: banana.x, z: banana.z, y: banana.y });
-  assert.equal(got.item, 'platano');
-  assert.equal(SA.inventory.count('platano'), 1);
+  const up = (s) => s.y - SA.map.groundHeight(s.x, s.z);
+  const berry = w.list().filter((s) => s.item === 'fresa' && s.where === 'tree').sort((a, b) => up(b) - up(a))[0];   // the highest one
+  assert.equal(w.collectNear({ x: berry.x, z: berry.z, y: SA.map.groundHeight(berry.x, berry.z) }), null, 'from the ground');
+  const got = w.collectNear({ x: berry.x, z: berry.z, y: berry.y });
+  assert.equal(got.item, 'fresa');
+  assert.equal(SA.inventory.count('fresa'), 1);
 });
 
 test('collected finds respawn after their time, and the world never runs dry', () => {

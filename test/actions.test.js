@@ -61,7 +61,7 @@ test('SA.actions.fits: tools match their item, hands match nothing held, food ma
   assert.equal(SA.actions.fits(SA.data.get('actions', 'cepillar'), null), false);
   assert.equal(SA.actions.fits(SA.data.get('actions', 'acariciar'), null), true);
   assert.equal(SA.actions.fits(SA.data.get('actions', 'acariciar'), 'cepillo'), false);
-  assert.equal(SA.actions.fits(SA.data.get('actions', 'alimentar'), 'platano'), true);
+  assert.equal(SA.actions.fits(SA.data.get('actions', 'alimentar'), 'fresa'), true);
   assert.equal(SA.actions.fits(SA.data.get('actions', 'alimentar'), 'roca'), false);
 });
 
@@ -132,11 +132,8 @@ test('hand feeding: the equipped food is given with Space and used up; wrong foo
   const inv = t.SA.inventory;
   assert.equal(inv.count(task.food), 0, 'the starting kit holds no food');
   inv.add(task.food, 4);
-  const other = ['pez', 'platano', 'fresa', 'zanahoria'].find((f) => f !== task.food && !t.SA.data.get('foods', f).diets.includes('herbívoro'));
-  inv.add(other, 1);
+  assert.equal(task.food, 'fresa', 'strawberries are the only food');
   const feedOnce = (item) => t.flow.onPick({ animalId: 'conejo', part: 'cuerpo', item });
-  assert.equal(feedOnce(other).status, 'wrong');
-  assert.equal(inv.count(other), 1, 'a refused food stays in the inventory');
   assert.equal(feedOnce('cepillo').status, 'wrong', 'a tool is a funny miss');
   assert.equal(feedOnce(undefined).status, 'wrong', 'empty hands are a funny miss');
   assert.equal(t.flow.onPick({ animalId: 'pato', part: 'cuerpo', item: task.food }).status, 'ignored', 'another animal');

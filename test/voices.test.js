@@ -120,7 +120,7 @@ test('generate is idempotent: skips existing clips unless --force', () => {
 test('every feed vocab key (number:un/una, phrase:y, foodsg:*, foodpl:*) is in the core voice key list', () => {
   const keys = loadManifest(ROOT).map((e) => e.key);
   const feed = keys.filter((k) => /^(foodsg|foodpl):/.test(k));
-  assert.ok(feed.length >= 18, 'food keys come from game/data/foods.js');
+  assert.ok(feed.includes('foodsg:fresa') && feed.includes('foodpl:fresa'), 'food keys come from game/data/foods.js (fresa only)');
   const wanted = ['number:un', 'number:una', 'phrase:y', ...feed];
   const planned = generate({ root: ROOT, exec: () => { throw new Error('must not run'); }, listOnly: true, core: true });
   for (const k of wanted) {

@@ -25,6 +25,9 @@ current; when your change sets or changes something future tickets must follow, 
   `obstacles()` (those boxes as circle chains, appended to the player's obstacle list in scene.js), `spawn()` (what `SA.player.spawn()`
   returns when the module is loaded) and `inFootprint()` (decor and animal placement keep out). `game/render/station.js` builds the model
   from flat primitives (the sign letters are boxes, no textures). Later slices put the scientist and briefing in/at the station.
+- **Climb anything too steep to walk (AS-0163 to AS-0165).** Trees, mountain peaks and the station all climb the same way:
+  face it -> outline -> E/Enter, or push forward 0.6 s. Tops are flat enough to stand and turn (peaks: a 2-3 unit summit);
+  walk or jump off the edge to drop down safely. Climb targets are data; anything new that is too steep joins them.
 - **The world reacts to bumping (AS-0156, AS-0157).** A cactus pricks: bounce back with "¡Ay! ¡Pica!" (never a penalty).
   Keep pushing forward into a tree for 0.6 s and you climb it (a filling ring shows it coming); C/E still climb instantly.
 - **Movement has sound (AS-0118 to AS-0120).** Soft footsteps (quicker when running, splashy in water, leafy in a
@@ -223,3 +226,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: small inventory: no flor/hoja, strawberries are the only food (AS-0154, AS-0155).
 - 2026-11-22: cactus prick bounce-back (AS-0156); auto-climb by pushing into a tree (AS-0157).
 - 2026-11-22: bridges, rope bridge between peaks, ladders and lookout towers (AS-0158 to AS-0160).
+- 2026-11-22: climb anything too steep: generic climb targets, climbable peaks with summits, climbable station (AS-0163 to AS-0165).

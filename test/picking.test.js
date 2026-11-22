@@ -96,6 +96,7 @@ function stage(english) {
   const { SA, THREE } = ctx;
   if (english) SA.save = { get: () => ({ settings: { english: true } }) };
   const handlers = {};
+  ctx.addEventListener = (n, f) => { handlers[n] = f; };
   const canvas = {
     addEventListener: (n, f) => { handlers[n] = f; },
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }),
@@ -186,4 +187,73 @@ test('a hidden easter egg cannot be picked, and can once it is shown', () => {
   assert.ok(!isEgg(s.picking.pickAt(400, 300)), 'an invisible animal is not hit');
   egg.visible = true;
   assert.ok(isEgg(s.picking.pickAt(400, 300)), 'a revealed animal is pickable');
+});
+
+test('cycler: next/prev walk the parts in order and wrap around both ways', () => {
+  const SA = loadGame(LOGIC);
+  const c = SA.picking.createCycler();
+  assert.equal(c.next(), null, 'empty list');
+  c.setItems(['cabeza', 'orejas', 'cola']);
+  assert.equal(c.current(), null);
+  assert.deepEqual([c.next(), c.next(), c.next(), c.next()], ['cabeza', 'orejas', 'cola', 'cabeza'], 'wraps forward');
+  assert.equal(c.prev(), 'cola', 'wraps backward');
+  assert.equal(c.prev(), 'orejas');
+  c.reset();
+  assert.equal(c.prev(), 'cola', 'first prev starts at the end');
+  c.setItems(['cabeza', 'cola']);
+  assert.equal(c.current(), 'cola', 'keeps the current stop when still present');
+  c.setItems(['patas']);
+  assert.equal(c.current(), null);
+  assert.deepEqual([...SA.picking.uniqueParts([{ part: 'ojos' }, { part: 'ojos' }, { part: 'cola' }, null])], ['ojos', 'cola']);
+});
+
+test('keyAction maps arrows/Tab to cycling, Enter/Space to select, Escape to exit', () => {
+  const { keyAction } = loadGame(LOGIC).picking;
+  assert.equal(keyAction('ArrowRight'), 'next');
+  assert.equal(keyAction('ArrowLeft'), 'prev');
+  assert.equal(keyAction('Tab', false), 'next');
+  assert.equal(keyAction('Tab', true), 'prev');
+  assert.equal(keyAction('Enter'), 'select');
+  assert.equal(keyAction(' '), 'select');
+  assert.equal(keyAction('Escape'), 'exit');
+  assert.equal(keyAction('x'), null);
+  assert.equal(keyAction('toString'), null);
+});
+
+test('speakPart speaks via SA.audio.say when present and is silent without it', () => {
+  const SA = loadGame(LOGIC);
+  assert.equal(SA.picking.speakPart('cola'), false, 'no SA.audio: no error');
+  const said = [];
+  SA.audio = { say: (k) => said.push(k) };
+  assert.equal(SA.picking.speakPart('cola'), true);
+  assert.deepEqual(said, ['part:cola']);
+  assert.equal(SA.picking.speakPart(null), false);
+});
+
+test('keyboard: Enter starts cycling, arrows highlight + speak, Space selects like a tap, Escape ends', () => {
+  const s = stage(false);
+  const said = [], picks = [];
+  s.SA.audio = { say: (k) => said.push(k) };
+  s.SA.picking.onPick((p) => picks.push(p));
+  const key = (k, extra) => {
+    let stopped = false;
+    s.handlers.keydown({ key: k, target: { tagName: 'BODY' }, preventDefault() {}, stopPropagation() { stopped = true; }, ...extra });
+    return stopped;
+  };
+  assert.equal(key('ArrowRight'), false, 'arrows stay with the camera until cycling starts');
+  assert.equal(key('Enter'), true);
+  assert.equal(said.length, 1, 'first part spoken');
+  assert.equal(s.ctx.document.body.children[0].style.display, 'flex', 'chip shown');
+  assert.equal(key('ArrowRight'), true, 'arrows are ours while cycling');
+  assert.equal(said.length, 2);
+  assert.notEqual(said[0], said[1]);
+  key('ArrowLeft');
+  assert.equal(said[2], said[0], 'left goes back');
+  key(' ');
+  assert.equal(picks.length, 1, 'Space selects through the tap path');
+  assert.equal('part:' + picks[0].part, said[2]);
+  assert.equal(said.length, 4, 'select speaks the label like a tap');
+  key('Escape');
+  assert.equal(key('ArrowRight'), false, 'camera keys are back');
+  assert.equal(key('Enter', { target: { tagName: 'BUTTON' } }), false, 'a focused button keeps Enter');
 });

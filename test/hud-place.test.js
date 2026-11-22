@@ -99,12 +99,19 @@ test('the hint arrow module places itself through SA.hud (pixels, on-screen)', (
   assert.ok(Object.values(SA.hud.layout({ width: 1280, height: 800 })).every((o) => o === undefined || !SA.hud.overlaps(r, o) || SA.hud.ZONES.floating.some((id) => SA.hud.layout({ width: 1280, height: 800 })[id] === o)));
 });
 
-test('no numeric top/left/right/bottom offsets on position:fixed elements in game/ui (positions come from SA.hud)', () => {
-  const dir = url('game/ui/');
+const FIXED_FILES = [
+  ...readdirSync(url('game/ui/')).filter((n) => n.endsWith('.js')).map((n) => 'game/ui/' + n),
+  'game/render/picking.js', 'game/render/pickups.js', 'game/render/reach-cue.js', 'game/audio-ui.js',
+];
+
+test('no numeric top/left/right/bottom offsets on position:fixed elements in game/ui, the render overlays and audio-ui (positions come from SA.hud)', () => {
   const bad = [];
-  for (const f of readdirSync(dir).filter((n) => n.endsWith('.js'))) {
-    const lines = readFileSync(new URL(f, dir), 'utf8').split('\n');
+  for (const f of FIXED_FILES) {
+    const lines = readFileSync(url(f), 'utf8').split('\n');
     lines.forEach((line, i) => {
+      // style.top = '12px' / style.left = '50%' style assignments count too (SA.hudPlace.register sets them from the layout)
+      const asg = /\.style\.(top|left|right|bottom)\s*=\s*['"]-?(?:0*[1-9]|0*\.\d*[1-9])/.exec(line);
+      if (asg) bad.push(`${f}:${i + 1} ${asg[0]}`);
       if (!line.includes('position:fixed')) return;
       let a = i, b = i;
       while (a > 0 && lines[a - 1].trimEnd().endsWith('+')) a--;
@@ -115,6 +122,58 @@ test('no numeric top/left/right/bottom offsets on position:fixed elements in gam
     });
   }
   assert.deepEqual(bad, []);
+});
+
+// A tiny DOM: elements with a style object and a cssText setter that records display, children and listeners.
+function fakeDoc() {
+  const mk = () => {
+    const el = { style: {}, children: [], setAttribute() {}, addEventListener() {}, appendChild(c) { el.children.push(c); }, set textContent(v) { el._t = v; }, get textContent() { return el._t; }, set innerHTML(v) { el.children = []; } };
+    let css = '';
+    Object.defineProperty(el.style, 'cssText', { get: () => css, set: (v) => { css = v; const d = /display:(\w+)/.exec(v); if (d) el.style.display = d[1]; } });
+    return el;
+  };
+  return { createElement: mk, body: mk() };
+}
+
+test('the render overlays and audio-ui register in SA.hud and, all shown together, overlap nothing at the 4 sizes', () => {
+  for (const [w, h] of SIZES) {
+    const { SA, ctx } = boot(w, h);
+    ctx.document = fakeDoc();
+    ctx.THREE = { Vector3: function () { this.set = () => this; this.project = () => this; } };
+    SA.audio = { isMuted: () => false, unlock() {}, toggleMute() {}, sfx() {} };
+    SA.reach = { cue: () => ({ icon: '🚶', es: '¡Acércate!' }) };
+    SA.vocab = { get: () => ({ es: 'la fresa' }) };
+    SA.data = { get: () => ({ icon: '🍓', name: { es: 'fresa' } }) };
+    for (const f of ['game/audio-ui.js', 'game/render/reach-cue.js', 'game/render/pickups.js']) vm.runInContext(readFileSync(url(f), 'utf8'), ctx, { filename: f });
+    const btn = SA.audioUI.mount(ctx.document);
+    const cue = SA.render.createReachCue(ctx.THREE, { container: ctx.document.body, camera: {} });
+    cue.show();
+    assert.equal(ctx.document.body.children.length, 2, 'mute button and reach cue element added');
+    const L = SA.hudPlace.layout();
+    assert.deepEqual(styleRect(btn), { ...L.audioUi }, `${w}x${h} mute button sits in its audioUi rect`);
+    // every id of the transient zone plus every corner/zone element shown at once: no overlaps, all on-screen
+    const all = SA.hud.layout({ width: w, height: h });
+    const ids = SA.hud.IDS.filter((id) => !SA.hud.ZONES.floating.includes(id));
+    for (let i = 0; i < ids.length; i++) {
+      assert.ok(SA.hud.onScreen(all[ids[i]], w, h), `${w}x${h} ${ids[i]} on-screen`);
+      for (let j = i + 1; j < ids.length; j++) assert.ok(!SA.hud.overlaps(all[ids[i]], all[ids[j]]), `${w}x${h}: ${ids[i]} vs ${ids[j]}`);
+    }
+  }
+});
+
+test('the reach cue only takes its transient slot while shown (nothing is pushed when hidden)', () => {
+  const { SA, ctx } = boot(1280, 800);
+  ctx.document = fakeDoc();
+  SA.reach = { cue: () => ({ icon: '🚶', es: '¡Acércate!' }) };
+  vm.runInContext(readFileSync(url('game/render/reach-cue.js'), 'utf8'), ctx);
+  const cue = SA.render.createReachCue({}, { container: ctx.document.body });
+  cue.show();
+  const el = ctx.document.body.children[0];
+  const shown = styleRect(el);
+  assert.ok(SA.hud.onScreen(shown, 1280, 800));
+  assert.deepEqual(shown, { ...SA.hudPlace.layout().reachCue });
+  cue.update(5);
+  assert.equal(el.style.display, 'none');
 });
 
 test('index.html and the manifest load hud-place.js right after hud.js', () => {

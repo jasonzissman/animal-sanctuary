@@ -114,17 +114,19 @@
       return { exists: !!g, visible: !g || g.visible !== false, avatar: !!u.avatar, inReach: walking && !!hit.mesh && inReach(hit) };
     }
 
-    function hideChip() { chipHit = null; chipLeft = 0; if (chip) chip.style.display = 'none'; }
+    function hideChip() { chipHit = null; chipLeft = 0; if (chip) { chip.style.display = 'none'; if (SA.hudPlace) SA.hudPlace.refresh(); } }
 
     function showChip(label) {
       if (!chip) {
         chip = root.document.createElement('div');
         chip.setAttribute('aria-live', 'polite');
-        chip.style.cssText = 'position:fixed;left:50%;bottom:8%;transform:translateX(-50%);z-index:3;' +
-          'pointer-events:none;display:none;align-items:center;gap:.6em;padding:.35em .9em;' +
+        chip.style.cssText = 'position:fixed;z-index:3;box-sizing:border-box;justify-content:center;white-space:nowrap;overflow:hidden;' +
+          'pointer-events:none;display:none;align-items:center;gap:.6em;padding:0 .9em;' +
           'background:#fff;color:#24543a;border:.12em solid #24543a;border-radius:1em;' +
           'box-shadow:0 .15em .6em rgba(0,0,0,.3);font:700 2.4rem system-ui,sans-serif;';
         container.appendChild(chip);
+        // Rect from SA.hud 'pickingChip' (transient zone, so it never covers the hotbar, joystick or buttons).
+        if (SA.hudPlace) SA.hudPlace.register('pickingChip', chip, { onPlace: function (r) { chip.style.fontSize = Math.round(r.height * 0.55) + 'px'; } });
       }
       chip.innerHTML = '';
       var icon = root.document.createElement('span');
@@ -141,6 +143,7 @@
       }
       chip.style.display = 'flex';
       chipLeft = CHIP_SECONDS;
+      if (SA.hudPlace) SA.hudPlace.refresh();
     }
 
     var pv = new THREE.Vector3();

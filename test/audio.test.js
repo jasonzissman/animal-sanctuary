@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './helpers/vm.js';
 
-const FILES = ['game/sa.js', 'game/save.js', 'game/audio.js', 'game/audio-ui.js'];
+const FILES = ['game/sa.js', 'game/save.js', 'game/audio.js', 'game/hud.js', 'game/ui/hud-place.js', 'game/audio-ui.js'];
 const KEY = 'santuario_save_v1';
 
 function fakeStorage(initial = {}) {

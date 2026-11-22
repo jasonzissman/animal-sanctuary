@@ -69,6 +69,41 @@ test('mode switches to compact on phone widths; small or odd sizes still return 
   assert.ok(hud.IDS.every((id) => Number.isFinite(r[id].left + r[id].top + r[id].width + r[id].height)));
 });
 
+test('the mission prompt is a small pill: <= 6% of the height and <= 45% of the width at the 4 sizes, top-left', () => {
+  for (const [w, h] of SIZES) {
+    const r = hud.layout({ width: w, height: h }, ['prompt', 'stars']).prompt;
+    assert.ok(r.height <= h * 0.06, `${w}x${h}: height ${r.height}`);
+    assert.ok(r.width <= w * 0.45, `${w}x${h}: width ${r.width}`);
+    assert.ok(r.height >= 32 && r.width >= 120, `${w}x${h}: still big enough to read and tap ${JSON.stringify(r)}`);
+    assert.deepEqual([r.left, r.top], [12, 12]);
+  }
+});
+
+test('the prompt pill view: tap replays, the camera is a badge (not a button), no replay/hint/camera buttons', () => {
+  const made = [];
+  const mk = (tag) => {
+    const e = { tag, style: {}, textContent: '', attrs: {}, listeners: {}, children: [], appendChild(c) { this.children.push(c); },
+      setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(ev, fn) { this.listeners[ev] = fn; } };
+    made.push(e);
+    return e;
+  };
+  const G = loadGame(['game/sa.js', 'game/hud.js', 'game/ui/prompt.js']);
+  let replays = 0;
+  const view = G.prompt.createView({ createElement: mk, body: { appendChild() {} }, documentElement: { clientWidth: 1280, clientHeight: 800 } },
+    { replay: () => replays++ });
+  const pillEl = made.find((e) => e.attrs.role === 'button');
+  assert.ok(pillEl, 'the pill is the tappable element');
+  pillEl.listeners.click();
+  assert.equal(replays, 1);
+  assert.equal(made.filter((e) => e.tag === 'button').length, 0, 'no <button> in the HUD from the prompt view');
+  view.showRound({ text: 'Busca el animal verde', icon: '🐸', hintShown: false, stars: 0, camera: true });
+  const cam = pillEl.children.find((c) => c.textContent === '📷');
+  assert.ok(cam && cam.style.display !== 'none', 'camera icon shows in the pill when a photo is due');
+  view.showRound({ text: 'Busca el animal verde', icon: '🐸', hintShown: false, stars: 0, camera: false });
+  assert.equal(cam.style.display, 'none');
+  assert.ok(pillEl.children.some((c) => c.textContent === 'Busca el animal verde'));
+});
+
 test('index.html and the manifest load hud.js before prompt.js', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.ok(html.indexOf('game/hud.js') > 0 && html.indexOf('game/hud.js') < html.indexOf('game/ui/prompt.js'));

@@ -8,7 +8,7 @@
  *   SA.hud.SIZES / SA.hud.ZONES: the data tables (element sizes per mode, and which ids live in which zone).
  *
  * Zones (stacking rules):
- *   topLeft       the mission prompt, then the star badge below it            (stack down)
+ *   topLeft       the mission prompt (a small pill: <= 6% of the height, <= 45% of the width), then the star badge below it            (stack down)
  *   topRight      audioUi, settings, sandbox, album, then the snapshot card   (stack down, right-aligned)
  *   transient     toast, pickupsToast, hotbarChip, pickingChip, reachCue      (stack down in the strip left of the right column,
  *                 under the star badge; each shows only while it has a message, so nothing is ever pushed off-screen)
@@ -27,18 +27,22 @@
   // [width, height] per element and mode; width 0 = flexible (filled by the zone). Element sizes live only here.
   var SIZES = {
     regular: {
-      prompt: [0, 84], stars: [110, 52], audioUi: [64, 64], settings: [48, 48], sandbox: [76, 76], album: [76, 76],
+      prompt: [0, 0], stars: [110, 52], audioUi: [64, 64], settings: [48, 48], sandbox: [76, 76], album: [76, 76],
       snapshot: [130, 130], toast: [360, 56], pickupsToast: [300, 52], hotbarChip: [260, 44], pickingChip: [380, 64],
       reachCue: [300, 52], hotbar: [712, 72], feedTray: [535, 152], joystick: [136, 136], orbitPad: [120, 120],
       use: [84, 84], jump: [84, 84], climb: [72, 72], hintArrow: [72, 72], clickFx: [64, 64],
     },
     compact: {
-      prompt: [0, 64], stars: [90, 40], audioUi: [48, 48], settings: [44, 44], sandbox: [56, 56], album: [56, 56],
+      prompt: [0, 0], stars: [90, 40], audioUi: [48, 48], settings: [44, 44], sandbox: [56, 56], album: [56, 56],
       snapshot: [84, 100], toast: [360, 36], pickupsToast: [300, 32], hotbarChip: [260, 28], pickingChip: [380, 36],
       reachCue: [300, 32], hotbar: [712, 48], feedTray: [535, 100], joystick: [88, 88], orbitPad: [96, 96],
       use: [52, 52], jump: [52, 52], climb: [44, 44], hintArrow: [48, 48], clickFx: [44, 44],
     },
   };
+  // The mission prompt is a small pill, sized from the viewport (never a banner): at most PILL.height of the screen height and
+  // PILL.width of its width (the width is also capped in px on big screens). Its SIZES entry is only a placeholder.
+  var PILL = { height: 0.06, width: 0.45, maxWidth: 480 };
+  function pill(W, H) { return [Math.min(Math.floor(W * PILL.width), PILL.maxWidth), Math.floor(H * PILL.height)]; }
   var GAP = { regular: 8, compact: 6 };
   var MARGIN = 12;
 
@@ -64,7 +68,7 @@
 
   function compute(size, on) {
     var W = size.width, H = size.height, m = mode(size), S = SIZES[m], G = GAP[m], M = MARGIN, out = {};
-    function dim(id) { return S[id]; }
+    function dim(id) { return id === 'prompt' ? pill(W, H) : S[id]; }
 
     // topRight column (right-aligned), the snapshot card last.
     var colW = Math.max.apply(null, ZONES.topRight.slice(0, 4).map(function (id) { return dim(id)[0]; }));
@@ -76,11 +80,11 @@
     });
     var rightLimit = W - M - Math.max(colW, on.snapshot ? dim('snapshot')[0] : 0) - M;   // content left of the right column ends here
 
-    // topLeft: the prompt fills the width left of the buttons, the star badge sits under it.
+    // topLeft: the prompt is a small pill, the star badge sits under it.
     var ly = M;
     pick('topLeft', on).forEach(function (id) {
-      var d = dim(id), w = d[0] || Math.max(0, W - M - colW - M - M);
-      out[id] = rect(M, ly, w, d[1]);
+      var d = dim(id);
+      out[id] = rect(M, ly, d[0], d[1]);
       ly += d[1] + G;
     });
 

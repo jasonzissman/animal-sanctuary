@@ -5,8 +5,8 @@
  *   SA.prompt.createController({ game, view, fx, audio, later }) -> { begin, onPick, replay, hint }
  *       Pure wiring (unit-tested with stubs): speaks the clue, plays chime/confetti/name on a correct pick,
  *       boing + wobble on a wrong one (the round just continues), then starts the next round after NEXT_MS.
- *   SA.prompt.createView(doc) -> view   the DOM bar: silhouette/icon hint, short Spanish clue, Replay, hint button,
- *       star counter, confetti and toast. Harmless no-op without a DOM.
+ *   SA.prompt.createView(doc) -> view   the DOM pill (small, top-left; tap = replay the audio): silhouette/icon hint, short
+ *       Spanish clue, a camera badge in photo missions; plus the star counter, confetti and toast. Harmless no-op without a DOM.
  */
 (function (root) {
   'use strict';
@@ -171,11 +171,10 @@
   }
 
   // No screen offsets here: every position comes from SA.hud.layout (see place() below).
-  var BAR_CSS = 'position:fixed;box-sizing:border-box;z-index:4;display:flex;align-items:center;gap:.5em;' +
-    'padding:.1em .6em;background:#fff8d6;color:#24543a;border:.12em solid #24543a;border-radius:1em;' +
-    'box-shadow:0 .15em .6em rgba(0,0,0,.3);font:700 2rem system-ui,sans-serif;touch-action:manipulation;';
-  var BTN_CSS = 'font-size:1.8rem;min-width:64px;height:64px;flex:none;border-radius:50%;border:.1em solid #24543a;' +
-    'background:#fff;cursor:pointer;padding:0;touch-action:manipulation;';
+  // The mission pill (a small button: tap = replay the audio). Its size comes from SA.hud (<= 6% of the height, <= 45% of the width).
+  var BAR_CSS = 'position:fixed;box-sizing:border-box;z-index:4;display:flex;align-items:center;gap:.35em;overflow:hidden;' +
+    'padding:0 .5em;background:#fff8d6;color:#24543a;border:.1em solid #24543a;border-radius:1em;cursor:pointer;' +
+    'box-shadow:0 .1em .4em rgba(0,0,0,.3);font:700 2rem/1.05 system-ui,sans-serif;touch-action:manipulation;';
 
   function createView(doc, handlers) {
     var noop = function () {};
@@ -192,31 +191,25 @@
     }
     var bar = el('div', BAR_CSS);
     bar.setAttribute('aria-live', 'polite');
-    var icon = el('span', 'font-size:2.6rem;line-height:1;', '❓');
-    var text = el('span', 'flex:1;');
-    var hintBtn = el('button', BTN_CSS, '💡');
-    hintBtn.type = 'button';
-    hintBtn.setAttribute('aria-label', 'Pista');
-    var replayBtn = el('button', BTN_CSS, '🔁');
-    replayBtn.type = 'button';
-    replayBtn.setAttribute('aria-label', 'Otra vez');
+    bar.setAttribute('role', 'button');
+    bar.setAttribute('aria-label', 'Otra vez');
+    var icon = el('span', 'font-size:2.6rem;line-height:1;flex:none;', '❓');
+    // Photo mission: the camera icon is a plain badge in the pill (la cámara is in the hotbar; no button for it here).
+    var camEl = el('span', 'font-size:2rem;line-height:1;flex:none;display:none;', '📷');
+    var text = el('span', 'flex:1;min-width:0;overflow:hidden;');
     var starsEl = el('div', 'position:fixed;box-sizing:border-box;z-index:4;display:flex;align-items:center;justify-content:center;' +
       'white-space:nowrap;background:#fff8d6;border:.1em solid #24543a;border-radius:1em;font:700 2rem system-ui,sans-serif;' +
       'color:#24543a;', '⭐ 0');
     var toastEl = el('div', 'position:fixed;box-sizing:border-box;z-index:5;display:none;align-items:center;justify-content:center;' +
       'white-space:nowrap;overflow:hidden;padding:0 .4em;background:#fff;color:#24543a;border-radius:1em;' +
       'font:700 2.2rem system-ui,sans-serif;box-shadow:0 .15em .6em rgba(0,0,0,.3);pointer-events:none;');
-    // Photo mission: a camera badge on the card (tap = equip la cámara), a white flash and a framed snapshot that slides in.
-    var cameraBtn = el('button', BTN_CSS + 'display:none;', '📷');
-    cameraBtn.type = 'button';
-    cameraBtn.setAttribute('aria-label', 'La cámara');
-    cameraBtn.addEventListener('click', function () { if (handlers.camera) handlers.camera(); });
+    // Photo mission: a white flash and a framed snapshot that slides in.
     var flashEl = el('div', 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:6;background:#fff;opacity:0;display:none;pointer-events:none;');
     var snapEl = el('div', 'position:fixed;box-sizing:border-box;z-index:5;display:none;flex-direction:column;align-items:center;' +
       'justify-content:center;overflow:hidden;padding:.1em .3em;background:#fff;border:.1em solid #24543a;border-radius:.3em;box-shadow:0 .15em .6em rgba(0,0,0,.4);' +
       'font:700 1.3rem system-ui,sans-serif;color:#24543a;transform:translateX(140%) rotate(4deg);pointer-events:none;');
     var snapTimer = null;
-    bar.appendChild(icon); bar.appendChild(text); bar.appendChild(cameraBtn); bar.appendChild(hintBtn); bar.appendChild(replayBtn);
+    bar.appendChild(icon); bar.appendChild(camEl); bar.appendChild(text);
     doc.body.appendChild(bar); doc.body.appendChild(starsEl); doc.body.appendChild(toastEl);
     doc.body.appendChild(flashEl); doc.body.appendChild(snapEl);
     // Feed tray: big food buttons along the bottom plus a row of counting dots (filled as food is given).
@@ -227,8 +220,7 @@
     trayEl.appendChild(dotsEl); trayEl.appendChild(foodsEl);
     doc.body.appendChild(trayEl);
     var foodBtns = {}, feedIcon = '', feedCount = 0, feedItems = null;
-    hintBtn.addEventListener('click', function () { if (handlers.hint) handlers.hint(); });
-    replayBtn.addEventListener('click', function () { if (handlers.replay) handlers.replay(); });
+    bar.addEventListener('click', function () { if (handlers.replay) handlers.replay(); });
     var toastTimer = null;
 
     // Positions: every rect comes from SA.hud.layout (pure; zones keep the prompt, stars, toast, snapshot card and feed tray
@@ -247,9 +239,8 @@
       rects = SA.hud.layout(viewport());
       var r = rects;
       place(bar, r.prompt); place(starsEl, r.stars); place(toastEl, r.toast); place(snapEl, r.snapshot); place(trayEl, r.feedTray);
-      var b = Math.min(64, r.prompt.height - 8) + 'px';
-      [hintBtn, replayBtn, cameraBtn].forEach(function (btn) { btn.style.minWidth = b; btn.style.width = b; btn.style.height = b; });
-      icon.style.fontSize = px(r.prompt.height * 0.45); bar.style.fontSize = px(r.prompt.height * 0.38);
+      icon.style.fontSize = px(r.prompt.height * 0.6); camEl.style.fontSize = px(r.prompt.height * 0.5);
+      bar.style.fontSize = px(r.prompt.height * 0.34);      // two short lines of text still fit the pill
       starsEl.style.fontSize = px(r.stars.height * 0.6); toastEl.style.fontSize = px(r.toast.height * 0.62);
       snapEl.style.fontSize = px(r.snapshot.height * 0.11);
       var dots = Math.round(r.feedTray.height * 0.21);
@@ -275,8 +266,7 @@
         current = r.icon;
         text.textContent = r.text;
         starsEl.textContent = '⭐ ' + r.stars;
-        hintBtn.style.display = r.hintShown ? 'none' : '';
-        cameraBtn.style.display = r.camera ? '' : 'none';
+        camEl.style.display = r.camera ? '' : 'none';
         if (r.hintShown) setIcon(r.icon, true); else setIcon('❓', false);
       },
       // s: { icon, text }. White flash, then a framed snapshot (animal icon + its Spanish name) slides in from the right.
@@ -301,7 +291,7 @@
       showCare: function (r) {      // care prompt: short text + tool icon (never a silhouette), no hint button
         text.textContent = r.text;
         starsEl.textContent = '⭐ ' + r.stars;
-        hintBtn.style.display = 'none';
+        camEl.style.display = 'none';
         setIcon(r.icon, false);
       },
       // r: { count, given, icon, items?: [{ icon, count }], tray: [{ id, icon, label }] }  (items: one row per asked food)
@@ -359,8 +349,8 @@
         starsEl.style.visibility = hide ? 'hidden' : 'visible';
         trayEl.style.visibility = hide ? 'hidden' : 'visible';
       },
-      showHint: function () { hintBtn.style.display = 'none'; setIcon(current, true); },
-      celebrate: function (r) { setIcon(r.icon, false); starsEl.textContent = '⭐ ' + r.stars; hintBtn.style.display = 'none'; },
+      showHint: function () { setIcon(current, true); },
+      celebrate: function (r) { setIcon(r.icon, false); starsEl.textContent = '⭐ ' + r.stars; },
       clear: function () { text.textContent = ''; },
       toast: function (msg) {
         toastEl.textContent = msg;
@@ -391,8 +381,8 @@
               { transform: 'translate(0,0) scale(.4)', opacity: 1 },
               { transform: 'translate(' + s.dx + 'px,' + s.dy + 'px) scale(1.1)', opacity: 0 }, 900);
           });
-        } else if (cue === 'soft-sparkle' && typeof replayBtn.animate === 'function') {
-          replayBtn.animate([{ boxShadow: '0 0 0 0 rgba(255,217,61,0)' }, { boxShadow: '0 0 14px 6px rgba(255,217,61,.8)' },
+        } else if (cue === 'soft-sparkle' && typeof bar.animate === 'function') {
+          bar.animate([{ boxShadow: '0 0 0 0 rgba(255,217,61,0)' }, { boxShadow: '0 0 14px 6px rgba(255,217,61,.8)' },
             { boxShadow: '0 0 0 0 rgba(255,217,61,0)' }], { duration: 1200 });
         }
       },
@@ -421,10 +411,8 @@
     o = o || {};
     var ctl = null;
     var view = createView(o.doc, {
-      hint: function () { if (ctl) ctl.hint(); },
       replay: function () { if (ctl) ctl.replay(); },
       feed: function (id) { if (careFlow) careFlow.onFeed(id); },
-      camera: function () { if (ctl) ctl.equipCamera(); },
     });
     var careFlow = o.care || null;
     if (!careFlow && o.careFx !== undefined && SA.careFlow && SA.care) {

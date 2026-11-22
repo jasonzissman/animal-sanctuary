@@ -71,6 +71,92 @@ test('restored taps still count toward the hidden creature unlock', () => {
   assert.deepEqual(b.shown, ['raton']);
 });
 
+function visitAt(storage, clock) {
+  const SA = loadGame(FILES, { localStorage: storage });
+  SA.save.load();
+  const shown = [];
+  const tracker = SA.unlocks.create({ track: () => {}, now: () => clock.t, onUnlock: (a) => shown.push(a.id) });
+  return { SA, tracker, shown };
+}
+
+test('streak helper: taps within the window continue, later or odd timestamps restart at 1', () => {
+  const { SA } = visit(fakeStorage());
+  const u = SA.unlocks, W = u.WINDOW_MS;
+  assert.equal(W, 10000);
+  assert.equal(u.streakAfterTap(0, undefined, 1000), 1, 'first tap');
+  assert.equal(u.streakAfterTap(2, 1000, 1000 + W), 3, 'exactly on the edge still continues');
+  assert.equal(u.streakAfterTap(2, 1000, 1001 + W), 1, 'too late restarts');
+  assert.equal(u.streakAfterTap(4, 5000, 4000), 1, 'clock went backwards restarts');
+  assert.equal(u.streakAfterTap(4, 'x', 2000), 1);
+  assert.equal(u.streakAfterTap(4, undefined, 2000), 1, 'no timestamp (old save) restarts');
+  assert.equal(u.streakAfterTap('9', 1000, 2000), 1, 'junk count restarts from zero then counts this tap');
+  assert.equal(u.liveCount(3, 1000, 1000 + W), 3);
+  assert.equal(u.liveCount(3, 1000, 1001 + W), 0);
+  assert.equal(u.liveCount(3, undefined, 1000), 0);
+});
+
+test('5 quick taps on one tree unlock the creature; 5 taps spread beyond the window do not', () => {
+  const clock = { t: 1000000 };
+  const a = visitAt(fakeStorage(), clock);
+  a.SA.save.update({ stars: 50 });
+  for (let i = 0; i < 5; i++) { a.tracker.tap('tree', 3, 'bosque'); clock.t += 2000; }
+  assert.deepEqual(a.shown, ['raton']);
+
+  const clock2 = { t: 1000000 };
+  const b = visitAt(fakeStorage(), clock2);
+  b.SA.save.update({ stars: 50 });
+  for (let i = 0; i < 5; i++) { b.tracker.tap('tree', 3, 'bosque'); clock2.t += 11000; }
+  assert.deepEqual(b.shown, []);
+  assert.equal(b.tracker.tapCount('tree', 3, 'bosque'), 0, 'the last burst has gone stale');
+});
+
+test('taps across visits only count inside the window; stale persisted counts reset without wiping the save', () => {
+  const storage = fakeStorage();
+  const clock = { t: 5000000 };
+  const a = visitAt(storage, clock);
+  a.SA.save.update({ stars: 50 });
+  for (let i = 0; i < 4; i++) { a.tracker.tap('tree', 3, 'bosque'); clock.t += 1000; }
+  a.SA.save.flush();
+
+  // Quick return: the burst continues, so the sparkle cue still shows and the 5th tap unlocks.
+  const b = visitAt(storage, clock);
+  assert.equal(b.tracker.tapCount('tree', 3, 'bosque'), 4);
+  assert.equal(b.SA.treeCue.shouldSparkle(b.tracker.tapCount('tree', 3, 'bosque')), true);
+  b.tracker.tap('tree', 3, 'bosque');
+  assert.deepEqual(b.shown, ['raton']);
+
+  // A later visit with a stale count: no cue, next tap restarts at 1, stars and unlocks stay.
+  const s2 = fakeStorage();
+  const c0 = { t: 5000000 };
+  const c = visitAt(s2, c0);
+  c.SA.save.update({ stars: 7 });
+  for (let i = 0; i < 4; i++) { c.tracker.tap('tree', 3, 'bosque'); c0.t += 1000; }
+  c.SA.save.flush();
+  c0.t += 24 * 3600 * 1000;
+  const d = visitAt(s2, c0);
+  assert.equal(d.tracker.tapCount('tree', 3, 'bosque'), 0);
+  assert.equal(d.SA.treeCue.shouldSparkle(d.tracker.tapCount('tree', 3, 'bosque')), false);
+  assert.equal(d.tracker.facts().taps.tree, undefined);
+  d.SA.save.update({ stars: 50 });
+  d.tracker.tap('tree', 3, 'bosque');
+  assert.deepEqual(d.shown, []);
+  assert.equal(d.tracker.tapCount('tree', 3, 'bosque'), 1);
+  assert.equal(d.SA.save.get().stars, 50);
+});
+
+test('a persisted count with no timestamp or with junk timestamps is stale, never an error', () => {
+  const old = { version: 2, stars: 9, stats: { unlocks: { 'tree|bosque|1': 4, 'tree|bosque|2': 4 }, unlockTimes: { 'tree|bosque|2': 'oops' } } };
+  const clock = { t: 9000000 };
+  const v = visitAt(fakeStorage({ [KEY]: JSON.stringify(old) }), clock);
+  assert.equal(v.SA.save.get().stars, 9);
+  assert.equal(v.tracker.tapCount('tree', 1, 'bosque'), 0);
+  assert.equal(v.tracker.tapCount('tree', 2, 'bosque'), 0);
+  v.tracker.tap('tree', 1, 'bosque');
+  v.tracker.tap('tree', 2, 'bosque');
+  assert.equal(v.tracker.tapCount('tree', 1, 'bosque'), 1);
+  assert.equal(v.tracker.tapCount('tree', 2, 'bosque'), 1);
+});
+
 test('an old v1 save keeps its data and tap progress starts at zero', () => {
   const old = { version: 1, stars: 9, unlockedAnimals: ['conejo'], rounds: { completed: 2, streak: 1 } };
   const v = visit(fakeStorage({ [KEY]: JSON.stringify(old) }));

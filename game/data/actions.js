@@ -9,6 +9,10 @@
  *   verb       { es: 'cepillar', imperative: 'Cepilla' }  infinitive and the imperative used in task prompts
  *   reaction   how the animal answers a right action (one of SA.parts.REACTIONS)
  *   sfx        procedural sound (SA.audio.NAMES) played on each right action
+ *   tangled    optional true: the animal is stuck while the task runs (a bird hops, wings drooped, a leaf on the wing) and
+ *              flaps, spins and flies a happy loop when it is done (game/render/care-fx.js, ambient.js)
+ *   gives      optional item id (game/data/items.js) added to SA.inventory when the task is done (the leaf you pulled off)
+ *   say        optional vocab key spoken (and shown) when the task is done, instead of "¡Muy bien!"
  * A wrong tool or part never costs anything: SA.care answers { status: 'wrong', reason: 'tool' | 'part' } and the flow plays a
  * funny reaction plus the Spanish names of the tool and the part.
  */
@@ -37,6 +41,9 @@
     if (typeof a.verb.imperative !== 'string' || !/^[A-ZÁÉÍÓÚ]/.test(a.verb.imperative)) fail('verb.imperative', 'must be a capitalised imperative');
     if (SA.parts.REACTIONS.indexOf(a.reaction) < 0) fail('reaction', 'must be one of ' + SA.parts.REACTIONS.join(', '));
     if (SFX.indexOf(a.sfx) < 0) fail('sfx', 'must be one of ' + SFX.join(', '));
+    if (a.tangled !== undefined && typeof a.tangled !== 'boolean') fail('tangled', 'must be true or false');
+    if (a.gives !== undefined && !itemKnown(a.gives)) fail('gives', 'unknown item ' + JSON.stringify(a.gives));
+    if (a.say !== undefined && !(SA.vocab && SA.vocab.get && SA.vocab.get(a.say))) fail('say', 'unknown vocab key ' + JSON.stringify(a.say));
     if (SA.audio && SA.audio.NAMES && SA.audio.NAMES.indexOf(a.sfx) < 0) fail('sfx', 'unknown audio effect ' + JSON.stringify(a.sfx));
   }
 
@@ -56,6 +63,9 @@
     { id: 'lavar', item: 'esponja', parts: MUDDY.concat('pelo'), verb: { es: 'lavar', imperative: 'Lava' }, reaction: 'wobble', sfx: 'splash' },
     { id: 'curar', item: 'venda', parts: MUDDY, verb: { es: 'curar', imperative: 'Cura' }, reaction: 'nod', sfx: 'pop' },
     { id: 'acariciar', item: 'hands', parts: ['barriga'], verb: { es: 'acariciar', imperative: 'Acaricia' }, reaction: 'boing', sfx: 'giggle' },
+    // A leaf or twig stuck on a bird's wing: tug it off with empty hands (Space on the wing) and it can fly again.
+    { id: 'desenredar', item: 'hands', parts: ['alas'], verb: { es: 'quitar', imperative: 'Quita' }, reaction: 'flap', sfx: 'pop',
+      tangled: true, gives: 'hoja', say: 'phrase:yapuedevolar' },
     { id: 'alimentar', item: 'food', parts: [], verb: { es: 'dar de comer', imperative: 'Dale' }, reaction: 'boing', sfx: 'pop' }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

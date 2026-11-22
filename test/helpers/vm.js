@@ -14,6 +14,7 @@ export function loadGame(files, extraGlobals = {}) {
   const ctx = vm.createContext({ console, ...extraGlobals });
   ctx.window = ctx;
   for (const file of files) {
+    if (typeof file === 'function') { file(ctx.window.SA); continue; }   // stub installer: (SA) => void
     const abs = path.resolve(ROOT, file);
     vm.runInContext(fs.readFileSync(abs, 'utf8'), ctx, { filename: abs });
   }

@@ -85,10 +85,10 @@ function makeEl() {
   };
 }
 
-function stage(english) {
+function stage(english, withKeyHint) {
   const files = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js',
     'game/data/biomes.js', 'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js',
-    'game/picking.js', 'game/render/picking.js'];
+    'game/picking.js', ...(withKeyHint ? ['game/key-hint.js', 'game/ui/key-hint-view.js'] : []), 'game/render/picking.js'];
   const ctx = vm.createContext({ console });
   ctx.window = ctx; ctx.self = ctx;
   ctx.document = { createElement: makeEl, body: makeEl() };
@@ -256,4 +256,21 @@ test('keyboard: Enter starts cycling, arrows highlight + speak, Space selects li
   key('Escape');
   assert.equal(key('ArrowRight'), false, 'camera keys are back');
   assert.equal(key('Enter', { target: { tagName: 'BUTTON' } }), false, 'a focused button keeps Enter');
+});
+
+test('keyboard hint: shows after a first key, never for pointer use, hides once Enter starts cycling', () => {
+  const s = stage(false, true);
+  const body = s.ctx.document.body;
+  const key = (k) => s.handlers.keydown({ key: k, target: { tagName: 'BODY' }, preventDefault() {}, stopPropagation() {} });
+  s.handlers.pointerdown(ev(10, 10));
+  assert.equal(body.children.length, 0, 'pointer use alone adds no hint');
+  key('ArrowRight');
+  assert.equal(body.children.length, 1, 'hint created by the first keydown');
+  assert.equal(body.children[0].style.opacity, '.9');
+  s.handlers.pointerdown(ev(10, 10));
+  assert.equal(body.children[0].style.opacity, '0', 'a touch dismisses it');
+  key('ArrowRight');
+  assert.equal(body.children[0].style.opacity, '.9');
+  key('Enter');
+  assert.equal(body.children[0].style.opacity, '0', 'cycling started: hint fades out');
 });

@@ -65,6 +65,8 @@
       var r = fn({ x: state.x, z: state.z, dist: state.dist, yaw: offset, pitch: state.pitch });
       offset = r.yaw; state = { x: state.x, z: state.z, dist: state.dist, yaw: state.yaw, pitch: r.pitch };
     }
+    /** True during the climb up/down animation (no hopping then); standing in the canopy is not "climbing". */
+    function climbing() { return !!player.climb && player.climb.mode !== 'canopy'; }
     function trees() { return hooks && hooks.chase && hooks.chase.trees ? hooks.chase.trees() : []; }
     function panWith(dx, dy) {
       if (player.climb) return;   // up a tree you walk with the keys / stick only
@@ -172,8 +174,8 @@
         var running = (run && az < 0) || !!J.run;   // Shift only speeds up walking forward; the stick runs at its edge
         player = SA.climb.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
           left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running }, dt, obstacles());
-        if (hop) {   // the hop is a lift on top of the ground height; there is no hopping while climbing
-          hop = player.climb ? SA.jump.cancel(hop) : SA.jump.step(hop, { jump: jumpHeld || jumpTap }, dt);
+        if (hop) {   // the hop is a lift on top of the standing height (ground or canopy); none during the climb up/down animation
+          hop = climbing() ? SA.jump.cancel(hop) : SA.jump.step(hop, { jump: jumpHeld || jumpTap }, dt);
           jumpTap = false;
           if (hop.event === 'takeoff' && SA.audio && SA.audio.sfx) SA.audio.sfx('hop');
         }
@@ -198,7 +200,7 @@
       toggleClimb: toggleClimb,
       /** The touch jump button: a fresh Space press. Only a grounded avatar hops (no buffering in the air, none up a tree). */
       jump: function () {
-        if (!hop || hop.air || player.climb) return false;
+        if (!hop || hop.air || climbing()) return false;
         hop = { lift: hop.lift, vy: hop.vy, air: false, armed: true, event: hop.event };
         jumpTap = true;
         return true;

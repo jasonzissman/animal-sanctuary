@@ -64,13 +64,13 @@ test('a takeoff can be blocked (up a tree) and cancel drops back to the ground',
 });
 
 // --- the camera rig: Space wiring, forward momentum, blocking in the air, terrain landing, no canopy reach ---
-function makeRig(obstacles = [], audioLog = []) {
+function makeRig(obstacles = [], audioLog = [], trees = null) {
   const keys = {};
   const SA = loadGame([...FILES, 'game/picking.js', 'game/render/camera-rig.js', (sa) => { sa.audio = { sfx: (n) => { audioLog.push(n); return true; } }; }],
     { addEventListener: (t, f) => { keys[t] = f; } });
   const canvas = { style: {}, clientHeight: 600, addEventListener() {} };
   const camera = { position: { set() {} }, lookAt() {} };
-  const rig = SA.render.createCameraRig({}, canvas, camera, null, { chase: { obstacles: () => obstacles } });
+  const rig = SA.render.createCameraRig({}, canvas, camera, null, { chase: { obstacles: () => obstacles, trees: () => trees || [] } });
   const ev = (o) => ({ preventDefault() {}, ...o });
   return { SA, rig, keys, ev, frames: (n, dt = 1 / 60) => { for (let i = 0; i < n; i++) rig.update(dt); } };
 }
@@ -185,6 +185,69 @@ test('jump button: big round icon-only button, shown at the first touch, taps ca
   assert.equal(SA.jumpButton.create(null, { jump() {} }).element, null);
   assert.equal(SA.jumpButton.create(doc, {}).element, null);
   assert.ok(view.element);
+});
+
+// --- hopping in the tree canopy (AS-0115) ---
+function canopyRig(log = []) {
+  const probe = makeRig();
+  const s = probe.SA.player.spawn();
+  const tree = { x: s.x + 2, z: s.z, y: 0, scale: 1, kind: 'jungle' };
+  const t = makeRig([], log, [tree]);
+  return { ...t, tree };
+}
+
+test('Space in the canopy hops above the canopy height and lands back on it, without falling off', () => {
+  const log = [];
+  const { rig, keys, ev, frames } = canopyRig(log);
+  rig.toggleClimb();
+  assert.equal(rig.getPlayer().climb, 'up');
+  frames(60, 0.05);
+  const base = rig.getPlayer();
+  assert.equal(base.climb, 'canopy');
+  assert.ok(base.y > 3, 'standing up in the canopy');
+  keys.keydown(ev({ key: ' ', code: 'Space' }));
+  let peak = 0;
+  for (let i = 0; i < 60; i++) {
+    frames(1);
+    const p = rig.getPlayer();
+    peak = Math.max(peak, p.lift);
+    assert.equal(p.climb, 'canopy', 'a hop never drops the player off the tree');
+    assert.equal(p.y, base.y, 'reach height (y) is the canopy height, never raised by the hop');
+  }
+  assert.ok(Math.abs(peak - SA0.jump.HEIGHT) < 0.1, `peak ${peak}`);
+  const end = rig.getPlayer();
+  assert.equal(end.lift, 0, 'landed back on the canopy');
+  assert.deepEqual([end.x, end.z], [base.x, base.z]);
+  assert.deepEqual(log, ['hop'], 'the same boing, once');
+  keys.keyup(ev({ key: ' ', code: 'Space' }));
+  assert.equal(rig.jump(), true, 'the touch button hops in the canopy too');
+  frames(2);
+  assert.ok(rig.getPlayer().lift > 0);
+});
+
+test('no hop during the climb up or down animation', () => {
+  const { rig, keys, ev, frames } = canopyRig();
+  rig.toggleClimb();
+  keys.keydown(ev({ key: ' ', code: 'Space' }));
+  frames(5, 0.05);
+  assert.equal(rig.getPlayer().climb, 'up');
+  assert.equal(rig.getPlayer().lift, 0, 'no hop while climbing up');
+  assert.equal(rig.jump(), false, 'the touch button is ignored too');
+  keys.keyup(ev({ key: ' ', code: 'Space' }));
+  frames(60, 0.05);
+  assert.equal(rig.getPlayer().climb, 'canopy');
+  keys.keydown(ev({ key: ' ', code: 'Space' }));
+  frames(2);
+  assert.ok(rig.getPlayer().lift > 0, 'hopping in the canopy');
+  rig.toggleClimb();   // start climbing down mid-hop
+  frames(1);
+  assert.equal(rig.getPlayer().climb, 'down');
+  assert.equal(rig.getPlayer().lift, 0, 'the hop ends when the climb down starts');
+  keys.keyup(ev({ key: ' ', code: 'Space' }));
+  frames(60, 0.05);
+  const p = rig.getPlayer();
+  assert.equal(p.climb, null);
+  assert.ok(Math.abs(p.y - SA0.map.groundHeight(p.x, p.z)) < 1e-6, 'back on the terrain');
 });
 
 test('the avatar rises with the hop and squashes and stretches', () => {

@@ -6,6 +6,8 @@
  *       angle:   radians toward the target on screen, 0 = right, PI/2 = up (screen y grows upward).
  *       ex, ey:  where the arrow sits, in NDC (-1..1, y up), pushed in from the screen edge so it stays tappable
  *                and clear of the prompt bar (top) and the star badge (bottom).
+ *   SA.hintPointer.controlRects({ w, h }) -> pixel rects of the fixed buttons (mute, habitat, gear, orbit pad)
+ *   SA.hintPointer.avoid({ w, h }, rects, ex, ey) -> { ex, ey }: the arrow slid along the screen edge to clear those rects
  *   SA.hintPointer.create({ delaySeconds?, onHint?, glide? }) -> pointer
  *       pointer.start()         a new round began: restart the idle clock, forget the "used" flag
  *       pointer.stop()          the round ended (correct pick): hide
@@ -19,6 +21,7 @@
   var RAD = Math.PI / 180;
   var DELAY_SECONDS = 10;
   var EDGE = { left: -0.88, right: 0.88, bottom: -0.82, top: 0.66 };
+  var ARROW_SIZE = 72, MARGIN = 8, STEP = 4;   // px: arrow button size (see ui/hint-arrow.js), gap kept to controls, search step
 
   function finite(v, d) { return typeof v === 'number' && isFinite(v) ? v : d; }
 
@@ -52,6 +55,54 @@
     return { visible: false, angle: Math.atan2(sy, sx), ex: sx * k, ey: sy * k };
   }
 
+  // Fixed controls the arrow must not cover, as pixel rects {left, top, right, bottom} (origin top-left) for a viewport
+  // { w, h }. Mirrors the CSS of the mute (top-right), habitat (below it), gear and orbit pad (bottom-right) buttons.
+  function controlRects(vp) {
+    var w = finite(vp && vp.w, 0), h = finite(vp && vp.h, 0);
+    function box(rt, tp, bw, bh) { return { left: w - rt - bw, top: tp, right: w - rt, bottom: tp + bh }; }
+    return [
+      box(12, 12, 64, 64),                       // mute
+      box(12, 84, 76, 76),                       // habitat toggle
+      box(12, h - 12 - 48, 48, 48),              // gear
+      box(12, h - 72 - 120, 120, 120),           // orbit pad (2x2 buttons)
+    ];
+  }
+
+  // Pure: slide the arrow (centre at NDC ex, ey; ARROW_SIZE px square) along the inset screen-edge rectangle until its
+  // box clears every reserved rect (plus MARGIN). Returns { ex, ey } in NDC; the caller keeps the original angle, so the
+  // arrow still points at the target. Unchanged when already clear (or no viewport); stays fully on-screen.
+  function avoid(vp, rects, ex, ey, opts) {
+    var w = finite(vp && vp.w, 0), h = finite(vp && vp.h, 0);
+    var out = { ex: ex, ey: ey };
+    if (!(w > 0 && h > 0) || !rects || !rects.length) return out;
+    opts = opts || {};
+    var half = (opts.size || ARROW_SIZE) / 2, margin = finite(opts.margin, MARGIN), edge = opts.edge || EDGE;
+    var x0 = Math.max(half, (edge.left + 1) / 2 * w), x1 = Math.min(w - half, (edge.right + 1) / 2 * w);
+    var y0 = Math.max(half, (1 - edge.top) / 2 * h), y1 = Math.min(h - half, (1 - edge.bottom) / 2 * h);
+    function clear(x, y) {
+      for (var i = 0; i < rects.length; i++) {
+        var r = rects[i];
+        if (x + half > r.left - margin && x - half < r.right + margin && y + half > r.top - margin && y - half < r.bottom + margin) return false;
+      }
+      return true;
+    }
+    var px = Math.min(x1, Math.max(x0, (ex + 1) / 2 * w)), py = Math.min(y1, Math.max(y0, (1 - ey) / 2 * h));
+    var best = null, bestD = Infinity;
+    function consider(x, y) {
+      if (!clear(x, y)) return;
+      var d = (x - px) * (x - px) + (y - py) * (y - py);
+      if (d < bestD) { bestD = d; best = { x: x, y: y }; }
+    }
+    if (clear(px, py)) return out;   // already clear: leave it exactly where locate() put it
+    else {
+      for (var x = x0; x <= x1; x += STEP) { consider(x, y0); consider(x, y1); }
+      for (var y = y0; y <= y1; y += STEP) { consider(x0, y); consider(x1, y); }
+      consider(x1, y1); consider(x1, y0);
+    }
+    if (!best) return out;   // nowhere free (absurdly tiny viewport): keep the original spot rather than hide the hint
+    return { ex: best.x / w * 2 - 1, ey: 1 - best.y / h * 2 };
+  }
+
   function create(o) {
     o = o || {};
     var delay = typeof o.delaySeconds === 'number' ? o.delaySeconds : DELAY_SECONDS;
@@ -59,12 +110,14 @@
     return {
       start: function () { idle = 0; active = true; used = false; },
       stop: function () { active = false; idle = 0; },
-      update: function (dt, target, cam, aspect) {
+      update: function (dt, target, cam, aspect, vp) {
         if (!active || !target) return null;
         idle += Math.max(0, finite(dt, 0));
         if (idle < delay) return null;
         var l = locate(target, cam, aspect);
-        return l.visible ? null : { angle: l.angle, ex: l.ex, ey: l.ey };
+        if (l.visible) return null;
+        var p = vp ? avoid(vp, controlRects(vp), l.ex, l.ey) : l;   // with a viewport, keep clear of mute/habitat/gear
+        return { angle: l.angle, ex: p.ex, ey: p.ey };
       },
       tap: function (target) {
         if (!active || !target) return false;
@@ -76,5 +129,5 @@
     };
   }
 
-  SA.hintPointer = { DELAY_SECONDS: DELAY_SECONDS, EDGE: EDGE, locate: locate, create: create };
+  SA.hintPointer = { DELAY_SECONDS: DELAY_SECONDS, EDGE: EDGE, locate: locate, controlRects: controlRects, avoid: avoid, create: create };
 })(typeof window !== 'undefined' ? window : globalThis);

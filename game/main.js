@@ -19,6 +19,8 @@
       if (root.SAT) root.SAT.track('error', { message: String(e && e.message).slice(0, 200), source: source, line: 0, stack: String(e && e.stack).slice(0, 500) });
     }
     var ctl = null, unlocks = null;
+    // A soft pop on every animal / body-part pick (wrong picks also get their boing from the round/care controllers).
+    try { SA.pickSfx.install(); } catch (e) { report('pickSfx.start', e); }
     // Easter eggs: hidden animals appear (fanfare + sparkles) when their data-defined condition is met.
     try {
       var flow = SA.unlockFlow.create({ group: stage.animals, fx: stage.fx, celebrate: function (msg) { if (ctl && ctl.celebrate) ctl.celebrate(msg); } });

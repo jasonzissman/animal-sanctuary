@@ -438,7 +438,17 @@ current; when your change sets or changes something future tickets must follow, 
   still works through the runtime. While the `follow` step is current it walks behind the player through `SA.follow.stepAll` (its `solids`
   arg may be the walk-list **function**, resolved there). It hops and squeaks once when found, and within `EXCITE_DIST` (12) of mamá it
   bounces and squeaks, more and faster the closer it gets (`excitement(d)`), a warmer/colder hint. Telemetry: `mission.babyFound`,
-  `mission.babyExcited`. Who reports the `followed` event that ends the follow step is the next slice.
+  `mission.babyExcited`.
+- **The reunion (AS-0235, slice 4 of Mission 1):** `SA.missionReunion` (`game/mission-reunion.js`, pure) is who reports `followed`: when the
+  following baby is within `REUNION_DIST` (2.6) of mamá, `SA.missionBaby.update` calls `check`, the follow step ends (the baby is released
+  and stays beside mamá) and the next step asks for the family photo; the photo completes the mission with its reward once (AS-0230).
+  The view says `reunion: true` for one frame, and `SA.render.createMissionSpawn` bursts hearts and nuzzles. The line `💕 ¡La familia está junta!`
+  is the toast (`onReunion` hook in main.js); `SA.audio.say` speaks `phrase:mama, cria, bebe, familia, familiajunta` (la mamá, la cría, el bebé,
+  la familia, ¡La familia está junta!) about 1.7 s later so the new step line is heard first.
+- **Rescue log and badges (AS-0235):** the save has an optional `rescues: [{ kind, mission, animal?, key? }]` (capped 200, `SA.rescueLog`
+  in `game/rescue-log.js`). Badges are data rows in `game/data/badges.js` (`rule: { kind, count }`: earned when the log holds `count`
+  entries of that rescue kind); the reunion logs kind `reunion` (idempotent per mission + seed), which earns **Reúne familias**. Later
+  rescue kinds and the sticker UI add rows/entries, not new logic.
 
 ## Unchanged from the spec
 

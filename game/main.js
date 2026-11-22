@@ -68,6 +68,8 @@
       if (rt) {
         rt.celebrateHook = function () { if (ctl && ctl.celebrate) ctl.celebrate('¡Lo lograste! ⭐'); };
         rt.onStars = function (n) { if (ctl && ctl.setStars) ctl.setStars(n); };
+        // The baby reached mamá (AS-0235): one short line with an icon and confetti; SA.missionReunion speaks the family words.
+        if (SA.missionReunion) SA.missionReunion.onReunion = function () { if (ctl && ctl.celebrate) ctl.celebrate('💕 ¡La familia está junta!'); };
         SA.picking.onPick(rt.onPick);
         if (SA.npc && SA.npc.onTalk) SA.npc.onTalk(function () { rt.report({ type: 'talked', who: 'scientist' }); return false; });
       }

@@ -212,7 +212,7 @@ test('index.html loads the care scripts before scene.js', () => {
 });
 
 // ---- 3D care effects with the real vendored three.js (no WebGL needed) ----
-test('care fx: mud spots appear on the target part, wash away with sparkles, and the camera is eased and released', () => {
+test('care fx: mud spots appear on the target part, wash away with sparkles, and the camera is left alone', () => {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
@@ -224,14 +224,14 @@ test('care fx: mud spots appear on the target part, wash away with sparkles, and
   const { SA, THREE } = ctx;
   const animals = SA.render.buildAnimals(THREE, {});
   const rigCalls = [];
-  const rig = { focusOn: (...a) => rigCalls.push(['focus', ...a]), release: () => rigCalls.push(['release']) };
+  // The camera is never touched during care: any rig call would be recorded here.
+  const rig = new Proxy({}, { get: (_, name) => (...a) => rigCalls.push([name, ...a]) });
   const fx = SA.render.createCareFx(THREE, { animals, rig });
   const group = animals.getObjectByName('tortuga');
   const before = group.children.length;
   assert.equal(fx.show({ animalId: 'tortuga', part: 'patas', spots: 6 }), true);
   assert.equal(fx.spotCount(), 6);
   assert.equal(group.children.length, before + 6);
-  assert.equal(rigCalls[0][0], 'focus');
   fx.scrub(4);
   assert.equal(fx.spotCount(), 4);
   assert.equal(animals.children.length, 11 + 12);        // 2 spots washed away burst into 6 sparkles each
@@ -241,7 +241,7 @@ test('care fx: mud spots appear on the target part, wash away with sparkles, and
   fx.scrub(0);
   fx.hide();
   assert.equal(group.children.length, before);
-  assert.equal(rigCalls[rigCalls.length - 1][0], 'release');
+  assert.deepEqual(rigCalls, [], 'care never moves the camera');
   assert.equal(fx.show({ animalId: 'nadie', part: 'patas', spots: 2 }), false);
   assert.equal(fx.show({ animalId: 'tortuga', part: 'alas', spots: 2 }), false);   // a part it does not have
 });

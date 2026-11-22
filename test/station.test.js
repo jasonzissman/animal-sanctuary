@@ -210,9 +210,36 @@ test('the missions board model has a title that switches Spanish <-> English wit
   assert.equal(board.english, false);
 });
 
+test('the Insignias board model: medal doodles, a one-line title (Insignias <-> Badges), turned to face into the room (AS-0239)', () => {
+  const ctx = vm.createContext({ console });
+  ctx.window = ctx; ctx.self = ctx;
+  for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/map.js', 'game/station.js', 'game/render/block-text.js', 'game/render/station-board.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+  }
+  let english = false;
+  ctx.SA.save = { get: () => ({ settings: { english } }) };
+  const board = ctx.SA.render.createStationBoard(ctx.THREE, { key: 'badgesBoard', badges: true, id: 'station-badges', titles: { es: ['Insignias'], en: ['Badges'] } });
+  const K = ctx.SA.station.layout().badgesBoard;
+  const meshes = (o) => { let n = 0; o.traverse((x) => { if (x.isMesh) n++; }); return n; };
+  assert.equal(board.group.position.x, K.x);
+  assert.equal(board.group.position.z, K.z);
+  assert.ok(Math.abs(board.group.rotation.y - Math.PI) < 1e-9, 'faces +z, into the room');
+  assert.equal(board.group.userData.boardId, 'station-badges');
+  const es = meshes(board.title);
+  assert.ok(es > 20 && meshes(board.group) > es + 10, 'a title plus frame, panel and medals');
+  english = true; board.update();
+  assert.equal(board.english, true);
+  assert.notEqual(meshes(board.title), es, 'Badges is a different word');
+  board.group.traverse((o) => { if (o.isMesh) assert.ok(o.material.flatShading && !o.material.map); });
+  const picks = []; board.group.traverse((o) => { if (o.userData && o.userData.stationBoardPick) picks.push(o); });
+  assert.equal(picks.length, 1);
+  // The default (missions) board is not turned.
+  assert.equal(ctx.SA.render.createStationBoard(ctx.THREE).group.rotation.y, 0);
+});
+
 test('block-text knows every letter of both board titles', () => {
   const SA2 = loadGame(['game/sa.js', 'game/render/block-text.js']);
-  for (const word of ['Lista de misiones', 'Mission list', 'Estación']) {
+  for (const word of ['Lista de misiones', 'Mission list', 'Estación', 'Insignias', 'Badges']) {
     for (const ch of word.toUpperCase().replace('Ó', 'O')) if (ch !== ' ') assert.ok(SA2.render.blockTextFont[ch], `glyph ${ch}`);
     assert.ok(SA2.render.blockTextBlocks(word) > 0);
   }

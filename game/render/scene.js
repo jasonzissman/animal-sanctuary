@@ -126,9 +126,9 @@
         var baby = SA.missionBaby && SA.missionBaby.useTarget();
         return baby ? npcTargets.concat([baby]) : npcTargets;
       },
-      openBoard: function () {
+      openBoard: function (board) {
         if (!SA.station || !SA.station.toggle) return false;
-        SA.station.toggle('board');
+        SA.station.toggle(board && board.source ? board.source : 'board');   // the Insignias board opens with source 'badges' (AS-0239)
         return true;
       },
       talk: function (npc) {
@@ -143,6 +143,12 @@
       SA.render.createStationBoardTap(THREE, { canvas: renderer.domElement, camera: camera, node: station.userData.board.group,
         getPlayer: rig.getPlayer, hitsAnimal: function (x, y) { return !!picking.pickAt(x, y) || !!(scientistTap && scientistTap.hits(x, y)); } });
     }
+    // The same tap for the Insignias board (AS-0239): opens the card with source 'badges'.
+    if (station && station.userData.badgesBoard && SA.render.createStationBoardTap && SA.station && SA.station.badgesTarget) {
+      SA.render.createStationBoardTap(THREE, { canvas: renderer.domElement, camera: camera, node: station.userData.badgesBoard.group,
+        getPlayer: rig.getPlayer, target: SA.station.badgesTarget(), source: 'badges',
+        hitsAnimal: function (x, y) { return !!picking.pickAt(x, y) || !!(scientistTap && scientistTap.hits(x, y)); } });
+    }
     // The one outline: whatever spaceUse chose (part, tree or pickup) glows, nothing else (AS-0101).
     var outline = spaceUse && SA.render.createTargetOutline ? SA.render.createTargetOutline(THREE, { getTarget: spaceUse.target, nodeFor: function (kind, ref) {
       if (kind === 'part') return ref && (ref.node || ref.mesh) || null;   // a whole-animal target outlines the whole animal (AS-0128)
@@ -155,6 +161,7 @@
       }
       if (kind === 'npc' && ref && ref.id === 'baby') return missionAnimals ? missionAnimals.babyNode() : null;   // the lost baby (AS-0234)
       if (kind === 'npc') return scientist ? scientist.group : null;   // her pick volume is invisible, so only the model glows
+      if (kind === 'board' && ref && ref.id === 'station-badges') return station && station.userData && station.userData.badgesBoard ? station.userData.badgesBoard.group : null;
       if (kind === 'board') return station && station.userData && station.userData.board ? station.userData.board.group : null;
       return kind === 'pickup' && pickups ? pickups.nodeFor(ref) : null;
     } }) : null;
@@ -203,7 +210,7 @@
       scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize, taskRing: taskRing, getTask: null,
       animals: animals, treeTap: treeTap, onTreeTap: null,
       avatar: avatar, pickups: pickups, spaceUse: spaceUse,
-      render: function (dt) { if (station && station.userData.board) station.userData.board.update(); rig.update(dt); avatar.update(dt, rig.getPlayer()); if (scientist) scientist.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (autoRing) autoRing.update(dt); if (reachCue) reachCue.update(dt); if (clickFx) clickFx.update(dt); treeTap.update(dt); ambient.update(dt); if (missionAnimals) { try { missionAnimals.update(dt); } catch (e) { missionAnimals = null; if (root.SAT && root.SAT.error) root.SAT.error('missionSpawn.update', e); } } if (treetop) treetop.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); if (taskRing) { try { taskRing.update(dt, stageApi.getTask ? stageApi.getTask() : null); } catch (e) { taskRing = null; if (root.SAT && root.SAT.error) root.SAT.error('taskRing.update', e); } } renderer.render(scene, camera); },
+      render: function (dt) { if (station && station.userData.board) station.userData.board.update(); if (station && station.userData.badgesBoard) station.userData.badgesBoard.update(); rig.update(dt); avatar.update(dt, rig.getPlayer()); if (scientist) scientist.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (autoRing) autoRing.update(dt); if (reachCue) reachCue.update(dt); if (clickFx) clickFx.update(dt); treeTap.update(dt); ambient.update(dt); if (missionAnimals) { try { missionAnimals.update(dt); } catch (e) { missionAnimals = null; if (root.SAT && root.SAT.error) root.SAT.error('missionSpawn.update', e); } } if (treetop) treetop.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); if (taskRing) { try { taskRing.update(dt, stageApi.getTask ? stageApi.getTask() : null); } catch (e) { taskRing = null; if (root.SAT && root.SAT.error) root.SAT.error('taskRing.update', e); } } renderer.render(scene, camera); },
     };
     return stageApi;
   };

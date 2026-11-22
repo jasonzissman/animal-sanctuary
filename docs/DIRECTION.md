@@ -44,6 +44,15 @@ current; when your change sets or changes something future tickets must follow, 
   opens it); the board group (`station.userData.board.group`) is what the one outline glows; `render/station-board-tap.js` raycasts the
   board's invisible pick volume (`userData.stationBoardPick`) so a tap/click on it calls `SA.station.open('tap')` too. `ui/station-menu-view.js` is only a
   placeholder card (⚛️ + "La estación" + ✕); the customizer (AS-0144) attaches via `SA.station.onOpen` and renders into the view's `body`.
+  **Insignias board (AS-0239, slice 1 of AS-0219):** a second board on the FRONT wall's inner face, left of the doorway, opposite the
+  missions board (`layout().badgesBoard`, faces +z, solid like the other). `SA.station.badgesTarget()` (`{ id: 'station-badges', kind:
+  'board', source: 'badges' }`) joins `boardTargets()`; the chooser, the outline (scene.js `nodeFor`) and `render/station-board-tap.js` (a second
+  instance with `target` + `source: 'badges'`) treat it like the missions board, but it opens the card with source `'badges'`
+  (`SAT.track('station.open', { source: 'badges' })`; `SA.station.openSource()` says which board opened the card). The model is
+  `SA.render.createStationBoard(THREE, { key: 'badgesBoard', badges: true, titles })`: "Insignias" ("Badges" with English on) and medal doodles.
+  The pure `SA.badgesBoard.rows()` (`badges-board.js`) maps `SA.badges.progress()` to `{ id, icon, name, have, need, earned, text }` (`text` =
+  `n/m` or ✅); `ui/badges-board-view.js` draws icon + name + text rows into the same station `body` and shows only for source `'badges'`
+  (the missions view hides itself for that source). Tap a row to hear its name. Slice 2 of AS-0219 refines the card.
   **Misiones board (AS-0197):** `ui/missions-board-view.js` renders into that `body` (re-rendered on every open) from the pure
   `SA.missionsBoard` (`missions-board.js`: `cards()` maps `SA.missions.list()` to done ✅ / next ⭐ / active ▶️ / locked 🔒 cards,
   `layout()` sizes a wrapping, scrolling grid so cards never overlap each other or the ✕). Tap done = replay, next = start (the

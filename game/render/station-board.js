@@ -27,8 +27,8 @@
   }
 
   /** The title: two lines of block letters near the top of the panel. Local coordinates (the board's centre is the origin, front is -z). */
-  function buildTitle(THREE, m, B, english) {
-    var g = new THREE.Group(), lines = TITLES[english ? 'en' : 'es'], px = 0.075, z = -B.depth / 2 - px * 0.3;
+  function buildTitle(THREE, m, B, english, titles) {
+    var g = new THREE.Group(), lines = (titles || TITLES)[english ? 'en' : 'es'], px = 0.075, z = -B.depth / 2 - px * 0.3;
     lines.forEach(function (line, i) {
       var word = SA.render.blockText(THREE, m.ink, line, px);
       word.group.position.set(0, B.height / 2 - 0.4 - i * 0.5, z);
@@ -69,17 +69,35 @@
     return g;
   }
 
-  SA.render.createStationBoard = function (THREE) {
-    var B = SA.station.layout().board, m = mats(THREE), group = new THREE.Group();
+  /** Badge doodles for the Insignias board: three round medals (bronze, silver, gold) with a star above, in two rows. */
+  function buildBadgeDoodles(THREE, m, B) {
+    var g = new THREE.Group(), z = -B.depth / 2 - 0.02, y = -0.15;
+    [[-0.45, 0xc98a4b], [0, 0xbfc5cc], [0.45, 0xffd24a]].forEach(function (c) {
+      var medal = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.04, 10), new THREE.MeshPhongMaterial({ color: c[1], flatShading: true, specular: 0x000000 }));
+      medal.rotation.x = Math.PI / 2; medal.position.set(c[0], y, z);
+      var ribbon = bar(THREE, m.red, 0.1, 0.22, c[0], y - 0.26, z, 0);
+      g.add(ribbon, medal);
+    });
+    g.add(bar(THREE, m.gold, 0.16, 0.16, 0, -0.62, z - 0.004, 0), bar(THREE, m.gold, 0.16, 0.16, 0, -0.62, z - 0.004, Math.PI / 4));    return g;
+  }
+
+  /** createStationBoard(THREE, opts?): opts.key = the layout key ('board' default, 'badgesBoard' for Insignias), opts.titles = { es: [..], en: [..] },
+   *  opts.badges = true draws the medal doodles. A board facing +z (layout facing.z > 0) is turned half a circle so its front reads from the room. */
+  SA.render.createStationBoard = function (THREE, opts) {
+    opts = opts || {};
+    var B = SA.station.layout()[opts.key || 'board'], m = mats(THREE), group = new THREE.Group();
+    var titles = opts.titles || TITLES;
     group.position.set(B.x, B.y, B.z);
+    if (B.facing && B.facing.z > 0) group.rotation.y = Math.PI;
     group.userData.stationBoard = true;
+    if (opts.id) group.userData.boardId = opts.id;
     // Frame (back) and panel (front): the panel sits a hair proud of the frame's face inside it.
     var f = 0.1;
     group.add(new THREE.Mesh(new THREE.BoxGeometry(B.width, B.height, B.depth), m.frame));
     var panel = new THREE.Mesh(new THREE.BoxGeometry(B.width - 2 * f, B.height - 2 * f, 0.02), m.panel);
     panel.position.set(0, 0, -B.depth / 2 - 0.005);
     group.add(panel);
-    group.add(buildDoodles(THREE, m, B));
+    group.add(opts.badges ? buildBadgeDoodles(THREE, m, B) : buildDoodles(THREE, m, B));
     // A generous invisible pick volume in front of the board (AS-0211): a tap or click near it opens the missions
     // (render/station-board-tap.js). Never drawn and never outlined (the outline skips invisible meshes), but still raycast.
     var pick = new THREE.Mesh(new THREE.BoxGeometry(B.width + 0.8, B.height + 0.8, 0.8), m.frame);
@@ -96,7 +114,7 @@
         api.title.traverse(function (o) { if (o.geometry) o.geometry.dispose(); });
       }
       api.english = on;
-      api.title = buildTitle(THREE, m, B, on);
+      api.title = buildTitle(THREE, m, B, on, titles);
       group.add(api.title);
     }
     function update() {

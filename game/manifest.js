@@ -164,6 +164,8 @@ globalThis.SA_MANIFEST = {
     'game/missions-board.js',
     'game/missions-dialogue.js',
     'game/ui/missions-board-view.js',
+    'game/badges-board.js',
+    'game/ui/badges-board-view.js',
     'game/ui/greeting-view.js',
     'game/ui/scientist-view.js',
     'game/ui/settings-view.js',

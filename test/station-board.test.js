@@ -24,7 +24,7 @@ test('the board target is the board centre, one stable object with a reach', () 
   assert.equal(b.reach, SA.spaceTarget.BOARD_REACH);
   assert.equal(SA.station.BOARD_REACH, SA.spaceTarget.BOARD_REACH);
   assert.equal(SA.station.boardTarget(), b);
-  assert.equal(SA.station.boardTargets().length, 1);
+  assert.equal(SA.station.boardTargets().length, 2, 'the missions board and the Insignias board (AS-0239)');
   assert.equal(SA.station.boardTargets()[0], b);
   assert.equal(SA.station.boardTargets(), SA.station.boardTargets(), 'a stable list: nothing allocated per frame');
   assert.equal(SA.station.doorTarget, undefined, 'the door frame is no target any more');

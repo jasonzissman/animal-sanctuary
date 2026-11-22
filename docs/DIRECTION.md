@@ -31,6 +31,9 @@ current; when your change sets or changes something future tickets must follow, 
   Treetop hopping (AS-0166): treetops are flat standable tops, and a landing assist lands you on the tree you jump
   roughly toward (~7 units, ~40 degrees). Be generous: kids should chain tree to tree easily.
 - **The world reacts to bumping (AS-0156, AS-0157).** A cactus pricks: bounce back with "¡Ay! ¡Pica!" (never a penalty).
+  Built (`SA.prick`, pure): decor data `prick: true` marks a prickly solid; touching it knocks the player ~1.5 units straight
+  away over ~0.25 s (eased, little hop, red flash), shortened so it never ends in or crosses another solid or leaves the map; the
+  `ouch` SFX + `phrase:ay` play at most once per 2 s. The camera rig runs it after the walking step.
   Keep pushing forward into a tree for 0.6 s and you climb it (a filling ring shows it coming); C/E still climb instantly.
 - **Movement has sound (AS-0118 to AS-0120).** Soft footsteps (quicker when running, splashy in water, leafy in a
   canopy), a hop and a landing thump, a splash entering water, a rustle while climbing. Short, quiet, never spammy; mute silences all.

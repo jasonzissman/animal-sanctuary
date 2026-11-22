@@ -39,6 +39,7 @@ globalThis.SA_MANIFEST = {
     'game/camera-frame.js',
     'game/station.js',
     'game/player.js',
+    'game/prick.js',
     'game/reach.js',
     'game/perch.js',
     'game/climb.js',

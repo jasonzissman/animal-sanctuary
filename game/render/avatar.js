@@ -16,7 +16,8 @@
   SA.render.createAvatar = function (THREE) {
     var group = new THREE.Group();
     group.name = 'avatar';
-    function mat(c) { return new THREE.MeshLambertMaterial({ color: c }); }
+    var mats = [];   // every material, so a cactus prick (player.hurt) can flash them red (AS-0156)
+    function mat(c) { var m = new THREE.MeshLambertMaterial({ color: c }); mats.push(m); return m; }
     function box(w, h, d, c, x, y, z, parent) {
       var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c));
       m.position.set(x, y, z);
@@ -48,6 +49,9 @@
       var hop = player.lift || 0, air = hop > 0;   // SA.jump lift above the standing height
       group.position.set(player.x, (player.y || 0) + hop, player.z);
       group.rotation.y = player.heading || 0;
+      var hurt = player.hurt || 0;   // 1 -> 0 after a cactus prick: red flash and a quick side-to-side shake
+      mats.forEach(function (m) { if (m.emissive && m.emissive.setRGB) m.emissive.setRGB(hurt * 0.75, 0, 0); });
+      group.position.x += hurt * Math.sin(hurt * 40) * 0.08;
       dt = Math.max(0, Math.min(0.1, dt || 0));
       amount += ((player.moving ? 1 : 0) - amount) * Math.min(1, dt * 12);
       var gait = player.running ? RUN_GAIT : 1;   // running: quicker steps, bigger swing and bob

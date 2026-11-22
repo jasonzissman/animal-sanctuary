@@ -28,6 +28,7 @@
     // hooks.chase = { obstacles() -> [[x, z, r], ...] }: WASD/arrows walk the SA.player avatar (up/down = walk,
     // left/right = turn), the camera follows from behind, Q/E/R/F and drags swing it round the player, and pan gestures
     // (shift/right drag, two fingers) walk the player so touch screens can still move.
+    // hooks.chase.pricklies() -> [[x, z, r], ...]: the cacti (SA.blocking.pricklies); touching one knocks the player back (SA.prick).
     // hooks.chase.trees() -> [{ x, z, y?, scale?, kind? }]: the climbable trees (SA.climb); the player state carries y and climb.
     var player = SA.climb.step(SA.player.spawn(), {}, 0), moving = false, offset = 0, camY = player.y;   // offset: swing from directly behind (deg)
     var state = C.chaseStart(player, B);
@@ -39,7 +40,8 @@
     var isRunning = false;        // moved forward at run speed this frame (the avatar plays a faster stride)
     var jumpHeld = false;       // Space held (SA.jump needs a release between hops)
     var hop = SA.jump ? SA.jump.create() : null;   // { lift, vy, air, ... }: the avatar is drawn at y + lift; reach still uses y
-    var jumpTap = false;        // the on-screen jump button was tapped: one frame of "Space pressed" (same one-hop-per-landing rule)
+    var prick = SA.prick ? SA.prick.create() : { lift: 0, hurt: 0 };   // cactus knockback (SA.prick): its lift/hurt ride on the avatar
+    var jumpTap = false;       // the on-screen jump button was tapped: one frame of "Space pressed" (same one-hop-per-landing rule)
     var run = false;            // Shift held: the avatar runs (SA.player RUN_SPEED) while moving forward
     var clearK = 1;             // smoothed fraction (0..1) of the camera's reach kept by SA.camera.clearPath
     var frame = C.NO_FRAME || { weight: 0, addDist: 0, addPitch: 0, addLookY: 0, addFov: 0 };   // eased SA.camera.frameAbove offsets (AS-0116)
@@ -197,6 +199,15 @@
         var running = (run && az < 0) || !!J.run;   // Shift only speeds up walking forward; the stick runs at its edge
         player = SA.climb.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
           left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running, lift: hop ? hop.lift : 0 }, dt, obs);
+        if (SA.prick && !player.climb) {   // a cactus bounces the player back (AS-0156): walking is overridden for ~0.25 s
+          var pricklies = hooks && hooks.chase && hooks.chase.pricklies ? hooks.chase.pricklies() : [];
+          prick = SA.prick.step(prick, player, pricklies, obs, dt);
+          if (prick.active) player = { x: prick.x, z: prick.z, heading: player.heading, y: player.y, climb: player.climb };
+          if (prick.ouch) {
+            if (SA.audio && SA.audio.sfx) SA.audio.sfx(SA.prick.OUCH_SFX);
+            if (SA.audio && SA.audio.say) { try { SA.audio.say(SA.prick.OUCH_KEY); } catch (e) { /* speech is best effort */ } }
+          }
+        }
         if (hop) {   // the hop is a lift on top of the standing height (ground or canopy); none during the climb up/down animation
           hop = climbing() ? SA.jump.cancel(hop) : SA.jump.step(hop, { jump: jumpHeld || jumpTap }, dt, true,
             player.climb ? 0 : SA.player.floorAt(player.x, player.z, obs, hop.lift));   // lands / stands on a low rock
@@ -224,7 +235,7 @@
        *  hop: `lift` (height above y; y itself, which SA.reach uses, never includes it) and `jump` ('takeoff' | 'land' | null). */
       getPlayer: function () {
         return { x: player.x, z: player.z, y: player.y || 0, heading: player.heading, moving: moving, running: isRunning,
-          climb: player.climb ? player.climb.mode : null, lift: hop ? hop.lift : 0, jump: hop ? hop.event : null };
+          climb: player.climb ? player.climb.mode : null, lift: (hop ? hop.lift : 0) + prick.lift, hurt: prick.hurt, jump: hop ? hop.event : null };
       },
       /** 'up' | 'down' | null: which climb button to show right now (the icon-only UI polls this each frame). */
       climbPrompt: function () { return SA.climb.prompt(player, trees()); },

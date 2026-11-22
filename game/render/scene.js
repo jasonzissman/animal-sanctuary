@@ -59,13 +59,18 @@
         }),
       }));
     }
+    // The cacti (data prick: true) never move: their circles are read once.
+    var prickCircles = null;
+    function pricklies() {
+      return prickCircles || (prickCircles = SA.blocking.pricklies(decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor }; })));
+    }
     // Perched (tree-dwelling) animals' world positions: the chase camera frames them when they are above the player (SA.camera.frameAbove).
     function perchedAnimals() {
       var out = [];
       animals.children.forEach(function (g) { if (g.userData && g.userData.perched) out.push({ x: g.position.x, y: g.position.y, z: g.position.z }); });
       return out;
     }
-    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, { chase: { obstacles: obstacles, trees: function () { return trees; }, above: perchedAnimals }, canOrbit: function (e) {
+    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, { chase: { obstacles: obstacles, pricklies: pricklies, trees: function () { return trees; }, above: perchedAnimals }, canOrbit: function (e) {
       return !(SA.picking.hasRubTarget() && picking && SA.picking.isRubTarget(picking.pickAt(e.clientX, e.clientY)));
     } });
     var avatar = SA.render.createAvatar(THREE);

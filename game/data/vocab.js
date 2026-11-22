@@ -94,6 +94,7 @@
   add('phrase', 'casi', '¡Casi!');
   add('phrase', 'yapuedevolar', '¡Ya puede volar!');
   add('phrase', 'quefoto', '¡Qué foto! Pero busca…');
+  add('phrase', 'ay', '¡Ay! ¡Pica!', 'Ouch! Prickly!');   // the cactus prick (SA.prick)
   add('phrase', 'acercate', '¡Acércate!', 'Come closer!');   // the reach cue (SA.reach.speakCue)
 
   SA.data.register('vocab', items);

@@ -1,6 +1,7 @@
 /* SA.render.createStationBoard(THREE) -> { group, update(), setEnglish(on), english }: the "Lista de misiones" board on the inside of the
  * station's back wall (AS-0210), from SA.station.layout().board. A framed slab with a big block-letter title (two lines), hand-drawn-looking
- * scribble lines and a few doodles. Pure geometry and flat materials, no textures. Visual only: it is not a Use target yet.
+ * scribble lines and a few doodles. Pure geometry and flat materials, no textures. It is the Use target that opens the missions (AS-0211): game/station-board.js,
+ * with an invisible tap volume (userData.stationBoardPick) in the group.
  * The title is Spanish by default and "Mission list" while the English scaffold is on: update() (called every frame by the scene) reads
  * SA.save settings.english and rebuilds only the title group when it changes. Needs SA.render.blockText (render/block-text.js).
  */
@@ -79,6 +80,13 @@
     panel.position.set(0, 0, -B.depth / 2 - 0.005);
     group.add(panel);
     group.add(buildDoodles(THREE, m, B));
+    // A generous invisible pick volume in front of the board (AS-0211): a tap or click near it opens the missions
+    // (render/station-board-tap.js). Never drawn and never outlined (the outline skips invisible meshes), but still raycast.
+    var pick = new THREE.Mesh(new THREE.BoxGeometry(B.width + 0.8, B.height + 0.8, 0.8), m.frame);
+    pick.position.set(0, 0, -0.4);
+    pick.visible = false;
+    pick.userData = { stationBoardPick: true, pick: true };
+    group.add(pick);
     var api = { group: group, english: false, title: null, setEnglish: null, update: null };
     function setEnglish(on) {
       on = !!on;

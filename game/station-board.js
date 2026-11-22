@@ -1,13 +1,14 @@
-/* SA.station door and menu hook (pure, no THREE or DOM; node:vm tested). Extends SA.station (game/station.js).
- * The doorway of the research station is a "Use" target (SA.spaceTarget kind 'door', outlined like every other target).
- * E / Enter (SA.spaceUse) or a tap on the door calls SA.station.open(); the real character customizer (AS-0144) attaches
- * to this hook and renders into the same place, so nothing here knows what the menu shows.
+/* SA.station missions-board target and menu hook (pure, no THREE or DOM; node:vm tested). Extends SA.station (game/station.js).
+ * The "Lista de misiones" board inside the research station (layout().board, AS-0210) is the "Use" target that opens the missions
+ * (AS-0211): SA.spaceTarget kind 'board', outlined like every other target. E / Enter (SA.spaceUse) or a tap on the board calls
+ * SA.station.open(); ui/missions-board-view.js (and the customizer) attach to that hook, so nothing here knows what the menu shows.
+ * The door frame is NOT a target: walking through the doorway just enters.
  *
- *   SA.station.doorTarget()            -> { id: 'station-door', kind: 'door', x, y, z, reach } (the doorway centre; one stable object)
- *   SA.station.doorTargets()           -> [doorTarget()] (the list SA.spaceUse feeds the chooser; stable array, nothing allocated)
- *   SA.station.canTapDoor(player)      -> true when a tap on the door may open it (within TAP_REACH of the doorway)
+ *   SA.station.boardTarget()           -> { id: 'station-board', kind: 'board', x, y, z, reach } (the board's centre; one stable object)
+ *   SA.station.boardTargets()          -> [boardTarget()] (the list SA.spaceUse feeds the chooser; stable array, nothing allocated)
+ *   SA.station.canTapBoard(player)     -> true when a tap on the board may open it (within TAP_REACH of it)
  *   SA.station.open(source?)           -> true when it newly opened, false when it already was open. Fires onOpen listeners and
- *                                         SAT.track('station.open', { source: 'use' | 'tap' | ... }) once per opening
+ *                                         SAT.track('station.open', { source: 'board' | 'tap' | ... }) once per opening
  *   SA.station.close()                 -> true when it closed, false when it was not open. Fires onClose listeners
  *   SA.station.toggle(source?)         -> open or close, returns true when the menu is open afterwards
  *   SA.station.isOpen()
@@ -19,22 +20,22 @@
   var SA = root.SA;
   if (!SA || !SA.station) return;
 
-  var DOOR_REACH = 2.6;   // the door is the Use target when the player is this close to the doorway
-  var TAP_REACH = 7;      // a tap on the door opens it from this far (generous: little hands, small screens)
-  var door = null, list = null, opened = false, openSource = null, openers = [], closers = [];
+  var BOARD_REACH = 3.0;  // the board is the Use target when the player is this close to it (SA.spaceTarget.BOARD_REACH)
+  var TAP_REACH = 8;      // a tap on the board opens it from this far (generous: little hands, small screens; the room is ~5 deep)
+  var board = null, list = null, opened = false, openSource = null, openers = [], closers = [];
 
-  function doorTarget() {
-    if (!door) {
-      var L = SA.station.layout();
-      door = { id: 'station-door', kind: 'door', x: L.door.x, y: L.floorY + L.door.height / 2, z: L.door.z, reach: DOOR_REACH };
+  function boardTarget() {
+    if (!board) {
+      var B = SA.station.layout().board;
+      board = { id: 'station-board', kind: 'board', x: B.x, y: B.y, z: B.z, reach: BOARD_REACH };
     }
-    return door;
+    return board;
   }
-  function doorTargets() { return list || (list = [doorTarget()]); }
+  function boardTargets() { return list || (list = [boardTarget()]); }
 
-  function canTapDoor(p) {
+  function canTapBoard(p) {
     if (!p || typeof p.x !== 'number' || typeof p.z !== 'number' || !isFinite(p.x) || !isFinite(p.z)) return false;
-    var d = doorTarget(), dx = p.x - d.x, dz = p.z - d.z;
+    var b = boardTarget(), dx = p.x - b.x, dz = p.z - b.z;
     return dx * dx + dz * dz <= TAP_REACH * TAP_REACH;
   }
 
@@ -62,15 +63,15 @@
   }
   function toggle(source) { if (opened) close(); else open(source); return opened; }
 
-  SA.station.doorTarget = doorTarget;
-  SA.station.doorTargets = doorTargets;
-  SA.station.canTapDoor = canTapDoor;
+  SA.station.boardTarget = boardTarget;
+  SA.station.boardTargets = boardTargets;
+  SA.station.canTapBoard = canTapBoard;
   SA.station.open = open;
   SA.station.close = close;
   SA.station.toggle = toggle;
   SA.station.isOpen = function () { return opened; };
   SA.station.onOpen = function (fn) { return listen(openers, fn); };
   SA.station.onClose = function (fn) { return listen(closers, fn); };
-  SA.station.DOOR_REACH = DOOR_REACH;
+  SA.station.BOARD_REACH = BOARD_REACH;
   SA.station.TAP_REACH = TAP_REACH;
 })(typeof window !== 'undefined' ? window : globalThis);

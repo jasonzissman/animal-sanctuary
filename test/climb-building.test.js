@@ -145,7 +145,6 @@ test('standing between two kinds, the one you face wins; turning round flips it'
 });
 
 // ---- AS-0165: the doorway never climbs; the dish and antenna are solid on the roof; the drop-off is safe ----
-const DOOR = { x: L.door.x, z: L.door.z, reach: SA.spaceTarget.DOOR_REACH };
 
 test('the doorway and the room inside are never in climb reach (walking in does not auto-climb)', () => {
   const zFront = L.door.z - 1.3;
@@ -169,18 +168,17 @@ test('pushing forward through the doorway walks in and never starts a climb', ()
   assert.ok(s.z > L.door.z + 0.5, 'walked through the doorway into the room');
 });
 
-test('the Space chooser: the door wins in the doorway, the wall wins beside it', () => {
+test('the Space chooser: the doorway is no target (AS-0211), the wall beside it is a climb', () => {
   const c = SA.spaceTarget.create();
-  const atDoor = c.choose({ player: player(L.cx, L.door.z - 1.4, 0), trees: [HOUSE], pickups: [], doors: [DOOR] });
-  assert.equal(atDoor.kind, 'door');
+  assert.equal(c.choose({ player: player(L.cx, L.door.z - 1.4, 0), trees: [HOUSE], pickups: [], boards: [] }), null, 'nothing to use at the door frame');
   c.reset();
-  const atWall = c.choose({ player: player(frontLeftX, L.door.z - 1.4, 0), trees: [HOUSE], pickups: [], doors: [DOOR] });
+  const atWall = c.choose({ player: player(frontLeftX, L.door.z - 1.4, 0), trees: [HOUSE], pickups: [], boards: [] });
   assert.equal(atWall.kind, 'tree', 'a wall facing is a climb');
   assert.equal(atWall.ref, HOUSE);
   c.reset();
-  assert.equal(c.choose({ player: player(L.cx + L.halfW + 1.4, L.cz, -Math.PI / 2), trees: [HOUSE], pickups: [], doors: [DOOR] }).ref, HOUSE, 'side wall');
+  assert.equal(c.choose({ player: player(L.cx + L.halfW + 1.4, L.cz, -Math.PI / 2), trees: [HOUSE], pickups: [], boards: [] }).ref, HOUSE, 'side wall');
   c.reset();
-  assert.equal(c.choose({ player: player(L.cx, L.cz + L.halfD + 1.4, Math.PI), trees: [HOUSE], pickups: [], doors: [DOOR] }).ref, HOUSE, 'back wall');
+  assert.equal(c.choose({ player: player(L.cx, L.cz + L.halfD + 1.4, Math.PI), trees: [HOUSE], pickups: [], boards: [] }).ref, HOUSE, 'back wall');
 });
 
 function onRoof() {

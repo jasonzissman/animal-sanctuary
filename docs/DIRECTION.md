@@ -30,6 +30,10 @@ current; when your change sets or changes something future tickets must follow, 
 - **Uncluttered screen, nothing overlaps (AS-0147 to AS-0149).** All HUD positions come from one pure layout (SA.hud),
   tested for overlaps at phone to desktop sizes. The mission is a small pill (tap = replay), not a banner: audio carries
   instructions. Few icons: pill, stars, hotbar and one 🎒 menu; touch controls only on touch. When in doubt, remove an icon.
+  `game/hud.js` (AS-0150) is that layout: `SA.hud.layout({width,height}, visibleIds)` returns a rect for every HUD id from named zones
+  (topLeft, topRight, transient strip, bottomCenter/Left/Right, floating); sizes live in its data table (regular and compact for
+  phones). New HUD elements add an id and size there, never a fixed CSS offset. `game/ui/prompt.js` is migrated (pill/bar, stars
+  under it, toast, snapshot card, feed tray; re-laid out on resize); the other HUD modules still use their own offsets until migrated.
 - **Messages always win (AS-0121).** No HUD element may cover a message, animal name or part label. The equipped-item
   name chip only flashes for ~1.5 s on equip and hides while a message shows; the highlighted hotbar slot is the lasting cue.
 - **No modes: keys always move the player.** Arrow keys/WASD only ever walk the player; nothing (finding an animal,

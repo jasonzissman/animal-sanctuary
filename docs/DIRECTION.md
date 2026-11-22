@@ -37,6 +37,15 @@ current; when your change sets or changes something future tickets must follow, 
   `layout()` sizes a wrapping, scrolling grid so cards never overlap each other or the ✕). Tap done = replay, next = start (the
   scientist's intro comes in the next ticket), active = En curso + Continuar / Abandonar; locked cards are grey numbered silhouettes
   that only say "Misión N". Every card speaks via `SA.audio.say`.
+  **Scientist on the board (AS-0198):** tapping the glowing next card no longer starts it: the scientist speaks the mission's 2-3
+  `intro` lines (data: `intro: [{ es, icon }]`, each ≤ 6 words, validated at load), one picture card each with a "Otra vez" replay,
+  then "Empezar" calls `SA.missions.start` (a done card still replays at once). The talk replaces the grid inside the same station
+  card (never a second overlay). `SA.missionsDialogue` (`missions-dialogue.js`, pure): `begin/view/advance` sequence the lines;
+  `celebration()` / `markSeen()` give the one-time cheer (fanfare + "¡Lo lograste! ¡Nueva misión!") the first station visit after a
+  mission is finished, pointing 👇 at the unlocked card; "seen" is `missions.celebrated: [id]` in the save, so replays never re-cheer.
+  **Hook for the intro conversation (AS-0142):** `SA.missionsBoard.pointAndStartFirst()` opens the station, points at the next card
+  (mission 1 on a fresh save) and runs its intro; returns `{ ok, id }` or `{ ok:false, reason:'busy'|'none'|'no-board' }`. AS-0142
+  does not exist yet: when it lands it should call this at the end of its talk.
 - **Climb anything too steep to walk (AS-0163 to AS-0165).** Trees, mountain peaks and the station all climb the same way:
   face it -> outline -> E/Enter, or push forward 0.6 s. Tops are flat enough to stand and turn (peaks: a 2-3 unit summit);
   walk or jump off the edge to drop down safely. Climb targets are data; anything new that is too steep joins them.

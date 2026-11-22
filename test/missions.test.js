@@ -5,7 +5,7 @@ import { loadGame } from './helpers/vm.js';
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/save.js', 'game/data/missions.js', 'game/missions.js'];
 
 function row(n, extra = {}) {
-  return { id: 'm' + n, n, es: 'Misión ' + n, en: 'Mission ' + n, icon: '⭐', intro: ['Hola.'],
+  return { id: 'm' + n, n, es: 'Misión ' + n, en: 'Mission ' + n, icon: '⭐', intro: [{ es: 'Hola.', icon: '👋' }, { es: 'Vamos.', icon: '🚶' }],
     steps: [{ kind: 'find' }, { kind: 'photo' }], reward: { stars: n }, ...extra };
 }
 
@@ -170,7 +170,12 @@ test('mission rows are validated with clear errors', () => {
   bad({ en: 3 }, 'en');
   bad({ icon: '' }, 'icon');
   bad({ intro: [] }, 'intro');
-  bad({ intro: [''] }, 'intro[0]');
+  bad({ intro: [{ es: 'Hola.', icon: '👋' }] }, 'intro');
+  bad({ intro: Array(4).fill({ es: 'Hola.', icon: '👋' }) }, 'intro');
+  bad({ intro: ['Hola.', 'Vamos.'] }, 'intro[0]');
+  bad({ intro: [{ es: 'Hola.', icon: '👋' }, { es: '', icon: '🚶' }] }, 'intro[1].es');
+  bad({ intro: [{ es: 'Uno dos tres cuatro cinco seis siete.', icon: '👋' }, { es: 'Vamos.', icon: '🚶' }] }, 'intro[0].es');
+  bad({ intro: [{ es: 'Hola.', icon: '' }, { es: 'Vamos.', icon: '🚶' }] }, 'intro[0].icon');
   bad({ steps: [] }, 'steps');
   bad({ steps: [{}] }, 'steps[0]');
   bad({ reward: { stars: -1 } }, 'reward');

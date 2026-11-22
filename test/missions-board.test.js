@@ -3,16 +3,18 @@ import assert from 'node:assert/strict';
 import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/save.js', 'game/map.js', 'game/station.js', 'game/station-door.js', 'game/data/missions.js', 'game/missions.js',
-  'game/missions-board.js', 'game/ui/station-menu-view.js', 'game/ui/missions-board-view.js'];
+  'game/missions-board.js', 'game/missions-dialogue.js', 'game/ui/station-menu-view.js', 'game/ui/missions-board-view.js'];
 
-const row = (n) => ({ id: 'm' + n, n, es: 'Misión ' + n + ' nombre', en: 'Mission ' + n, icon: '🐷', intro: ['Hola.'],
+const row = (n) => ({ id: 'm' + n, n, es: 'Misión ' + n + ' nombre', en: 'Mission ' + n, icon: '🐷', intro: [{ es: 'Hola ' + n + '.', icon: '👋' }, { es: 'Vamos.', icon: '🚶' }],
   steps: [{ kind: 'find' }, { kind: 'photo' }], reward: { stars: n } });
 const plain = (o) => JSON.parse(JSON.stringify(o));
 
 function setup(count = 4) {
   const SA = loadGame(FILES);
   SA.save.reset();
-  SA.missions = SA.missions.create({ missions: Array.from({ length: count }, (_, i) => row(i + 1)), rng: () => 0.5, track: () => {} });
+  const rows = Array.from({ length: count }, (_, i) => row(i + 1));
+  SA.missions = SA.missions.create({ missions: rows, rng: () => 0.5, track: () => {} });
+  Object.assign(SA.missionsDialogue, SA.missionsDialogue.create({ missions: rows }));   // celebration reads these rows, not SA.data
   const said = [];
   SA.audio = { say: (t) => said.push(t), sfx: () => {} };
   return { SA, said };
@@ -75,7 +77,7 @@ function board(count) {
 
 test('opening the station shows every mission in order as done, next and locked cards', () => {
   const { SA, menu, cards } = board(4);
-  SA.missions.start('m1'); SA.missions.complete();
+  SA.missions.start('m1'); SA.missions.complete(); SA.missionsDialogue.markSeen();   // (the celebration has its own test)
   SA.station.open('use');
   assert.equal(menu.isOpen(), true);
   assert.equal(cards().length, 4);
@@ -99,18 +101,84 @@ test('it re-renders each time the station opens', () => {
   assert.equal(cards()[0].children[0].textContent, '✅');
 });
 
-test('tapping the next card speaks its name, starts the mission and closes the menu', () => {
-  const { SA, said, menu, cards } = board(3);
-  SA.station.open('use');
+const clickText = (root, re) => find(root, (n) => re.test(n.textContent) && n.listeners.click && n.children.length === 0).listeners.click({ stopPropagation() {} });
+const shown = (n) => !/display:none/.test(n.style.cssText);
+
+test('tapping the next card plays the intro lines one by one, then Empezar starts it and closes the menu', () => {
+  const { SA, said, menu, view, cards } = board(3);
+  SA.station.open('use');   // the scientist's panels are siblings of the grid inside the menu body
+  const body = menu.element.children[0].children[2];
+  const panel = body.children[1];
   cards()[0].listeners.click();
-  assert.deepEqual(said, ['Misión 1 nombre']);
+  assert.equal(SA.missions.active(), null, 'does not start straight away');
+  assert.equal(menu.isOpen(), true);
+  assert.equal(shown(panel), true);
+  assert.equal(shown(view.element), false, 'the talk replaces the grid: nothing overlaps');
+  assert.deepEqual(said, ['Hola 1.']);
+  assert.ok(texts(panel).includes('👋') && texts(panel).includes('Hola 1.'), 'picture card + phrase');
+  clickText(panel, /Otra vez/);
+  assert.deepEqual(said, ['Hola 1.', 'Hola 1.'], 'Replay says the line again');
+  clickText(panel, /Siguiente/);
+  assert.deepEqual(said.slice(2), ['Vamos.']);
+  assert.ok(texts(panel).includes('🚶'));
+  assert.equal(SA.missions.active(), null);
+  clickText(panel, /Empezar/);
   assert.equal(SA.missions.active().id, 'm1');
   assert.equal(menu.isOpen(), false);
 });
 
+test('opening the station again drops a half-heard intro and shows the board', () => {
+  const { SA, view, menu } = board(3);
+  SA.station.open('use');
+  view.element.children[0].listeners.click();
+  SA.station.close();
+  SA.station.open('use');
+  assert.equal(shown(view.element), true);
+  assert.equal(shown(menu.element.children[0].children[2].children[1]), false);
+});
+
+test('after finishing a mission the next visit celebrates once and points at the new card', () => {
+  const { SA, said, view, cards } = board(3);
+  const sfx = [];
+  SA.audio.sfx = (n) => sfx.push(n);
+  SA.missions.start('m1'); SA.missions.complete();
+  SA.station.open('use');
+  assert.deepEqual(sfx.includes('fanfare'), true);
+  assert.ok(said.includes('¡Lo lograste! ¡Nueva misión!'));
+  assert.match(cards()[1].style.cssText, /scale/, 'the unlocked card is highlighted');
+  assert.match(cards()[1].children[0].textContent, /👇/);
+  assert.doesNotMatch(cards()[0].style.cssText, /scale/);
+  SA.station.close();
+  sfx.length = 0; said.length = 0;
+  SA.station.open('use');
+  assert.deepEqual(sfx.filter((n) => n === 'fanfare'), [], 'plays only once');
+  assert.deepEqual(said, []);
+  assert.doesNotMatch(cards()[1].style.cssText, /scale/);
+  assert.ok(view);
+});
+
+test('pointAndStartFirst opens the board, points at mission 1 and runs its intro', () => {
+  const { SA, said, menu } = board(3);
+  assert.equal(menu.isOpen(), false);
+  const r = SA.missionsBoard.pointAndStartFirst();
+  assert.deepEqual(plain(r), { ok: true, id: 'm1' });
+  assert.equal(menu.isOpen(), true);
+  assert.deepEqual(said, ['Hola 1.']);
+  const panel = menu.element.children[0].children[2].children[1];
+  clickText(panel, /Siguiente/);
+  clickText(panel, /Empezar/);
+  assert.equal(SA.missions.active().id, 'm1');
+  assert.deepEqual(plain(SA.missionsBoard.pointAndStartFirst()), { ok: false, reason: 'busy' });
+});
+
+test('pointAndStartFirst without a mounted board is a safe no-op', () => {
+  const { SA } = setup(2);
+  assert.deepEqual(plain(SA.missionsBoard.pointAndStartFirst()), { ok: false, reason: 'no-board' });
+});
+
 test('tapping a done card replays it', () => {
   const { SA, said, cards } = board(3);
-  SA.missions.start('m1'); SA.missions.complete();
+  SA.missions.start('m1'); SA.missions.complete(); SA.missionsDialogue.markSeen();
   SA.station.open('use');
   cards()[0].listeners.click();
   assert.equal(SA.missions.active().id, 'm1');

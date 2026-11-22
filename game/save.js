@@ -2,7 +2,7 @@
  *
  * Shape: { version, stars, unlockedAnimals, placedProps, rounds: {completed, streak},
  *          settings: {muted, english, scaffold}, stats, inventory }.
- *          missions = { done: [id], active: null | { id, step, seed, replay } } (AS-0177, SA.missions; absent until used).
+ *          missions = { done: [id], active: null | { id, step, seed, replay }, celebrated?: [id] } (AS-0177, SA.missions; AS-0198 celebrated; absent until used).
  *          album = { '<animalId>': 'YYYY-MM-DD' }: first-photo date per photographed animal (SA.album; no image data).
  *          inventory = { items: [{ id, count }], equipped: id|null } (added in v3; an array so removals persist
  *          through update()'s deep merge). New and migrated saves get the starting kit (STARTING_KIT).
@@ -144,6 +144,11 @@
     (Array.isArray(m.done) ? m.done : []).forEach(function (id) {
       if (typeof id === 'string' && ok.test(id) && out.done.indexOf(id) < 0) out.done.push(id);
     });
+    var cel = [];
+    (Array.isArray(m.celebrated) ? m.celebrated : []).forEach(function (id) {
+      if (typeof id === 'string' && ok.test(id) && cel.indexOf(id) < 0) cel.push(id);
+    });
+    if (cel.length) out.celebrated = cel;   // AS-0198: finished missions the scientist already celebrated (once each)
     var a = m.active;
     if (isObj(a) && typeof a.id === 'string' && ok.test(a.id)) {
       out.active = { id: a.id, step: count(a.step, 0), seed: count(a.seed, 0), replay: a.replay === true };

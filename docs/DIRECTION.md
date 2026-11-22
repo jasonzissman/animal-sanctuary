@@ -129,7 +129,8 @@ current; when your change sets or changes something future tickets must follow, 
 - **Every animal that fits counts (AS-0122).** A clue accepts ANY animal matching it (a duck and a turtle both swim; every
   grey animal is grey). Never a single hidden right answer.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
-  briefs you (spoken, icons: busca, ayuda, foto), hands you la cámara and gives missions; proof photos go on the station's
+  (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
+  help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's
   photo board. Inside the station you can change your character any time (body style, hair, skin tone, clothes), saved.
 - **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
   (hurt, stuck, hungry, tangled, scared: 1 task at beginner, 2 later) -> take its photo as proof it is OK ("¡Está bien!",
@@ -232,3 +233,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: bridges, rope bridge between peaks, ladders and lookout towers (AS-0158 to AS-0160).
 - 2026-11-22: climb anything too steep: generic climb targets, climbable peaks with summits, climbable station (AS-0163 to AS-0165).
 - 2026-11-22: treetop to treetop jumping with landing assist (AS-0166).
+- 2026-11-22: intro talk gives the story (animals need help); the scientist always stays at the station (AS-0142).

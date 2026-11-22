@@ -92,9 +92,15 @@
       scatter(group, rand, 10, desert.lo + 2, desert.hi - 1.5, function (r) { return tag(b.sandRock(THREE, dm, 0.8 + r()), 'rocaarena'); }, 2, taken);
     }
     if (mount) {
-      var peak = function (r) { return tag(b.peak(THREE, dm, 0.9 + r() * 0.7), 'pico'); };
-      scatter(group, rand, 6, mount.lo + 3, mount.hi - 6, peak, 6, taken, [-23, -11]);
-      scatter(group, rand, 3, mount.lo + 3, mount.hi - 6, peak, 6, taken, [16, 23]);
+      // The climbable peaks come from data (SA.peaks): a flat-topped grey cone over each terrain mound, solid like any 'pico'.
+      if (SA.peaks) SA.peaks.LIST.forEach(function (p) {
+        var obj = tag(b.peak(THREE, dm, SA.peaks.shape(p)), 'pico');
+        obj.position.set(p.x, SA.peaks.shape(p).baseY, p.z);
+        obj.userData.peak = p.id;   // the Space-target outline finds the mesh by this id
+        group.add(obj);
+        taken.push([p.x, p.z]);
+        for (var a = 0; a < 8; a++) taken.push([p.x + 2 * Math.cos(a * Math.PI / 4), p.z + 2 * Math.sin(a * Math.PI / 4)]);   // keeps pines off the slope
+      });
       scatter(group, rand, 24, mount.lo + 1.5, mount.hi - 4, function (r) { return tag(b.snowPine(THREE, dm, sz(r)), 'pinonieve'); }, 3, taken);
     }
   }

@@ -35,6 +35,8 @@
         setProgress(a.progress);
         var y = typeof a.tree.y === 'number' ? a.tree.y : SA.map.groundHeight(a.tree.x, a.tree.z);
         mesh.position.set(a.tree.x, y + LIFT, a.tree.z);
+        var k = a.tree.radius > 1 ? (a.tree.radius + 0.5) / INNER : 1;   // a wider base (a peak) gets a wider ring
+        if (mesh.scale) mesh.scale.set(k, k, 1);
         mesh.visible = true;
       },
     };

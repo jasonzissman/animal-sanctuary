@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = [
   'game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-  'game/map.js', 'game/camera.js', 'game/player.js', 'game/render/world.js', 'game/render/decor-dry.js', 'game/render/decor.js',
+  'game/map.js', 'game/peaks.js', 'game/camera.js', 'game/player.js', 'game/render/world.js', 'game/render/decor-dry.js', 'game/render/decor.js',
 ];
 
 function load() {
@@ -63,12 +63,19 @@ test('buildDecor puts cacti in the desierto and snowy pines and peaks in the mon
   const inBiome = (id) => decor.children.filter((o) => ctx.SA.map.biomeAt(o.position.x) === id);
   const desert = inBiome('desierto'), mountain = inBiome('montana');
   assert.ok(desert.length >= 20 && mountain.length >= 20, `${desert.length} desert, ${mountain.length} mountain objects`);
-  // Cactus: a Group with a green trunk + arms; peak: a Group with a grey cone and a white cap.
+  // Cactus: a Group with a green trunk + arms; peak (AS-0193): a Group with a grey flat-topped cone and a white flat cap, one per data row.
   assert.ok(desert.some((o) => o.children.length >= 6), 'cacti have arms');
-  const peaks = mountain.filter((o) => o.scale.x > 0.8 && o.children.length === 2 && o.children[0].geometry.parameters.height === 7);
-  assert.ok(peaks.length >= 4, 'snow-capped peaks');
-  // Peaks stay out of the middle band where the animals live.
-  for (const p of peaks) assert.ok(Math.abs(p.position.z) > 10, `peak at z=${p.position.z}`);
+  const peaks = mountain.filter((o) => o.userData.peak);
+  assert.equal(peaks.length, ctx.SA.peaks.LIST.length, 'a peak mesh for every SA.peaks row');
+  for (const p of peaks) {
+    assert.equal(p.children.length, 2);
+    const shape = ctx.SA.peaks.shape(ctx.SA.peaks.LIST.find((r) => r.id === p.userData.peak));
+    assert.ok(Math.abs(p.position.y - shape.baseY) < 1e-9);
+    assert.ok(p.children[1].geometry.parameters.radiusTop > 1.4, 'flat summit wide enough to hide the 1.4 terrain plateau');
+    assert.equal(p.userData.decor, 'pico');
+    // Peaks stay out of the middle band where the animals live.
+    assert.ok(Math.abs(p.position.z) > 10, `peak at z=${p.position.z}`);
+  }
 });
 
 test('buildWorld paints high montaña ground with the biome snow colour', () => {
@@ -79,7 +86,8 @@ test('buildWorld paints high montaña ground with the biome snow colour', () => 
   for (let i = 0; i < p.count; i += 3) {
     if (p.getX(i) > -48) continue;
     const bright = c.getX(i) + c.getY(i) + c.getZ(i);
-    if (p.getY(i) > 3.8) { snowy++; assert.ok(bright > 2.3, 'snow is near white'); } else if (p.getY(i) < 1.5) bare++;
+    const cy = (p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3;   // the paint follows the face centre (steep peak faces differ from a vertex)
+    if (cy > 3.8) { snowy++; assert.ok(bright > 2.3, 'snow is near white'); } else if (cy < 1.5) bare++;
   }
   assert.ok(snowy > 0 && bare > 0);
 });

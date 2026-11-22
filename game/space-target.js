@@ -44,7 +44,9 @@
         for (i = 0; i < list.length; i++) {
           o = list[i];
           if (!o || !num(o.x) || !num(o.z)) continue;
-          if (Math.sqrt((o.x - p.x) * (o.x - p.x) + (o.z - p.z) * (o.z - p.z)) > range) continue;
+          // Generic climb targets (peaks, AS-0193) carry their own base radius: in reach = that radius + SA.climb.EDGE_RANGE.
+          var reach = o.topY !== undefined && o.radius > 0 && SA.climb && SA.climb.EDGE_RANGE ? o.radius + SA.climb.EDGE_RANGE : range;
+          if (Math.sqrt((o.x - p.x) * (o.x - p.x) + (o.z - p.z) * (o.z - p.z)) > reach) continue;
           s = score(p, o.x, o.z);
           if (curKind === 'tree' && curRef === o) curScore = s;
           if (s < bestScore) { bestScore = s; bestKind = 'tree'; bestRef = o; }

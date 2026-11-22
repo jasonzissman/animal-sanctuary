@@ -70,7 +70,7 @@
       animals.children.forEach(function (g) { if (g.userData && g.userData.perched) out.push({ x: g.position.x, y: g.position.y, z: g.position.z }); });
       return out;
     }
-    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, { chase: { obstacles: obstacles, pricklies: pricklies, trees: function () { return trees; }, above: perchedAnimals }, canOrbit: function (e) {
+    var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera, { chase: { obstacles: obstacles, pricklies: pricklies, trees: function () { return climbables; }, above: perchedAnimals }, canOrbit: function (e) {
       return !(SA.picking.hasRubTarget() && picking && SA.picking.isRubTarget(picking.pickAt(e.clientX, e.clientY)));
     } });
     var avatar = SA.render.createAvatar(THREE);
@@ -95,16 +95,25 @@
     var trees = treeNodes.map(function (o) {
       return { x: o.position.x, z: o.position.z, y: o.position.y, scale: o.scale.y, kind: o.userData.kind };
     });
+    // One combined climb-target list (AS-0193): the trees plus the data-driven peaks (SA.peaks.targets()). The camera rig, the
+    // Space/E chooser, the outline and the auto-climb ring all read this same list, so a peak climbs exactly like a tree.
+    var climbables = trees.concat(SA.peaks ? SA.peaks.targets() : []);
     // Collectable finds (SA.pickups): fruit up in the canopies, rocks/flowers/leaves on the ground, fish on the banks.
     var pickups = SA.render.createPickups && SA.pickups ? SA.render.createPickups(THREE, { getPlayer: rig.getPlayer, trees: trees, avoid: avoid, seed: 80, container: container }) : null;
     if (pickups) scene.add(pickups.group);
     // The one Space key: acts on the single chosen target (aim part > tree/pickup in reach), see game/space-use.js.
-    var spaceUse = SA.spaceUse ? SA.spaceUse.create({ getPlayer: rig.getPlayer, trees: function () { return trees; }, picking: picking, rig: rig,
+    var spaceUse = SA.spaceUse ? SA.spaceUse.create({ getPlayer: rig.getPlayer, trees: function () { return climbables; }, picking: picking, rig: rig,
       pickups: pickups ? pickups.world : null, collect: pickups ? pickups.collectSpot : function () { return null; }, root: root }) : null;
     // The one outline: whatever spaceUse chose (part, tree or pickup) glows, nothing else (AS-0101).
     var outline = spaceUse && SA.render.createTargetOutline ? SA.render.createTargetOutline(THREE, { getTarget: spaceUse.target, nodeFor: function (kind, ref) {
       if (kind === 'part') return ref && ref.mesh || null;
-      if (kind === 'tree') { var i = trees.indexOf(ref); return i < 0 ? null : treeNodes[i]; }
+      if (kind === 'tree') {
+        var i = trees.indexOf(ref);
+        if (i >= 0) return treeNodes[i];
+        var found = null;   // a peak target: outline its grey cone
+        if (ref && ref.kind === 'peak') decor.children.forEach(function (o) { if (o.userData && o.userData.peak === ref.id) found = o; });
+        return found;
+      }
       return kind === 'pickup' && pickups ? pickups.nodeFor(ref) : null;
     } }) : null;
     // The filling ring round a trunk while the player pushes into it (AS-0157, SA.climb.autoStep).

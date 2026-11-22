@@ -145,6 +145,7 @@ globalThis.SA_MANIFEST = {
     'game/follow.js',
     'game/mission-baby.js',
     'game/data/badges.js',
+    'game/badges.js',
     'game/rescue-log.js',
     'game/mission-reunion.js',
     'game/ghost-refresh.js',

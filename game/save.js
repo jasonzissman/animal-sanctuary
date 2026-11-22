@@ -5,7 +5,9 @@
  *          introSeen: retired (AS-0202 added it, AS-0213 replaced the first-run intro with a hello on every load). New saves do not
  *          have it; a save that already has it keeps it unchanged (a harmless boolean nothing reads).
  *          missions = { done: [id], active: null | { id, step, seed, replay }, celebrated?: [id] } (AS-0177, SA.missions; AS-0198 celebrated; absent until used).
- *          album = { '<animalId>': 'YYYY-MM-DD' }: first-photo date per photographed animal (SA.album; no image data).
+ *          rescues = [{ kind, mission, animal?, key?, animalId?, need?, biome?, night?, date? }] one row per finished rescue (AS-0235, AS-0167;
+ *          SA.rescueLog), badges = [id] earned badge ids (SA.badges). Both optional: absent until the first rescue / badge.
+ *          album = { '<animalId>':'YYYY-MM-DD' }: first-photo date per photographed animal (SA.album; no image data).
  *          inventory = { items: [{ id, count }], equipped: id|null } (added in v3; an array so removals persist
  *          through update()'s deep merge). New and migrated saves get the starting kit (STARTING_KIT).
  *          stats.unlocks = { '<target>|<biome>|<item>': taps } is easter-egg tap progress (added in v2).
@@ -132,6 +134,7 @@
     if (s.album !== undefined) out.album = normalizeAlbum(s.album);   // optional, like photos: absent until the first photo
     if (s.missions !== undefined) out.missions = normalizeMissions(s.missions);   // optional: absent until the first mission starts
     if (s.rescues !== undefined) out.rescues = normalizeRescues(s.rescues);       // optional rescue log (AS-0235): absent until the first rescue
+    if (s.badges !== undefined) out.badges = normalizeBadges(s.badges);           // optional earned badge ids (AS-0167, SA.badges)
     return out;
   }
 
@@ -145,17 +148,33 @@
     return out;
   }
 
-  // Rescue log (AS-0235): [{ kind, mission, animal?, key? }], newest last, capped at 200. kind is a lowercase word ('reunion').
+  // Rescue log (AS-0235, AS-0167): [{ kind, mission, animal?, key?, animalId?, need?, biome?, night?, date? }], newest last, capped at 200.
+  // kind is a lowercase word ('reunion', or '' for a care rescue); an entry needs a kind or an animalId. Old rows (kind/mission only) stay valid.
   function normalizeRescues(r) {
     var ok = /^[a-z][a-z0-9-]*$/, out = [];
+    function word(v) { return typeof v === 'string' && ok.test(v); }
     (Array.isArray(r) ? r : []).forEach(function (e) {
-      if (!isObj(e) || typeof e.kind !== 'string' || !ok.test(e.kind)) return;
-      var row = { kind: e.kind, mission: typeof e.mission === 'string' && ok.test(e.mission) ? e.mission : '' };
-      if (typeof e.animal === 'string' && ok.test(e.animal)) row.animal = e.animal;
+      if (!isObj(e) || !(word(e.kind) || word(e.animalId))) return;
+      var row = { kind: word(e.kind) ? e.kind : '', mission: word(e.mission) ? e.mission : '' };
+      if (word(e.animal)) row.animal = e.animal;
+      if (word(e.animalId)) row.animalId = e.animalId;
+      if (word(e.need)) row.need = e.need;
+      if (word(e.biome)) row.biome = e.biome;
+      if (typeof e.night === 'boolean') row.night = e.night;
+      if (typeof e.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.date)) row.date = e.date;
       if (typeof e.key === 'string' && e.key.length <= 40) row.key = e.key;
       out.push(row);
     });
     return out.slice(-200);
+  }
+
+  // Earned badge ids (AS-0167): unique lowercase ids, so a badge is announced once even if the rescue log is capped.
+  function normalizeBadges(b) {
+    var out = [];
+    (Array.isArray(b) ? b : []).forEach(function (id) {
+      if (typeof id === 'string' && /^[a-z][a-z0-9-]*$/.test(id) && out.indexOf(id) < 0) out.push(id);
+    });
+    return out;
   }
 
   // Missions (AS-0177): done = unique mission ids, active = null or { id, step, seed, replay } (one at a time).

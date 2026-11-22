@@ -110,7 +110,9 @@ current; when your change sets or changes something future tickets must follow, 
   Things to climb and cross (AS-0158 to AS-0160): river bridges, a rope bridge between mountain peaks, ladders up the
   station and lookout towers. Walkable surfaces and climb targets are generic data, so more can be added freely.
 - **Animals keep an arm's length apart (AS-0153).** Never bunched: at least ~1.5 units of gap between any two animals'
-  bodies at all times (hard rule, not a soft preference), so tapping one never hits another.
+  bodies at all times (hard rule, not a soft preference), so tapping one never hits another. Implemented for wandering
+  ground animals by `SA.spacing` (GAP, `bodyRadius` from the size trait) and checked on every step in `SA.wander`
+  (`others` = `[[x, z, r], ...]`, `bodyRadius`); overlapping spawns are pushed apart in ~1 s. Placement is slice 2.
 - **Small inventory (AS-0154, AS-0155).** Tools (cámara, cepillo, esponja, venda), la fresa as the only food, and rocks.
   No flor or hoja collectibles. Add items only when a mission needs them; fewer is better.
 - **Lots of animals.** Several of each species (3-5) spread around each biome, and >= 5 species per biome. Any instance

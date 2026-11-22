@@ -31,7 +31,10 @@
     scene.add(apron);
 
     scene.add(SA.render.buildWorld(THREE));
-    scene.add(SA.render.buildDecor(THREE));
+    var decor = SA.render.buildDecor(THREE);
+    scene.add(decor);
+    var avoid = decor.children.map(function (o) { return [o.position.x, o.position.z]; });
+    scene.add(SA.render.buildAnimals(THREE, { avoid: avoid }));
 
     var camera = new THREE.PerspectiveCamera(SA.camera.DEFAULTS.fovDeg, 1, 0.5, 400);
     var rig = SA.render.createCameraRig(THREE, renderer.domElement, camera);

@@ -5,6 +5,8 @@
  * - slotItem(n) -> item id or null (empty or out-of-range slot)
  * - pressKey(key) -> result: '1'-'9' equips that slot (pressing the equipped slot's key keeps it in hand), '0' empties hands.
  * - tapSlot(n) -> result: equips that slot, or unequips when it is already in hand.
+ * - nameChip(id) -> { id, key, text, icon } | null: the item's Spanish name with article ('el cepillo'), the vocab key to
+ *   speak ('item:<id>') and its icon; null for no/unknown item. Data-driven (items.js / vocab), never special-cased.
  * - signature() -> string that changes whenever the slots, counts or equipped item change (cheap per-frame change check).
  * result = { action: 'equip' | 'unequip' | 'none', id: string|null }. 'none' = nothing changed (empty slot, bad key).
  */
@@ -48,9 +50,18 @@
 
   function tapSlot(n) { return equipSlot(n, true); }
 
+  // The Spanish name with its article (from item data / vocab), the vocab key to speak and the icon; null for no/unknown item.
+  function nameChip(id) {
+    var it = typeof id === 'string' ? SA.data.get('items', id) : null;
+    if (!it) return null;
+    var key = 'item:' + it.id;
+    var v = SA.vocab && SA.vocab.get ? SA.vocab.get(key) : null;
+    return { id: it.id, key: key, text: v ? v.es : it.name.es, icon: it.icon };
+  }
+
   function signature() {
     return slots().map(function (s) { return s.id + ':' + s.count + (s.equipped ? '*' : ''); }).join('|');
   }
 
-  SA.hotbar = { MAX_SLOTS: MAX_SLOTS, slots: slots, slotItem: slotItem, pressKey: pressKey, tapSlot: tapSlot, signature: signature };
+  SA.hotbar = { MAX_SLOTS: MAX_SLOTS, slots: slots, slotItem: slotItem, pressKey: pressKey, tapSlot: tapSlot, nameChip: nameChip, signature: signature };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -205,6 +205,15 @@ current; when your change sets or changes something future tickets must follow, 
   `ambient.setTangled` makes the bird hop on the ground with drooping wings (no flying) and `care-fx` puts green leaf bits on
   one wing; the last tug calls `fx.fly` (`ambient.flyLoop`: a spinning circle in the air), adds the leaf to `SA.inventory`
   and speaks "¡Ya puede volar!". Optional action fields `tangled`/`gives`/`say` are the pattern for other "stuck" care needs.
+- **Low things are jumpable.** Anything short (rocks, logs, low props) can be jumped over and briefly stood on; only
+  tall things (trees, cacti, peaks, big animals) always block. Obstacles carry a height (AS-0176).
+- **Progress you can see and keep.** Badges and stickers for rescues by species, predicament, biome and night (AS-0167,
+  AS-0168); rescued animals get names in the "Luna la rápida" pattern, with articles and endings that agree (AS-0169); one
+  rescued animal can be your named friend that follows you and helps with hints (AS-0175).
+- **The world has a rhythm.** Day/night cycle (AS-0170): day animals sleep at night with floating Zzz, nocturnal animals
+  (búho, murciélago) wake up (AS-0171). Night stays readable for kids.
+- **Mission variety.** Lost-baby missions: the cría follows you to its mamá, and you take a family photo (AS-0172, AS-0173). Secret
+  treasure chests behind waterfalls are original easter eggs (AS-0174).
 
 ## Unchanged from the spec
 
@@ -236,3 +245,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: climb anything too steep: generic climb targets, climbable peaks with summits, climbable station (AS-0163 to AS-0165).
 - 2026-11-22: treetop to treetop jumping with landing assist (AS-0166).
 - 2026-11-22: intro talk gives the story (animals need help); the scientist always stays at the station (AS-0142).
+- 2026-11-22: badges/stickers, naming, day/night with sleeping animals, mamá missions, waterfall treasure, animal friend (AS-0167 to AS-0175); jump over rocks (AS-0176).

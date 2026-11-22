@@ -15,7 +15,7 @@ test('every leg of every registered animal overlaps its body (no visible gap)', 
   for (const a of animals) {
     const plan = SA.animalPlan.plan(a);
     const body = plan.find((e) => e.part === 'cuerpo');
-    for (const leg of plan.filter((e) => e.part === 'patas')) {
+    for (const leg of plan.filter((e) => e.part === 'patas' && !e.extra)) {   // the legs themselves; knee bumps and feet are extras
       legs++;
       assert.ok(body, `${a.id} has legs but no cuerpo`);
       const sink = legSink(leg, body);

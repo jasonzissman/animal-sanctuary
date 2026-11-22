@@ -2,7 +2,8 @@
  *
  * plan(animal, partDefs?) -> [ { animalId, part, builder, size, worldSize, pickSize, color,
  *                                position, rotation, index, count, side } ]
- *   - one entry per part INSTANCE (count: 4 gives 4 entries, index 0..3)
+ *   - one entry per part INSTANCE (count: 4 gives 4 entries, index 0..3). A parts[] entry's `also` extras add more specs
+ *     with the same part key, one per instance of each extra; `index` then keeps counting across the entry (0..n-1, unique)
  *   - builder      primitive name from the part definition (box | sphere | cone | cylinder)
  *   - worldSize    [x,y,z] extents of the part in animal space (the data "scale"; a number means uniform)
  *   - size         local extents to give the unit primitive BEFORE `rotation` (axis-swapped when the
@@ -13,6 +14,7 @@
  *   - pickVolume   volume of the pick box; choosePick prefers the smallest (most specific) one
  *   - position     [x,y,z] in animal space (+z is forward, +y up; the animal's left is +x)
  *   - rotation     [rx,ry,rz] radians (Euler XYZ)
+ *   - extra        true for pieces from an entry's `also` list (neck segments, knees, feet); false for the part itself
  *   - side         'left' | 'right' | null (null when centred)
  *   - pupil        '#rrggbb' | null: the data's pupil colour; the renderer adds a small sphere child in front of the part
  * Instances spread symmetrically using |offset.x| as half-width: 2 -> left/right, 4 -> 2x2 grid
@@ -44,13 +46,13 @@
   }
 
   /** Offsets [dx, dz] (relative to the part offset) for each instance of a `count`-part. */
-  function layout(count, spread) {
+  function layout(count, spread, row) {
     var out = [], i;
     if (count === 1) return [[0, 0]];
     if (count === 2) return [[-spread, 0], [spread, 0]];
     if (count === 4) {
-      var row = spread * ROW_FACTOR;
-      return [[-spread, row], [spread, row], [-spread, -row], [spread, -row]];
+      var z = row || spread * ROW_FACTOR;
+      return [[-spread, z], [spread, z], [-spread, -z], [spread, -z]];
     }
     for (i = 0; i < count; i++) out.push([-spread + (2 * spread * i) / (count - 1), 0]);
     return out;
@@ -66,6 +68,36 @@
     return 0;
   }
 
+  /** Expand one piece (a parts[] entry, or one of its `also` extras) into one spec per instance. A piece may set
+   *  `rot` [rx,ry,rz] (radians; replaces the automatic turn, and `scale` is then used as-is) and `row` (half-spacing in z
+   *  of the two rows of a count-4 piece; default 1.2 x the x half-width). An extra inherits part/builder/color from `base`. */
+  function pieces(animal, def, entry, base, out) {
+    var world = vec(entry.scale);
+    var builder = entry.builder || base.builder || def.builder;   // an animal may draw a part with another primitive (zigzag tail, blocky head)
+    var rot = entry.rot;
+    var rx = rot ? 0 : orientation(def, builder);
+    var local = rx ? [world[0], world[2], world[1]] : world.slice();
+    var ps = world[0] * world[1] * world[2] > BIG_VOLUME ? BIG_PICK_SCALE : PICK_SCALE;
+    var pickSize = [local[0] * ps, local[1] * ps, local[2] * ps];
+    var spread = Math.abs(entry.offset[0]) || DEFAULT_SPREAD;
+    layout(entry.count, spread, entry.row).forEach(function (spot, i) {
+      var x = entry.count === 1 ? entry.offset[0] : spot[0];
+      var side = sign(x);
+      var rz = !rx && !rot && entry.count > 1 && TILT[def.anchor] ? -side * TILT[def.anchor] : 0;
+      out.push({
+        animalId: animal.id, part: base.part, builder: builder, color: entry.color || base.color,
+        pupil: entry.pupil || (entry === base ? null : base.pupil) || null,
+        size: local.slice(), worldSize: world.slice(),
+        pickSize: pickSize, pickVolume: pickSize[0] * pickSize[1] * pickSize[2],
+        position: [x, entry.offset[1], entry.offset[2] + spot[1]],
+        rotation: rot ? [rot[0], rot[1], rot[2]] : [rx, 0, rz], index: i, count: entry.count, extra: entry !== base,
+        side: side > 0 ? 'left' : side < 0 ? 'right' : null,
+      });
+    });
+  }
+
+  /** An entry's optional `also` pieces (neck segments, knee bumps, feet...) are extra meshes tagged with the SAME part key,
+   *  so tapping one answers as that part. `index` keeps counting up across the entry, so each mesh of a part is unique. */
   function plan(animal, partDefs) {
     var lookup = partDefs
       ? function (key) { return Array.isArray(partDefs) ? partDefs.filter(function (d) { return d.key === key; })[0] : partDefs[key]; }
@@ -74,27 +106,10 @@
     animal.parts.forEach(function (entry) {
       var def = lookup(entry.part);
       if (!def) throw new Error('animal ' + animal.id + ': no part definition for ' + JSON.stringify(entry.part));
-      var world = vec(entry.scale);
-      var builder = entry.builder || def.builder;   // an animal may draw a part with another primitive (zigzag tail, blocky head)
-      var rx = orientation(def, builder);
-      var local = rx ? [world[0], world[2], world[1]] : world.slice();
-      var ps = world[0] * world[1] * world[2] > BIG_VOLUME ? BIG_PICK_SCALE : PICK_SCALE;
-      var pickSize = [local[0] * ps, local[1] * ps, local[2] * ps];
-      var spread = Math.abs(entry.offset[0]) || DEFAULT_SPREAD;
-      var spots = layout(entry.count, spread);
-      spots.forEach(function (spot, i) {
-        var x = entry.count === 1 ? entry.offset[0] : spot[0];
-        var side = sign(x);
-        var rz = !rx && entry.count > 1 && TILT[def.anchor] ? -side * TILT[def.anchor] : 0;
-        out.push({
-          animalId: animal.id, part: entry.part, builder: builder, color: entry.color, pupil: entry.pupil || null,
-          size: local.slice(), worldSize: world.slice(),
-          pickSize: pickSize, pickVolume: pickSize[0] * pickSize[1] * pickSize[2],
-          position: [x, entry.offset[1], entry.offset[2] + spot[1]],
-          rotation: [rx, 0, rz], index: i, count: entry.count,
-          side: side > 0 ? 'left' : side < 0 ? 'right' : null,
-        });
-      });
+      var from = out.length;
+      pieces(animal, def, entry, entry, out);
+      (entry.also || []).forEach(function (extra) { pieces(animal, def, extra, entry, out); });
+      for (var k = from; k < out.length; k++) out[k].index = k - from;
     });
     return out;
   }

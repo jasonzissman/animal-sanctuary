@@ -98,3 +98,44 @@ test('flyers flap alas (moving or hovering) and walkers swing patas then rest wh
   assert.equal(leg.position.y, 0.4);
   assert.equal(leg.position.z, 0.1);
 });
+
+test('rotateAbout turns a point about a pivot (matches pivot() for a leg centre) and is the identity at angle 0', () => {
+  const SA = loadGame(FILES);
+  const same = SA.gait.rotateAbout(2, 0, 1, 0.3, 0);
+  assert.ok(Math.abs(same.y - 1) < 1e-12 && Math.abs(same.z - 0.3) < 1e-12);
+  const a = 0.4, h = 1.8, c = SA.gait.rotateAbout(h, 0, h / 2, 0, a), s = SA.gait.pivot(h, a);
+  assert.ok(Math.abs(c.y - (h / 2 + s.y)) < 1e-9 && Math.abs(c.z - s.z) < 1e-9);
+});
+
+test('knee and foot extras ride with their leg: the foot stays at the leg bottom through a swing', () => {
+  const SA = loadGame(FILES);
+  SA.picking = { onPick() {} };
+  const spots = SA.animalPlan.placements(SA.data.all('animals'), {});
+  const mk = (extra, x, y, z, sy, side, index) => ({
+    userData: { animalId: 'camello', part: 'patas', side, index, ...(extra ? { extra: true } : {}) },
+    rotation: { x: 0, y: 0, z: 0 }, position: { x, y, z }, scale: { x: 0.2, y: sy, z: 0.2 },
+  });
+  // two legs (1.8 tall, centre y 0.9, top y 1.8) with a foot under each; the feet are extras with later indexes
+  const kids = [mk(false, 0.3, 0.9, 0.7, 1.8, 'left', 0), mk(false, -0.3, 0.9, 0.7, 1.8, 'right', 1),
+    mk(true, 0.3, 0.05, 0.7, 0.1, 'left', 2), mk(true, -0.3, 0.05, 0.7, 0.1, 'right', 3)];
+  const group = { children: SA.data.all('animals').map((a) => {
+    const s = spots[a.id];
+    return { name: a.id, userData: { animalId: a.id }, position: { x: s.x, y: s.y, z: s.z }, rotation: { y: 0 },
+      scale: { x: 1, y: 1, z: 1, set(x, y, z) { this.x = x; this.y = y; this.z = z; } }, children: a.id === 'camello' ? kids : [] };
+  }) };
+  const amb = SA.render.createAmbient({ animals: group, avoid: [] });
+  const [legL, legR, footL, footR] = kids;
+  let swung = 0;
+  for (let i = 0; i < 600; i++) {
+    amb.update(1 / 30);
+    for (const [leg, foot] of [[legL, footL], [legR, footR]]) {
+      const a = leg.rotation.x;
+      swung = Math.max(swung, Math.abs(a));
+      assert.ok(Math.abs(foot.rotation.x - a) < 1e-12, 'foot turns with its leg');
+      // the foot sits 0.85 below the leg's centre ALONG the leg's own (turned) axis
+      assert.ok(Math.abs(foot.position.y - (leg.position.y - 0.85 * Math.cos(a))) < 1e-9, 'foot y at the leg bottom');
+      assert.ok(Math.abs(foot.position.z - (leg.position.z - 0.85 * Math.sin(a))) < 1e-9, 'foot z at the leg bottom');
+    }
+  }
+  assert.ok(swung > 0.2, 'the legs did swing during the test');
+});

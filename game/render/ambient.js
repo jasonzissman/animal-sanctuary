@@ -31,6 +31,22 @@
       return { m: m, rx: m.rotation.x, ry: m.rotation.y, rz: m.rotation.z, sy: m.scale.y, py: pos.y, pz: pos.z };
     }
 
+    // Extra pieces of a swinging part (knees, feet: `also` rows in the data) have no swing of their own: each one follows the
+    // nearest main piece (its leg), turning about that leg's top, so a foot stays at the bottom of its leg.
+    function attachExtras(limbs) {
+      var leaders = limbs.filter(function (e) { return !e.m.userData.extra; });
+      limbs.forEach(function (e) {
+        e.leader = e;
+        if (!e.m.userData.extra || !leaders.length) return;
+        var best = Infinity, px = (e.m.position && e.m.position.x) || 0;
+        leaders.forEach(function (l) {
+          var d = Math.abs(((l.m.position && l.m.position.x) || 0) - px) + Math.abs(l.pz - e.pz);
+          if (d < best) { best = d; e.leader = l; }
+        });
+      });
+      return limbs;
+    }
+
     // Live [x, z, bodyRadius] of every other GROUND animal (wander position, so a flyLoop's circle does not count), so a
     // wanderer keeps SA.spacing.GAP from them on every step. Treetop animals live in the canopy and are left out.
     function othersOf(id) {
@@ -69,7 +85,7 @@
       var parts = function (name) { return g.children.filter(function (m) { return !m.userData.pick && m.userData.part === name; }).map(base); };
       rigs[a.id] = {
         g: g, phase: i * 1.7, ears: parts('orejas'), tail: parts('cola'), eyes: parts('ojos'), cheeks: parts('mejillas'),
-        gait: SA.gait.kind(a.traits.movement), amp: 0, wings: parts('alas'), legs: parts('patas'),
+        gait: SA.gait.kind(a.traits.movement), amp: 0, wings: parts('alas'), legs: attachExtras(parts('patas')),
         sx: g.scale.x, sy: g.scale.y, sz: g.scale.z,
         wx: g.position.x, wz: g.position.z, r: SA.spacing ? SA.spacing.bodyRadius(a) : 0, perched: a.perch === 'tree' && !!SA.perch,
         w: a.perch === 'tree' && SA.perch ? perchWalker(a, g, i) : SA.wander.create({
@@ -92,9 +108,11 @@
         r.wings.forEach(function (e) { e.m.rotation.z = e.rz + G.flap(t, r.amp, e.m.userData.side, r.phase); });
       } else if (r.gait === 'swing') {
         r.legs.forEach(function (e) {
-          var a = G.swing(t, r.amp, e.m.userData.side, e.m.userData.index, r.phase), s = G.pivot(e.m.scale.y, a);
+          var l = e.leader, a = G.swing(t, r.amp, l.m.userData.side, l.m.userData.index, r.phase);
           e.m.rotation.x = e.rx + a;
-          if (e.m.position) { e.m.position.y = e.py + s.y; e.m.position.z = e.pz + s.z; }
+          if (!e.m.position) return;
+          if (l === e) { var s = G.pivot(e.sy, a); e.m.position.y = e.py + s.y; e.m.position.z = e.pz + s.z; }
+          else { var q = G.rotateAbout(l.py + l.sy / 2, l.pz, e.py, e.pz, a); e.m.position.y = q.y; e.m.position.z = q.z; }
         });
       }
     }

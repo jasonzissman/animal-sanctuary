@@ -5,6 +5,8 @@
  *   SA.gait.flap(t, amp, side, phase) wing roll (radians, rotation.z offset); mirrored for the 'right' wing
  *   SA.gait.swing(t, amp, side, index, phase)  leg swing (radians, rotation.x offset); diagonal legs move together
  *   SA.gait.pivot(h, angle)           { y, z } shift of a leg's centre so it swings from its top, not its middle
+ *   SA.gait.rotateAbout(py, pz, y, z, angle)  { y, z } of a point at (y, z) turned by `angle` (rotation.x) about the pivot
+ *                                     (py, pz): extra pieces (knees, feet) ride along with their parent leg
  */
 (function (root) {
   'use strict';
@@ -43,5 +45,10 @@
     return { y: half * (1 - Math.cos(angle)), z: -half * Math.sin(angle) };
   }
 
-  SA.gait = { kind: kind, ease: ease, flap: flap, swing: swing, pivot: pivot, HOVER_AMP: HOVER_AMP };
+  function rotateAbout(py, pz, y, z, angle) {
+    var dy = y - py, dz = z - pz, c = Math.cos(angle), s = Math.sin(angle);
+    return { y: py + dy * c - dz * s, z: pz + dy * s + dz * c };
+  }
+
+  SA.gait = { kind: kind, ease: ease, flap: flap, swing: swing, pivot: pivot, rotateAbout: rotateAbout, HOVER_AMP: HOVER_AMP };
 })(typeof window !== 'undefined' ? window : globalThis);

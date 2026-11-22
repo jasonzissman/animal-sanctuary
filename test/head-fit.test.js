@@ -19,8 +19,18 @@ test('every registered animal has a head that overlaps its body', () => {
     const head = plan.find((e) => e.part === 'cabeza');
     const body = plan.find((e) => e.part === 'cuerpo');
     assert.ok(head && body, `${a.id} needs a cabeza and a cuerpo`);
-    assert.ok(volumesOverlap(head, body, MIN_OVERLAP),
-      `${a.id}: head does not overlap body (depth per axis ${overlapDepth(head, body).map((d) => d.toFixed(2))})`);
+    // The head attaches to the body directly, or through a chain of overlapping extra head pieces (a long neck).
+    const pieces = plan.filter((e) => e.part === 'cabeza');
+    const linked = new Set([head]);
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const p of pieces) {
+        if (!linked.has(p) && [...linked].some((q) => volumesOverlap(p, q, MIN_OVERLAP))) { linked.add(p); grew = true; }
+      }
+    }
+    assert.equal(linked.size, pieces.length, `${a.id}: a head/neck piece floats free of the head`);
+    assert.ok([...linked].some((p) => volumesOverlap(p, body, MIN_OVERLAP)),
+      `${a.id}: head does not reach the body (depth per axis ${overlapDepth(head, body).map((d) => d.toFixed(2))})`);
   }
 });
 

@@ -54,6 +54,20 @@
   // The part noun without its article: 'las orejas' -> 'orejas' (used after "con").
   function bareNoun(part) { return part.label.es.split(' ').slice(1).join(' '); }
 
+  // Text and vocab key of a size/colour trait value agreeing with the noun the template declares (t.gender 'm'|'f',
+  // t.number 'sg'|'pl', default m/sg). Masculine singular keeps the base key ('color:verde'); other forms use
+  // SA.vocab.adjKey ('adj:verdes'). Falls back to the base word/key when adjKey is missing or has no form.
+  function agreeTrait(t, value) {
+    var base = { text: value, key: t.trait + ':' + value };
+    var g = t.gender || 'm', n = t.number || 'sg';
+    if ((t.trait !== 'size' && t.trait !== 'color') || (g === 'm' && n === 'sg')) return base;
+    var vocab = SA.vocab;
+    var key = vocab && typeof vocab.adjKey === 'function' ? vocab.adjKey(value, g, n) : null;
+    if (!key) return base;
+    var entry = typeof vocab.get === 'function' ? vocab.get(key) : null;
+    return { text: entry ? entry.es : key.slice(4), key: key };
+  }
+
   function resolve(animals) {
     return (animals || []).map(function (a) { return typeof a === 'string' ? SA.data.get('animals', a) : a; })
       .filter(function (a) { return a && a.parts; });
@@ -73,9 +87,10 @@
     var partOf = function (k) { return SA.data.get('parts', k); };
     if (t.type === 'trait') {
       t.values.forEach(function (v) {
+        var agreed = agreeTrait(t, v);
         consider(out, animals, {
-          key: t.id + ':' + v, templateId: t.id, type: t.type, text: t.lead.es + ' ' + v,
-          vocabKeys: [t.lead.key, t.trait + ':' + v]
+          key: t.id + ':' + v, templateId: t.id, type: t.type, text: t.lead.es + ' ' + agreed.text,
+          vocabKeys: [t.lead.key, agreed.key]
         }, function (a) { return a.traits[t.trait] === v; });
       });
     } else if (t.type === 'touchPart') {

@@ -18,7 +18,7 @@
     function report(source, e) {
       if (root.SAT) root.SAT.track('error', { message: String(e && e.message).slice(0, 200), source: source, line: 0, stack: String(e && e.stack).slice(0, 500) });
     }
-    var ctl = null, unlocks = null;
+    var ctl = null, unlocks = null, hintFlow = null;
     // A soft pop on every animal / body-part pick (wrong picks also get their boing from the round/care controllers).
     try { SA.pickSfx.install(); } catch (e) { report('pickSfx.start', e); }
     // Easter eggs: hidden animals appear (fanfare + sparkles) when their data-defined condition is met.
@@ -27,9 +27,13 @@
       unlocks = SA.unlocks.create({ onUnlock: flow.reveal });
       stage.onTreeTap = function (t) { unlocks.tap('tree', t.id, t.biome); };
     } catch (e) { report('unlocks.start', e); }
-    try { ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx,
-      onProgress: function () { if (unlocks) unlocks.check(); },
-      game: SA.round.create({ biome: function () { return SA.round.biomeForX(stage.rig.getState().x); } }) }); } catch (e) { report('prompt.start', e); }
+    var game = null;
+    try { game = SA.round.create({ biome: function () { return SA.round.biomeForX(stage.rig.getState().x); } });
+      ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx,
+        onProgress: function () { if (unlocks) unlocks.check(); }, game: game }); } catch (e) { report('prompt.start', e); }
+    // Gentle arrow toward the target animal when it is off-screen after ~10 s (counts as a hint when tapped).
+    try { if (game) hintFlow = SA.hintFlow.create({ doc: root.document, game: game, animals: stage.animals, rig: stage.rig, camera: stage.camera }); }
+    catch (e) { report('hintFlow.start', e); }
     // Habitat sandbox: a big button + prop tray; saved props come back on reload. Never blocks the main loop.
     try {
       if (SA.sandbox && stage.props) {
@@ -57,6 +61,7 @@
       var dt = last === null ? 0 : Math.min((now - last) / 1000, 0.25);
       last = now;
       stage.render(dt);
+      if (hintFlow) { try { hintFlow.update(dt); } catch (e) { hintFlow = null; report('hintFlow.update', e); } }
       if (root.SAT && root.SAT.frame) { try { root.SAT.frame(dt); } catch (e) { /* telemetry never stops the loop */ } }
       if (boot) { boot.parentNode.removeChild(boot); boot = null; }
       root.requestAnimationFrame(loop);

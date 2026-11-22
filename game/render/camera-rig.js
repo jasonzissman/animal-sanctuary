@@ -23,7 +23,8 @@
     var pointers = {};            // id -> { x, y, sx, sy, mode, moved }
     var held = {};                // key -> true
     var pinchDist = 0, mid = null;
-    var focus = null;             // { x, z, dist }: while set the camera eases there; only orbit input is accepted
+    var glide = false;            // true while `focus` is a glideTo that ends by itself
+    var focus = null;            // { x, z, dist }: while set the camera eases there; only orbit input is accepted
 
     function viewH() { return canvas.clientHeight || 600; }
     function ids() { return Object.keys(pointers); }
@@ -112,14 +113,19 @@
         Object.keys(held).forEach(function (k) {
           if (KEYS[k]) { ax += KEYS[k][0]; az += KEYS[k][1]; } else { ayaw += ORBIT_KEYS[k][0]; apitch += ORBIT_KEYS[k][1]; }
         });
-        if (focus) state = C.easeToward(state, focus, dt, 4, B);
+        if (focus) {
+          state = C.easeToward(state, focus, dt, 4, B);
+          if (glide && Math.hypot(state.x - focus.x, state.z - focus.z) < 0.4) { focus = null; glide = false; }
+        }
         else if (ax || az) state = C.panByKeys(state, ax, az, dt, B);
         if (ayaw || apitch) state = C.orbitByKeys(state, ayaw, apitch, dt, B);
         apply();
       },
       /** Ease in on a ground point (care tasks); pan/zoom are ignored until release(), orbit still works. */
-      focusOn: function (x, z, dist) { focus = C.clampState({ x: x, z: z, dist: dist }, B); },
-      release: function () { focus = null; },
+      focusOn: function (x, z, dist) { glide = false; focus =C.clampState({ x: x, z: z, dist: dist }, B); },
+      release: function () { focus = null; glide = false; },
+      /** Ease the view over to a ground point keeping the zoom, then hand control back (arrow hint). */
+      glideTo: function (x, z) { focus = C.clampState({ x: x, z: z, dist: state.dist }, B); glide = true; },
       getState: function () { return { x: state.x, z: state.z, dist: state.dist, yaw: state.yaw, pitch: state.pitch }; },
     };
   };

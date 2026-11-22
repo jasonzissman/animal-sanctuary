@@ -9,7 +9,8 @@
  *   SA.photo.judge(round, id)  'match' (right animal) | 'other' (a different animal) | 'none' (no open mission)
  *   SA.photo.record(id)        counts the photo under save.photos[id] (kept for every animal, right or not; the album reads it)
  *                              and returns how many photos of that animal there are now
- *   SA.photo.take(game, pick)  { photo: true, verdict, saved, status, ...result } records the photo, then lets the round judge it:
+ *                              and, when SA.albumPics has a capture function, a small picture goes to IndexedDB (AS-0236)
+ *   SA.photo.take(game, pick) { photo: true, verdict, saved, status, ...result } records the photo, then lets the round judge it:
  *                              a match completes the mission (stars, round.complete); a different animal is only a friendly
  *                              miss (status 'wrong'); with no open mission the photo is simply kept (status 'saved').
  */
@@ -35,6 +36,8 @@
     patch[animalId] = n;
     SA.save.update({ photos: patch });
     if (SA.album) SA.album.add(animalId);   // the first photo of a species dates its album page
+    // AS-0236: also keep a small picture (captured now, stored in the background; never throws or delays the photo)
+    try { if (SA.albumPics) SA.albumPics.shot(animalId); } catch (e) { /* the photo still counts */ }
     return n;
   }
 

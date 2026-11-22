@@ -94,7 +94,7 @@ test('the final photo is saved in the album and shows in its entries', () => {
   t.flow.onPick({ animalId: m.animalId, part: 'cuerpo', item: 'camara' });
   assert.equal(t.SA.album.has(m.animalId), true);
   assert.equal(t.SA.save.get().photos[m.animalId], 1);
-  assert.match(t.SA.save.get().album[m.animalId], /^\d{4}-\d{2}-\d{2}$/);
+  assert.match(t.SA.save.get().album[m.animalId].date, /^\d{4}-\d{2}-\d{2}$/);
   const entry = t.SA.album.entries().find((e) => e.id === m.animalId);
   assert.equal(entry.seen, true);
   assert.equal(entry.icon, t.SA.data.get('animals', m.animalId).icon);

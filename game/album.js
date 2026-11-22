@@ -1,6 +1,7 @@
 /* SA.album: the photo album's pure logic (no THREE, no DOM; unit-tested in node:vm). The view is game/ui/album-view.js.
  *
- * What is stored (save.album): { '<animalId>': 'YYYY-MM-DD' } = the date of the first photo of each species. No image data.
+ * What is stored (save.album): { '<animalId>': { date: 'YYYY-MM-DD', pics: [{ id, date }] } } = the date of the first photo of each
+ * species plus the kept picture entries (SA.albumPics owns `pics`). Ids and dates only, never image data (AS-0236).
  * Animals photographed before the album existed (save.photos from AS-0084, no date) still count as found, with no date.
  *
  *   SA.album.add(animalId, now?)  records the first photo of a species; true when it is new. Unknown ids are ignored.
@@ -38,7 +39,7 @@
     // Only a dated page counts as "already added": an animal photographed before the album (save.photos) still gets its date.
     if (!find(id) || !SA.save || Object.prototype.hasOwnProperty.call(stored().album, id)) return false;
     var patch = {};
-    patch[id] = (now instanceof Date && isFinite(now) ? now : new Date()).toISOString().slice(0, 10);
+    patch[id] = { date: (now instanceof Date && isFinite(now) ? now : new Date()).toISOString().slice(0, 10), pics: [] };
     SA.save.update({ album: patch });
     return true;
   }
@@ -67,7 +68,7 @@
       var seen = has(a.id);
       if (a.easterEgg && !seen) return;
       if (!seen) { out.push({ id: a.id, seen: false, icon: '❓', es: '?', date: null, parts: [], silhouette: a.icon }); return; }
-      out.push({ id: a.id, seen: true, icon: a.icon, es: nameEs(a), en: a.name.en, date: s.album[a.id] || null,
+      out.push({ id: a.id, seen: true, icon: a.icon, es: nameEs(a), en: a.name.en, date: s.album[a.id] && s.album[a.id].date || null,
         key: 'animal:' + a.id, parts: partCards(a) });
     });
     return out;

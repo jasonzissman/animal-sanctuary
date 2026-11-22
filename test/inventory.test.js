@@ -134,7 +134,7 @@ test('a v2 save migrates: gets the starting kit, keeps everything else', () => {
   const old = { version: 2, stars: 9, unlockedAnimals: ['conejo'], placedProps: [], rounds: { completed: 4, streak: 1 },
     settings: { muted: true, english: false, scaffold: 2 }, stats: { unlocks: { 'a|b|1': 2 } } };
   const SA = setup(fakeStorage({ [KEY]: JSON.stringify(old) }));
-  assert.equal(SA.save.get().version, 4);
+  assert.equal(SA.save.get().version, 5);
   assert.equal(SA.save.get().stars, 9);
   assert.deepEqual(plain(SA.inventory.list().map((i) => i.id)), ['camara', 'cepillo', 'esponja', 'venda']);
   assert.equal(SA.inventory.equipped(), null);

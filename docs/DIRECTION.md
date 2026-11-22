@@ -452,10 +452,14 @@ current; when your change sets or changes something future tickets must follow, 
   The view says `reunion: true` for one frame, and `SA.render.createMissionSpawn` bursts hearts and nuzzles. The line `💕 ¡La familia está junta!`
   is the toast (`onReunion` hook in main.js); `SA.audio.say` speaks `phrase:mama, cria, bebe, familia, familiajunta` (la mamá, la cría, el bebé,
   la familia, ¡La familia está junta!) about 1.7 s later so the new step line is heard first.
-- **Rescue log and badges (AS-0235):** the save has an optional `rescues: [{ kind, mission, animal?, key? }]` (capped 200, `SA.rescueLog`
-  in `game/rescue-log.js`). Badges are data rows in `game/data/badges.js` (`rule: { kind, count }`: earned when the log holds `count`
-  entries of that rescue kind); the reunion logs kind `reunion` (idempotent per mission + seed), which earns **Reúne familias**. Later
-  rescue kinds and the sticker UI add rows/entries, not new logic.
+- **Rescue log and badges (AS-0235, AS-0167):** the save has an optional `rescues: [{ kind, mission, animal?, key?, animalId?, need?, biome?,
+  night?, date? }]` (capped 200, `SA.rescueLog.record` in `game/rescue-log.js`): one row per finished rescue. A care/encounter rescue
+  records `{ animalId, need ('thorn'|'mud'|'hungry'|'tangled'), biome, night }`; a story rescue records a `kind` (the reunion logs `reunion`,
+  idempotent per mission + seed). `save.badges` holds earned badge ids. Badges are data rows in `game/data/badges.js`
+  (`rule: { count, kind?, animalId?, need?, biome?, night? }` counts rows matching every field; `{ album: 'all' }` reads
+  `SA.album.progress()`); species get bronce/plata/oro at 1/5/15. `SA.badges` (`game/badges.js`) gives `check(rescues?)` (ids earned for the
+  first time, saved, returned once) and `progress()` (`[{ id, have, need, earned }]` for the station's board). **Not yet wired:** care/encounter
+  call sites must call `SA.rescueLog.record`, and the photo flow `SA.badges.check()` after `SA.album.add` (sticker/board tickets).
 - **Mission compass (AS-0228):** while a story step has a world target (`SA.missionRuntime.target()`, i.e. the step's `at`), one big
   yellow arrow (no text, no numbers) sits near the top centre and points toward it relative to the camera yaw, so it turns every frame.
   `SA.compass` (`game/compass.js`, pure): `angle(player, target, yawDeg)` (0 = right, PI/2 = straight ahead), `evaluate(...)` (hidden when

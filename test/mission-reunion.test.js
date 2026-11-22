@@ -5,7 +5,7 @@ import { loadGame } from './helpers/vm.js';
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js', 'game/data/vocab.js',
   'game/save.js', 'game/map.js', 'game/peaks.js', 'game/station.js', 'game/npc.js', 'game/player.js', 'game/photo.js', 'game/data/step-kinds.js',
   'game/mission-run.js', 'game/data/missions.js', 'game/missions.js', 'game/focus.js', 'game/mission-pill.js', 'game/mission-spawn.js',
-  'game/mission-runtime.js', 'game/follow.js', 'game/mission-baby.js', 'game/data/badges.js', 'game/rescue-log.js', 'game/mission-reunion.js'];
+  'game/mission-runtime.js', 'game/follow.js', 'game/mission-baby.js', 'game/data/badges.js', 'game/badges.js', 'game/rescue-log.js', 'game/mission-reunion.js'];
 
 function setup() {
   const SA = loadGame(FILES);
@@ -49,7 +49,7 @@ test('reaching mamá completes the follow step, logs one rescue, speaks the fami
   assert.equal(missions.active().stepData.kind, 'photo', 'the next step asks for a family photo');
   assert.equal(log.count('reunion'), 1);
   assert.equal(hooked.mission, 'mama');
-  assert.deepEqual([...hooked.badges.map((b) => b.id)],['reune-familias']);
+  assert.deepEqual([...hooked.badges.map((b) => b.id)].sort(), ['primer-rescate', 'reune-familias']);   // a reunion is also a first rescue
   assert.ok(tracked.some(([t]) => t === 'mission.reunion'));
   assert.deepEqual(said, [], 'the words wait a moment so the new step line is heard first');
   flush(timers);
@@ -69,7 +69,7 @@ test('the family photo completes the mission with its reward once; the rescue st
   assert.equal(missions.status('mama'), 'done');
   assert.equal(rt.report({ type: 'photo' }).status, 'none');
   assert.equal(log.count('reunion'), 1);
-  assert.deepEqual([...log.earned().map((b) => b.id)],['reune-familias']);
+  assert.deepEqual([...log.earned().map((b) => b.id)].sort(), ['primer-rescate', 'reune-familias']);
 });
 
 test('SA.missionBaby reports view.reunion once when the following baby reaches mamá', () => {

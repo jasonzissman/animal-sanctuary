@@ -83,16 +83,66 @@ test('it walks around a solid that sits straight between it and the player', () 
   assert.ok(d(f, p) <= F.GAP_START + 0.1, `got to ${d(f, p)}`);
 });
 
-test('it never walks into water: the leader wades across the river and the follower pops to dry land', () => {
-  const p = { x: -10, z: 10, heading: -Math.PI / 2, lift: 0 };   // heads west into the river
-  const f = F.create({ x: -8, z: 10 });
-  let popped = false;
-  walk(p, f, [], 6, 4, () => {
-    assert.ok(!SA.map.isWater(f.x, f.z), `follower in water at ${f.x},${f.z}`);
-    popped = popped || !!f.pop;
+// A straight channel (x in [-4, -2], every z, no ford) replaces the river so there is no way round it.
+function withChannel(fn) {
+  const m = SA.map, saved = { g: m.groundHeight, w: m.isWater };
+  m.groundHeight = (x, z) => (x > -4 && x < -2 ? -1 : 0);
+  m.isWater = (x, z) => m.groundHeight(x, z) < m.WATER_LEVEL;
+  try { fn(); } finally { m.groundHeight = saved.g; m.isWater = saved.w; }
+}
+
+test('it never walks or pops across water: the leader crosses the channel and the follower waits at the edge facing them', () => {
+  withChannel(() => {
+    const p = { x: 2, z: 10, heading: -Math.PI / 2, lift: 0 };   // heads west across the water
+    const f = F.create({ x: 4, z: 10 });
+    walk(p, f, [], 5, 4, () => {
+      assert.ok(!SA.map.isWater(f.x, f.z), `follower in water at ${f.x},${f.z}`);
+      assert.equal(f.pop, null, 'it must not pop across the water');    });
+    assert.ok(p.x < -10, 'the leader is on the far bank');
+    assert.ok(f.x > -2 && f.x < 4, `waits on its own bank (${f.x})`);
+    const want = Math.atan2(p.x - f.x, p.z - f.z);
+    assert.ok(Math.abs(Math.atan2(Math.sin(f.heading - want), Math.cos(f.heading - want))) < 0.1, 'faces the leader');
+    assert.equal(f.moving, false);
   });
-  assert.ok(popped, 'it popped instead of wading');
-  if (!SA.map.isWater(p.x, p.z)) assert.ok(d(f, p) <= F.GAP_START + 0.5);
+});
+
+test('leader crosses water, returns beside the follower, walks off on dry land: it follows the fresh footprints', () => {
+  withChannel(() => {
+    const p = { x: 2, z: 10, heading: -Math.PI / 2, lift: 0 };
+    const f = F.create({ x: 4, z: 10 });
+    walk(p, f, [], 5, 4);                                // across to the far bank; the follower is stuck at the edge
+    const waitAt = { x: f.x, z: f.z };
+    p.heading = Math.PI / 2;                             // back over the water to beside the follower
+    for (let i = 0; i < 400 && d(f, p) > 1.8; i++) walk(p, f, [], DT, 4);
+    assert.ok(d(f, p) <= F.GAP_START, 'leader is beside the follower');
+    assert.ok(f.trail.length <= 1, `old footprints cleared (${f.trail.length})`);
+    assert.ok(d(f, waitAt) < 1.5, 'follower was waiting where it was');
+    walk(p, f, [], 4, 4, () => assert.ok(!SA.map.isWater(f.x, f.z)));   // away on dry land (east)
+    assert.ok(p.x > f.x && d(f, p) <= 2.7, `follower trails the leader (${d(f, p)})`);
+    assert.ok(f.x > waitAt.x + 3, 'it moved on with the leader');
+  });
+});
+
+test('trail is cleared whenever the leader comes within GAP_START', () => {
+  const p = { x: 0, z: 10, heading: 0, lift: 0 };
+  const f = F.create({ x: 0, z: 14 });
+  f.trail = [{ x: 30, z: 30, hop: false }, { x: 31, z: 30, hop: false }];   // stale crumbs
+  p.z = 12.5;
+  F.step(f, p, [], DT);
+  assert.ok(f.trail.every((c) => c.x < 5), 'stale far crumbs are gone');
+});
+
+test('stuck counts no progress toward the target, and a stuck follower with water between it and the leader never pops', () => {
+  withChannel(() => {
+    const p = { x: -9, z: 10, heading: 0, lift: 0 };
+    const f = F.create({ x: 4, z: 10 });
+    for (let t = 0; t < 12; t += DT) {
+      F.step(f, p, [], DT);
+      assert.equal(f.pop, null);
+      assert.ok(!SA.map.isWater(f.x, f.z));
+    }
+    assert.ok(f.x > -2, 'still on its own bank');
+  });
 });
 
 test('far behind (> 15 units) it pops just behind the player with a puff record', () => {

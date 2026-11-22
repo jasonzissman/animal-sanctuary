@@ -89,7 +89,7 @@
   add('phrase', 'muybien', '¡Muy bien!');
   add('phrase', 'otravez', '¡Otra vez!');
   add('phrase', 'dondeesta', '¿Dónde está?');
-  add('phrase', 'busca', '¡Busca!');
+  add('phrase', 'busca', '¡Busca!', 'Find it!');
   add('phrase', 'toca', '¡Toca!');
   add('phrase', 'casi', '¡Casi!');
   add('phrase', 'yapuedevolar', '¡Ya puede volar!');
@@ -97,10 +97,7 @@
   add('phrase', 'tomalefoto', 'Tómale una foto', 'Take its photo');   // the photo step of a rescue mission (SA.missionFlow)
   add('phrase', 'estabien', '¡Está bien!', 'It is OK!');   // the rescue proof card stamp (SA.missionFlow)
   add('phrase', 'ay','¡Ay! ¡Pica!', 'Ouch! Prickly!');   // the cactus prick (SA.prick)
-  // The scientist's hello on every load (SA.greeting): two short lines shown on one card.
-  add('phrase', 'saludo1', '¡Hola! Elige una misión en la estación.', 'Pick a mission in the station.');
-  add('phrase', 'saludo2', 'O explora y ayuda a los animales.', 'Or explore and help the animals.');
-  // The scientist's reminder when you use her (SA.scientistTalk): the one-line mission and what the current step asks.
+  // What the scientist says (SA.scientistTalk), at every load (SA.greeting) and when you use her: the one-line mission and what the current step asks.
   add('phrase', 'recuerdo', 'Ayuda a los animales: busca, ayuda, foto', 'Help the animals: find, help, photo');
   add('phrase', 'eligemision', 'Elige una misión en la estación', 'Pick a mission at the station');
   add('phrase', 'masmisiones', '¡Muy bien! Pronto, más misiones.', 'Well done! More missions soon.');

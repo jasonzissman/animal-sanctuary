@@ -1,8 +1,8 @@
 /* SA.scientistView.create(doc, o) -> { element, isOpen(), open(source), close() }: the scientist's reminder card (DOM only).
  *   o.onToggle(isOpen)   optional, e.g. main.js pauses picking while it shows.
  * Opens when SA.npc.talk() fires (E / Enter on the outlined scientist, or a tap on her). It shows the picture cards from
- * SA.scientistTalk.reminder() (🧑‍🔬, the one-line general mission, then the current mission and step, or "pick a mission at the
- * board"), speaks them one after the other (SA.audio.say), and has a big 🔊 Replay and ✕.
+ * SA.scientistTalk.reminder() as plain text, no icons (the one-line general mission, then the current mission and step, or "pick a
+ * mission at the board"; the startup greeting shows the very same lines), speaks them one after the other (SA.audio.say), and has a big 🔊 Replay and ✕.
  * It only talks: it never starts a mission. No-op without a DOM.
  */
 (function (root) {
@@ -73,11 +73,9 @@
       card.style.cssText = 'box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:.4em;' +
         'width:min(92vw,520px);max-height:94vh;overflow:auto;padding:.8em 1em;background:#fff8d6;border:.18em solid #24543a;' +
         'border-radius:1em;font:700 2rem system-ui,sans-serif;color:#24543a;text-align:center;';
-      card.appendChild(el('div', 'font-size:2.6rem;line-height:1;', '🧑‍🔬'));
-      talk.lines.forEach(function (l) {
+      talk.lines.forEach(function (l) {   // plain text only: no icons next to the message (AS-0227)
         var row = el('div', 'display:flex;flex-direction:column;align-items:center;');
-        row.appendChild(el('div', 'font-size:' + (l.role === 'general' ? '3rem' : '4rem') + ';line-height:1.1;overflow-wrap:anywhere;', l.icon));
-        row.appendChild(el('div', 'font-size:1.5rem;line-height:1.15;overflow-wrap:anywhere;', l.es));
+        row.appendChild(el('div', 'font-size:1.7rem;line-height:1.2;overflow-wrap:anywhere;', l.es));
         card.appendChild(row);
       });
       var btns = el('div', 'display:flex;flex-wrap:wrap;gap:12px;justify-content:center;');

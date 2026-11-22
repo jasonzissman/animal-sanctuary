@@ -5,7 +5,7 @@ import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js', 'game/save.js',
   'game/data/vocab.js', 'game/data/foods.js', 'game/data/items.js', 'game/inventory.js', 'game/data/missions.js', 'game/missions.js',
-  'game/greeting.js', 'game/ui/greeting-view.js'];
+  'game/greeting.js', 'game/scientist-talk.js', 'game/ui/greeting-view.js'];
 
 function fakeStorage(initial = {}) {
   const m = new Map(Object.entries(initial));
@@ -19,19 +19,33 @@ function setup(storage = fakeStorage(), globals = {}) {
 
 // --- pure logic -----------------------------------------------------------------------------------------------------------
 
-test('the greeting is two short Spanish lines with icons, English text and vocab keys that match the spoken text', () => {
+const ICON = /\p{Extended_Pictographic}/u;
+const plain = (lines) => Array.from(lines, (l) => l.es);
+const keysOf = (lines) => Array.from(lines, (l) => l.key);
+
+test('the greeting lines ARE the scientist\'s reminder: no mission, an active mission, and everything done', () => {
   const SA = setup();
-  const lines = SA.greeting.lines();
-  assert.equal(lines.length, 2);
-  assert.deepEqual(Array.from(lines, (l) => l.es), ['¡Hola! Elige una misión en la estación.', 'O explora y ayuda a los animales.']);
-  assert.deepEqual(Array.from(lines, (l) => l.icon), ['🏠📋', '🧭🐾']);
-  lines.forEach((l) => {
-    // The ticket's exact texts are 7 short, simple words each ("¡Hola!" is a greeting, "O ... y ..." are tiny joiners).
-    assert.ok(l.es.split(/\s+/).length <= 7, l.es);
-    assert.equal(SA.vocab.get(l.key).es, l.es, 'spoken text equals the subtitle');
-    assert.equal(SA.vocab.get(l.key).en, l.en);
-  });
-  assert.deepEqual(Array.from(lines, (l) => l.en), ['Pick a mission in the station.', 'Or explore and help the animals.']);
+  const same = () => {
+    const g = SA.greeting.lines(), r = SA.scientistTalk.reminder().lines;
+    assert.deepEqual(plain(g), plain(r));
+    assert.deepEqual(keysOf(g), keysOf(r));
+    g.forEach((l) => assert.equal(l.icon, undefined, 'no icon in the greeting data'));
+    return plain(g);
+  };
+  assert.deepEqual(same(), ['Ayuda a los animales: busca, ayuda, foto', 'Elige una misión en la estación']);
+  SA.missions.start('mama');
+  assert.deepEqual(same(), ['Ayuda a los animales: busca, ayuda, foto', '¿Dónde está mamá?', '¡Busca!']);
+  SA.missions.complete();
+  assert.deepEqual(same(), ['Ayuda a los animales: busca, ayuda, foto', '¡Muy bien! Pronto, más misiones.']);
+  SA.greeting.lines().forEach((l) => { if (/^phrase:/.test(l.key)) assert.equal(SA.vocab.get(l.key).es, l.es); });
+});
+
+test('the retired saludo vocab entries are gone and the lines carry English scaffold text', () => {
+  const SA = setup();
+  assert.ok(!SA.vocab.get('phrase:saludo1'));
+  assert.ok(!SA.vocab.get('phrase:saludo2'));
+  SA.missions.start('mama');
+  assert.deepEqual(Array.from(SA.greeting.lines(), (l) => l.en), ['Help the animals: find, help, photo', 'Where is mama?', 'Find it!']);
 });
 
 test('open once; close on the ✕, Enter, E, a tap or walking (each reason is tracked); closing twice is a no-op', () => {
@@ -137,18 +151,31 @@ function view(opts = {}, storage) {
   return { SA, v, said, toggles, press, keys };
 }
 
-test('it opens at once on every load with BOTH lines on one card, and speaks line 1 then line 2', () => {
+const noIcons = (t) => !t.some((x) => ICON.test(x) && !['🔊', '✕'].includes(x));
+
+test('it opens at once on every load with the scientist\'s lines on one card, no icons, and speaks them in order', () => {
   const { SA, v, said, toggles } = view();
   assert.equal(v.isOpen(), true);
   assert.deepEqual(toggles, [true]);
   const t = texts(v.element);
-  ['¡Hola! Elige una misión en la estación.', 'O explora y ayuda a los animales.', '🏠📋', '🧭🐾'].forEach((x) => assert.ok(t.includes(x), x));
-  assert.ok(!t.includes('Pick a mission in the station.'), 'English is off by default');
+  ['Ayuda a los animales: busca, ayuda, foto', 'Elige una misión en la estación'].forEach((x) => assert.ok(t.includes(x), x));
+  assert.ok(!t.includes('Help the animals: find, help, photo'), 'English is off by default');
+  assert.ok(noIcons(t), 'no emoji next to the message');
   assert.equal(said.length, 1);
-  assert.equal(said[0].k, 'phrase:saludo1');
+  assert.equal(said[0].k, 'phrase:recuerdo');
   said[0].done();
-  assert.equal(said[1].k, 'phrase:saludo2');
+  assert.equal(said[1].k, 'phrase:eligemision');
   assert.equal(SA.missions.active(), null, 'no mission starts');
+});
+
+test('with a mission running the greeting shows the mission and step, like talking to her', () => {
+  const SA = setup(fakeStorage(), { addEventListener() {} });
+  SA.missions.start('mama');
+  SA.audio = { say() {}, stopVoice() {} };
+  const v = SA.greetingView.create(fakeDom(), {});
+  const t = texts(v.element);
+  ['Ayuda a los animales: busca, ayuda, foto', '¿Dónde está mamá?', '¡Busca!'].forEach((x) => assert.ok(t.includes(x), x));
+  assert.ok(noIcons(t));
 });
 
 test('it opens the same way for a save that has the old introSeen flag (existing saves unchanged)', () => {
@@ -163,8 +190,8 @@ test('the English toggle adds the English lines', () => {
   const st = fakeStorage({ santuario_save_v1: JSON.stringify({ version: 4, settings: { english: true } }) });
   const { v } = view({}, st);
   const t = texts(v.element);
-  assert.ok(t.includes('Pick a mission in the station.'));
-  assert.ok(t.includes('Or explore and help the animals.'));
+  assert.ok(t.includes('Help the animals: find, help, photo'));
+  assert.ok(t.includes('Pick a mission at the station'));
 });
 
 test('🔊 replays from line 1 and cancels the older chain; ✕ closes and silences', () => {
@@ -172,7 +199,7 @@ test('🔊 replays from line 1 and cancels the older chain; ✕ closes and silen
   said[0].done();
   assert.equal(said.length, 2);
   click(find(v.element, (n) => n.attrs['aria-label'] === 'Otra vez'));
-  assert.equal(said[2].k, 'phrase:saludo1');
+  assert.equal(said[2].k, 'phrase:recuerdo');
   said[1].done();   // the cancelled chain does not speak on
   assert.equal(said.length, 3);
   click(find(v.element, (n) => n.attrs['aria-label'] === 'Cerrar'));

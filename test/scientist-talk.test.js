@@ -127,7 +127,8 @@ test('using her speaks the one-line mission then the current mission, with pictu
   assert.equal(v.isOpen(), true);
   assert.deepEqual(toggles, [true]);
   const t = texts(v.element);
-  ['Ayuda a los animales: busca, ayuda, foto', '🔍🩹📷', '¿Dónde está mamá?', '🐷', '¡Busca!'].forEach((x) => assert.ok(t.includes(x), x));
+  ['Ayuda a los animales: busca, ayuda, foto', '¿Dónde está mamá?', '¡Busca!'].forEach((x) => assert.ok(t.includes(x), x));
+  assert.ok(!t.some((x) => /\p{Extended_Pictographic}/u.test(x) && !['🔊', '✕'].includes(x)), 'no emoji icons next to the message (AS-0227)');
   assert.equal(said.length, 1);
   assert.equal(said[0].k, 'phrase:recuerdo');
   said[0].done();
@@ -147,7 +148,8 @@ test('using her speaks the one-line mission then the current mission, with pictu
 test('with no mission running it points to the board and never starts one', () => {
   const { SA, v, said } = views();
   SA.npc.talk('tap');
-  assert.ok(texts(v.element).includes('📋'));
+  assert.ok(texts(v.element).includes('Elige una misión en la estación'));
+  assert.ok(!texts(v.element).includes('📋'), 'no icon row');
   assert.equal(said[0].k, 'phrase:recuerdo');
   said[0].done();
   assert.equal(said[1].k, 'phrase:eligemision');

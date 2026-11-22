@@ -1,6 +1,6 @@
 /* SA.picking: pure picking logic (no THREE, no DOM; unit-tested in node:vm).
  *
- *   SA.picking.onPick(cb) -> unsubscribe fn. cb receives { animalId, part } for every confirmed tap on a part.
+ *   SA.picking.onPick(cb) -> unsubscribe fn. cb receives { animalId, part, item? } (item = equipped item id) for every confirmed tap on a part.
  *   SA.picking.emit(pick)  notifies subscribers (called by game/render/picking.js; a throwing listener never
  *                          stops the others).
  *   SA.picking.setPaused(on) while true, emit() is silent (the habitat sandbox owns taps).
@@ -42,6 +42,7 @@
   function emit(pick) {
     if (paused) return;
     var out = { animalId: pick.animalId, part: pick.part };
+    if (typeof pick.item === 'string' && pick.item) out.item = pick.item;   // the equipped item used on the part (Space / click / tap)
     listeners.slice().forEach(function (cb) {
       try { cb(out); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error(e); }
     });

@@ -66,6 +66,9 @@
         if (SA.hotbar.pressKey(e.key).action !== 'none' && hotbar) hotbar.update();
       });
     } catch (e) { report('hotbar.start', e); }
+    // Big icon-only "use" button for touch (shows while a part is highlighted; same path as Space / click / tap).
+    var useBtn = null;
+    try { if (SA.useButton) useBtn = SA.useButton.create(root.document, stage.picking, root); } catch (e) { report('useButton.start', e); }
     // Habitat sandbox: a big button + prop tray; saved props come back on reload. Never blocks the main loop.
     try {
       if (SA.sandbox && stage.props) {
@@ -95,6 +98,7 @@
       last = now;
       stage.render(dt);
       if (hotbar) { try { hotbar.update(); } catch (e) { hotbar = null; report('hotbar.update', e); } }
+      if (useBtn) { try { useBtn.update(); } catch (e) { useBtn = null; report('useButton.update', e); } }
       if (climbBtn) { try { climbBtn.update(); } catch (e) { climbBtn = null; report('climbButton.update', e); } }
       if (hintFlow) { try { hintFlow.update(dt); } catch (e) { hintFlow = null; report('hintFlow.update', e); } }
       if (rerollWatch) { try { rerollWatch.update(dt); } catch (e) { rerollWatch = null; report('reroll.update', e); } }

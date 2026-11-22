@@ -27,6 +27,7 @@ globalThis.SA_MANIFEST = {
     'game/clue-levels.js',
     'game/save.js',
     'game/unlocks.js',
+    'game/tree-cue.js',
     'game/scaffold.js',
     'game/telemetry.js',
     'game/audio.js',

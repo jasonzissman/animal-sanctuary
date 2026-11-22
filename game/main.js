@@ -25,7 +25,10 @@
     try {
       var flow = SA.unlockFlow.create({ group: stage.animals, fx: stage.fx, rig: stage.rig, celebrate: function (msg) { if (ctl && ctl.celebrate) ctl.celebrate(msg); } });
       unlocks = SA.unlocks.create({ onUnlock: flow.reveal });
-      stage.onTreeTap = function (t) { unlocks.tap('tree', t.id, t.biome); };
+      stage.onTreeTap = function (t) {
+        unlocks.tap('tree', t.id, t.biome);
+        if (SA.treeCue.shouldSparkle(unlocks.tapCount('tree', t.id, t.biome)) && stage.treeTap.sparkle) stage.treeTap.sparkle(t.id);
+      };
     } catch (e) { report('unlocks.start', e); }
     var game = null;
     try { game = SA.round.create({ biome: function () { return SA.round.biomeForX(stage.rig.getState().x); } });

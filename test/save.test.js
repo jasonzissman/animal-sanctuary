@@ -34,9 +34,9 @@ test('first load returns defaults and writes nothing', () => {
   const { save, storage } = setup();
   const s = save.load();
   assert.deepEqual(plain(s), {
-    version: 1, stars: 0, unlockedAnimals: [], placedProps: [],
+    version: 2, stars: 0, unlockedAnimals: [], placedProps: [],
     rounds: { completed: 0, streak: 0 },
-    settings: { muted: false, english: false, scaffold: 1 }, stats: {},
+    settings: { muted: false, english: false, scaffold: 1 }, stats: { unlocks: {} },
   });
   assert.equal(storage._m.size, 0);
 });
@@ -96,7 +96,7 @@ test('corrupt JSON is preserved under the _corrupt key and defaults are used', (
   assert.equal(storage.getItem(CORRUPT), '{not json');
   fire();
   assert.equal(storage.getItem(CORRUPT), '{not json');
-  assert.equal(JSON.parse(storage.getItem(KEY)).version, 1);
+  assert.equal(JSON.parse(storage.getItem(KEY)).version, 2);
 });
 
 test('non-object, unknown or future versions are kept as corrupt copies', () => {
@@ -114,7 +114,7 @@ test('unversioned legacy save is migrated, keeping data and filling defaults', (
   const storage = fakeStorage({ [KEY]: JSON.stringify({ stars: 4, extra: 'keep', rounds: { completed: 3 } }) });
   const { save } = setup({ storage });
   const s = save.load();
-  assert.equal(s.version, 1);
+  assert.equal(s.version, 2);
   assert.equal(s.stars, 4);
   assert.equal(s.extra, 'keep');
   assert.deepEqual(plain(s.rounds), { completed: 3, streak: 0 });
@@ -171,6 +171,29 @@ test('works when getItem and setItem throw', () => {
   w.save.update({ stars: 1 });
   assert.equal(w.save.flush(), false);
   assert.equal(w.save.get().stars, 1);
+});
+
+test('v1 save migrates to v2: stats.unlocks added, everything else kept', () => {
+  const old = { version: 1, stars: 7, unlockedAnimals: ['conejo'], placedProps: [{ id: 'x' }], rounds: { completed: 5, streak: 2 },
+    settings: { muted: true, english: true, scaffold: 2 }, stats: { parts: { orejas: { taps: 3, misses: 1 } } }, extra: 'keep' };
+  const storage = fakeStorage({ [KEY]: JSON.stringify(old) });
+  const s = plain(setup({ storage }).save.load());
+  assert.equal(s.version, 2);
+  assert.deepEqual(s.stats, { parts: { orejas: { taps: 3, misses: 1 } }, unlocks: {} });
+  assert.deepEqual({ ...s, version: 1, stats: old.stats }, old);
+  assert.equal(storage.getItem(CORRUPT), null);
+});
+
+test('stats.unlocks keeps valid counts, drops junk, and survives a reload', () => {
+  const storage = fakeStorage({ [KEY]: JSON.stringify({ version: 2, stats: { unlocks: { 'tree|bosque|4': 2, bad: -1, odd: 'x', zero: 0 } } }) });
+  const a = setup({ storage });
+  assert.deepEqual(plain(a.save.load().stats.unlocks), { 'tree|bosque|4': 2 });
+  a.save.update({ stats: { unlocks: { 'tree|bosque|9': 1 } } });
+  assert.ok(a.save.flush());
+  const b = setup({ storage });
+  assert.deepEqual(plain(b.save.load().stats.unlocks), { 'tree|bosque|4': 2, 'tree|bosque|9': 1 });
+  const c = setup({ storage: fakeStorage({ [KEY]: JSON.stringify({ version: 2, stats: { unlocks: [1, 2] } }) }) });
+  assert.deepEqual(plain(c.save.load().stats.unlocks), {});
 });
 
 test('throwing localStorage getter does not crash', () => {

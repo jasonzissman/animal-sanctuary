@@ -2,6 +2,7 @@
  *
  * Shape: { version, stars, unlockedAnimals, placedProps, rounds: {completed, streak},
  *          settings: {muted, english, scaffold}, stats }.
+ *          stats.unlocks = { '<target>|<biome>|<item>': taps } is easter-egg tap progress (added in v2).
  * - A bad read NEVER wipes a save: unparseable / unknown-version data is copied to `santuario_save_v1_corrupt`
  *   and the game starts from defaults.
  * - Older versions are upgraded by SA.save.migrations[v](old) -> v+1 (see migrate()).
@@ -15,7 +16,7 @@
 
   var KEY = 'santuario_save_v1';
   var CORRUPT_KEY = 'santuario_save_v1_corrupt';
-  var VERSION = 1;
+  var VERSION = 2;
   var DEBOUNCE_MS = 500;
 
   var state = null;
@@ -32,7 +33,7 @@
       placedProps: [],
       rounds: { completed: 0, streak: 0 },
       settings: { muted: false, english: false, scaffold: 1 },
-      stats: {}
+      stats: { unlocks: {} }
     };
   }
 
@@ -42,7 +43,14 @@
 
   // migrations[v] upgrades a version-v save to v+1. Version 0 = an unversioned legacy object.
   var migrations = {
-    0: function (old) { old.version = 1; return old; }
+    0: function (old) { old.version = 1; return old; },
+    // v2 adds stats.unlocks ({ '<target>|<biome>|<item>': taps }). Everything already in the save is kept.
+    1: function (old) {
+      if (!isObj(old.stats)) old.stats = {};
+      if (!isObj(old.stats.unlocks)) old.stats.unlocks = {};
+      old.version = 2;
+      return old;
+    }
   };
 
   // Brings any older save up to VERSION. Returns null if the data cannot be migrated (unknown/future version).
@@ -78,7 +86,14 @@
       english: typeof st.english === 'boolean' ? st.english : d.settings.english,
       scaffold: count(st.scaffold, d.settings.scaffold)
     });
-    out.stats = isObj(s.stats) ? clone(s.stats) : d.stats;
+    out.stats = isObj(s.stats) ? clone(s.stats) : {};
+    var un = isObj(out.stats.unlocks) ? out.stats.unlocks : {};
+    out.stats.unlocks = {};
+    Object.keys(un).forEach(function (k) {
+      if (k === '__proto__' || k === 'constructor' || k === 'prototype') return;
+      var n = count(un[k], 0);
+      if (n > 0) out.stats.unlocks[k] = n;
+    });
     return out;
   }
 

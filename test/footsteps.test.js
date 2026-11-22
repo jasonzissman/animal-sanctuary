@@ -71,3 +71,14 @@ test('a long frame does not burst several steps and missing input is safe', () =
   assert.ok(r.state.t < F.WALK_GAP);
   assert.equal(F.step(undefined, undefined, 0.1).event, null);
 });
+
+test('landSound: thump on ground, quieter splash in water, leafy brush in a canopy (AS-0119)', () => {
+  assert.equal(F.landSound('ground').sfx, 'land');
+  assert.equal(F.landSound('water').sfx, 'splash');
+  assert.ok(F.landSound('water').volume < 1, 'splash is quieter than its usual level');
+  assert.equal(F.landSound('canopy').sfx, 'stepLeaf');
+  assert.equal(F.landSound(undefined).sfx, 'land');
+  assert.equal(F.landSound('lava').sfx, 'land');
+  F.landSound('water').volume = 9;
+  assert.equal(F.landSound('water').volume, 0.5, 'callers cannot mutate the table');
+});

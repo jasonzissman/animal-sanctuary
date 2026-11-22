@@ -61,9 +61,16 @@ test('before the first gesture nothing plays and nothing is created', () => {
   assert.equal(SA.audio.isUnlocked(), false);
 });
 
+test('landing thump recipe is soft (gain <= 0.2) and short', () => {
+  const { SA } = setup();
+  const voices = SA.audio.RECIPES.land;
+  assert.ok(voices && voices.length);
+  voices.forEach((v) => { assert.ok(v.g <= 0.2); assert.ok(v.t + v.d <= 0.2); });
+});
+
 test('after unlock all 6 named effects play; unknown names do not', () => {
   const { SA, stats } = setup();
-  assert.deepEqual([...SA.audio.NAMES].sort(), ['boing', 'chime', 'chirp', 'fanfare', 'giggle', 'hop', 'hop2', 'ouch', 'pop', 'shutter', 'sparkle', 'splash', 'step', 'stepLeaf', 'stepWet']);
+  assert.deepEqual([...SA.audio.NAMES].sort(), ['boing', 'chime', 'chirp', 'fanfare', 'giggle', 'hop', 'hop2', 'land', 'ouch', 'pop', 'shutter', 'sparkle', 'splash', 'step', 'stepLeaf', 'stepWet']);
   assert.equal(SA.audio.unlock(), true);
   assert.equal(SA.audio.unlock(), true);
   assert.equal(stats.created, 1, 'context created once');

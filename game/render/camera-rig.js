@@ -18,6 +18,7 @@
     var pointers = {};            // id -> { x, y }
     var held = {};                // key -> true
     var pinchDist = 0;
+    var focus = null;             // { x, z, dist }: while set the camera eases there and drags/zoom are ignored
 
     function viewH() { return canvas.clientHeight || 600; }
     function ids() { return Object.keys(pointers); }
@@ -39,7 +40,7 @@
     }
     function onMove(e) {
       var p = pointers[e.pointerId];
-      if (!p) return;
+      if (!p || focus) return;
       var n = ids().length;
       if (n === 1) {
         state = C.panByPixels(state, e.clientX - p.x, e.clientY - p.y, viewH(), B);
@@ -57,6 +58,7 @@
     }
     function onWheel(e) {
       e.preventDefault();
+      if (focus) return;
       state = C.zoomByWheel(state, e.deltaY, B);
     }
     function onKeyDown(e) { if (KEYS[e.key]) { held[e.key] = true; e.preventDefault(); } }
@@ -77,9 +79,13 @@
       update: function (dt) {
         var ax = 0, az = 0;
         Object.keys(held).forEach(function (k) { ax += KEYS[k][0]; az += KEYS[k][1]; });
-        if (ax || az) state = C.panByKeys(state, ax, az, dt, B);
+        if (focus) state = C.easeToward(state, focus, dt, 4, B);
+        else if (ax || az) state = C.panByKeys(state, ax, az, dt, B);
         apply();
       },
+      /** Ease in on a ground point (care tasks); drags are ignored until release(). */
+      focusOn: function (x, z, dist) { focus = C.clampState({ x: x, z: z, dist: dist }, B); },
+      release: function () { focus = null; },
       getState: function () { return { x: state.x, z: state.z, dist: state.dist }; },
     };
   };

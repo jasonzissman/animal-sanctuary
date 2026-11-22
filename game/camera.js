@@ -61,8 +61,15 @@
     return { x: s.x, y: s.dist * Math.sin(t), z: s.z + s.dist * Math.cos(t) };
   }
 
+  /** Frame-rate independent ease of the state toward `target` ({x,z,dist}); rate ~4 settles in about a second. */
+  function easeToward(s, target, dt, rate, bounds, o) {
+    var k = 1 - Math.exp(-(rate || 4) * Math.max(0, dt));
+    return clampState({ x: s.x + (target.x - s.x) * k, z: s.z + (target.z - s.z) * k,
+      dist: s.dist + (target.dist - s.dist) * k }, bounds, o);
+  }
+
   SA.camera = {
-    DEFAULTS: DEFAULTS, clampState: clampState, worldPerPixel: worldPerPixel, panByPixels: panByPixels,
+    easeToward: easeToward, DEFAULTS: DEFAULTS, clampState: clampState, worldPerPixel: worldPerPixel, panByPixels: panByPixels,
     panByKeys: panByKeys, zoomByWheel: zoomByWheel, zoomByScale: zoomByScale, position: position,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

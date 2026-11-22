@@ -14,6 +14,7 @@
   SA.render = SA.render || {};
 
   var CHIP_SECONDS = 2.6, GLOW_SECONDS = 1.1;
+  var RUB_PX = 45;                  // pointer travel over a care target that counts as one rub
   var GLOW = { 1: 0.28, 2: 0.6 };   // emissive strength: 1 = hover, 2 = tapped
 
   SA.render.createPicking = function (THREE, opts) {
@@ -133,9 +134,24 @@
       SA.picking.emit({ animalId: hit.animalId, part: hit.part });
     }
 
-    canvas.addEventListener('pointerdown', function (e) { tracker.down(e.pointerId, e.clientX, e.clientY); });
+    // Rubbing a care target: one rub per RUB_PX of travel over the part (quiet: no chip or part reaction).
+    var rubDist = 0, rubLast = null;
+    function rub(e) {
+      var hit = pickAt(e.clientX, e.clientY);
+      if (!SA.picking.isRubTarget(hit)) { rubLast = null; return; }
+      if (rubLast) rubDist += Math.hypot(e.clientX - rubLast.x, e.clientY - rubLast.y);
+      rubLast = { x: e.clientX, y: e.clientY };
+      if (rubDist >= RUB_PX) {
+        rubDist = 0;
+        if (hit.mesh) setGlow(hit.mesh, 1);
+        SA.picking.emit({ animalId: hit.animalId, part: hit.part });
+      }
+    }
+
+    canvas.addEventListener('pointerdown', function (e) { rubLast = null; rubDist = 0; tracker.down(e.pointerId, e.clientX, e.clientY); });
     canvas.addEventListener('pointermove', function (e) {
       tracker.move(e.pointerId, e.clientX, e.clientY);
+      if (e.buttons && SA.picking.hasRubTarget()) rub(e);
       if (e.pointerType === 'mouse' && !e.buttons) {
         var h = pickAt(e.clientX, e.clientY);
         setHover(h && h.mesh);

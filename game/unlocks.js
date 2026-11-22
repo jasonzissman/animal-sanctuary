@@ -14,7 +14,9 @@
  *   SA.unlocks.validate(cond)            throws a clear Error for a malformed condition
  *   SA.unlocks.evaluate(cond, facts)     -> boolean
  *   SA.unlocks.create({ save?, track?, onUnlock? }) -> tracker
- *     tracker.tap(target, itemId, biome)   counts one tap on an item (session memory) and then runs check()
+ *     tracker.tap(target, itemId, biome)   counts one tap on an item (saved in stats.unlocks, so it survives a reload)
+ *                                          and then runs check()
+ *     tracker.tapCount(target, itemId, biome)  taps so far on that item
  *     tracker.check()                      unlocks every hidden easter egg whose condition now holds: saved in
  *                                          unlockedAnimals, event `unlock.animal` {animalId}, onUnlock(animal);
  *                                          returns the newly unlocked animals
@@ -24,6 +26,7 @@
 (function (root) {
   'use strict';
   var SA = root.SA = root.SA || {};
+  var MAX_TAPS = 999;
   var TYPES = ['stars', 'rounds', 'sameTap', 'all', 'any'];
 
   function num(v, field, min) {
@@ -72,8 +75,22 @@
 
   function create(opts) {
     opts = opts || {};
-    var counts = {};    // 'target|biome|item' -> taps this session
+    var counts = {};    // 'target|biome|item' -> taps (restored from stats.unlocks, saved on every tap)
     var best = {};      // target -> { biome|'*': highest count on one item }
+
+    function note(key, n) {
+      var p = key.split('|');
+      if (p.length !== 3 || !p[0]) return;
+      var t = best[p[0]] = best[p[0]] || {};
+      t['*'] = Math.max(t['*'] || 0, n);
+      if (p[1] !== '*') t[p[1]] = Math.max(t[p[1]] || 0, n);
+    }
+
+    // Progress from earlier visits (a missing/odd save simply starts at zero).
+    try {
+      var saved = SA.save.get().stats.unlocks;
+      Object.keys(saved).forEach(function (k) { counts[k] = saved[k]; note(k, saved[k]); });
+    } catch (e) { /* no save module: session memory only */ }
 
     function track(type, fields) {
       try {
@@ -101,14 +118,16 @@
 
     function tap(target, itemId, biome) {
       var key = target + '|' + (biome || '*') + '|' + itemId;
-      var n = counts[key] = (counts[key] || 0) + 1;
-      var t = best[target] = best[target] || {};
-      t['*'] = Math.max(t['*'] || 0, n);
-      if (biome) t[biome] = Math.max(t[biome] || 0, n);
+      var n = counts[key] = Math.min((counts[key] || 0) + 1, MAX_TAPS);
+      note(key, n);
+      try { var patch = { stats: { unlocks: {} } }; patch.stats.unlocks[key] = n; SA.save.update(patch); } catch (e) { /* play on */ }
       return check();
     }
 
-    return { tap: tap, check: check, facts: facts, isUnlocked: isUnlocked };
+    // Taps so far on one item (all visits).
+    function tapCount(target, itemId, biome) { return counts[target + '|' + (biome || '*') + '|' + itemId] || 0; }
+
+    return { tap: tap, tapCount: tapCount, check: check, facts: facts, isUnlocked: isUnlocked };
   }
 
   SA.unlocks = { TYPES: TYPES, validate: validate, evaluate: evaluate, create: create, isUnlocked: isUnlocked };

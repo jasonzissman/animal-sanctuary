@@ -99,7 +99,7 @@ test('resetProgress clears progress but keeps grown-up settings, and the save st
   assert.equal(fresh.stars, 0);
   assert.deepEqual(fresh.placedProps, []);
   assert.deepEqual(fresh.rounds, { completed: 0, streak: 0 });
-  assert.deepEqual(fresh.stats, {});
+  assert.deepEqual(fresh.stats, { unlocks: {} });
   assert.equal(fresh.settings.english, true);
   assert.equal(fresh.settings.difficulty, 'intermediate');
   SA.save.update({ stars: 1 });

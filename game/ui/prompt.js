@@ -114,6 +114,14 @@
       'box-shadow:0 .15em .6em rgba(0,0,0,.3);pointer-events:none;');
     bar.appendChild(icon); bar.appendChild(text); bar.appendChild(hintBtn); bar.appendChild(replayBtn);
     doc.body.appendChild(bar); doc.body.appendChild(starsEl); doc.body.appendChild(toastEl);
+    // Feed tray: big food buttons along the bottom plus a row of counting dots (filled as food is given).
+    var trayEl = el('div', 'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:4;display:none;' +
+      'flex-direction:column;align-items:center;gap:.3em;font:700 2rem system-ui,sans-serif;');
+    var dotsEl = el('div', 'padding:.1em .6em;background:#fff8d6;border:.1em solid #24543a;border-radius:1em;letter-spacing:.2em;');
+    var foodsEl = el('div', 'display:flex;gap:.4em;');
+    trayEl.appendChild(dotsEl); trayEl.appendChild(foodsEl);
+    doc.body.appendChild(trayEl);
+    var foodBtns = {}, feedIcon = '', feedCount = 0;
     hintBtn.addEventListener('click', function () { if (handlers.hint) handlers.hint(); });
     replayBtn.addEventListener('click', function () { if (handlers.replay) handlers.replay(); });
     var toastTimer = null;
@@ -137,6 +145,37 @@
         starsEl.textContent = '⭐ ' + r.stars;
         hintBtn.style.display = 'none';
         setIcon(r.icon, false);
+      },
+      // r: { count, given, icon, tray: [{ id, icon, label }] }
+      showFeed: function (r) {
+        feedIcon = r.icon; feedCount = r.count;
+        foodsEl.textContent = '';
+        foodBtns = {};
+        r.tray.forEach(function (f) {
+          var b = el('button', 'font-size:3.2rem;min-width:96px;height:96px;border-radius:1em;border:.06em solid #24543a;' +
+            'background:#fff;cursor:pointer;padding:0;touch-action:manipulation;', f.icon);
+          b.type = 'button';
+          b.setAttribute('aria-label', f.label);
+          b.addEventListener('click', function () { if (handlers.feed) handlers.feed(f.id); });
+          foodBtns[f.id] = b;
+          foodsEl.appendChild(b);
+        });
+        trayEl.style.display = 'flex';
+        this.updateFeed({ given: r.given });
+      },
+      updateFeed: function (r) {
+        var s = '';
+        for (var i = 0; i < feedCount; i++) s += i < r.given ? feedIcon : '⚪';
+        dotsEl.textContent = s;
+      },
+      hideFeed: function () { trayEl.style.display = 'none'; },
+      bounceFood: function (id) {      // a food that was not wanted hops back (never punishing)
+        var b = foodBtns[id];
+        if (b && typeof b.animate === 'function') {
+          b.animate([{ transform: 'translateY(0) rotate(0deg)' }, { transform: 'translateY(-40px) rotate(-12deg)' },
+            { transform: 'translateY(0) rotate(8deg)' }, { transform: 'translateY(-14px) rotate(-4deg)' },
+            { transform: 'translateY(0) rotate(0deg)' }], { duration: 600 });
+        }
       },
       showHint: function () { hintBtn.style.display = 'none'; setIcon(current, true); },
       celebrate: function (r) { setIcon(r.icon, false); starsEl.textContent = '⭐ ' + r.stars; hintBtn.style.display = 'none'; },
@@ -179,6 +218,7 @@
     var view = createView(o.doc, {
       hint: function () { if (ctl) ctl.hint(); },
       replay: function () { if (ctl) ctl.replay(); },
+      feed: function (id) { if (careFlow) careFlow.onFeed(id); },
     });
     var careFlow = o.care || null;
     if (!careFlow && o.careFx !== undefined && SA.careFlow && SA.care) {

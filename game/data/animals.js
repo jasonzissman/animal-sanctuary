@@ -143,7 +143,7 @@
       traits: { size: 'mediano', color: 'verde', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
       parts: [
         p('cuerpo', '#7ab86b', [1.1, 0.4, 1.3], 1, [0, 0.4, 0]), p('caparazon', '#3f7d3a', 1.2, 1, [0, 0.7, 0]),
-        p('cabeza', '#7ab86b', 0.4, 1, [0, 0.6, 0.75]), p('patas', '#7ab86b', 0.25, 4, [0.45, 0.15, 0]),
+        p('cabeza', '#7ab86b', 0.4, 1, [0, 0.6, 0.75]), p('patas', '#7ab86b', 0.3, 4, [0.35, 0.17, 0]),
         p('cola', '#7ab86b', [0.1, 0.1, 0.3], 1, [0, 0.4, -0.8]), eyes(0.1, [0.11, 0.68, 0.88])
       ], easterEgg: false },
     { id: 'mono', name: { es: 'mono', en: 'monkey', gender: 'm' }, icon: '🐵', biome: 'selva', perch: 'tree',
@@ -167,7 +167,7 @@
       traits: { size: 'pequeño', color: 'verde', movement: 'salta', diet: 'insectívoro', legs: 4 },
       parts: [
         p('cuerpo', '#4cc04a', [0.9, 0.6, 1], 1, [0, 0.4, 0]), p('cabeza', '#4cc04a', 0.5, 1, [0, 0.7, 0.5]),
-        eyes(0.22, [0.18, 1.0, 0.55], '#f4f4a0'), p('patas', '#2f9a35', [0.15, 0.5, 0.3], 4, [0.4, 0.22, 0])
+        eyes(0.22, [0.18, 1.0, 0.55], '#f4f4a0'), p('patas', '#2f9a35', [0.15, 0.5, 0.3], 4, [0.3, 0.25, 0])
       ], easterEgg: false },
     { id: 'camello', name: { es: 'camello', en: 'camel', gender: 'm' }, icon: '🐫', biome: 'desierto',
       traits: { size: 'grande', color: 'marrón', movement: 'corre', diet: 'herbívoro', legs: 4 },

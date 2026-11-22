@@ -25,6 +25,8 @@ current; when your change sets or changes something future tickets must follow, 
   `obstacles()` (those boxes as circle chains, appended to the player's obstacle list in scene.js), `spawn()` (what `SA.player.spawn()`
   returns when the module is loaded) and `inFootprint()` (decor and animal placement keep out). `game/render/station.js` builds the model
   from flat primitives (the sign letters are boxes, no textures). Later slices put the scientist and briefing in/at the station.
+- **The world reacts to bumping (AS-0156, AS-0157).** A cactus pricks: bounce back with "¡Ay! ¡Pica!" (never a penalty).
+  Keep pushing forward into a tree for 0.6 s and you climb it (a filling ring shows it coming); C/E still climb instantly.
 - **Movement has sound (AS-0118 to AS-0120).** Soft footsteps (quicker when running, splashy in water, leafy in a
   canopy), a hop and a landing thump, a splash entering water, a rustle while climbing. Short, quiet, never spammy; mute silences all.
 - **Uncluttered screen, nothing overlaps (AS-0147 to AS-0149).** All HUD positions come from one pure layout (SA.hud),
@@ -217,3 +219,4 @@ franchise copies), file:// with vendored three.js, data-driven content, privacy-
 - 2026-11-22: declutter: one HUD layout with no overlaps, small mission pill, one menu (AS-0147 to AS-0149).
 - 2026-11-22: animals keep an arm's length apart (AS-0153).
 - 2026-11-22: small inventory: no flor/hoja, strawberries are the only food (AS-0154, AS-0155).
+- 2026-11-22: cactus prick bounce-back (AS-0156); auto-climb by pushing into a tree (AS-0157).

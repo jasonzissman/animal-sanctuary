@@ -4,6 +4,9 @@
  *     animals  ids/objects in play (default: every non-easter-egg animal)   rng  () -> [0,1)   now  () -> ms
  *     level    number or () -> number; default reads SA.save settings.scaffold (1 = beginner)
  *     track    (type, fields) event sink; default window.SAT.track
+ *     biome    biome id or () -> id, read at each start(): target and distractors come only from animals whose
+ *              data `biome` matches when it has >= MIN_BIOME_ANIMALS of them, else from all animals.
+ *              SA.round.biomeForX(cameraTargetX) gives the biome under the camera target.
  *   game.start()  -> round | null    begins a new round with a fresh clue:
  *       { id, clue, answerId, level, hintShown, misses, hints, done }
  *       Beginner (level <= 1) shows the silhouette hint right away; higher levels reveal it with game.hint().
@@ -18,6 +21,20 @@
   'use strict';
   var SA = root.SA;
   var TYPES = ['partAdjective', 'trait'];   // clues whose answer is an animal (touchPart is for Care)
+
+  var MIN_BIOME_ANIMALS = 3;
+
+  /** Animals of `biomeId` (by data `biome` field) when there are at least `min` of them, else the whole list. */
+  function candidatesForBiome(list, biomeId, min) {
+    if (typeof biomeId !== 'string' || !biomeId) return list;
+    var here = list.filter(function (a) { return a && a.biome === biomeId; });
+    return here.length >= (min === undefined ? MIN_BIOME_ANIMALS : min) ? here : list;
+  }
+
+  /** Biome id under the camera target at world x; null when SA.map is missing or x is not a number. */
+  function biomeForX(x) {
+    return SA.map && typeof x === 'number' && isFinite(x) ? SA.map.biomeAt(x) : null;
+  }
 
   function create(opts) {
     opts = opts || {};
@@ -46,7 +63,8 @@
     }
 
     function start() {
-      cluesState.animals = animals();
+      var biome = typeof opts.biome === 'function' ? opts.biome() : opts.biome;
+      cluesState.animals = candidatesForBiome(animals(), biome);
       cluesState.level = levelNow();
       var clue = SA.clues.pickClue(cluesState, rng);
       if (!clue) {                       // everything was used recently: forget history and try again
@@ -99,5 +117,6 @@
     return { start: start, pick: pick, hint: hint, current: function () { return round; } };
   }
 
-  SA.round = { TYPES: TYPES, create: create };
+  SA.round = { TYPES: TYPES, MIN_BIOME_ANIMALS: MIN_BIOME_ANIMALS, candidatesForBiome: candidatesForBiome,
+    biomeForX: biomeForX, create: create };
 })(typeof window !== 'undefined' ? window : globalThis);

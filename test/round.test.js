@@ -221,3 +221,52 @@ test('index.html loads round.js, round-fx.js and prompt.js before scene.js', asy
   assert.ok(at('game/ui/prompt.js') < at('game/render/scene.js'));
   assert.ok(at('game/render/scene.js') < at('game/main.js'));
 });
+
+// --- AS-0043: rounds pick animals from the biome under the camera ---
+const fix = (id, biome) => ({ id, biome });
+const FIXTURE = [fix('a1', 'bosque'), fix('a2', 'bosque'), fix('a3', 'bosque'), fix('b1', 'selva'), fix('b2', 'selva'),
+  fix('b3', 'selva'), fix('b4', 'selva'), fix('c1', 'desierto'), fix('c2', 'desierto')];
+const ids = (l) => l.map((a) => a.id);
+
+test('candidatesForBiome keeps only that biome when it has at least 3 animals', () => {
+  const { SA } = setup();
+  assert.deepEqual(ids(SA.round.candidatesForBiome(FIXTURE, 'bosque')), ['a1', 'a2', 'a3']);
+  assert.deepEqual(ids(SA.round.candidatesForBiome(FIXTURE, 'selva')), ['b1', 'b2', 'b3', 'b4']);
+});
+
+test('candidatesForBiome falls back to all animals for a small, unknown or missing biome', () => {
+  const { SA } = setup();
+  for (const b of ['desierto', 'montana', 'nope', null, undefined, '']) {
+    assert.equal(SA.round.candidatesForBiome(FIXTURE, b), FIXTURE, String(b));
+  }
+});
+
+test('biomeForX maps the camera target x to the biome strip, or null without a number', () => {
+  const SA = loadGame([...FILES, 'game/map.js']);
+  assert.equal(SA.round.biomeForX(-60), 'montana');
+  assert.equal(SA.round.biomeForX(-10), 'bosque');
+  assert.equal(SA.round.biomeForX(20), 'selva');
+  assert.equal(SA.round.biomeForX(70), 'desierto');
+  assert.equal(SA.round.biomeForX(NaN), null);
+  assert.equal(SA.round.biomeForX(undefined), null);
+});
+
+test('rounds only target animals of the camera biome (read fresh at every start)', () => {
+  let biome = 'bosque';
+  const { SA, game } = setup({ biome: () => biome });
+  const pool = SA.data.all('animals').filter((a) => !a.easterEgg);
+  for (const b of ['bosque', 'selva']) {
+    biome = b;
+    assert.ok(pool.filter((a) => a.biome === b).length >= 3, 'needs >= 3 animals in ' + b);
+    for (let i = 0; i < 15; i++) assert.equal(SA.data.get('animals', game.start().answerId).biome, b);
+  }
+});
+
+test('rounds fall back to every animal when the camera biome has fewer than 3', () => {
+  const { SA, game } = setup({ biome: 'desierto' });
+  const pool = SA.data.all('animals').filter((a) => !a.easterEgg);
+  if (pool.filter((a) => a.biome === 'desierto').length >= 3) return;   // data grew past the threshold
+  const seen = new Set();
+  for (let i = 0; i < 40; i++) seen.add(SA.data.get('animals', game.start().answerId).biome);
+  assert.ok(seen.size > 1, 'targets come from more than the small biome');
+});

@@ -266,7 +266,17 @@ current; when your change sets or changes something future tickets must follow, 
   rows in `game/data/step-kinds.js` (`SA.data` kind `stepKinds`: event type, required/optional params, match rule, optional counted
   progress). `start(steps)` validates (clear errors for an unknown kind or missing params), `step(state, event)` -> `{ state, advanced,
   progressed, done }` is pure and reports `done` once. Events are `{ type, ...fields }`: found, helped, followed, carried, delivered,
-  collected, arrived, talked, photo. A new kind is a new row, never engine code. Not yet wired to `SA.missions` or the step card (slices 2-3).
+  collected, arrived, talked, photo. A new kind is a new row, never engine code.
+  **Live events (AS-0230, slice 2 of AS-0178):** `SA.missionRuntime` (`game/mission-runtime.js`, pure, injectable) is the one entry
+  point: `report({ type, ... })` runs the event through `SA.missionRun` against the active mission (rebuilt from `SA.missions.active()`, so a
+  reload resumes on the saved step), then `SA.missions.advance()` (tracks `mission.step {id, step}`; counted steps track
+  `mission.progress`) or, on the last step, `SA.missions.complete()`: done once, the one-time reward is added to `save.stars` only on the
+  first play (`reward` is null on a replay), the fanfare + toast cheer plays every time, and a repeated event never completes it twice.
+  The pill (`SA.missionPill`) already follows `SA.missions.active()`, so each new step's icon + line is shown and spoken without more
+  wiring; `SA.focus` keeps small tasks paused. Sources: `onPick` (a pick = found; a la cámara shot = found, else photo), `SA.npc.onTalk`
+  (talked scientist), `render/pickups.js` (collected), `ui/prompt.js` care `onDone` (helped), and `update(player)` each frame
+  for `goTo` / reaching a `find` target through `SA.missionRuntime.locate(id) -> { x, z, r? }` (mission content sets it; `followed` is
+  reported by the follower owner, AS-0173/0175). New event sources call `SA.missionRuntime.report`; never add engine code per mission.
 - **Proximity only (AS-0225, slice 2 of AS-0217): clue rounds and encounters never start or show unless their animal is near.**
   `SA.taskGate` (`game/task-gate.js`, pure wiring) is polled each frame by `main.js` (`ctl.updateTasks()`, after `SA.focus.update()`).
   With no round, it asks `SA.nearbyTask`; when an animal is near and in view it calls `missionFlow.begin(animalId)`, so

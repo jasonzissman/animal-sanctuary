@@ -61,6 +61,17 @@
         if (mode === 'mission') { if (ctl.pause) ctl.pause(); } else ctl.begin();
       });
     } catch (e) { report('focus.start', e); }
+    // Live game events drive the active story mission (AS-0230): picks/photos, talking to the scientist, pickups and care tasks
+    // (the last two report from their own modules). The pill then shows and speaks each new step; the finish cheers once.
+    var rt = SA.missionRuntime || null;
+    try {
+      if (rt) {
+        rt.celebrateHook = function () { if (ctl && ctl.celebrate) ctl.celebrate('¡Lo lograste! ⭐'); };
+        rt.onStars = function (n) { if (ctl && ctl.setStars) ctl.setStars(n); };
+        SA.picking.onPick(rt.onPick);
+        if (SA.npc && SA.npc.onTalk) SA.npc.onTalk(function () { rt.report({ type: 'talked', who: 'scientist' }); return false; });
+      }
+    } catch (e) { report('missionRuntime.start', e); }
     // Icon-only rotate/tilt buttons so touch players can orbit the camera (same path as Q/E/R/F).
     try { if (SA.orbitPad) SA.orbitPad.create(root.document, stage.rig, root); } catch (e) { report('orbitPad.start', e); }
     // Virtual joystick (bottom-left, shown at the first touch) so touch players can walk without a keyboard.
@@ -143,6 +154,7 @@
       if (greeting && greeting.isOpen()) { try { greeting.update(stage.rig.getPlayer()); } catch (e) { greeting = null; report('greeting.update', e); } }
       if (climbBtn) { try { climbBtn.update(); } catch (e) { climbBtn = null; report('climbButton.update', e); } }
       if (SA.focus) { try { SA.focus.update(); } catch (e) { report('focus.update', e); } }
+      if (rt) { try { rt.update(stage.rig.getPlayer()); } catch (e) { rt = null; report('missionRuntime.update', e); } }
       if (ctl && ctl.updateTasks) { try { ctl.updateTasks(); } catch (e) { ctl.updateTasks = null; report('taskGate.update', e); } }
       if (ctl && ctl.updatePill) { try { ctl.updatePill(); } catch (e) { ctl.updatePill = null; report('missionPill.update', e); } }
       if (hintFlow) { try { hintFlow.update(dt); } catch (e) { hintFlow = null; report('hintFlow.update', e); } }

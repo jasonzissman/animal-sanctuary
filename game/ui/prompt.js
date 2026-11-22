@@ -435,7 +435,10 @@
     if (!careFlow && o.careFx !== undefined && SA.careFlow && SA.care) {
       careFlow = SA.careFlow.create({ care: SA.care.create(), view: view, fx: o.careFx, audio: o.audio, later: o.later,
         react: function (id, name) { if (o.fx && o.fx.play) o.fx.play(id, name); },
-        onDone: function (task) { if (!ctl) return; if (ctl.onCareDone) ctl.onCareDone(task); else ctl.begin(); } });
+        onDone: function (task) {
+          // A 'help' mission step ends with its care task (SA.missionRuntime, AS-0230).
+          if (SA.missionRuntime && task) { try { SA.missionRuntime.report({ type: 'helped', animal: task.animalId, careTask: task.taskId }); } catch (e) { /* missions never break play */ } }
+          if (!ctl) return; if (ctl.onCareDone) ctl.onCareDone(task); else ctl.begin(); } });
     }
     // o.mission (SA.mission): the rescue flow (find, help, photo; game/ui/mission-flow.js) drives the card instead of a plain round.
     // o.nearby = { player(), animals() } (AS-0225): a clue round starts only near a fitting animal (SA.taskGate; main.js polls ctl.updateTasks()).

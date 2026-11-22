@@ -11,7 +11,7 @@ function make(hooks) {
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
   ctx.addEventListener = (t, f) => { keys[t] = f; };
-  for (const f of ['game/sa.js', 'game/map.js', 'game/camera.js', 'game/player.js', 'game/perch.js', 'game/climb.js', 'game/picking.js', 'game/render/camera-rig.js']) {
+  for (const f of ['game/sa.js', 'game/map.js', 'game/camera.js', 'game/player.js', 'game/perch.js', 'game/climb.js', 'game/turn.js', 'game/picking.js', 'game/render/camera-rig.js']) {
     vm.runInContext(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'), ctx, { filename: f });
   }
   const placed = { pos: null, look: null };
@@ -224,8 +224,10 @@ test('a hint glide turns the avatar toward the spot; a pan gesture walks the ava
   const { rig, listeners } = chaseRig();
   const p0 = rig.getPlayer();
   rig.glideTo(p0.x + 10, p0.z);   // due +x
+  frames(rig, 10);   // the turn is eased over ~300 ms
   assert.ok(Math.abs(rig.getPlayer().heading - Math.PI / 2) < 1e-9);
   rig.glideTo(NaN, 0);   // junk is ignored
+  frames(rig, 10);
   assert.ok(Math.abs(rig.getPlayer().heading - Math.PI / 2) < 1e-9);
   listeners.pointerdown(ev({ shiftKey: true }));
   listeners.pointermove(ev({ clientX: 100, clientY: 200, shiftKey: true }));   // crosses the tap threshold
@@ -233,6 +235,32 @@ test('a hint glide turns the avatar toward the spot; a pan gesture walks the ava
   const p1 = rig.getPlayer();
   assert.ok(Math.hypot(p1.x - p0.x, p1.z - p0.z) > 0.5, 'moved by the pan');
   assert.equal(p1.heading, rig.getPlayer().heading);
+});
+
+test('glideTo eases the avatar turn over ~300 ms the short way, and walking input cancels it (AS-0089)', () => {
+  const { rig, keys } = chaseRig();
+  const p0 = rig.getPlayer();   // spawn heading is PI
+  const aim = Math.PI - 0.4;    // a small turn away from it
+  rig.glideTo(p0.x + Math.sin(aim), p0.z + Math.cos(aim));
+  assert.equal(rig.getPlayer().heading, p0.heading, 'not an instant snap');
+  rig.update(0.05);
+  const h1 = rig.getPlayer().heading;
+  assert.ok(h1 !== p0.heading && Math.abs(h1 - aim) > 1e-6, 'partway after one frame');
+  frames(rig, 10, 0.05);
+  assert.ok(Math.abs(rig.getPlayer().heading - aim) < 1e-9, 'arrived');
+  // a long turn across the wrap never swings the long way round
+  rig.glideTo(rig.getPlayer().x + Math.sin(-Math.PI + 0.3), rig.getPlayer().z + Math.cos(-Math.PI + 0.3));
+  let min = 99, max = -99;
+  for (let i = 0; i < 10; i++) { rig.update(0.05); const h = rig.getPlayer().heading; min = Math.min(min, h); max = Math.max(max, h); }
+  assert.ok(min > Math.PI - 0.5, 'stayed on the short side of the wrap: ' + min);
+  // walking input mid-turn cancels it: the heading is not driven toward the old target any more
+  rig.glideTo(rig.getPlayer().x + 10, rig.getPlayer().z);
+  rig.update(0.05);
+  const mid = rig.getPlayer().heading;
+  press(keys, 'w'); rig.update(0.05); keys.keyup({ key: 'w' });
+  assert.equal(rig.getPlayer().heading, mid, 'forward walking keeps the heading reached so far');
+  frames(rig, 10, 0.05);
+  assert.equal(rig.getPlayer().heading, mid, 'the cancelled turn never resumes');
 });
 
 test('dragging orbits the camera around the player without moving them', () => {
@@ -258,7 +286,7 @@ test('an easter-egg reveal / care task turns the player toward the creature; the
   frames(rig, 30);
   const p0 = rig.getPlayer();
   rig.glideTo(p0.x + 12, p0.z - 12);   // what SA.unlockFlow does
-  frames(rig, 120);
+  frames(rig, 120);   // (the eased turn finishes within ~300 ms)
   const p = rig.getPlayer();
   assert.deepEqual([p.x, p.z], [p0.x, p0.z], 'the avatar stayed put');
   assert.ok(Math.abs(p.heading - Math.atan2(12, -12)) < 1e-9, 'turned toward the creature');

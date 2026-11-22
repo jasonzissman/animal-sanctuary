@@ -4,7 +4,8 @@
  * A press that never travels past the tap threshold does nothing, so tapping an animal never turns the view.
  * Keys: arrows/WASD pan, hold Shift to run, Space hops (SA.jump: a vertical `lift` only, never a climb), Q/T rotate, R/F tilt, wheel zooms. Everything is clamped by SA.camera.
  * Third person only (one camera, always the chase camera): the avatar walks, the camera chases it. There is no
- * overhead, close-up or focus view; to draw attention somewhere glideTo() turns the player toward it.
+ * overhead, close-up or focus view; to draw attention somewhere glideTo() turns the player toward it (eased ~300 ms with
+ * SA.turn, the short way round; any walking input cancels the turn).
  * Automatic framing (AS-0116, SA.camera.frameAbove): hooks.chase.above() -> [{ x, y, z }] perched animals; near one above the
  * player, or up a canopy, the chase camera eases back, lowers and looks higher (and widens the fov a little); a drag overrides.
  * hooks.canOrbit(event) -> false lets a press start something else (e.g. rubbing a muddy part) without orbiting.
@@ -42,6 +43,7 @@
     var run = false;            // Shift held: the avatar runs (SA.player RUN_SPEED) while moving forward
     var clearK = 1;             // smoothed fraction (0..1) of the camera's reach kept by SA.camera.clearPath
     var frame = C.NO_FRAME || { weight: 0, addDist: 0, addPitch: 0, addLookY: 0, addFov: 0 };   // eased SA.camera.frameAbove offsets (AS-0116)
+    var turn = null;            // eased avatar turn from glideTo (SA.turn); any walking/turning input cancels it (AS-0089)
     var baseFov = typeof camera.fov === 'number' ? camera.fov : C.DEFAULTS.fovDeg, lastFov = baseFov;
 
     function viewH() { return canvas.clientHeight || 600; }
@@ -82,6 +84,7 @@
     function trees() { return hooks && hooks.chase && hooks.chase.trees ? hooks.chase.trees() : []; }
     function panWith(dx, dy) {
       if (player.climb) return;   // up a tree you walk with the keys / stick only
+      turn = null;
       var m = C.panByPixels({ x: player.x, z: player.z, dist: state.dist, yaw: state.yaw, pitch: state.pitch }, dx, dy, viewH(), B);
       player = SA.climb.step({ x: m.x, z: m.z, heading: player.heading }, {}, 0, obstacles());
     }
@@ -183,6 +186,14 @@
         if (ayaw || apitch) orbitWith(function (s) { return C.orbitByKeys(s, ayaw, apitch, dt, B); });
         var before = player;
         var J = SA.joystick ? SA.joystick.toInput({ x: stickX, y: stickY }) : { forward: 0, back: 0, left: 0, right: 0, run: false };
+        if (turn) {   // the eased glideTo turn: walking input (or a climb) hands control straight back, from the current heading
+          if (ax || az || J.forward || J.back || J.left || J.right || player.climb) turn = null;
+          else {
+            var tr = SA.turn.step(turn, dt);
+            player = { x: player.x, z: player.z, heading: tr.heading, y: player.y, climb: player.climb };
+            turn = tr.done ? null : tr.turn;
+          }
+        }
         var running = (run && az < 0) || !!J.run;   // Shift only speeds up walking forward; the stick runs at its edge
         player = SA.climb.step(player, { forward: (az < 0 ? 1 : 0) + J.forward, back: (az > 0 ? 1 : 0) + J.back,
           left: (ax < 0 ? 1 : 0) + J.left, right: (ax > 0 ? 1 : 0) + J.right, run: running }, dt, obstacles());
@@ -236,7 +247,11 @@
       /** Turn the player toward a ground point (hint arrow, easter-egg reveal); the chase camera swings round with
        *  them. The camera never leaves the player. */
       glideTo: function (x, z) {
-        if (isFinite(x) && isFinite(z)) player = { x: player.x, z: player.z, heading: Math.atan2(x - player.x, z - player.z), y: player.y, climb: player.climb };
+        if (isFinite(x) && isFinite(z)) {
+          var aim = Math.atan2(x - player.x, z - player.z);
+          if (SA.turn && !player.climb) turn = SA.turn.start(player.heading, aim);   // ease over ~300 ms, the short way round
+          else player = { x: player.x, z: player.z, heading: aim, y: player.y, climb: player.climb };
+        }
         offset = 0;
       },
       getState: function () {

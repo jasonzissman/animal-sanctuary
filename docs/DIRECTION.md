@@ -12,7 +12,7 @@ current; when your change sets or changes something future tickets must follow, 
   overhead, close-up or focus views, and no camera that leaves the player. To draw attention to something, turn the
   player and chase camera toward it. In code: `SA.render.createCameraRig` is chase-only (the classic top-down mode,
   `focusOn` and `release` are deleted); `rig.glideTo(x, z)` turns the player toward a point (hint arrow, easter-egg
-  reveal). Care tasks do not touch the camera at all. The camera does not clip through trees, rocks or big animals:
+  reveal) with a ~300 ms eased, shortest-angle turn (`SA.turn`, pure); walking input cancels it. Care tasks do not touch the camera at all. The camera does not clip through trees, rocks or big animals:
   `SA.camera.clearPath(player, wantedCamPos, obstacles)` (same `[[x, z, r], ...]` list the player collides with) returns
   how far out the camera may sit (never below `minClear`), smoothed by `easeClearance` (pulls in fast, relaxes slowly).
 - **The chase camera shows what is above you (AS-0116).** Near tree animals or up in a canopy it eases back and tilts

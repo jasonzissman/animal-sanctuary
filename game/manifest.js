@@ -53,6 +53,7 @@ globalThis.SA_MANIFEST = {
     'game/render/animals.js',
     'game/treetop-tell.js',
     'game/render/treetop-tell.js',
+    'game/turn.js',
     'game/render/camera-rig.js',
     'game/render/avatar.js',
     'game/render/hand-item.js',

@@ -150,7 +150,8 @@
     }
 
     return { start: start, found: found, taskDone: taskDone, photo: photo, hint: hint, hasBiomePool: hasBiomePool,
-      current: function () { return m; } };
+      current: function () { return m; },
+      cancel: function () { m = null; } };      // drops the round quietly: no miss, no round.complete (AS-0222)
   }
 
   SA.mission = { TYPES: TYPES, supportedTasks: supportedTasks, create: create };

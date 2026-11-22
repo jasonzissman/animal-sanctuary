@@ -16,6 +16,7 @@
  *   (desenredar: "Quita la hoja de las alas"; each tug pulls a leaf bit off; the last one calls fx.fly(animalId), gives nothing
  *   (the leaf just falls and fades; an action's optional `gives` item still goes to the inventory) and speaks the action's `say` ("¡Ya puede volar!"))
  *   (curar: "Cura las alas" is one tap on the scraped part; finishing draws a bandage via fx.bandage())
+ *   flow.cancel()                   a story mission started (SA.focus): the task on screen is put away quietly (no star, no miss)
  *   flow.replay()                   speaks the prompt again (a feed ask word by word, pulsing each food: view.pulseFood(id))
  */
 (function (root) {
@@ -49,6 +50,8 @@
     }
 
     function offer(animalId, force, kind) {
+      // A story mission is running: no random care offer. A forced offer (the mission's own 'help' step) always works (AS-0222).
+      if (!force && SA.focus && !SA.focus.allowsSmall()) return false;
       var task = care.maybeStart(animalId, force, kind);
       if (!task) return false;
       if (SA.picking && SA.picking.setActiveTask) SA.picking.setActiveTask(task);   // its animal's parts become aimable (AS-0128)
@@ -175,7 +178,19 @@
       });
     }
 
-    return { offer: offer, active: care.active, onPick: onPick, onFeed: onFeed, replay: replay };
+    // A story mission starts while a task is on screen: put it away quietly (no star, no miss; highlight and tray removed).
+    function cancel() {
+      if (!care.active()) return false;
+      stopSeq();
+      care.cancel();
+      if (SA.picking && SA.picking.setActiveTask) SA.picking.setActiveTask(null);
+      if (SA.picking && SA.picking.setRubTarget) SA.picking.setRubTarget(null);
+      if (fx) { fx.scrub(0); fx.hide(); }
+      vcall('hideFeed');
+      return true;
+    }
+
+    return { offer: offer, active: care.active, onPick: onPick, onFeed: onFeed, replay: replay, cancel: cancel };
   }
 
   SA.careFlow = { NEXT_MS: NEXT_MS, create: create };

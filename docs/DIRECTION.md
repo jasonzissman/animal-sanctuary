@@ -248,6 +248,13 @@ current; when your change sets or changes something future tickets must follow, 
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's
   photo board. Inside the station you can change your character any time (body style, hair, skin tone, clothes), saved.
+- **One focus rule: story missions pause the small tasks (AS-0222, slice 1 of AS-0221).** `SA.focus` (`game/focus.js`, pure):
+  `active()` is `'mission'` while `SA.missions.active()` is set (a story mission from the station board) and `'free'` otherwise;
+  `allowsSmall()` is the check every starter of a small task makes first (clue rounds in `prompt.js` / `mission-flow.js` `begin()`,
+  random `careFlow.offer` when not forced; the AS-0179 encounter starter must ask it too). A forced offer (a mission's own help
+  step) still works. `main.js` calls `SA.focus.update()` each frame; on 'mission' it calls `ctl.pause()` (clears the card, drops the
+  round and any care task quietly via `mission/round.cancel()` and `careFlow.cancel()`: no miss, star or round event, glow removed);
+  on 'free' it calls `ctl.begin()` so small tasks resume. Slice 2 (AS-0221) makes the top-left prompt show the mission's step.
 - **Rescue missions are the core loop (AS-0123, AS-0124, AS-0125).** Find an animal that fits the clue -> it needs help
   (hurt, stuck, hungry, tangled, scared: 1 task at beginner, 2 later) -> take its photo as proof it is OK ("¡Está bien!",
   saved to the album) -> next mission. Finding alone never ends a round. This supersedes "the photo answers the round" below.

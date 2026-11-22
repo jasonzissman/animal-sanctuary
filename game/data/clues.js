@@ -10,6 +10,8 @@
  *                 agrees with the part (largo/larga/largos/largas).
  *   type 'trait'          "Busca el animal que vuela" / "Busca el animal verde"
  *     trait       'size' | 'color' | 'movement'      values  allowed values (must exist in SA.animals lists)
+ *     gender/number (optional, default 'm'/'sg')  the noun the size/colour adjective agrees with; the clue engine
+ *                 speaks SA.vocab.adjKey(value, gender, number) ('adj:verdes') instead of the base key.
  *   type 'touchPart'      "Toca las patas"            parts   part keys
  * Adjective forms and lead phrases are also registered as vocab ("adj:largas", "phrase:...") so they can be spoken.
  */
@@ -56,6 +58,8 @@
     text(t.lead.es, 'lead.es');
     if (t.type === 'trait') {
       if (!TRAITS[t.trait]) fail('trait', 'must be one of ' + Object.keys(TRAITS).join(', '));
+      if (t.gender !== undefined && GENDERS.indexOf(t.gender) < 0) fail('gender', 'must be one of ' + GENDERS.join(', '));
+      if (t.number !== undefined && NUMBERS.indexOf(t.number) < 0) fail('number', 'must be one of ' + NUMBERS.join(', '));
       var allowed = SA.animals[TRAITS[t.trait]];
       if (!Array.isArray(t.values) || !t.values.length) fail('values', 'must be a non-empty array');
       t.values.forEach(function (v) {

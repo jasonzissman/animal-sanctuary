@@ -11,6 +11,7 @@
  *   SA.hintPointer.create({ delaySeconds?, onHint?, glide? }) -> pointer
  *       pointer.start()         a new round began: restart the idle clock, forget the "used" flag
  *       pointer.stop()          the round ended (correct pick): hide
+ *       pointer.nudge()         skip the rest of the idle delay (used when a tap was too far away: the arrow points the way)
  *       pointer.update(dt, target, camState, aspect) -> null | { angle, ex, ey }   (dt in seconds)
  *           Only returns an arrow after the idle delay AND while the target is off-screen. Never fails a round.
  *       pointer.tap(target)     the arrow was tapped: glides the camera toward the target and counts one hint per round.
@@ -111,6 +112,7 @@
     return {
       start: function () { idle = 0; active = true; used = false; },
       stop: function () { active = false; idle = 0; },
+      nudge: function () { if (active) idle = Math.max(idle, delay); },   // a too-far tap ("¡Acércate!"): show the arrow now
       update: function (dt, target, cam, aspect, vp) {
         if (!active || !target) return null;
         idle += Math.max(0, finite(dt, 0));

@@ -36,6 +36,8 @@ globalThis.SA_MANIFEST = {
     'game/map.js',
     'game/camera.js',
     'game/player.js',
+    'game/reach.js',
+    'game/render/reach-cue.js',
     'game/render/world.js',
     'game/render/decor-dry.js',
     'game/render/decor.js',

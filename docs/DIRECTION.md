@@ -43,6 +43,11 @@ current; when your change sets or changes something future tickets must follow, 
   Item in hand (AS-0104): every item needs a spec in `game/data/hand-models.js` (kind `handmodels`: boxes, cylinders,
   spheres, cones, flat colours, validated; a test fails if an item has none). `SA.render.createHandItem` builds it on the
   avatar's right arm and swaps/removes it as `SA.inventory.equipped()` changes. It is never part of any pick volume.
+- **Collectible finds (AS-0080).** Pickups are data in `game/data/pickups.js` (rule: item, where `tree|ground|water`, biomes,
+  count, respawn seconds; vocab `found:<item>` = "¡Un plátano!"). `SA.pickups` (game/pickups.js, pure, seeded) lays them out
+  (fruit on canopy branches via `SA.perch.spots`, so you climb for it) and handles collect + respawn; `game/render/pickups.js`
+  draws them (item model, bob, sparkle). Walking into one or pressing Space next to one adds it to `SA.inventory`, with pop
+  SFX and the spoken name. Keep new finds as data rules, not special cases.
 - **Forgiving aim.** The nearest in-reach part within a generous radius highlights and stays highlighted, so being a
   few pixels off the feet still counts. A 7-year-old should never fight the aim.
 - **You always see what Space will hit.** Whatever Space would act on right now (an animal part, a climbable tree, a

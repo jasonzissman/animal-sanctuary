@@ -39,6 +39,11 @@
     });
   }
 
+  SA.render.buildItemModel = function (THREE, id) {   // the same low-poly model on the ground (game/render/pickups.js)
+    var spec = SA.data.get('handmodels', id);
+    return spec ? build(THREE, spec) : null;
+  };
+
   SA.render.createHandItem = function (THREE, opts) {
     opts = opts || {};
     var getEquipped = opts.getEquipped || function () { return SA.inventory ? SA.inventory.equipped() : null; };

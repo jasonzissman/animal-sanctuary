@@ -53,7 +53,7 @@ test('auto-climb: a 600 ms forward push into the wall climbs the station', () =>
 // ---- Jumping on any climb top ----
 // A tree with dry ground all round it, so every fall direction lands safely.
 let spot = null;
-for (let x = -36; x < -10 && !spot; x += 1) for (let z = -15; z < 12 && !spot; z += 1) {
+for (let x = -50; x < 40 && !spot; x += 1) for (let z = -28; z < 28 && !spot; z += 1) {
   let ok = true;
   for (let dx = -7; dx <= 7 && ok; dx += 1) for (let dz = -7; dz <= 7 && ok; dz += 1) if (SA.map.isWater(x + dx, z + dz)) ok = false;
   if (ok) spot = { x, z };

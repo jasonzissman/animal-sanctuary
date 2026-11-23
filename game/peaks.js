@@ -24,8 +24,8 @@
   var HALF_SIDE = Math.PI / SEGMENTS;
 
   var LIST = [
-    { id: 'pico-n1', x: -70, z: -18, height: 6.5 }, { id: 'pico-n2', x: -60, z: -15, height: 7.5 }, { id: 'pico-n3', x: -50, z: -20, height: 6 },
-    { id: 'pico-s1', x: -72, z: 18, height: 7 }, { id: 'pico-s2', x: -62, z: 20, height: 6 }, { id: 'pico-s3', x: -52, z: 17, height: 7.5 },
+    { id: 'pico-n1', x: -98, z: -26, height: 6.5 }, { id: 'pico-n2', x: -84, z: -22, height: 7.5 }, { id: 'pico-n3', x: -70, z: -28, height: 6 },
+    { id: 'pico-s1', x: -100, z: 26, height: 7 }, { id: 'pico-s2', x: -86, z: 29, height: 6 }, { id: 'pico-s3', x: -72, z: 24, height: 7.5 },
   ];
 
   var bases = {};   // peak id -> ground height at its centre before any mound (computed once)

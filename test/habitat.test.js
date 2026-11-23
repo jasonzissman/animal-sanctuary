@@ -63,7 +63,7 @@ test('check: snaps to the grid and reports stars, biome, terrain, bounds, occupi
   const c = SA.habitat.check('roca', s.x + 0.4, s.z - 0.3);
   assert.deepEqual([c.ok, c.x, c.z], [true, s.x, s.z]);
   assert.equal(SA.habitat.check('nope', s.x, s.z).reason, 'unknown');
-  assert.equal(SA.habitat.check('roca', -100, 0).reason, 'bounds');
+  assert.equal(SA.habitat.check('roca', -130, 0).reason, 'bounds');
   assert.equal(SA.habitat.check('roca', NaN, 0).reason, 'bounds');
   // the river centre is water: land props cannot go there, a bridge can
   const wet = { x: SA.map.riverX(0), z: 0 };

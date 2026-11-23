@@ -8,16 +8,18 @@
   'use strict';
   var SA = root.SA;
 
-  var BOUNDS = { minX: -80, maxX: 80, minZ: -25, maxZ: 25 };
-  // Biome strips by x, west to east; each is 40 wide (`lo`/`hi` = world x range).
+  var BOUNDS = { minX: -112, maxX: 112, minZ: -36, maxZ: 36 };   // 224 x 72, about 2x the area of the original 160 x 50 map (AS-0247)
+  // Biome strips by x, west to east; each is 56 wide (`lo`/`hi` = world x range) and together they tile BOUNDS in x.
   var STRIPS = [
-    { id: 'montana', lo: -80, hi: -40 }, { id: 'bosque', lo: -40, hi: 0 },
-    { id: 'selva', lo: 0, hi: 40 }, { id: 'desierto', lo: 40, hi: 80 },
+    { id: 'montana', lo: -112, hi: -56 }, { id: 'bosque', lo: -56, hi: 0 },
+    { id: 'selva', lo: 0, hi: 56 }, { id: 'desierto', lo: 56, hi: 112 },
   ];
+  // The mountain and dune ramps start just inside their strip's inner border, so they follow STRIPS and are never hardcoded.
+  var MOUNTAIN_EDGE = STRIPS[0].hi + 2, DUNE_EDGE = STRIPS[3].lo - 2;
   var WATER_LEVEL = -0.3;
-  var RIVER = { centerX: -20, wiggle: 3, freq: 0.14, halfWidth: 2.6 };
-  var POND = { x: 22, z: 10, radius: 5 };
-  var FORD = { z: 19, halfLen: 2.5, level: 0.15 };   // river crossing (dry ground at this height across the river)
+  var RIVER = { centerX: -28, wiggle: 3, freq: 0.14, halfWidth: 2.6 };   // middle of the bosque strip
+  var POND = { x: 31, z: 14, radius: 5 };                                // inside the selva strip
+  var FORD = { z: 27, halfLen: 2.5, level: 0.15 };   // river crossing (dry ground at this height across the river)
 
   function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
   function smooth(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
@@ -36,17 +38,17 @@
     return null;
   }
 
-  /** Snowy peaks: rise from the montaña border (x = -38) to bumpy peaks up to ~5.5 high. */
+  /** Snowy peaks: rise from just inside the montaña border (MOUNTAIN_EDGE) to bumpy peaks up to ~5.5 high. */
   function mountainHeight(x, z) {
-    var ramp = smooth((-38 - x) / 10);
+    var ramp = smooth((MOUNTAIN_EDGE - x) / 10);
     if (ramp <= 0) return 0;
     var bump = Math.max(0, Math.sin(x * 0.19) * Math.sin(z * 0.23 + 1.3));
     return ramp * (1 + 4.5 * bump * bump);
   }
 
-  /** Sand dunes: soft ridges that fade in from the desierto border (x = 38). Lifts the ground 0.8 to 1.7 so it is dry. */
+  /** Sand dunes: soft ridges that fade in from just inside the desierto border (DUNE_EDGE). Lifts the ground 0.8 to 1.7 so it is dry. */
   function duneHeight(x, z) {
-    var ramp = smooth((x - 38) / 6);
+    var ramp = smooth((x - DUNE_EDGE) / 6);
     return ramp <= 0 ? 0 : ramp * (0.8 + 0.9 * (0.5 + 0.5 * Math.sin(x * 0.23 + Math.sin(z * 0.11) * 2 + z * 0.08)));
   }
 
@@ -109,7 +111,7 @@
   }
 
   SA.map = {
-    BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND, FORD: FORD,
+    BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND, FORD: FORD, MOUNTAIN_EDGE: MOUNTAIN_EDGE, DUNE_EDGE: DUNE_EDGE,
     clamp: clamp, biomeAt: biomeAt, riverX: riverX, baseHeight: baseHeight, groundHeight: groundHeight, followHeight: followHeight, cameraHeight: cameraHeight, isWater: isWater, nearWater: nearWater, rng: rng,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

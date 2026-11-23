@@ -32,6 +32,9 @@
     step: [{ w: 'sine', f: 150, f2: 80, t: 0, d: 0.08, g: 0.12 }, { n: 1, lp: 500, hp: 120, t: 0, d: 0.05, g: 0.06 }],
     stepWet: [{ n: 1, lp: 3200, hp: 700, t: 0, d: 0.12, g: 0.1 }, { n: 1, lp: 5000, hp: 2200, t: 0.03, d: 0.08, g: 0.04 }],
     stepLeaf: [{ n: 1, lp: 5000, hp: 1800, t: 0, d: 0.1, g: 0.08 }, { n: 1, lp: 2500, hp: 900, t: 0.02, d: 0.07, g: 0.04 }],
+    // Climbing (AS-0120): a soft rustle of leaves every ~0.35 s while going up/down a trunk, and a small leaf pop on arriving in the canopy.
+    rustle: [{ n: 1, lp: 4200, hp: 1500, t: 0, d: 0.12, g: 0.07 }, { n: 1, lp: 2200, hp: 800, t: 0.04, d: 0.08, g: 0.035 }],
+    leafPop: [{ n: 1, lp: 5500, hp: 1800, t: 0, d: 0.1, g: 0.1 }, { w: 'sine', f: 500, f2: 800, t: 0, d: 0.07, g: 0.06 }, { n: 1, lp: 3000, hp: 1000, t: 0.07, d: 0.09, g: 0.05 }],
     pop: [{ w: 'sine', f: 600, f2: 200, t: 0, d: 0.09, g: 0.35 }, { n: 1, hp: 2500, t: 0, d: 0.03, g: 0.12 }],
     splash: [{ n: 1, lp: 1800, hp: 300, t: 0, d: 0.5, g: 0.3 }, { n: 1, hp: 3000, t: 0.08, d: 0.3, g: 0.12 },
              { w: 'sine', f: 300, f2: 700, t: 0, d: 0.12, g: 0.15 }],

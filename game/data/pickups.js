@@ -32,9 +32,10 @@
 
   var rules = [
     // Strawberries are the only food (AS-0155): on trees where there are canopies, on bushes (ground) in every biome.
-    rule('fresa-arbol', 'fresa', 'tree', ['bosque', 'selva'], 3, 60),
-    rule('fresa-arbusto', 'fresa', 'ground', ['bosque', 'selva', 'montana', 'desierto'], 3, 60),
-    rule('roca-suelo', 'roca', 'ground', ['bosque', 'montana', 'desierto'], 3, 45)
+    // Counts doubled with the 2x map (AS-0248); the layout deals them round-robin into the four quadrants of each strip.
+    rule('fresa-arbol', 'fresa', 'tree', ['bosque', 'selva'], 6, 60),
+    rule('fresa-arbusto', 'fresa', 'ground', ['bosque', 'selva', 'montana', 'desierto'], 8, 60),
+    rule('roca-suelo', 'roca', 'ground', ['bosque', 'montana', 'desierto'], 6, 45)
   ];
 
   SA.data.defineKind('pickups', validatePickup);

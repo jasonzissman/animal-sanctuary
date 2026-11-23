@@ -43,9 +43,14 @@
 
   function onLand(M, x, z, where) {
     var y = M.groundHeight(x, z);
+    if (SA.player && SA.player.inSpawnZone(x, z)) return false;       // the spawn stays clear (AS-0105)
+    if (SA.station && SA.station.inFootprint(x, z, 1)) return false;  // and so does the research station's footprint
     if (where === 'water') return y >= M.WATER_LEVEL + 0.15 && M.nearWater(x, z, 3.5);
     return y >= M.WATER_LEVEL + 0.45;
   }
+
+  // Quadrant of a strip: bit 0 = east half, bit 1 = south half. Finds are dealt round-robin into the four so none stays empty (AS-0248).
+  function quad(range, x, z) { return (x >= (range.lo + range.hi) / 2 ? 1 : 0) | (z >= 0 ? 2 : 0); }
 
   // A random point on the bank of the river or pond that lies in this biome strip (null when it has no water).
   function bankPoint(M, rand, range) {
@@ -71,7 +76,9 @@
           var x, y, z;
           if (free) {
             if (!free.length) break;
-            var s = free.splice(Math.floor(rand() * free.length), 1)[0];
+            var want = made % 4, pool = free.filter(function (f) { return quad(range, f.x, f.z) === want; });
+            var pick = pool.length ? pool[Math.floor(rand() * pool.length)] : free[Math.floor(rand() * free.length)];
+            var s = free.splice(free.indexOf(pick), 1)[0];
             x = s.x; y = s.y; z = s.z;
           } else if (rule.where === 'water') {
             var bp = bankPoint(M, rand, range);
@@ -81,8 +88,10 @@
             y = M.groundHeight(x, z) + HOVER;
             taken.push([x, z]);
           } else {
-            x = range.lo + 2 + rand() * (range.hi - range.lo - 4);
-            z = M.BOUNDS.minZ + 2 + rand() * (M.BOUNDS.maxZ - M.BOUNDS.minZ - 4);
+            var q = made % 4, cx = (range.lo + range.hi) / 2, xa = q & 1 ? cx : range.lo + 2, xb = q & 1 ? range.hi - 2 : cx;
+            var za = q & 2 ? 0 : M.BOUNDS.minZ + 2, zb = q & 2 ? M.BOUNDS.maxZ - 2 : 0;
+            x = xa + rand() * (xb - xa);
+            z = za + rand() * (zb - za);
             if (!onLand(M, x, z, rule.where) || !clear(x, z, taken)) continue;
             y = M.groundHeight(x, z) + HOVER;
             taken.push([x, z]);

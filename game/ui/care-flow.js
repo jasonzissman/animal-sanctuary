@@ -3,7 +3,7 @@
  *
  *   var flow = SA.careFlow.create({ care, view, fx?, audio?, later?, onDone?, react?, inventory? })
  *   (react(animalId, reaction) plays an animal reaction; inventory defaults to SA.inventory)
- *   flow.offer(animalId, force?, kind?) -> boolean   maybe starts a task (force = no random chance, kind = only that task kind; shows "Lava las patas" with the tool's icon, speaks it, makes
+ *   flow.offer(animalId, force?, kind?, quiet?) -> boolean   (quiet: do not speak the prompt; an encounter speaks its own call first) maybe starts a task (force = no random chance, kind = only that task kind; shows "Lava las patas" with the tool's icon, speaks it, makes
  *                                     the part rub-able); false when no task was started
  *   flow.active()                     a task is in progress
  *   flow.onPick({ animalId, part, item? })  routes a Space/click/tap/rub with the equipped item: the right tool on the right
@@ -49,7 +49,7 @@
       return it ? it.icon : '✋';
     }
 
-    function offer(animalId, force, kind) {
+    function offer(animalId, force, kind, quiet) {
       // A story mission is running: no random care offer. A forced offer (the mission's own 'help' step) always works (AS-0222).
       if (!force && SA.focus && !SA.focus.allowsSmall()) return false;
       var task = care.maybeStart(animalId, force, kind);
@@ -66,7 +66,7 @@
         if (task.kind !== 'curar' && SA.picking && SA.picking.setRubTarget) SA.picking.setRubTarget(task.animalId, task.part);
         view.showCare({ text: task.text, icon: toolIcon(task), stars: stars() });
       }
-      say(task.text);
+      if (!quiet) say(task.text);       // quiet: SA.encounterFlow speaks the animal's call and hint first, then replay()
       return true;
     }
 

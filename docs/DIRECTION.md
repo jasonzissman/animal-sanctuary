@@ -465,7 +465,15 @@ current; when your change sets or changes something future tickets must follow, 
   `sync({ animals, excludeIds })` keeps ~1 in 4 animals needy (cap `MAX` 4, never on the mission's animals, `COOLDOWN_MS` after a fix,
   new need on a different animal), `tasks()` feeds `SA.nearbyTask`, `hint(id)` gives icon + vocab keys, `shouldCall(id, ms)` is true once
   per `CALL_GAP_MS` (20 s) per animal, `resolve(id)` clears it; paused while `SA.focus.allowsSmall()` is false. Needs are data in
-  `game/data/needs.js` (care task, icon, gendered hint key); not yet wired into main.js/UI. Missions are deliberate stories that are only started from the scientist's Misiones board in the station
+  `game/data/needs.js` (care task, icon, gendered hint key, `word` = the `need` the rescue log records: hungry/thorn/mud/tangled/scared).
+  **Wired (AS-0245, slice 2/3):** `SA.encounterFlow` (`game/ui/encounter-flow.js`, pure glue built in `SA.prompt.start`) feeds the scheduler's
+  tasks to `SA.taskGate` (option `encounters`), so an encounter shows its prompt only within `NEAR` and is highlighted by the one shared
+  task ring (sky blue). Coming near calls `start(id)`: the existing care task is offered forced and quiet (`careFlow.offer(id, true, kind, true)`),
+  then the species call (the animal's `voice` word, else a procedural chirp/squeak/whimper) and the spoken hint play (at most once per 20 s per
+  animal), then the prompt. Finishing logs `save.rescues { kind: 'encounter', animalId, need, biome, night }` (badges count it) and resolves the
+  need. Walking away mid-help puts the task away quietly (the need waits); a story mission cancels it and pauses everything. A clue round in its
+  help/photo step is never interrupted; one in `find` is put away when you walk up to a needy animal. The floating emoji is
+  `SA.render.createNeedIcons` (`game/render/need-icons.js`, canvas-text sprites; `stage.getNeeds`). Missions are deliberate stories that are only started from the scientist's Misiones board in the station
   (AS-0180). They unlock strictly in order, one after the previous is done, and finished missions can be replayed (AS-0177).
   Missions are data rows on a step runner (AS-0178). Order: 1 ¿Dónde está mamá? (piglet), 2 El huevo perdido, 3 Rescate en
   el río, 4 Cumpleaños del mono, 5 Doctor del santuario, 6 El nido del águila, 7 Censo de animales, 8 Los ladrones de fresas,
@@ -512,8 +520,8 @@ current; when your change sets or changes something future tickets must follow, 
   idempotent per mission + seed). `save.badges` holds earned badge ids. Badges are data rows in `game/data/badges.js`
   (`rule: { count, kind?, animalId?, need?, biome?, night? }` counts rows matching every field; `{ album: 'all' }` reads
   `SA.album.progress()`); species get bronce/plata/oro at 1/5/15. `SA.badges` (`game/badges.js`) gives `check(rescues?)` (ids earned for the
-  first time, saved, returned once) and `progress()` (`[{ id, have, need, earned }]` for the station's board). **Not yet wired:** care/encounter
-  call sites must call `SA.rescueLog.record`, and the photo flow `SA.badges.check()` after `SA.album.add` (sticker/board tickets).
+  first time, saved, returned once) and `progress()` (`[{ id, have, need, earned }]` for the station's board). **Wired:** encounters call `SA.rescueLog.record` (AS-0245); plain care
+  rescues do not yet, and the photo flow `SA.badges.check()` after `SA.album.add` (sticker/board tickets).
 - **Mission compass (AS-0228):** while a story step has a world target (`SA.missionRuntime.target()`, i.e. the step's `at`), one big
   yellow arrow (no text, no numbers) sits near the top centre and points toward it relative to the camera yaw, so it turns every frame.
   `SA.compass` (`game/compass.js`, pure): `angle(player, target, yawDeg)` (0 = right, PI/2 = straight ahead), `evaluate(...)` (hidden when

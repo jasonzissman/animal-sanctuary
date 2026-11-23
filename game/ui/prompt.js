@@ -431,13 +431,15 @@
       feed: function (id) { if (careFlow) careFlow.onFeed(id); },
       gated: !!(o.nearby && o.mission && SA.missionFlow && SA.taskGate),
     });
-    var careFlow = o.care || null;
+    var careFlow = o.care || null, encFlow = null;
     if (!careFlow && o.careFx !== undefined && SA.careFlow && SA.care) {
       careFlow = SA.careFlow.create({ care: SA.care.create(), view: view, fx: o.careFx, audio: o.audio, later: o.later,
         react: function (id, name) { if (o.fx && o.fx.play) o.fx.play(id, name); },
         onDone: function (task) {
           // A 'help' mission step ends with its care task (SA.missionRuntime, AS-0230).
           if (SA.missionRuntime && task) { try { SA.missionRuntime.report({ type: 'helped', animal: task.animalId, careTask: task.taskId }); } catch (e) { /* missions never break play */ } }
+          // A roaming encounter's help (AS-0245): logged as a rescue and resolved; the card then clears like any finished small task.
+          if (encFlow && encFlow.onCareDone(task)) { if (ctl) ctl.begin(); return; }
           if (!ctl) return; if (ctl.onCareDone) ctl.onCareDone(task); else ctl.begin(); } });
     }
     // o.mission (SA.mission): the rescue flow (find, help, photo; game/ui/mission-flow.js) drives the card instead of a plain round.
@@ -455,7 +457,19 @@
     ctl.setHidden = view.setHidden;
     // On a story mission only the mission shows: the pill follows the current step (main.js polls ctl.updatePill() each frame).
     if (gated) {
-      var gate = SA.taskGate.create({ flow: ctl, game: o.mission, view: view, player: o.nearby.player, animals: o.nearby.animals, track: o.track });
+      // Roaming encounters (AS-0179/0245): animals needing small help, through the same gate, ring and care flow.
+      if (careFlow && SA.encounters && SA.encounterFlow) {
+        encFlow = SA.encounterFlow.create({ encounters: SA.encounters.create(), care: careFlow, audio: o.audio, track: o.track,
+          later: o.later || function (fn, ms) { return root.setTimeout(fn, ms); },
+          onEarned: function (rows) { view.toast(rows.map(function (b) { return b.icon; }).join(' ') + ' ' + rows[0].es); } });
+        if (ctl.pause) {
+          var basePause = ctl.pause;
+          ctl.pause = function () { encFlow.cancel(); return basePause.apply(ctl, arguments); };      // a story mission: encounters wait
+        }
+        ctl.encounterNeeds = encFlow.needs;
+      }
+      var gate = SA.taskGate.create({ flow: ctl, game: o.mission, view: view, player: o.nearby.player, animals: o.nearby.animals, track: o.track,
+        encounters: encFlow });
       ctl.updateTasks = gate.update;
       // What the 3D task ring shows (AS-0226): the animal the gate shows a task for, and whether that round just finished.
       ctl.taskShown = function () {

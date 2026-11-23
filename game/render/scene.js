@@ -193,6 +193,7 @@
     var fx = SA.render.createRoundFx({ animals: animals });
     var biomeGlow = SA.render.createBiomeGlow ? SA.render.createBiomeGlow(THREE, { scene: scene }) : null;
     var taskRing = SA.render.createTaskRing ? SA.render.createTaskRing(THREE, { scene: scene, animals: animals }) : null;   // glow round the current small-task animal (AS-0226)
+    var needIcons = SA.render.createNeedIcons ? SA.render.createNeedIcons(THREE, { scene: scene, animals: animals }) : null;   // floating emoji over animals that need help (AS-0245)
     var careFx = SA.render.createCareFx(THREE, { animals: animals, ambient: ambient });
 
     function resize() {
@@ -207,10 +208,10 @@
 
     // stageApi.onTreeTap({ id, biome }) is set by main.js (easter-egg unlocks).
     stageApi = {
-      scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize, taskRing: taskRing, getTask: null,
+      scene: scene, camera: camera, renderer: renderer, rig: rig, picking: picking, props: props, fx: fx, careFx: careFx, biomeGlow: biomeGlow, ambient: ambient, resize: resize, taskRing: taskRing, getTask: null, needIcons: needIcons, getNeeds: null,
       animals: animals, treeTap: treeTap, onTreeTap: null,
       avatar: avatar, pickups: pickups, spaceUse: spaceUse,
-      render: function (dt) { if (station && station.userData.board) station.userData.board.update(); if (station && station.userData.badgesBoard) station.userData.badgesBoard.update(); if (station && station.userData.photoBoard) station.userData.photoBoard.update(); rig.update(dt); avatar.update(dt, rig.getPlayer()); if (scientist) scientist.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (autoRing) autoRing.update(dt); if (reachCue) reachCue.update(dt); if (clickFx) clickFx.update(dt); treeTap.update(dt); ambient.update(dt); if (missionAnimals) { try { missionAnimals.update(dt); } catch (e) { missionAnimals = null; if (root.SAT && root.SAT.error) root.SAT.error('missionSpawn.update', e); } } if (treetop) treetop.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); if (taskRing) { try { taskRing.update(dt, stageApi.getTask ? stageApi.getTask() : null); } catch (e) { taskRing = null; if (root.SAT && root.SAT.error) root.SAT.error('taskRing.update', e); } } renderer.render(scene, camera); },
+      render: function (dt) { if (station && station.userData.board) station.userData.board.update(); if (station && station.userData.badgesBoard) station.userData.badgesBoard.update(); if (station && station.userData.photoBoard) station.userData.photoBoard.update(); rig.update(dt); avatar.update(dt, rig.getPlayer()); if (scientist) scientist.update(dt, rig.getPlayer()); if (handItem) handItem.update(); if (pickups) pickups.update(dt); picking.update(dt); if (spaceUse) spaceUse.update(); if (outline) outline.update(dt); if (autoRing) autoRing.update(dt); if (reachCue) reachCue.update(dt); if (clickFx) clickFx.update(dt); treeTap.update(dt); ambient.update(dt); if (missionAnimals) { try { missionAnimals.update(dt); } catch (e) { missionAnimals = null; if (root.SAT && root.SAT.error) root.SAT.error('missionSpawn.update', e); } } if (treetop) treetop.update(dt); fx.update(dt); careFx.update(dt); if (biomeGlow) biomeGlow.update(dt); if (taskRing) { try { taskRing.update(dt, stageApi.getTask ? stageApi.getTask() : null); } catch (e) { taskRing = null; if (root.SAT && root.SAT.error) root.SAT.error('taskRing.update', e); } } if (needIcons) { try { needIcons.update(dt, stageApi.getNeeds ? stageApi.getNeeds() : null); } catch (e) { needIcons = null; if (root.SAT && root.SAT.error) root.SAT.error('needIcons.update', e); } } renderer.render(scene, camera); },
     };
     return stageApi;
   };

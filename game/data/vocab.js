@@ -99,6 +99,8 @@
   add('phrase', 'casi', '¡Casi!');
   add('phrase', 'yapuedevolar', '¡Ya puede volar!');
   add('phrase', 'yacaminabien', '¡Ya camina bien!', 'It walks well now!');   // the thorn is out (action quitarespina)
+  add('phrase', 'barro', 'el barro', 'the mud');   // the puddle the animal is stuck in (action sacardelbarro)
+  add('phrase', 'yasaliodelbarro', '¡Ya salió del barro!', 'It is out of the mud!');
   add('phrase', 'quefoto', '¡Qué foto! Pero busca…');
   add('phrase', 'tomalefoto', 'Tómale una foto', 'Take its photo');   // the photo step of a rescue mission (SA.missionFlow)
   add('phrase', 'estabien', '¡Está bien!', 'It is OK!');   // the rescue proof card stamp (SA.missionFlow)

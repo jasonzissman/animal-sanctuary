@@ -441,6 +441,11 @@ current; when your change sets or changes something future tickets must follow, 
   "¡Ya camina bien!") + care task kind `espina` "Quita la espina de las patas" (2 tugs, only animals with patas): the animal steps in
   place with an uneven limp (`SA.gait.limp`, the first paw hardly swings) and a thorn bit shows on one paw; done: `fx.free(id, cue)`.
   A new need is a data row plus a cue (add a cue = add it to `CUES` and give ambient/care-fx a look for it).
+  Built (AS-0242): cue `sunk`. Action `sacardelbarro` (empty hands on *las patas*, says "¡Ya salió del barro!"; vocab `phrase:barro` =
+  "el barro") + care task kind `barro` "Saca las patas del barro" (3 tugs, only animals with patas). `ambient` lowers the animal by
+  `rig.sunkBy` (0.1 + up to 0.08 more, slowly, capped) and eases it back up when the cue clears; `care-fx` draws a flat brown puddle
+  (group `userData.sunkPuddle`) that stays on the ground while the animal sinks, with 3 mud lumps (one splashes off per tug) and
+  shrinks away on `free`.
 - **Low things are jumpable.** Anything short (rocks, logs, low props) can be jumped over and briefly stood on; only
   tall things (trees, cacti, peaks, big animals) always block. Obstacles carry a height (AS-0176).
 - **Progress you can see and keep.** Badges and stickers for rescues by species, predicament, biome and night (AS-0167,

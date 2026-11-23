@@ -5,7 +5,7 @@
  *   ambient.release(id)        let it wander again (ignored while the animal is pinned)
  *   ambient.pin(id)            the rescue mission found it: it stays put (holds until unpin; care/tap releases do not free it)
  *   ambient.unpin(id)          the mission is done or replaced: it wanders again
- *   ambient.setCue(id, cue)     the care task's visible cue: 'tangled' (a flyer hops with drooping wings), 'limp' (uneven walk), null
+ *   ambient.setCue(id, cue)     the care task's visible cue: 'tangled' (a flyer hops with drooping wings), 'limp' (uneven walk), 'sunk' (stuck in mud: sits lower and sinks a little more over time; rig.sunkBy is the depth), null
  *   ambient.setTangled(id, on)  alias of setCue(id, 'tangled' | null)
  *   ambient.flyLoop(id)         freed: one spinning circle in the air with wide wing beats, then normal again
  *   ambient.setAvoid(points)   replace the [[x, z, r?],...] points wanderers keep clear of (decor + placed props)
@@ -20,6 +20,7 @@
 
   var PART_HOLD = 5;   // seconds an animal stays put after a tap
   var HOP_RATE = 7, HOP_HEIGHT = 0.18, DROOP = 0.6;            // tangled wing: hop speed (rad/s), height, wing droop (rad)
+  var SUNK_BASE = 0.1, SUNK_RATE = 0.01, SUNK_MORE = 0.08, RISE_RATE = 0.5;   // cue 'sunk': start depth, extra depth per second, its cap, rise speed (world units)
   var LOOP_SECONDS = 1.9, LOOP_RADIUS = 1.1, LOOP_LIFT = 1.3;   // freed bird's happy loop (shorter than care-flow NEXT_MS)
 
   SA.render.createAmbient = function (opts) {
@@ -129,9 +130,12 @@
         g.position.x = p.x;
         g.position.z = p.z;
         // Tangled wing: the bird hops on the ground instead of hovering. Freed: it circles once, spinning, up in the air.
-        var lift = r.cue === 'tangled' ? Math.abs(Math.sin(t * HOP_RATE + r.phase)) * HOP_HEIGHT : p.perched || r.cue === 'limp' ? 0 : p.lift;
+        var lift = r.cue === 'tangled' ? Math.abs(Math.sin(t * HOP_RATE + r.phase)) * HOP_HEIGHT : p.perched || r.cue === 'limp' || r.cue === 'sunk' ? 0 : p.lift;
         // Limp: the body sinks and leans on every other step; it walks on the ground (flyers too) and steps in place when held.
         var limp = r.cue === 'limp' ? SA.gait.limp(t, r.phase) : null;
+        // Sunk in mud: sits lower and sinks a little more every second (capped); once freed it rises back smoothly.
+        if (r.cue === 'sunk') { r.sink = Math.min(SUNK_MORE, (r.sink || 0) + SUNK_RATE * Math.min(dt, 0.1)); r.sunkBy = SUNK_BASE + r.sink; }
+        else if (r.sunkBy) { r.sink = 0; r.sunkBy = Math.max(0, r.sunkBy - RISE_RATE * Math.min(dt, 0.1)); }
         if (limp) { g.rotation.z = limp.roll; r.limped = true; } else if (r.limped) { g.rotation.z = 0; r.limped = false; }
         if (r.loop) {
           r.loop.t += Math.min(dt, 0.1);
@@ -141,13 +145,13 @@
           spin = a; loopLift = LOOP_LIFT * Math.sin(u * Math.PI); moving = true;
           if (u >= 1) r.loop = null;
         }
-        g.position.y = (p.perched ? p.y : SA.map.groundHeight(p.x, p.z)) + lift + loopLift - (limp ? limp.dip : 0);
+        g.position.y = (p.perched ? p.y : SA.map.groundHeight(p.x, p.z)) + lift + loopLift - (limp ? limp.dip : 0) - (r.sunkBy || 0);
         g.rotation.y = p.heading + spin;
         g.scale.set(r.sx / Math.sqrt(idle.breath), r.sy * idle.breath, r.sz / Math.sqrt(idle.breath));
         r.ears.forEach(function (e) { e.m.rotation.z = e.rz + idle.wiggle * 0.25 * (e.m.userData.side === 'right' ? -1 : 1); });
         r.tail.forEach(function (e) { e.m.rotation.y = e.ry + idle.wiggle * 0.5; });
         r.eyes.forEach(function (e) { e.m.scale.y = e.sy * (1 - 0.9 * idle.blink); });
-        animateLimbs(r, r.cue === 'limp' || (moving && !(r.cue === 'tangled' && !r.loop)), dt);
+        animateLimbs(r, r.cue === 'limp' || (r.cue !== 'sunk' && moving && !(r.cue === 'tangled' && !r.loop)), dt);
         // Rosy cheeks sparkle: a quick shimmering pulse (phase-shifted per cheek).
         r.cheeks.forEach(function (e, k) { e.m.scale.y = e.sy * (1 + 0.3 * Math.abs(Math.sin(t * 5 + r.phase + k * 1.3))); });
       });

@@ -296,12 +296,14 @@ current; when your change sets or changes something future tickets must follow, 
   there. A fragile thing wobbles after a jump (`SA.carry.update(dt, player)` in main.js reads the SA.jump `takeoff`/`double` event;
   `wobble()` -> `{ active, angle, tilt }` is drawn by `render/hand-item.js`): a gentle shake, never a drop, fail or reset. Mission content
   that needs a thing in hand calls `SA.carry.pickUp`; `locate(id)` resolves the deliver target like a goTo place.
-- **Proximity only (AS-0225, slice 2 of AS-0217): clue rounds and encounters never start or show unless their animal is near.**
+- **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
+  with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
+  (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /
+  `pickClueFor` remain for data-driven mission clue steps and the ungated fallback controller.
+- **Proximity only (AS-0225, slice 2 of AS-0217): encounters never start or show unless their animal is near.**
   `SA.taskGate` (`game/task-gate.js`, pure wiring) is polled each frame by `main.js` (`ctl.updateTasks()`, after `SA.focus.update()`).
-  With no round, it asks `SA.nearbyTask`; when an animal is near and in view it calls `missionFlow.begin(animalId)`, so
-  `SA.mission.start({ animalId })` picks a clue that animal fits (`pickClueFor`). With a round, its pill is shown only while
-  `nearbyTask` returns it (`view.setPill(on)`): walking away hides the pill quietly (no miss, no failure, round kept; the biome reroll
-  is off) and coming back shows it and says the clue again. The animal you just finished stays quiet until you walk away from it.
+  It asks `SA.nearbyTask` about the encounter tasks only; the pill is shown only while `nearbyTask` returns one (`view.setPill(on)`):
+  walking away hides it quietly (no miss, no failure) and coming back shows it and says the call again.
   Telemetry, once per transition (never per frame): `task.shown` / `task.hidden` `{ kind, animalId, dist }`. A story mission still
   shows only its step (`stepOn` in the pill view); the gate shows nothing then. New small tasks (encounters, AS-0179) must be a
   `{ kind, id, animalId }` entry in the gate's `tasksFor` (kind-generic) and never start without proximity. Gating is on only when

@@ -443,7 +443,8 @@
           if (!ctl) return; if (ctl.onCareDone) ctl.onCareDone(task); else ctl.begin(); } });
     }
     // o.mission (SA.mission): the rescue flow (find, help, photo; game/ui/mission-flow.js) drives the card instead of a plain round.
-    // o.nearby = { player(), animals() } (AS-0225): a clue round starts only near a fitting animal (SA.taskGate; main.js polls ctl.updateTasks()).
+    // o.nearby = { player(), animals() } (AS-0225): gated free roam (AS-0246): no clue round starts by itself; only encounters show, near
+    // their animal (SA.taskGate; main.js polls ctl.updateTasks()).
     var gated = !!(o.nearby && o.mission && SA.missionFlow && SA.taskGate);
     var common = { view: view, fx: o.fx, audio: o.audio, later: o.later, biomeFx: o.biomeFx, care: careFlow, onProgress: o.onProgress, pin: o.pin };
     ctl = o.mission && SA.missionFlow ? SA.missionFlow.create(Object.assign({ mission: o.mission, gated: gated }, common))

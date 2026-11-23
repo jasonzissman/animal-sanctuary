@@ -7,6 +7,8 @@
  *                        happy flyLoop. fx.fly(animalId) is free(animalId, 'tangled').
  *                        task.cue picks the look: 'tangled' = flat green leaf bits on ONE wing and the bird hops, not flies;
  *                        'limp' = a small thorn on ONE paw and the animal limps (never chosen by animal id)
+ *                        'sunk' = a flat brown mud puddle under the animal (it follows the animal's depth, ambient rig.sunkBy) with
+ *                        3 mud lumps; each tug splashes one off; free() shrinks the puddle away while the animal rises
  *   opts.ambient         optional SA.render.createAmbient: the animal being cared for stands still until hide()
  *   fx.update(dt)        call every frame (animates the sparkle particles)
  * Spots are small flattened spheres added to the animal group (part meshes are non-uniformly scaled, so they are
@@ -30,7 +32,7 @@
     var thornGeo = new THREE.ConeGeometry(0.4, 1.4, 5);
     var thornMats = [new THREE.MeshLambertMaterial({ color: 0x6d4c2a }), new THREE.MeshLambertMaterial({ color: 0x3f5a2a })];   // brown thorn, green base
     var bandageMat =new THREE.MeshLambertMaterial({ color: 0xf6e3c4 }), crossMat = new THREE.MeshLambertMaterial({ color: 0xe8706b });
-    var group = null, spots = [], bits = [], lastSpot = null;
+    var group = null, spots = [], bits = [], lastSpot = null, puddle = null;
     var seed = 1;
     function rand() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
 
@@ -38,6 +40,41 @@
       spots.forEach(function (s) { if (s.parent) s.parent.remove(s); });
       spots = [];
       lastSpot = null;
+      removePuddle();
+    }
+
+    function removePuddle() { if (puddle && puddle.parent) puddle.parent.remove(puddle); puddle = null; }
+
+    // Cue 'sunk': a flat brown disc on the ground around the body, plus mud lumps on it (the spots a tug splashes away).
+    function addPuddle(g, count) {
+      var R = 0.6;
+      g.children.forEach(function (m) {
+        if (m.userData.pick || !m.userData.part) return;
+        R = Math.max(R, Math.sqrt(m.position.x * m.position.x + m.position.z * m.position.z) + Math.max(m.scale.x, m.scale.z) * 0.5);
+      });
+      var T = 0.03 / (g.scale.y || 1);
+      puddle = new THREE.Group();
+      var disc = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 16), mats[0]);
+      disc.scale.set(R * 1.15, T, R * 1.15);
+      puddle.add(disc);
+      puddle.userData = { sunkPuddle: true, leaving: false };
+      for (var i = 0; i < count; i++) {
+        var lump = new THREE.Mesh(geo, mats[1]), a = (i / count) * Math.PI * 2 + 0.5;
+        lump.scale.set(R * 0.14, R * 0.08, R * 0.14);
+        lump.position.set(Math.cos(a) * R * 0.85, T, Math.sin(a) * R * 0.85);
+        lump.userData = { mud: true, index: i };
+        puddle.add(lump);
+        spots.push(lump);
+      }
+      g.add(puddle);
+      placePuddle();
+    }
+
+    // Keeps the puddle on the ground while the animal sits lower (group-local y = depth / the group's height scale).
+    function placePuddle() {
+      if (!puddle || !group) return;
+      var rig = ambient && ambient.rigs && ambient.rigs[group.userData.animalId];
+      puddle.position.y = ((rig && rig.sunkBy) || 0) / (group.scale.y || 1) + 0.01;
     }
 
     function partMeshes(g, part) {
@@ -57,6 +94,7 @@
       var count = task.kind === 'acariciar' ? 0 : task.spots;      // petting la barriga has nothing to wash off
       if (cue && ambient && ambient.setCue) ambient.setCue(task.animalId, cue);   // the bird hops / the animal limps
       else if (cue === 'tangled' && ambient && ambient.setTangled) ambient.setTangled(task.animalId, true);
+      if (cue === 'sunk') { addPuddle(group, count); count = 0; }      // no spots on the paws: the mud is under the animal
       for (var i = 0; task.part && i < count; i++) {
         var m = cue ? meshes[0] : meshes[i % meshes.length];      // a stuck leaf / thorn is on ONE wing / paw
         var spot = new THREE.Mesh(cue === 'limp' ? thornGeo : geo, palette[i % 2]);
@@ -95,7 +133,7 @@
       while (spots.length > Math.max(0, spotsLeft)) {
         var s = spots.pop();
         lastSpot = s.position.clone();
-        if (group && group.parent) burst(s.position);
+        if (group && group.parent) burst(s.parent === puddle ? s.position.clone().add(puddle.position) : s.position);
         if (s.parent) s.parent.remove(s);
       }
     }
@@ -121,6 +159,7 @@
 
     // The task's cue is solved ('limp': the animal walks normally at once; 'tangled': it also flies a happy loop).
     function free(animalId, cue) {
+      if (puddle) { puddle.userData.leaving = true; if (!ambient) removePuddle(); }     // the puddle shrinks away as the animal rises
       if (!ambient) return;
       uncue(animalId);
       if (cue === 'tangled' && ambient.flyLoop) ambient.flyLoop(animalId);
@@ -135,6 +174,14 @@
     }
 
     function update(dt) {
+      if (puddle) {
+        placePuddle();
+        if (puddle.userData.leaving) {
+          var k = Math.max(0, 1 - 3 * dt);
+          puddle.scale.x *= k; puddle.scale.z *= k;
+          if (puddle.scale.x < 0.05) removePuddle();
+        }
+      }
       bits = bits.filter(function (b) {
         var d = b.userData;
         d.t += dt;

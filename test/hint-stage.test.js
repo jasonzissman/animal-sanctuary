@@ -196,7 +196,7 @@ test('biome glow: covers just that biome strip, pulses softly and hides cleanly'
   assert.equal(glow.show('desierto'), true);
   assert.equal(glow.visible(), true);
   const xs = added[0].geometry.xyz.map((p) => p[0]);
-  assert.ok(Math.min(...xs) >= 40 - 1e-6 && Math.max(...xs) <= 80 + 1e-6);
+  assert.ok(Math.min(...xs) >= 56 - 1e-6 && Math.max(...xs) <= 112 + 1e-6);
   const seen = new Set();
   for (let i = 0; i < 20; i++) { glow.update(0.1); seen.add(added[0].material.opacity); }
   assert.ok(seen.size > 3);

@@ -113,14 +113,16 @@ test('aborting a climb halfway comes back down from the current height', () => {
 
 test('landing in water falls back to the spot you climbed from', () => {
   // A tree on the river bank whose landing ring (edge + pad) on the far side is in the river.
-  const wet = { x: SA.map.riverX(0) - 5, z: 0, y: 0, scale: 1, kind: 'jungle' };
-  const start = { x: wet.x - 2.5, z: 0 };   // standing on the dry side, away from the river
+  let wz = 0;   // a row where the dry-side start spot is not in a terrain dip
+  while (wz < 20 && !dry(SA.map.riverX(wz) - 7.5, wz)) wz += 1;
+  const wet = { x: SA.map.riverX(wz) - 5, z: wz, y: 0, scale: 1, kind: 'jungle' };
+  const start = { x: wet.x - 2.5, z: wz };   // standing on the dry side, away from the river
   assert.ok(dry(start.x, start.z));
   let s = run(K.start(at(start.x, start.z), wet), {}, K.UP_TIME + 0.1);
   const ring = K.edgeRadius(wet) + 0.6;
   // Slide the canopy position to the river side so the "natural" landing would be wet.
   s = { ...s, x: wet.x + 1, z: wet.z };
-  assert.ok(!dry(wet.x + ring, 0), 'precondition: the river-side landing is wet');
+  assert.ok(!dry(wet.x + ring, wz), 'precondition: the river-side landing is wet');
   s = run(K.stop(s), {}, K.DOWN_TIME + 0.2);
   assert.equal(s.climb, null);
   assert.ok(Math.hypot(s.x - start.x, s.z - start.z) < 1e-6 || dry(s.x, s.z), 'back on the dry start spot');

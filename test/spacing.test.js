@@ -6,14 +6,14 @@ const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'gam
   'game/map.js', 'game/animal-plan.js', 'game/spacing.js', 'game/wander.js', 'game/gait.js', 'game/render/ambient.js'];
 const MOVES = ['salta', 'nada', 'trepa', 'camina lento', 'corre', 'repta', 'vuela'];
 const SIZES = ['pequeño', 'mediano', 'grande'];
-const BIOME = 'desierto';   // all dry land (x 40..80), so the walkers are never squeezed by water
+const BIOME = 'desierto';   // all dry land (x 56..112), so the walkers are never squeezed by water
 const DT = 1 / 30;
 const EPS = 1e-6;
 
 // n walkers in one biome sharing live positions + radii (as SA.render.createAmbient does); homes default to a spread grid.
 function crowd(SA, n, { homes, holdIds = [], radius = 3 } = {}) {
   const ws = [];
-  const spots = homes || Array.from({ length: n }, (_, i) => ({ x: 46 + (i % 5) * 6, z: -12 + Math.floor(i / 5) * 6 }));
+  const spots = homes || Array.from({ length: n }, (_, i) => ({ x: 62 + (i % 5) * 6, z: -12 + Math.floor(i / 5) * 6 }));
   spots.forEach((home, i) => {
     const r = SA.spacing.RADIUS[SIZES[i % 3]];
     const w = SA.wander.create({
@@ -58,7 +58,7 @@ test('15 ground animals wandering 120 s never have a body gap below 1.5 after th
 
 test('a tight pack that starts inside the gap is separated and then stays apart', () => {
   const SA = loadGame(FILES);
-  const homes = Array.from({ length: 12 }, (_, i) => ({ x: 54 + (i % 4) * 2, z: 5 + Math.floor(i / 4) * 2 }));
+  const homes = Array.from({ length: 12 }, (_, i) => ({ x: 70 + (i % 4) * 2, z: 5 + Math.floor(i / 4) * 2 }));
   const ws = crowd(SA, 12, { homes, radius: 5 });
   let minGap = Infinity;
   for (let t = 0; t < 90; t += DT) {
@@ -70,7 +70,7 @@ test('a tight pack that starts inside the gap is separated and then stays apart'
 
 test('animals spawned overlapping are pushed apart to the gap within about 1 s, smoothly (no teleport)', () => {
   const SA = loadGame(FILES);
-  const ws = crowd(SA, 3, { homes: [{ x: 54, z: 10 }, { x: 54, z: 10 }, { x: 54.5, z: 10.2 }] });
+  const ws = crowd(SA, 3, { homes: [{ x: 70, z: 10 }, { x: 70, z: 10 }, { x: 70.5, z: 10.2 }] });
   let prev = ws.bodies(), maxStep = 0, gapAt = null;
   for (let t = 0; t < 2.5; t += DT) {
     ws.forEach((w) => w.update(DT));
@@ -86,7 +86,7 @@ test('animals spawned overlapping are pushed apart to the gap within about 1 s, 
 
 test('a held animal never moves, even when overlapped, and the others steer around it without breaking the gap', () => {
   const SA = loadGame(FILES);
-  const homes = [{ x: 54, z: 10 }, { x: 54, z: 10.3 }, { x: 56, z: 10 }, { x: 52, z: 10 }, { x: 54, z: 8 }, { x: 54, z: 12 }];
+  const homes = [{ x: 70, z: 10 }, { x: 70, z: 10.3 }, { x: 72, z: 10 }, { x: 68, z: 10 }, { x: 70, z: 8 }, { x: 70, z: 12 }];
   const ws = crowd(SA, 6, { homes, holdIds: [0], radius: 4 });
   const home = ws[0].state();
   let minGap = Infinity;
@@ -105,9 +105,9 @@ test('a held animal never moves, even when overlapped, and the others steer arou
 
 test('a walker next to a held animal slides around it or pauses, never through the gap', () => {
   const SA = loadGame(FILES);
-  const R = 0.6, blockers = [[56.8, 10, R]];
+  const R = 0.6, blockers = [[72.8, 10, R]];
   for (let seed = 1; seed <= 8; seed++) {
-    const w = SA.wander.create({ movement: 'corre', biome: BIOME, home: { x: 52, z: 10 }, seed, radius: 5, bodyRadius: R, others: () => blockers });
+    const w = SA.wander.create({ movement: 'corre', biome: BIOME, home: { x: 68, z: 10 }, seed, radius: 5, bodyRadius: R, others: () => blockers });
     let moved = false;
     for (let t = 0; t < 120; t += DT) {
       const p = w.update(DT);

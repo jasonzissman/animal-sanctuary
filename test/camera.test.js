@@ -139,30 +139,48 @@ test('map: four biome strips, dry dunes and snowy peaks, river and pond are wate
   const M = SA.map;
   assert.equal(M.biomeAt(-5), 'bosque');
   assert.equal(M.biomeAt(5), 'selva');
-  assert.equal(M.biomeAt(-60), 'montana');
-  assert.equal(M.biomeAt(60), 'desierto');
-  assert.equal(M.biomeAt(-79.9), 'montana');
+  assert.equal(M.biomeAt(-90), 'montana');
+  assert.equal(M.biomeAt(90), 'desierto');
+  assert.equal(M.biomeAt(-111.9), 'montana');
   assert.equal(M.biomeAt(500), 'desierto');
-  assert.equal(M.biomeRange('desierto').centerX, 60);
+  assert.equal(M.biomeRange('desierto').centerX, 84);
   assert.equal(M.biomeRange('luna'), null);
-  assert.equal(M.BOUNDS.minX, -80);
+  // AS-0247: about 2x the area; four strips, each 56 wide, tile the bounds in x
+  assert.deepEqual([M.BOUNDS.minX, M.BOUNDS.maxX, M.BOUNDS.minZ, M.BOUNDS.maxZ], [-112, 112, -36, 36]);
+  assert.deepEqual(Array.from(M.STRIPS, (s) => s.id), ['montana', 'bosque', 'selva', 'desierto']);
+  M.STRIPS.forEach((s, i) => {
+    assert.equal(s.hi - s.lo, 56);
+    if (i > 0) assert.equal(s.lo, M.STRIPS[i - 1].hi);
+  });
+  assert.equal(M.STRIPS[0].lo, M.BOUNDS.minX);
+  assert.equal(M.STRIPS[3].hi, M.BOUNDS.maxX);
+  // the ramps follow the strips' inner borders
+  assert.equal(M.MOUNTAIN_EDGE, M.STRIPS[0].hi + 2);
+  assert.equal(M.DUNE_EDGE, M.STRIPS[3].lo - 2);
   let peak = 0, dune = 0;
-  for (let x = -80; x <= 80; x += 1) {
-    for (let z = -25; z <= 25; z += 1) {
+  for (let x = M.BOUNDS.minX; x <= M.BOUNDS.maxX; x += 1) {
+    for (let z = M.BOUNDS.minZ; z <= M.BOUNDS.maxZ; z += 1) {
       const h = M.groundHeight(x, z);
-      if (x < -45) peak = Math.max(peak, h);
-      if (x > 45) dune = Math.max(dune, h);
-      if (x > 48) { assert.ok(!M.isWater(x, z), `desert is dry at ${x},${z}`); }
-      if (x < -48) assert.ok(!M.isWater(x, z), `mountain is dry at ${x},${z}`);
+      if (x < -61) peak = Math.max(peak, h);
+      if (x > 61) dune = Math.max(dune, h);
+      if (x > 64) { assert.ok(!M.isWater(x, z), `desert is dry at ${x},${z}`); }
+      if (x < -64) assert.ok(!M.isWater(x, z), `mountain is dry at ${x},${z}`);
     }
   }
   assert.ok(peak > 4, 'montaña has tall peaks');
   assert.ok(dune > 1.2 && dune < 3.2, 'desierto has gentle dunes');
+  // river in the bosque, pond in the selva, ford across the river at the south end: biomeAt and isWater agree
+  assert.equal(M.biomeAt(M.RIVER.centerX), 'bosque');
+  assert.equal(M.biomeAt(M.POND.x), 'selva');
+  assert.ok(M.RIVER.centerX - M.RIVER.wiggle - M.RIVER.halfWidth > -56 && M.RIVER.centerX + M.RIVER.wiggle + M.RIVER.halfWidth < 0, 'river stays in the bosque');
+  assert.ok(M.POND.x - M.POND.radius > 0 && M.POND.x + M.POND.radius < 56 && M.POND.z + M.POND.radius < M.BOUNDS.maxZ, 'pond stays in the selva');
+  assert.ok(M.FORD.z + M.FORD.halfLen < M.BOUNDS.maxZ && M.FORD.z > 20);
   assert.ok(M.isWater(M.riverX(0), 0));
   assert.ok(M.isWater(M.POND.x, M.POND.z));
-  assert.ok(!M.isWater(-35, -20));
+  assert.ok(!M.isWater(M.riverX(M.FORD.z), M.FORD.z), 'the ford is dry');
+  assert.ok(!M.isWater(-45, -20));
   assert.ok(M.nearWater(M.riverX(5) + 3, 5, 2.5) && M.nearWater(M.POND.x, M.POND.z, 1));
-  assert.ok(!M.nearWater(-38, -20, 2.5) && !M.nearWater(35, -20, 2.5));
+  assert.ok(!M.nearWater(-50, -20, 2.5) && !M.nearWater(10, -20, 2.5));
   const a = M.rng(1), b = M.rng(1);
   assert.equal(a(), b());
 });

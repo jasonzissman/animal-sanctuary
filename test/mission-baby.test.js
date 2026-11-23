@@ -84,12 +84,13 @@ test('using the piglet completes the find step, hops, squeaks and starts followi
 
 test('it follows the player through SA.follow and keeps its distance', () => {
   const { baby, cur } = setup();
-  const player = { x: cur.baby.x + 2, z: cur.baby.z, heading: Math.PI / 2, lift: 0 };
+  // The piglet starts on the river bank for this seed, so the player walks west, away from the water.
+  const player = { x: cur.baby.x - 2, z: cur.baby.z, heading: -Math.PI / 2, lift: 0 };
   baby.update(0.016, player, []);
   baby.use();
   const start = { x: cur.baby.x, z: cur.baby.z };
   for (let i = 0; i < 120; i++) {
-    player.x += 0.07;
+    player.x -= 0.07;
     baby.update(0.016, player, []);
   }
   const v = baby.view();

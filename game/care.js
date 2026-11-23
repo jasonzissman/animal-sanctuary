@@ -29,9 +29,12 @@
  *       {roundId, seconds, misses, hints, level}. Any other pairing only counts a miss and returns `reason`
  *       ('tool' | 'part'), the part's Spanish `label` and the held tool's `itemLabel` (a learning moment, no penalty);
  *       the task continues. Feed tasks ignore tool taps (see feed).
- *       Tangled wing (kind 'desenredar', action.tangled): `task.tangled` is true while the leaf is stuck (the render makes the
- *       bird hop, not fly); 3 right tugs (empty hands on the wing) finish it and the 'done' result carries `tangled`, `gives`
- *       (item id the flow adds to the inventory) and `say` (vocab key spoken instead of "¡Muy bien!").
+ *       Visible cue (action.cue, game/data/actions.js): task and 'done' result carry `cue` ('tangled' | 'limp' | null; the render
+ *       picks the animation by it) and `tangled` (the old alias, true for cue 'tangled').
+ *       Tangled wing (kind 'desenredar', cue 'tangled'): the leaf is stuck (the render makes the bird hop, not fly); 3 right
+ *       tugs (empty hands on the wing) finish it and the 'done' result carries `gives` (item id the flow adds to the inventory)
+ *       and `say` (vocab key spoken instead of "¡Muy bien!"). Thorn (kind 'espina', cue 'limp', only animals with patas): the
+ *       animal limps; 2 tugs on a paw finish it, gives the 'espina' and says "¡Ya camina bien!".
  *   care.active() -> boolean     care.current() -> task | null
  */
 (function (root) {
@@ -132,7 +135,7 @@
       seq += 1;
       var action = SA.data.get('actions', def.action);
       return { id: 'c' + seq + ':' + animal.id + ':' + part, taskId: def.id, kind: def.kind, animalId: animal.id, part: part,
-        action: action.id, item: action.item, sfx: action.sfx, reaction: action.reaction, tangled: !!action.tangled,
+        action: action.id, item: action.item, sfx: action.sfx, reaction: action.reaction, cue: action.cue || null, tangled: action.cue === 'tangled',
         text: def.prompt.replace('{part}', SA.data.get('parts', part).label.es), rubs: def.rubs, remaining: def.rubs,
         spots: def.rubs * def.spotsPerRub, spotsPerRub: def.spotsPerRub, misses: 0, done: false };
     }
@@ -167,7 +170,7 @@
       track('round.complete', { roundId: task.id, seconds: seconds, misses: task.misses, hints: 0, level: levelNow() });
       var action = SA.data.get('actions', task.action);
       return { status: 'done', kind: task.kind, animalId: task.animalId, part: task.part, seconds: seconds, stars: stars, misses: task.misses,
-        sfx: task.sfx, reaction: task.reaction, tangled: !!action.tangled, gives: action.gives || null, say: action.say || null };
+        sfx: task.sfx, reaction: task.reaction, cue: action.cue || null, tangled: action.cue === 'tangled', gives: action.gives || null, say: action.say || null };
     }
 
     // Feed: one food item given to the animal. Only the asked food counts; the task completes at exactly `count`.

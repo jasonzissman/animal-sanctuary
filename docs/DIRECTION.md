@@ -434,7 +434,13 @@ current; when your change sets or changes something future tickets must follow, 
   'phrase:yapuedevolar'`) + care task "Quita la hoja de las alas" (3 tugs, only animals with alas). While it runs
   `ambient.setTangled` makes the bird hop on the ground with drooping wings (no flying) and `care-fx` puts green leaf bits on
   one wing; the last tug calls `fx.fly` (`ambient.flyLoop`: a spinning circle in the air), adds the leaf to `SA.inventory`
-  and speaks "¡Ya puede volar!". Optional action fields `tangled`/`gives`/`say` are the pattern for other "stuck" care needs.
+  and speaks "¡Ya puede volar!". Optional action fields `cue`/`gives`/`say` are the pattern for other "stuck" care needs.
+  Built (AS-0241): the visible cue is data. Action field `cue` (one of `SA.actions.CUES`: `'tangled'`, `'limp'`; `tangled: true` stays an
+  alias of `cue: 'tangled'`) rides on the care task and the done result (`cue`, `tangled`); `ambient.setCue` and `care-fx` pick the
+  animation by the cue value, never by animal id. Action `quitarespina` (empty hands on *las patas*, cue `limp`, gives `espina`, says
+  "¡Ya camina bien!") + care task kind `espina` "Quita la espina de las patas" (2 tugs, only animals with patas): the animal steps in
+  place with an uneven limp (`SA.gait.limp`, the first paw hardly swings) and a thorn bit shows on one paw; done: `fx.free(id, cue)`.
+  A new need is a data row plus a cue (add a cue = add it to `CUES` and give ambient/care-fx a look for it).
 - **Low things are jumpable.** Anything short (rocks, logs, low props) can be jumped over and briefly stood on; only
   tall things (trees, cacti, peaks, big animals) always block. Obstacles carry a height (AS-0176).
 - **Progress you can see and keep.** Badges and stickers for rescues by species, predicament, biome and night (AS-0167,

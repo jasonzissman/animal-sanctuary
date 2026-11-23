@@ -39,7 +39,8 @@
     item('esponja', '🧽', 'la esponja', 'sponge', 'f', 'tool', false),
     item('venda', '🩹', 'la venda', 'bandage', 'f', 'tool', false),
     item('fresa', '🍓', 'la fresa', 'strawberry', 'f', 'food', true),
-    item('roca', '🪨', 'la roca', 'rock', 'f', 'find', true)
+    item('roca', '🪨', 'la roca', 'rock', 'f', 'find', true),
+    item('espina', '🌵', 'la espina', 'thorn', 'f', 'find', true)       // pulled out of a paw (action quitarespina)
   ];
 
   SA.data.defineKind('items', validateItem);

@@ -82,8 +82,10 @@
       react(res.animalId, res.reaction);
       view.celebrate({ icon: '✨', stars: res.stars });
       view.confetti();
-      // A tangled wing (action.tangled): the bird flies a happy loop, the leaf is yours, and "¡Ya puede volar!" is said.
-      if (res.tangled && fx && fx.fly) fx.fly(res.animalId);
+      // A visible cue (action.cue) is over: a tangled bird flies a happy loop, a limping animal walks normally again; the
+      // action's `gives` item is yours and its `say` phrase is spoken ("¡Ya puede volar!", "¡Ya camina bien!").
+      if (res.cue && fx && fx.free) fx.free(res.animalId, res.cue);
+      else if (res.tangled && fx && fx.fly) fx.fly(res.animalId);
       var inv = o.inventory || SA.inventory;
       if (res.gives && inv && inv.add) { try { inv.add(res.gives, 1); } catch (e) { /* inventory never breaks play */ } }
       var phrase = res.say && SA.vocab && SA.vocab.get(res.say);

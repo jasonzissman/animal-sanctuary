@@ -2,7 +2,7 @@
  *
  * Task shape (JSON-serialisable):
  *   id, kind    'limpiar' (wash the muddy part with the sponge), 'curar' (tap the scraped part: bandage), 'cepillar' (brush
- *               el pelo), 'acariciar' (rub la barriga with empty hands), 'desenredar' (tug a stuck leaf off a wing) or 'alimentar' (feed with counts; has its own
+ *               el pelo), 'acariciar' (rub la barriga with empty hands), 'desenredar' (tug a stuck leaf off a wing), 'espina' (pull a thorn out of a paw) or 'alimentar' (feed with counts; has its own
  *               fields, see the entry below, and needs game/data/foods.js)
  *   action      id from game/data/actions.js: the tool (item) and verb that do it; parts must be ones the action works on;
  *               the prompt starts with the action's imperative ("Lava las patas", "Cepilla el pelo")
@@ -17,7 +17,7 @@
   var SA = root.SA;
   var fail = SA.data.fail;
 
-  var KINDS = ['limpiar', 'curar', 'cepillar', 'acariciar', 'desenredar', 'alimentar'];
+  var KINDS = ['limpiar', 'curar', 'cepillar', 'acariciar', 'desenredar', 'espina', 'alimentar'];
 
   function validateCareTask(t) {
     if (KINDS.indexOf(t.kind) < 0) fail('kind', 'must be one of ' + KINDS.join(', ') + ' (got ' + JSON.stringify(t.kind) + ')');
@@ -72,6 +72,9 @@
     // Tangled wing: a leaf is stuck on one of the bird's alas; a few tugs (Space on the wing, empty hands) pull it off.
     { id: 'desenredar', kind: 'desenredar', action: 'desenredar', prompt: 'Quita la hoja de {part}', rubs: 3, spotsPerRub: 1, chance: 0.5,
       parts: ['alas'] },
+    // Thorn in a paw: the animal limps; two tugs (Space on the paw, empty hands) pull the thorn out.
+    { id: 'quitarespina', kind: 'espina', action: 'quitarespina', prompt: 'Quita la espina de {part}', rubs: 2, spotsPerRub: 1, chance: 0.5,
+      parts: ['patas'] },
     // Feed: {count} is a number word (una/un for 1), {food} the plural noun, {animal} "al conejo" / "a la tortuga".
     // minCount..easyMax counts at scaffold level 1, minCount..maxCount from level 2. The tray holds the asked food,
     // trayMatching other foods the animal eats and trayOther foods it does not eat. Challenge level (scaffold 3+) counts

@@ -5,6 +5,7 @@
  *   SA.gait.flap(t, amp, side, phase) wing roll (radians, rotation.z offset); mirrored for the 'right' wing
  *   SA.gait.swing(t, amp, side, index, phase)  leg swing (radians, rotation.x offset); diagonal legs move together
  *   SA.gait.pivot(h, angle)           { y, z } shift of a leg's centre so it swings from its top, not its middle
+ *   SA.gait.limp(t, phase)            { dip, roll } uneven body bob of a limping animal; SA.gait.LIMP_SORE scales the sore leg's swing
  *   SA.gait.rotateAbout(py, pz, y, z, angle)  { y, z } of a point at (y, z) turned by `angle` (rotation.x) about the pivot
  *                                     (py, pz): extra pieces (knees, feet) ride along with their parent leg
  */
@@ -50,5 +51,14 @@
     return { y: py + dy * c - dz * s, z: pz + dy * s + dz * c };
   }
 
-  SA.gait = { kind: kind, ease: ease, flap: flap, swing: swing, pivot: pivot, rotateAbout: rotateAbout, HOVER_AMP: HOVER_AMP };
+  // Limp (action cue 'limp'): the body sinks and rolls toward the sore paw on every other step, so the walk is uneven.
+  // `dip` is how far the body drops (world units), `roll` the lean (radians, rotation.z); both are 0 half of each cycle.
+  var LIMP_DIP = 0.07, LIMP_ROLL = 0.12, LIMP_SORE = 0.2;   // LIMP_SORE: the sore leg swings only this fraction of a normal swing
+  function limp(t, phase) {
+    var s = Math.max(0, Math.sin(t * SWING_RATE + (phase || 0)));
+    return { dip: LIMP_DIP * s, roll: LIMP_ROLL * s };
+  }
+
+  SA.gait = { kind: kind, ease: ease, flap: flap, swing: swing, pivot: pivot, rotateAbout: rotateAbout, limp: limp, HOVER_AMP: HOVER_AMP,
+    LIMP_SORE: LIMP_SORE };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -101,6 +101,8 @@
   add('phrase', 'quefoto', '¡Qué foto! Pero busca…');
   add('phrase', 'tomalefoto', 'Tómale una foto', 'Take its photo');   // the photo step of a rescue mission (SA.missionFlow)
   add('phrase', 'estabien', '¡Está bien!', 'It is OK!');   // the rescue proof card stamp (SA.missionFlow)
+  add('phrase', 'graciasbien', '¡Gracias! Está bien.', 'Thank you! It is OK.');   // the scientist's cheer for a proof sent to the station (SA.proofs)
+  add('phrase', 'nuevamision', '¡Nueva misión!', 'New mission!');   // she points at the unlocked mission (SA.proofs)
   add('phrase', 'ay','¡Ay! ¡Pica!', 'Ouch! Prickly!');   // the cactus prick (SA.prick)
   // What the scientist says (SA.scientistTalk), at every load (SA.greeting) and when you use her: the one-line mission and what the current step asks.
   add('phrase', 'recuerdo', 'Ayuda a los animales: busca, ayuda, foto', 'Help the animals: find, help, photo');

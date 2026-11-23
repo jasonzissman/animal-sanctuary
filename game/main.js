@@ -153,6 +153,12 @@
     try {
       if (SA.scientistView) SA.scientistView.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); } });
     } catch (e) { report('scientist.start', e); }
+    // The scientist cheers once per proof photo sent to the station when the kid walks near her (AS-0206).
+    var cheer = null;
+    try {
+      if (SA.scientistCheer) cheer = SA.scientistCheer.create(root.document, { player: function () { return stage.rig.getPlayer(); },
+        paused: function () { return SA.picking.isPaused(); } });
+    } catch (e) { report('cheer.start', e); }
     // Grown-up drawer (press-and-hold gear, an item of the 🎒 menu). Never blocks the main loop.
     var menuView = null;
     try { if (SA.settingsView) SA.settingsView.create(root.document, { onOpen: function () { if (menuView) menuView.used('settings'); } }); }
@@ -169,6 +175,7 @@
       if (hotbar) { try { hotbar.update(); } catch (e) { hotbar = null; report('hotbar.update', e); } }
       if (useBtn) { try { useBtn.update(); } catch (e) { useBtn = null; report('useButton.update', e); } }
       if (greeting && greeting.isOpen()) { try { greeting.update(stage.rig.getPlayer()); } catch (e) { greeting = null; report('greeting.update', e); } }
+      if (cheer) { try { cheer.update(dt); } catch (e) { cheer = null; report('cheer.update', e); } }
       if (climbBtn) { try { climbBtn.update(); } catch (e) { climbBtn = null; report('climbButton.update', e); } }
       if (SA.focus) { try { SA.focus.update(); } catch (e) { report('focus.update', e); } }
       if (rt) { try { rt.update(stage.rig.getPlayer()); } catch (e) { rt = null; report('missionRuntime.update', e); } }

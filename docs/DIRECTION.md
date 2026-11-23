@@ -344,6 +344,13 @@ current; when your change sets or changes something future tickets must follow, 
   **Proof card (AS-0201, slice 3):** the correct final photo is the proof: the snapshot card (`view.snapshot({ icon, text, stamp, hold })`,
   the `snapshot` HUD zone) slides in with a red "¡Está bien!" stamp (`phrase:estabien`, spoken) and is held; after `NEXT_MS` the flow
   calls `view.snapshotHide()` and then starts the next mission. The photo is saved by `SA.photo.take` (`save.photos`, dated album page).
+  **Proof sent to the station (AS-0206, slice 1 of AS-0143):** the final photo of a rescue (`SA.missionFlow`, kind `'rescue'`) and the photo
+  step that finishes a story mission (`SA.missionRuntime`, kind `'mission'`) are recorded by the pure `SA.proofs` (`game/proofs.js`) in
+  `save.proofs` (v6; absent = empty): `[{ id, kind, animalId?, missionId?, date, celebrated }]`. Returning is never required: the next mission
+  starts right after the photo as before. `ui/scientist-cheer.js` (polled in main.js's loop) gives each proof exactly ONE cheer when the kid
+  comes within `SA.npc.NEAR` of the scientist (waits while a card is open): a bubble "🙌 ¡Gracias! Está bien." (`phrase:graciasbien`, spoken),
+  and for a mission proof a second line pointing at the mission it opened ("👉 icon ¡Nueva misión!"); `SA.proofs.cheer()` marks the proof
+  celebrated first, so it never repeats. Telemetry `station.proof_sent` / `station.proof_cheer`.
 - **Tasks while roaming.** Missions ("Busca un animal con orejas largas") sit on a card while you explore freely. You
   complete a find by taking a photo with *la cámara*, and the photo album rewards exploring.
   Built (AS-0084): the round IS the photo mission. The top card keeps the clue, Replay and a 📷 badge (tap = equip la cámara);

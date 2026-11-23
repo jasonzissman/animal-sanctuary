@@ -51,7 +51,7 @@
 
   function list(animalId) { var r = row(animalId); return r && Array.isArray(r.pics) ? r.pics.slice() : []; }
 
-  function today(now) { return (now instanceof Date && isFinite(now) ? now : new Date()).toISOString().slice(0, 10); }
+  function today(now) { return (now && typeof now.toISOString === 'function' && isFinite(now) ? now : new Date()).toISOString().slice(0, 10); }
 
   function shot(animalId, now) {
     try {

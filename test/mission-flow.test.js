@@ -5,7 +5,7 @@ import { loadGame } from './helpers/vm.js';
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/round.js', 'game/data/foods.js',
   'game/data/items.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js', 'game/scaffold.js', 'game/mission.js', 'game/mission-card.js',
-  'game/hint-stage.js', 'game/level-cue.js', 'game/photo.js', 'game/ui/care-flow.js', 'game/ui/mission-flow.js'];
+  'game/hint-stage.js', 'game/level-cue.js', 'game/photo.js', 'game/ui/care-flow.js', 'game/ui/mission-flow.js', 'game/proofs.js'];
 
 // A stub care flow: offers are recorded, a task is "active" until the test finishes it.
 function stubCare(accept = true) {
@@ -391,4 +391,20 @@ test('the card shows find, then each help task with its icon, then the photo car
   assert.equal(m.step, 'photo');
   const last = cards.at(-1);
   assert.deepEqual([last[0], last[1].text, last[1].camera], ['round', 'Tómale una foto', true]);
+});
+
+test('the correct final photo is sent to the station as a proof, and the next mission still starts without returning (AS-0206)', () => {
+  const t = setup();
+  const m = find(t);
+  finishTask(t);
+  assert.equal(t.SA.save.get().proofs, undefined);
+  t.flow.onPick(cam(m.animalId));
+  const rows = JSON.parse(JSON.stringify(t.SA.save.get().proofs));
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].kind, 'rescue');
+  assert.equal(rows[0].animalId, m.animalId);
+  assert.equal(rows[0].celebrated, false);
+  t.later.find(([, ms]) => ms === t.SA.missionFlow.NEXT_MS)[0]();
+  assert.equal(t.mission.current().step, 'find', 'the next mission begins by itself');
+  assert.equal(t.SA.proofs.pending().length, 1, 'still waiting for the scientist');
 });

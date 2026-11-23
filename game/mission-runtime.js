@@ -15,7 +15,8 @@
  *                                     radius, a 'find' step when the player is near the target (places/targets from locate()).
  *   SA.missionRuntime.target()        -> { x, z, role, id } | null   the current step's world target (AS-0233): the piglet's spot for
  *                                     find, mamá's for follow (SA.missionSpawn); the compass (AS-0228) reads this
- *   SA.missionRuntime.create({ missions?, run?, spawn?, locate?, grant?, celebrate?, track? })   a separate instance (tests).
+ *   SA.missionRuntime.create({ missions?, run?, spawn?, locate?, grant?, celebrate?, track?, proofs? })   a separate instance (tests).
+ *       proofs   a SA.proofs instance: a mission finished by a 'photo' event is recorded as a proof sent to the station (AS-0206)
  *       locate(id) -> { x, z, r? } | null   where a place / find target is (default: none; mission content registers them)
  *       grant(reward)       the reward of the FIRST completion (stars; default adds to save.stars); never called on a replay
  *       celebrate(result)   the finish cheer (default: the fanfare, then the instance's `celebrateHook(result)`, which main.js sets to
@@ -84,6 +85,11 @@
         run = null;
         if (res.status !== 'complete') return { status: 'ignored' };
         grant(res.reward);
+        // A story mission that ends on its photo is a proof sent to the station (AS-0206): the scientist cheers once when the kid
+        // walks near her and points at the mission it opened. Nothing asks the kid to go back.
+        if (event && event.type === 'photo') {
+          try { var pr = opts.proofs || SA.proofs; if (pr) pr.record({ kind: 'mission', missionId: res.id }); } catch (e) { /* a proof never breaks play */ }
+        }
         cheer(res);
         return { status: 'complete', id: res.id, firstTime: res.firstTime, reward: res.reward };
       }

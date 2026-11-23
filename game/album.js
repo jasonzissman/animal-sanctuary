@@ -39,7 +39,7 @@
     // Only a dated page counts as "already added": an animal photographed before the album (save.photos) still gets its date.
     if (!find(id) || !SA.save || Object.prototype.hasOwnProperty.call(stored().album, id)) return false;
     var patch = {};
-    patch[id] = { date: (now instanceof Date && isFinite(now) ? now : new Date()).toISOString().slice(0, 10), pics: [] };
+    patch[id] = { date: (now && typeof now.toISOString === 'function' && isFinite(now) ? now : new Date()).toISOString().slice(0, 10), pics: [] };
     SA.save.update({ album: patch });
     return true;
   }

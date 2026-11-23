@@ -56,7 +56,7 @@ test('migration: a v4 date-only album keeps every species and first date; progre
   real.slice(0, 3).forEach((a, i) => { old.album[a.id] = `2026-10-0${i + 1}`; });
   old.album[real[3].id] = 'not a date';   // junk is dropped, as before
   const migrated = plain(SA.save.migrate(old));
-  assert.equal(migrated.version, 5);
+  assert.equal(migrated.version, 6);
   real.slice(0, 3).forEach((a, i) => assert.deepEqual(migrated.album[a.id], { date: `2026-10-0${i + 1}`, pics: [] }));
   assert.equal(Object.keys(migrated.album).length, 3);
   SA.save.reset();

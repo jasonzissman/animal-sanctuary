@@ -351,6 +351,11 @@ current; when your change sets or changes something future tickets must follow, 
   comes within `SA.npc.NEAR` of the scientist (waits while a card is open): a bubble "🙌 ¡Gracias! Está bien." (`phrase:graciasbien`, spoken),
   and for a mission proof a second line pointing at the mission it opened ("👉 icon ¡Nueva misión!"); `SA.proofs.cheer()` marks the proof
   celebrated first, so it never repeats. Telemetry `station.proof_sent` / `station.proof_cheer`.
+  **Photo board (AS-0207, slice 2 of AS-0143):** the station's WEST wall (inside, `SA.station.layout().photoBoard`, facing +x, solid) carries a
+  "Fotos" board with one framed card per proof in `SA.proofs` (little low-poly animal in its body colour + its Spanish name, or a gold star +
+  "Misión N"). `game/photo-board.js` (`SA.photoBoard`, pure: 4x2 slots, pages of 8, `card()`, `signature()`) decides what and where;
+  `game/render/photo-board.js` rebuilds the cards when the signature changes (polled by the scene), so it loads from the save and updates live.
+  It shows the newest page of 8; there is no paging control yet. `render/block-text.js` now spells A-Z, 0-9 and accents (Á É Í Ó Ú Ñ).
 - **Tasks while roaming.** Missions ("Busca un animal con orejas largas") sit on a card while you explore freely. You
   complete a find by taking a photo with *la cámara*, and the photo album rewards exploring.
   Built (AS-0084): the round IS the photo mission. The top card keeps the clue, Replay and a 📷 badge (tap = equip la cámara);

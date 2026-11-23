@@ -105,6 +105,13 @@
       g.userData.badgesBoard = badges;
     }
 
+    // The photo board on the west wall: one card per proof photo (AS-0207).
+    if (SA.render.createPhotoBoard && L.photoBoard && SA.photoBoard) {
+      var photos = SA.render.createPhotoBoard(THREE);
+      g.add(photos.group);
+      g.userData.photoBoard = photos;
+    }
+
     // Bench: a plank seat on two legs, against the front wall.
     var b = L.bench, bx0 = b.x - b.w / 2, bx1 = b.x + b.w / 2, bz0 = b.z - b.d / 2, bz1 = b.z + b.d / 2, by = L.floorY;
     g.add(slab(THREE, m.wood, bx0, bx1, by + 0.42, by + 0.5, bz0, bz1));

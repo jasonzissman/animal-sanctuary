@@ -9,8 +9,10 @@
  *   verb       { es: 'cepillar', imperative: 'Cepilla' }  infinitive and the imperative used in task prompts
  *   reaction   how the animal answers a right action (one of SA.parts.REACTIONS)
  *   sfx        procedural sound (SA.audio.NAMES) played on each right action
- *   tangled    optional true: the animal is stuck while the task runs (a bird hops, wings drooped, a leaf on the wing) and
- *              flaps, spins and flies a happy loop when it is done (game/render/care-fx.js, ambient.js)
+ *   cue        optional visible cue while the task runs, one of SA.actions.CUES; the render picks the animation by this value:
+ *                'tangled' a bird hops, wings drooped, a leaf on the wing; flaps, spins and flies a happy loop when done
+ *                'limp'    the animal walks with an uneven limp and a thorn bit shows on one paw (game/render/care-fx.js, ambient.js)
+ *   tangled    optional true: alias of cue 'tangled' (the validator fills in whichever of the two is missing)
  *   gives      optional item id (game/data/items.js) added to SA.inventory when the task is done (the leaf you pulled off)
  *   say        optional vocab key spoken (and shown) when the task is done, instead of "¡Muy bien!"
  * A wrong tool or part never costs anything: SA.care answers { status: 'wrong', reason: 'tool' | 'part' } and the flow plays a
@@ -23,6 +25,7 @@
 
   var SFX = ['chime', 'boing', 'pop', 'splash', 'giggle', 'sparkle'];
   var MUDDY = ['patas', 'caparazon', 'cola', 'alas', 'pico', 'orejas'];
+  var CUES = ['tangled', 'limp'];     // visible cues while a help task runs; the render picks the animation by this value
 
   function itemKnown(id) {
     try { return !!SA.data.get('items', id); } catch (e) { return true; }     // items not loaded (unit tests): checked elsewhere
@@ -42,6 +45,10 @@
     if (SA.parts.REACTIONS.indexOf(a.reaction) < 0) fail('reaction', 'must be one of ' + SA.parts.REACTIONS.join(', '));
     if (SFX.indexOf(a.sfx) < 0) fail('sfx', 'must be one of ' + SFX.join(', '));
     if (a.tangled !== undefined && typeof a.tangled !== 'boolean') fail('tangled', 'must be true or false');
+    if (a.cue !== undefined && CUES.indexOf(a.cue) < 0) fail('cue', 'must be one of ' + CUES.join(', '));
+    if (a.tangled && a.cue !== undefined && a.cue !== 'tangled') fail('tangled', 'is an alias of cue "tangled" and clashes with cue ' + JSON.stringify(a.cue));
+    if (a.tangled && !a.cue) a.cue = 'tangled';          // alias: `tangled: true` means cue 'tangled'
+    if (a.cue === 'tangled') a.tangled = true;           // ...and the other way round, so old readers keep working
     if (a.gives !== undefined && !itemKnown(a.gives)) fail('gives', 'unknown item ' + JSON.stringify(a.gives));
     if (a.say !== undefined && !(SA.vocab && SA.vocab.get && SA.vocab.get(a.say))) fail('say', 'unknown vocab key ' + JSON.stringify(a.say));
     if (SA.audio && SA.audio.NAMES && SA.audio.NAMES.indexOf(a.sfx) < 0) fail('sfx', 'unknown audio effect ' + JSON.stringify(a.sfx));
@@ -49,6 +56,7 @@
 
   SA.actions = {
     MUDDY: MUDDY,
+    CUES: CUES,
     // Does what the player holds (an item id, or nothing = hands) do this action? food items fit the "food" action.
     fits: function (action, itemId) {
       if (action.item === 'hands') return !itemId;
@@ -65,7 +73,10 @@
     { id: 'acariciar', item: 'hands', parts: ['barriga'], verb: { es: 'acariciar', imperative: 'Acaricia' }, reaction: 'boing', sfx: 'giggle' },
     // A leaf or twig stuck on a bird's wing: tug it off with empty hands (Space on the wing) and it can fly again.
     { id: 'desenredar', item: 'hands', parts: ['alas'], verb: { es: 'quitar', imperative: 'Quita' }, reaction: 'flap', sfx: 'pop',
-      tangled: true, say: 'phrase:yapuedevolar' },
+      cue: 'tangled', say: 'phrase:yapuedevolar' },
+    // A thorn in a paw: the animal limps and shows a thorn bit on one paw; two tugs with empty hands pull it out and it is yours.
+    { id: 'quitarespina', item: 'hands', parts: ['patas'], verb: { es: 'quitar', imperative: 'Quita' }, reaction: 'nod', sfx: 'pop',
+      cue: 'limp', gives: 'espina', say: 'phrase:yacaminabien' },
     { id: 'alimentar', item: 'food', parts: [], verb: { es: 'dar de comer', imperative: 'Dale' }, reaction: 'boing', sfx: 'pop' }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

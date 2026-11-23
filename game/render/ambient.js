@@ -5,7 +5,8 @@
  *   ambient.release(id)        let it wander again (ignored while the animal is pinned)
  *   ambient.pin(id)            the rescue mission found it: it stays put (holds until unpin; care/tap releases do not free it)
  *   ambient.unpin(id)          the mission is done or replaced: it wanders again
- *   ambient.setTangled(id, on)  a stuck leaf on a wing: the flyer hops on the ground with drooping wings until freed
+ *   ambient.setCue(id, cue)     the care task's visible cue: 'tangled' (a flyer hops with drooping wings), 'limp' (uneven walk), null
+ *   ambient.setTangled(id, on)  alias of setCue(id, 'tangled' | null)
  *   ambient.flyLoop(id)         freed: one spinning circle in the air with wide wing beats, then normal again
  *   ambient.setAvoid(points)   replace the [[x, z, r?],...] points wanderers keep clear of (decor + placed props)
  * opts.trees = [{ x, z, y?, scale?, kind? }] are the canopies tree-dwellers (animal data perch: "tree") perch in.
@@ -101,14 +102,16 @@
     function animateLimbs(r, moving, dt) {
       var G = SA.gait;
       r.amp = G.ease(r.amp, moving, Math.min(dt, 0.1));
-      if (r.gait === 'flap' && r.tangled && !r.loop) {
+      if (r.gait === 'flap' && r.cue === 'tangled' && !r.loop) {
         // a leaf is stuck: the wings droop and do not flap (the bird hops, see update)
         r.wings.forEach(function (e) { e.m.rotation.z = e.rz - (e.m.userData.side === 'right' ? -1 : 1) * DROOP; });
       } else if (r.gait === 'flap') {
         r.wings.forEach(function (e) { e.m.rotation.z = e.rz + G.flap(t, r.amp, e.m.userData.side, r.phase); });
       } else if (r.gait === 'swing') {
+        // cue 'limp': the first paw (the one care-fx puts the thorn on) hardly swings, the others carry on
+        var sore = r.cue === 'limp' && r.legs.length ? r.legs[0].leader : null;
         r.legs.forEach(function (e) {
-          var l = e.leader, a = G.swing(t, r.amp, l.m.userData.side, l.m.userData.index, r.phase);
+          var l = e.leader, a = G.swing(t, r.amp, l.m.userData.side, l.m.userData.index, r.phase) * (l === sore ? G.LIMP_SORE : 1);
           e.m.rotation.x = e.rx + a;
           if (!e.m.position) return;
           if (l === e) { var s = G.pivot(e.sy, a); e.m.position.y = e.py + s.y; e.m.position.z = e.pz + s.z; }
@@ -126,7 +129,10 @@
         g.position.x = p.x;
         g.position.z = p.z;
         // Tangled wing: the bird hops on the ground instead of hovering. Freed: it circles once, spinning, up in the air.
-        var lift = r.tangled ? Math.abs(Math.sin(t * HOP_RATE + r.phase)) * HOP_HEIGHT : p.perched ? 0 : p.lift;
+        var lift = r.cue === 'tangled' ? Math.abs(Math.sin(t * HOP_RATE + r.phase)) * HOP_HEIGHT : p.perched || r.cue === 'limp' ? 0 : p.lift;
+        // Limp: the body sinks and leans on every other step; it walks on the ground (flyers too) and steps in place when held.
+        var limp = r.cue === 'limp' ? SA.gait.limp(t, r.phase) : null;
+        if (limp) { g.rotation.z = limp.roll; r.limped = true; } else if (r.limped) { g.rotation.z = 0; r.limped = false; }
         if (r.loop) {
           r.loop.t += Math.min(dt, 0.1);
           var u = Math.min(1, r.loop.t / LOOP_SECONDS), a = u * Math.PI * 2;
@@ -135,13 +141,13 @@
           spin = a; loopLift = LOOP_LIFT * Math.sin(u * Math.PI); moving = true;
           if (u >= 1) r.loop = null;
         }
-        g.position.y = (p.perched ? p.y : SA.map.groundHeight(p.x, p.z)) + lift + loopLift;
+        g.position.y = (p.perched ? p.y : SA.map.groundHeight(p.x, p.z)) + lift + loopLift - (limp ? limp.dip : 0);
         g.rotation.y = p.heading + spin;
         g.scale.set(r.sx / Math.sqrt(idle.breath), r.sy * idle.breath, r.sz / Math.sqrt(idle.breath));
         r.ears.forEach(function (e) { e.m.rotation.z = e.rz + idle.wiggle * 0.25 * (e.m.userData.side === 'right' ? -1 : 1); });
         r.tail.forEach(function (e) { e.m.rotation.y = e.ry + idle.wiggle * 0.5; });
         r.eyes.forEach(function (e) { e.m.scale.y = e.sy * (1 - 0.9 * idle.blink); });
-        animateLimbs(r, moving && !(r.tangled && !r.loop), dt);
+        animateLimbs(r, r.cue === 'limp' || (moving && !(r.cue === 'tangled' && !r.loop)), dt);
         // Rosy cheeks sparkle: a quick shimmering pulse (phase-shifted per cheek).
         r.cheeks.forEach(function (e, k) { e.m.scale.y = e.sy * (1 + 0.3 * Math.abs(Math.sin(t * 5 + r.phase + k * 1.3))); });
       });
@@ -153,15 +159,18 @@
     function release(id) { if (rigs[id] && !rigs[id].pinned) rigs[id].w.release(); }
     function pin(id) { if (rigs[id]) { rigs[id].pinned = true; rigs[id].w.hold(); } }
     function unpin(id) { if (rigs[id]) { rigs[id].pinned = false; rigs[id].w.release(); } }
-    // Tangled wing (care task with action.tangled): the animal hops with drooping wings instead of flying until freed.
-    function setTangled(id, on) { if (rigs[id]) rigs[id].tangled = !!on; }
+    // Visible cue of a care task (action.cue, picked by value, never by animal id): 'tangled' = hops with drooping wings instead
+    // of flying; 'limp' = uneven walk (SA.gait.limp, the first paw hardly swings); null = normal again.
+    function setCue(id, cue) { if (rigs[id]) rigs[id].cue = cue || null; }
+    // The old alias: setTangled(id, false) only clears a tangled cue, never someone else's limp.
+    function setTangled(id, on) { if (on) setCue(id, 'tangled'); else if (rigs[id] && rigs[id].cue === 'tangled') setCue(id, null); }
     // Freed: one happy spinning circle in the air with wide wing beats (LOOP_SECONDS), then back to normal.
-    function flyLoop(id) { if (rigs[id]) { rigs[id].tangled = false; rigs[id].loop = { t: 0 }; } }
+    function flyLoop(id) { if (rigs[id]) { rigs[id].cue = null; rigs[id].loop = { t: 0 }; } }
 
     if (SA.picking && SA.picking.onPick) SA.picking.onPick(function (pick) { if (pick && pick.animalId) hold(pick.animalId, PART_HOLD); });
 
     function setAvoid(points) { Object.keys(rigs).forEach(function (id) { rigs[id].w.setAvoid(points); }); }
 
-    return { update: update, hold: hold, release: release, pin: pin, unpin: unpin, setTangled: setTangled, flyLoop: flyLoop, setAvoid: setAvoid, rigs: rigs };
+    return { update: update, hold: hold, release: release, pin: pin, unpin: unpin, setCue: setCue, setTangled: setTangled, flyLoop: flyLoop, setAvoid: setAvoid, rigs: rigs };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

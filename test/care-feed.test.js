@@ -57,7 +57,7 @@ test('fresa is the only food: data with es labels, gender, plural and vocab; car
 
 test('care task data validates the new kinds', () => {
   const { SA } = setup();
-  assert.deepEqual([...SA.data.all('careTasks').map((d) => d.kind)], ['limpiar', 'curar', 'cepillar', 'acariciar', 'desenredar', 'alimentar']);
+  assert.deepEqual([...SA.data.all('careTasks').map((d) => d.kind)], ['limpiar', 'curar', 'cepillar', 'acariciar', 'desenredar', 'espina', 'alimentar']);
   const feed = SA.data.get('careTasks', 'alimentar');
   assert.throws(() => SA.data.register('careTasks', [{ ...feed, id: 'a1', prompt: 'Dale {count} {food}' }]), /\{animal\}/);
   assert.throws(() => SA.data.register('careTasks', [{ ...feed, id: 'a2', maxCount: 6 }]), /maxCount/);

@@ -42,6 +42,7 @@ globalThis.SA_MANIFEST = {
     'game/station-board.js',
     'game/npc.js',
     'game/player.js',
+    'game/decor-plan.js',
     'game/prick.js',
     'game/reach.js',
     'game/perch.js',

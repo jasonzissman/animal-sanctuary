@@ -184,7 +184,7 @@ function stage() {
   ctx.self = ctx;
   const files = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
     'game/data/animals.js', 'game/save.js', 'game/unlocks.js', 'game/map.js', 'game/animal-plan.js', 'game/picking.js',
-    'game/render/zigzag.js', 'game/render/animals.js', 'game/render/decor-dry.js', 'game/render/decor.js', 'game/render/tree-tap.js', 'game/tree-cue.js'];
+    'game/render/zigzag.js', 'game/render/animals.js', 'game/decor-plan.js', 'game/render/decor-dry.js', 'game/render/decor.js', 'game/render/tree-tap.js', 'game/tree-cue.js'];
   for (const f of files) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   ctx.SA.save.reset();
   return ctx;

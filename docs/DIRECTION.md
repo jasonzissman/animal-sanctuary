@@ -461,7 +461,11 @@ current; when your change sets or changes something future tickets must follow, 
 
 - **Encounters vs missions.** Routine help happens as you roam: about 1 in 4 animals has a small need (floating icon,
   species call, spoken hint), and fixing it takes 1-2 steps and counts for badges (AS-0179). No clue rounds start by
-  themselves. Missions are deliberate stories that are only started from the scientist's Misiones board in the station
+  themselves. **Core (AS-0244, slice 1/3):** `SA.encounters.create({ rng, now })` in `game/encounters.js` is the pure scheduler:
+  `sync({ animals, excludeIds })` keeps ~1 in 4 animals needy (cap `MAX` 4, never on the mission's animals, `COOLDOWN_MS` after a fix,
+  new need on a different animal), `tasks()` feeds `SA.nearbyTask`, `hint(id)` gives icon + vocab keys, `shouldCall(id, ms)` is true once
+  per `CALL_GAP_MS` (20 s) per animal, `resolve(id)` clears it; paused while `SA.focus.allowsSmall()` is false. Needs are data in
+  `game/data/needs.js` (care task, icon, gendered hint key); not yet wired into main.js/UI. Missions are deliberate stories that are only started from the scientist's Misiones board in the station
   (AS-0180). They unlock strictly in order, one after the previous is done, and finished missions can be replayed (AS-0177).
   Missions are data rows on a step runner (AS-0178). Order: 1 ¿Dónde está mamá? (piglet), 2 El huevo perdido, 3 Rescate en
   el río, 4 Cumpleaños del mono, 5 Doctor del santuario, 6 El nido del águila, 7 Censo de animales, 8 Los ladrones de fresas,

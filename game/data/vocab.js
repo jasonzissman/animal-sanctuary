@@ -102,6 +102,15 @@
   add('phrase', 'yasecalmo', '¡Ya se calmó!', 'It is calm now!');   // the scared animal is calm (action acariciar; gender-neutral)
   add('phrase', 'barro', 'el barro', 'the mud');   // the puddle the animal is stuck in (action sacardelbarro)
   add('phrase', 'yasaliodelbarro', '¡Ya salió del barro!', 'It is out of the mud!');
+  // Encounter hints (SA.encounters): spoken after the animal's own key ('animal:pato' + a predicate), so "el pato tiene hambre".
+  // A predicate that changes with gender has an m and an f entry; the others are the same for both.
+  add('phrase', 'tienehambre', 'tiene hambre', 'is hungry');
+  add('phrase', 'tieneespina', 'tiene una espina', 'has a thorn');
+  add('phrase', 'atascadom', 'está atascado en el barro', 'is stuck in the mud');
+  add('phrase', 'atascadaf', 'está atascada en el barro', 'is stuck in the mud');
+  add('phrase', 'tienehoja', 'tiene una hoja en el ala', 'has a leaf on its wing');
+  add('phrase', 'asustadom', 'está asustado', 'is scared');
+  add('phrase', 'asustadaf', 'está asustada', 'is scared');
   add('phrase', 'quefoto', '¡Qué foto! Pero busca…');
   add('phrase', 'tomalefoto', 'Tómale una foto', 'Take its photo');   // the photo step of a rescue mission (SA.missionFlow)
   add('phrase', 'estabien', '¡Está bien!', 'It is OK!');   // the rescue proof card stamp (SA.missionFlow)

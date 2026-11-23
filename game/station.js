@@ -9,6 +9,7 @@
  *         sign:   { text: 'Estación', icon: 'atom', x, y, z }              over the door
  *         board:  { x, y, z, width, height, depth, facing }  the "Lista de misiones" board on the back wall's inner face, facing the door (AS-0210)
  *         badgesBoard: { x, y, z, width, height, depth, facing }  the "Insignias" board on the front wall's inner face, left of the doorway, facing +z (AS-0239)
+ *         photoBoard: { x, y, z, width, height, depth, facing }  the photo-proof board on the WEST wall's inner face, facing +x; width runs along z (AS-0207)
  *         bench:  { x, z, w, d },  crates: [{ x, z, size }],  walls: [box], scientist: { x, z } (her post), spawn: { x, z, heading } }
  *     a box is { x0, x1, z0, z1, y0, y1 } in world units. Door and window are gaps/openings; the walls leave the doorway open.
  *   SA.station.collisionBoxes()    -> [box] the solid parts at ground level: the wall pieces (doorway left open) and the crates
@@ -87,6 +88,8 @@
       // "Insignias" board (AS-0239): on the inside face of the FRONT wall (opposite the missions board), in the strip left of the doorway
       // (the window is on the right). It faces +z, into the room, so the render group is turned half a circle.
       badgesBoard: { x: cx - 2.0, y: y0 + 1.5, z: fz + t + BOARD_D / 2, width: 1.6, height: 1.4, depth: BOARD_D, facing: { x: 0, z: 1 } },
+      // Photo board (AS-0207): on the inside face of the WEST wall, facing +x into the room. Its long side (width) runs along z.
+      photoBoard: { x: wx0 + t + BOARD_D / 2, y: y0 + 1.5, z: cz, width: 3.6, height: 2.2, depth: BOARD_D, facing: { x: 1, z: 0 } },
       crates: crates, walls: walls,
       // The scientist's post (SA.npc reads it). The kid spawns straight in front of her, looking at her (heading 0 = +z, toward
       // the building), so she fills the view with the doorway just left of her (AS-0212).
@@ -104,6 +107,8 @@
     out.push(box(b.x - b.width / 2, b.x + b.width / 2, b.z - b.depth / 2, b.z + b.depth / 2, b.y - b.height / 2, b.y + b.height / 2));
     var k = L.badgesBoard;   // the Insignias board too
     out.push(box(k.x - k.width / 2, k.x + k.width / 2, k.z - k.depth / 2, k.z + k.depth / 2, k.y - k.height / 2, k.y + k.height / 2));
+    var ph = L.photoBoard;   // the photo board (width runs along z, on the west wall)
+    out.push(box(ph.x - ph.depth / 2, ph.x + ph.depth / 2, ph.z - ph.width / 2, ph.z + ph.width / 2, ph.y - ph.height / 2, ph.y + ph.height / 2));
     return out;
   }
 

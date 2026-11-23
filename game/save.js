@@ -7,6 +7,8 @@
  *          missions = { done: [id], active: null | { id, step, seed, replay }, celebrated?: [id] } (AS-0177, SA.missions; AS-0198 celebrated; absent until used).
  *          rescues = [{ kind, mission, animal?, key?, animalId?, need?, biome?, night?, date? }] one row per finished rescue (AS-0235, AS-0167;
  *          SA.rescueLog), badges = [id] earned badge ids (SA.badges). Both optional: absent until the first rescue / badge.
+ *          proofs = [{ id, kind: 'rescue'|'mission', animalId?, missionId?, date?, celebrated }] (v6, AS-0206, SA.proofs): proof photos sent to
+ *          the station and whether the scientist already cheered each. Optional: absent until the first proof.
  *          album = { '<animalId>': { date: 'YYYY-MM-DD', pics: [{ id, date }] } } (v5, AS-0236): the first-photo date per photographed animal
  *          plus the kept picture entries (first ever + newest 3, SA.albumPics). Ids/dates only: the JPEGs live in IndexedDB (SA.photoStore).
  *          v4 saves had { '<animalId>':'YYYY-MM-DD' }; migrations[4] and normalize() turn that into { date, pics: [] } without loss.
@@ -26,7 +28,7 @@
 
   var KEY = 'santuario_save_v1';
   var CORRUPT_KEY = 'santuario_save_v1_corrupt';
-  var VERSION = 5;
+  var VERSION = 6;
   var STARTING_KIT = ['camara', 'cepillo', 'esponja', 'venda'];
   var DEBOUNCE_MS = 500;
   var RETIRED_ITEMS = { flor: true, hoja: true, platano: true, zanahoria: true, pez: true };   // removed items (AS-0154 flor/hoja, AS-0155 other foods): dropped from saved inventories
@@ -83,6 +85,12 @@
     4: function (old) {
       if (old.album !== undefined) old.album = normalizeAlbum(old.album);
       old.version = 5;
+      return old;
+    },
+    // v6 (AS-0206): proofs = [{ id, kind, ..., date, celebrated }] sent to the station (SA.proofs). Old saves have none: absent means empty; nothing is dropped.
+    5: function (old) {
+      if (old.proofs !== undefined) old.proofs = normalizeProofs(old.proofs);
+      old.version = 6;
       return old;
     }
   };
@@ -142,6 +150,7 @@
     if (s.album !== undefined) out.album = normalizeAlbum(s.album);   // optional, like photos: absent until the first photo
     if (s.missions !== undefined) out.missions = normalizeMissions(s.missions);   // optional: absent until the first mission starts
     if (s.rescues !== undefined) out.rescues = normalizeRescues(s.rescues);       // optional rescue log (AS-0235): absent until the first rescue
+    if (s.proofs !== undefined) out.proofs = normalizeProofs(s.proofs);           // optional proof photos sent to the station (AS-0206, SA.proofs)
     if (s.badges !== undefined) out.badges = normalizeBadges(s.badges);           // optional earned badge ids (AS-0167, SA.badges)
     return out;
   }
@@ -185,6 +194,23 @@
       out.push(row);
     });
     return out.slice(-200);
+  }
+
+  // Proof photos sent to the station (AS-0206): [{ id, kind: 'rescue'|'mission', animalId?, missionId?, date?, celebrated }], newest last, capped at 100.
+  // id is a short unique key; celebrated is a boolean (the scientist cheers once per proof, then it is true).
+  function normalizeProofs(p) {
+    var ok = /^[a-z][a-z0-9-]*$/, out = [], seen = {};
+    (Array.isArray(p) ? p : []).forEach(function (e) {
+      if (!isObj(e) || typeof e.id !== 'string' || !/^[a-z0-9:_-]{1,60}$/.test(e.id) || seen[e.id]) return;
+      if (e.kind !== 'rescue' && e.kind !== 'mission') return;
+      seen[e.id] = true;
+      var row = { id: e.id, kind: e.kind, celebrated: e.celebrated === true };
+      if (typeof e.animalId === 'string' && ok.test(e.animalId)) row.animalId = e.animalId;
+      if (typeof e.missionId === 'string' && ok.test(e.missionId)) row.missionId = e.missionId;
+      if (typeof e.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.date)) row.date = e.date;
+      out.push(row);
+    });
+    return out.slice(-100);
   }
 
   // Earned badge ids (AS-0167): unique lowercase ids, so a badge is announced once even if the rescue log is capped.

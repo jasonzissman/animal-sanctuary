@@ -135,6 +135,9 @@ current; when your change sets or changes something future tickets must follow, 
   Footsteps are done (AS-0118): pure `SA.footsteps.step(state, {moving, running, air, climbing, surface}, dt)` -> `{state, event}`
   (0.45 s walking, 0.28 s running, none still / airborne / climbing); the camera rig only wires it to `SA.audio.sfx(name, volume, rate)`
   (`rate` = tiny pitch shift). Recipes `step`, `stepWet`, `stepLeaf` (gain <= 0.15). Landing/climb sounds reuse `sfx` the same way.
+  Water and climbing are done (AS-0120): pure `SA.movesound.step(state, {water, air, climbing, canopy}, dt)` -> `{state, events}`
+  (`game/movement-sounds.js`): one `splash` (volume 0.5) on the dry-to-water edge, at most once per 1 s (a hop landing in water is
+  `SA.footsteps.landSound`'s, so no double); `rustle` every 0.35 s while the climb up/down animation runs; one `leafPop` on arriving in the canopy.
 - **Uncluttered screen, nothing overlaps (AS-0147 to AS-0149).** All HUD positions come from one pure layout (SA.hud),
   tested for overlaps at phone to desktop sizes. The mission is a small pill (tap = replay), not a banner: audio carries
   instructions. Few icons: pill, stars, hotbar and one 🎒 menu; touch controls only on touch. When in doubt, remove an icon.

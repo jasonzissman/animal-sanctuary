@@ -42,6 +42,7 @@
     var isRunning = false;        // moved forward at run speed this frame (the avatar plays a faster stride)
     var jumpHeld = false;       // Space held (SA.jump needs a release between hops)
     var steps = SA.footsteps ? SA.footsteps.create() : null;   // footstep timer (AS-0118)
+    var moveSnd = SA.movesound ? SA.movesound.create() : null;   // splash on entering water, leaf rustle while climbing (AS-0120)
     var hop = SA.jump ? SA.jump.create() : null;   // { lift, vy, air, ... }: the avatar is drawn at y + lift; reach still uses y
     var prick = SA.prick ? SA.prick.create() : { lift: 0, hurt: 0 };   // cactus knockback (SA.prick): its lift/hurt ride on the avatar
     var jumpTap = false;       // the on-screen jump button was tapped: one frame of "Space pressed" (same one-hop-per-landing rule)
@@ -241,6 +242,12 @@
             air: !!(hop && (hop.air || hop.lift > 0)) || !!prick.active, climbing: climbing(), surface: surface }, dt);   // turning on the spot makes no step
           steps = fs.state;
           if (fs.event) SA.audio.sfx(fs.event.sfx, fs.event.volume, fs.event.rate);
+        }
+        if (moveSnd && SA.audio && SA.audio.sfx) {   // one splash walking into water, a steady rustle during the climb, a leaf pop in the canopy
+          var ms = SA.movesound.step(moveSnd, { water: !player.climb && SA.map.isWater(player.x, player.z), air: !!(hop && (hop.air || hop.lift > 0)) || !!prick.active,
+            climbing: climbing(), canopy: !!player.climb && player.climb.mode === 'canopy' }, dt);
+          moveSnd = ms.state;
+          ms.events.forEach(function (ev) { SA.audio.sfx(ev.sfx, ev.volume, ev.rate); });
         }
         offset = C.decayOffset(offset, az < 0 || J.forward > 0, dt);
         state = C.chaseFollow(state, player, offset, dt, B);

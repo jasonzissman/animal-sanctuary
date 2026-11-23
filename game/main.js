@@ -159,6 +159,10 @@
       if (SA.scientistCheer) cheer = SA.scientistCheer.create(root.document, { player: function () { return stage.rig.getPlayer(); },
         paused: function () { return SA.picking.isPaused(); } });
     } catch (e) { report('cheer.start', e); }
+    // A proof photo sent to the station: a little envelope flies to the station icon with a soft whoosh (AS-0208). Never blocks play.
+    var envelope = null;
+    try { if (SA.envelopeFly) envelope = SA.envelopeFly.create({ doc: root.document, rig: stage.rig, camera: stage.camera }); }
+    catch (e) { report('envelope.start', e); }
     // Grown-up drawer (press-and-hold gear, an item of the 🎒 menu). Never blocks the main loop.
     var menuView = null;
     try { if (SA.settingsView) SA.settingsView.create(root.document, { onOpen: function () { if (menuView) menuView.used('settings'); } }); }
@@ -176,6 +180,7 @@
       if (useBtn) { try { useBtn.update(); } catch (e) { useBtn = null; report('useButton.update', e); } }
       if (greeting && greeting.isOpen()) { try { greeting.update(stage.rig.getPlayer()); } catch (e) { greeting = null; report('greeting.update', e); } }
       if (cheer) { try { cheer.update(dt); } catch (e) { cheer = null; report('cheer.update', e); } }
+      if (envelope) { try { envelope.update(dt); } catch (e) { envelope = null; report('envelope.update', e); } }
       if (climbBtn) { try { climbBtn.update(); } catch (e) { climbBtn = null; report('climbButton.update', e); } }
       if (SA.focus) { try { SA.focus.update(); } catch (e) { report('focus.update', e); } }
       if (rt) { try { rt.update(stage.rig.getPlayer()); } catch (e) { rt = null; report('missionRuntime.update', e); } }

@@ -351,6 +351,10 @@ current; when your change sets or changes something future tickets must follow, 
   comes within `SA.npc.NEAR` of the scientist (waits while a card is open): a bubble "🙌 ¡Gracias! Está bien." (`phrase:graciasbien`, spoken),
   and for a mission proof a second line pointing at the mission it opened ("👉 icon ¡Nueva misión!"); `SA.proofs.cheer()` marks the proof
   celebrated first, so it never repeats. Telemetry `station.proof_sent` / `station.proof_cheer`.
+  **Envelope flight (AS-0208, slice 3 of AS-0143):** every newly recorded proof (`SA.proofs.onSent(fn)`) starts `ui/envelope-fly.js`: a ✉️
+  flies ~0.9 s from the screen centre to a 🏠 chip at the station's spot on screen (`SA.hintPointer.locate` of the station, pushed to the
+  edge like the hint arrow when off-screen; re-projected each frame), with the soft `SA.audio.sfx('whoosh')` (silent when muted). Click-through,
+  never pauses input, never delays the next mission. There is no minimap, so the "station icon" is this 🏠 chip.
   **Photo board (AS-0207, slice 2 of AS-0143):** the station's WEST wall (inside, `SA.station.layout().photoBoard`, facing +x, solid) carries a
   "Fotos" board with one framed card per proof in `SA.proofs` (little low-poly animal in its body colour + its Spanish name, or a gold star +
   "Misión N"). `game/photo-board.js` (`SA.photoBoard`, pure: 4x2 slots, pages of 8, `card()`, `signature()`) decides what and where;

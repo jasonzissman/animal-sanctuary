@@ -172,6 +172,7 @@ globalThis.SA_MANIFEST = {
     'game/ui/greeting-view.js',
     'game/ui/scientist-view.js',
     'game/ui/scientist-cheer.js',
+    'game/ui/envelope-fly.js',
     'game/ui/settings-view.js',
     'game/menu.js',
     'game/ui/menu-view.js',

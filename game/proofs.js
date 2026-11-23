@@ -11,6 +11,7 @@
  *        save at once (so it is never cheered twice, even if the bubble never shows) and returns the cheer: the line '¡Gracias! Está
  *        bien.' with its vocab key. point is set only for a mission proof whose next mission is now open on the Misiones board:
  *        { id, n, icon, es, key } (the scientist points at it); otherwise null.
+ *   SA.proofs.onSent(fn)   fn(proof) runs after each newly recorded proof (the envelope flight, game/ui/envelope-fly.js); errors are swallowed.
  *   SA.proofs.create({ save?, missions?, track?, now? })   a separate instance (tests).
  * Telemetry: station.proof_sent { kind, animalId?, missionId? }, station.proof_cheer { kind, animalId?, missionId?, point } (when cheered).
  */
@@ -41,6 +42,9 @@
       return f;
     }
 
+    var listeners = [];
+    function onSent(fn) { if (typeof fn === 'function') listeners.push(fn); }
+
     function record(e) {
       if (!e || (e.kind !== 'rescue' && e.kind !== 'mission')) return { added: false, proof: null };
       var animalId = typeof e.animalId === 'string' && WORD.test(e.animalId) ? e.animalId : '';
@@ -60,6 +64,7 @@
       if (missionId) row.missionId = missionId;
       store().update({ proofs: before.concat([row]).slice(-100) });     // arrays are replaced wholesale by update()
       track('station.proof_sent', fieldsOf(row));
+      listeners.forEach(function (fn) { try { fn(row); } catch (err) { /* a listener never breaks play */ } });
       return { added: true, proof: row };
     }
 
@@ -90,9 +95,9 @@
     }
     function enOf(key) { try { var v = SA.vocab && SA.vocab.get(key); return (v && v.en) || ''; } catch (err) { return ''; } }
 
-    return { record: record, list: list, pending: pending, cheer: cheer };
+    return { record: record, onSent: onSent, list: list, pending: pending, cheer: cheer };
   }
 
   var def = create();
-  SA.proofs = { create: create, record: def.record, list: def.list, pending: def.pending, cheer: def.cheer, CHEER: CHEER, NEW_MISSION: NEW_MISSION };
+  SA.proofs = { create: create, record: def.record, onSent: def.onSent, list: def.list, pending: def.pending, cheer: def.cheer, CHEER: CHEER, NEW_MISSION: NEW_MISSION };
 })(typeof window !== 'undefined' ? window : globalThis);

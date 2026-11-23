@@ -446,6 +446,9 @@ current; when your change sets or changes something future tickets must follow, 
   `rig.sunkBy` (0.1 + up to 0.08 more, slowly, capped) and eases it back up when the cue clears; `care-fx` draws a flat brown puddle
   (group `userData.sunkPuddle`) that stays on the ground while the animal sinks, with 3 mud lumps (one splashes off per tug) and
   shrinks away on `free`.
+  Built (AS-0243): cue `tremble`. The existing `acariciar` action/care task (empty hands on *la barriga*, 3 rubs, only animals with a
+  barriga) now carries `cue: 'tremble'` and `say: 'phrase:yasecalmo'` ("¡Ya se calmó!", gender-neutral). `ambient` shakes the held
+  animal with a small fast jitter (position + roll, nothing accumulates) until `fx.free` clears the cue; care-fx adds no bits.
 - **Low things are jumpable.** Anything short (rocks, logs, low props) can be jumped over and briefly stood on; only
   tall things (trees, cacti, peaks, big animals) always block. Obstacles carry a height (AS-0176).
 - **Progress you can see and keep.** Badges and stickers for rescues by species, predicament, biome and night (AS-0167,

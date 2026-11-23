@@ -7,6 +7,7 @@
  *                        happy flyLoop. fx.fly(animalId) is free(animalId, 'tangled').
  *                        task.cue picks the look: 'tangled' = flat green leaf bits on ONE wing and the bird hops, not flies;
  *                        'limp' = a small thorn on ONE paw and the animal limps (never chosen by animal id)
+ *                        'tremble' = no bits: the animal shakes (ambient) until free() clears the cue
  *                        'sunk' = a flat brown mud puddle under the animal (it follows the animal's depth, ambient rig.sunkBy) with
  *                        3 mud lumps; each tug splashes one off; free() shrinks the puddle away while the animal rises
  *   opts.ambient         optional SA.render.createAmbient: the animal being cared for stands still until hide()

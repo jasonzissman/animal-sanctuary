@@ -5,7 +5,7 @@
  *   ambient.release(id)        let it wander again (ignored while the animal is pinned)
  *   ambient.pin(id)            the rescue mission found it: it stays put (holds until unpin; care/tap releases do not free it)
  *   ambient.unpin(id)          the mission is done or replaced: it wanders again
- *   ambient.setCue(id, cue)     the care task's visible cue: 'tangled' (a flyer hops with drooping wings), 'limp' (uneven walk), 'sunk' (stuck in mud: sits lower and sinks a little more over time; rig.sunkBy is the depth), null
+ *   ambient.setCue(id, cue)     the care task's visible cue: 'tangled' (a flyer hops with drooping wings), 'limp' (uneven walk), 'tremble' (scared: a small fast jitter until calmed), 'sunk' (stuck in mud: sits lower and sinks a little more over time; rig.sunkBy is the depth), null
  *   ambient.setTangled(id, on)  alias of setCue(id, 'tangled' | null)
  *   ambient.flyLoop(id)         freed: one spinning circle in the air with wide wing beats, then normal again
  *   ambient.setAvoid(points)   replace the [[x, z, r?],...] points wanderers keep clear of (decor + placed props)
@@ -21,6 +21,7 @@
   var PART_HOLD = 5;   // seconds an animal stays put after a tap
   var HOP_RATE = 7, HOP_HEIGHT = 0.18, DROOP = 0.6;            // tangled wing: hop speed (rad/s), height, wing droop (rad)
   var SUNK_BASE = 0.1, SUNK_RATE = 0.01, SUNK_MORE = 0.08, RISE_RATE = 0.5;   // cue 'sunk': start depth, extra depth per second, its cap, rise speed (world units)
+  var TREMBLE_RATE = 47, TREMBLE_AMP = 0.035, TREMBLE_ROLL = 0.04;   // cue 'tremble': jitter speed (rad/s), sideways shake (world units) and roll (rad)
   var LOOP_SECONDS = 1.9, LOOP_RADIUS = 1.1, LOOP_LIFT = 1.3;   // freed bird's happy loop (shorter than care-flow NEXT_MS)
 
   SA.render.createAmbient = function (opts) {
@@ -136,7 +137,12 @@
         // Sunk in mud: sits lower and sinks a little more every second (capped); once freed it rises back smoothly.
         if (r.cue === 'sunk') { r.sink = Math.min(SUNK_MORE, (r.sink || 0) + SUNK_RATE * Math.min(dt, 0.1)); r.sunkBy = SUNK_BASE + r.sink; }
         else if (r.sunkBy) { r.sink = 0; r.sunkBy = Math.max(0, r.sunkBy - RISE_RATE * Math.min(dt, 0.1)); }
-        if (limp) { g.rotation.z = limp.roll; r.limped = true; } else if (r.limped) { g.rotation.z = 0; r.limped = false; }
+        // Scared: a small fast shake (position + roll); it stops the moment the cue clears.
+        var shake = r.cue === 'tremble' ? Math.sin(t * TREMBLE_RATE + r.phase) : 0;
+        if (shake) { g.position.x += shake * TREMBLE_AMP; g.position.z += Math.cos(t * TREMBLE_RATE * 1.3 + r.phase) * TREMBLE_AMP * 0.6; }
+        if (limp) { g.rotation.z = limp.roll; r.limped = true; }
+        else if (shake) { g.rotation.z = shake * TREMBLE_ROLL; r.limped = true; }
+        else if (r.limped) { g.rotation.z = 0; r.limped = false; }
         if (r.loop) {
           r.loop.t += Math.min(dt, 0.1);
           var u = Math.min(1, r.loop.t / LOOP_SECONDS), a = u * Math.PI * 2;

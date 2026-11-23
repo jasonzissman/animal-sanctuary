@@ -99,6 +99,7 @@
   add('phrase', 'casi', '¡Casi!');
   add('phrase', 'yapuedevolar', '¡Ya puede volar!');
   add('phrase', 'yacaminabien', '¡Ya camina bien!', 'It walks well now!');   // the thorn is out (action quitarespina)
+  add('phrase', 'yasecalmo', '¡Ya se calmó!', 'It is calm now!');   // the scared animal is calm (action acariciar; gender-neutral)
   add('phrase', 'barro', 'el barro', 'the mud');   // the puddle the animal is stuck in (action sacardelbarro)
   add('phrase', 'yasaliodelbarro', '¡Ya salió del barro!', 'It is out of the mud!');
   add('phrase', 'quefoto', '¡Qué foto! Pero busca…');

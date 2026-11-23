@@ -13,6 +13,7 @@
  *                'tangled' a bird hops, wings drooped, a leaf on the wing; flaps, spins and flies a happy loop when done
  *                'limp'    the animal walks with an uneven limp and a thorn bit shows on one paw (game/render/care-fx.js, ambient.js)
  *                'sunk'    the animal sits low in a flat brown mud puddle and sinks a little more (capped) until freed
+ *                'tremble' a scared animal shakes with a small fast jitter until the rubs calm it (game/render/ambient.js)
  *   tangled    optional true: alias of cue 'tangled' (the validator fills in whichever of the two is missing)
  *   gives      optional item id (game/data/items.js) added to SA.inventory when the task is done (the leaf you pulled off)
  *   say        optional vocab key spoken (and shown) when the task is done, instead of "¡Muy bien!"
@@ -26,7 +27,7 @@
 
   var SFX = ['chime', 'boing', 'pop', 'splash', 'giggle', 'sparkle'];
   var MUDDY = ['patas', 'caparazon', 'cola', 'alas', 'pico', 'orejas'];
-  var CUES = ['tangled', 'limp', 'sunk'];     // visible cues while a help task runs; the render picks the animation by this value
+  var CUES = ['tangled', 'limp', 'sunk', 'tremble'];     // visible cues while a help task runs; the render picks the animation by this value
 
   function itemKnown(id) {
     try { return !!SA.data.get('items', id); } catch (e) { return true; }     // items not loaded (unit tests): checked elsewhere
@@ -71,7 +72,9 @@
     { id: 'cepillar', item: 'cepillo', parts: ['pelo'], verb: { es: 'cepillar', imperative: 'Cepilla' }, reaction: 'wiggle', sfx: 'sparkle' },
     { id: 'lavar', item: 'esponja', parts: MUDDY.concat('pelo'), verb: { es: 'lavar', imperative: 'Lava' }, reaction: 'wobble', sfx: 'splash' },
     { id: 'curar', item: 'venda', parts: MUDDY, verb: { es: 'curar', imperative: 'Cura' }, reaction: 'nod', sfx: 'pop' },
-    { id: 'acariciar', item: 'hands', parts: ['barriga'], verb: { es: 'acariciar', imperative: 'Acaricia' }, reaction: 'boing', sfx: 'giggle' },
+    // Pet to calm: a scared animal trembles until three rubs of la barriga with empty hands calm it (gender-neutral phrase).
+    { id: 'acariciar', item: 'hands', parts: ['barriga'], verb: { es: 'acariciar', imperative: 'Acaricia' }, reaction: 'boing', sfx: 'giggle',
+      cue: 'tremble', say: 'phrase:yasecalmo' },
     // A leaf or twig stuck on a bird's wing: tug it off with empty hands (Space on the wing) and it can fly again.
     { id: 'desenredar', item: 'hands', parts: ['alas'], verb: { es: 'quitar', imperative: 'Quita' }, reaction: 'flap', sfx: 'pop',
       cue: 'tangled', say: 'phrase:yapuedevolar' },

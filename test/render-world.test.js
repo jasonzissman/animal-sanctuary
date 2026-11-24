@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = [
   'game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-  'game/map.js', 'game/peaks.js', 'game/camera.js', 'game/player.js', 'game/render/world.js', 'game/decor-plan.js', 'game/render/decor-dry.js', 'game/render/decor.js',
+  'game/map.js', 'game/peaks.js', 'game/terrain-color.js', 'game/camera.js', 'game/player.js', 'game/render/world.js', 'game/decor-plan.js', 'game/render/decor-dry.js', 'game/render/decor.js',
 ];
 
 function load() {
@@ -86,8 +86,8 @@ test('buildWorld paints high montaña ground with the biome snow colour', () => 
   for (let i = 0; i < p.count; i += 3) {
     if (p.getX(i) > -48) continue;
     const bright = c.getX(i) + c.getY(i) + c.getZ(i);
-    const cy = (p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3;   // the paint follows the face centre (steep peak faces differ from a vertex)
-    if (cy > 3.8) { snowy++; assert.ok(bright > 2.3, 'snow is near white'); } else if (cy < 1.5) bare++;
+    const cy = p.getY(i);   // per-vertex paint (AS-0291): colour follows the vertex's own height
+    if (cy > 3.9) { snowy++; assert.ok(bright > 2.3, 'snow is near white'); } else if (cy < 1.5) bare++;
   }
   assert.ok(snowy > 0 && bare > 0);
 });

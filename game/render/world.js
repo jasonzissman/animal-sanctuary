@@ -6,7 +6,8 @@
   var SA = root.SA;
   SA.render = SA.render || {};
 
-  var STEP = 1.6;
+  var STEP = 1;     // terrain segment size in metres (AS-0291: finer so colour varies; ~32k static triangles)
+  var SEED = 7;     // seed for SA.terrain.groundColor
 
   function buildGround(THREE, biomes) {
     var M = SA.map, B = M.BOUNDS;
@@ -20,22 +21,16 @@
 
     var p = geo.attributes.position;
     var colors = new Float32Array(p.count * 3);
-    var rand = M.rng(7);
     var sand = new THREE.Color('#d8c58a');
-    var tmp = new THREE.Color(), snow = new THREE.Color();
-    for (var f = 0; f < p.count; f += 3) {
-      var cx = (p.getX(f) + p.getX(f + 1) + p.getX(f + 2)) / 3;
-      var cy = (p.getY(f) + p.getY(f + 1) + p.getY(f + 2)) / 3;
-      var biome = biomes[M.biomeAt(cx)];
-      tmp.set(biome ? biome.ground : '#6fae5e');
-      if (cy < M.WATER_LEVEL + 0.35 && M.nearWater(cx, (p.getZ(f) + p.getZ(f + 1) + p.getZ(f + 2)) / 3, 2.5)) tmp.lerp(sand, 0.8);
-      // Snow caps: a biome with a `peak` colour blends to it on high ground.
-      if (biome && biome.peak && cy > 2.2) tmp.lerp(snow.set(biome.peak), Math.min(1, (cy - 2.2) / 1.2));
-      var shade = 0.92 + rand() * 0.14 + Math.max(-0.1, Math.min(0.1, cy * 0.06));
-      tmp.multiplyScalar(shade);
-      for (var k = 0; k < 3; k++) {
-        colors[(f + k) * 3] = tmp.r; colors[(f + k) * 3 + 1] = tmp.g; colors[(f + k) * 3 + 2] = tmp.b;
-      }
+    var tmp = new THREE.Color();
+    // Every vertex is coloured by SA.terrain.groundColor (AS-0291): seeded noise per biome with soft blends across borders.
+    // Vertices at the same spot get the same colour, so flat-shaded faces show smooth colour gradients, not one tint each.
+    for (var v = 0; v < p.count; v++) {
+      var vx = p.getX(v), vy = p.getY(v), vz = p.getZ(v);
+      if (SA.terrain) SA.terrain.groundColor(vx, vz, vy, SEED, tmp);
+      else tmp.set((biomes[M.biomeAt(vx)] || {}).ground || '#6fae5e');
+      if (vy < M.WATER_LEVEL + 0.35 && M.nearWater(vx, vz, 2.5)) tmp.lerp(sand, 0.8);   // sandy shores
+      colors[v * 3] = tmp.r; colors[v * 3 + 1] = tmp.g; colors[v * 3 + 2] = tmp.b;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     return new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ vertexColors: true, flatShading: true, specular: 0x000000 }));

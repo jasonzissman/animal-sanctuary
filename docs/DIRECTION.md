@@ -233,6 +233,13 @@ current; when your change sets or changes something future tickets must follow, 
   the dry parts of the bosque (A* over a 2 m grid, then corner-cut). `terrain-color.js` tints the ground a light tan by `strength()` (no extra
   mesh); `decor-plan.js` and `ground-cover-plan.js` skip anything on or beside a path. Paths are walkable ground, never obstacles. New scenery
   planners should call `SA.forestPaths.onPath(x, z, pad)` in their `usable()` check.
+- **Forest streams (AS-0301).** `SA.forestStreams` (pure, seeded, `game/forest-streams.js`, loads after `forest-paths.js`) lays out 1-2 narrow
+  streams: each starts at a dry source in the bosque, wiggles through a forest path at a `ford` (a row of stepping stones across the water, a few
+  more stones along the stream) and ends in the middle of the river. The ground is NOT carved: `render/forest-streams.js` lays one merged water
+  ribbon on the terrain (same `applyWaterWave` shader as the river) plus ONE `InstancedMesh` of stones, so `SA.map.isWater` stays river/pond only
+  and the player wades freely (AS-0109). Stones are low solids `[x, z, r, h]` (`stoneSolids()`, added to `scene.js` obstacles): hop on and stand on top.
+  Animals keep out: `wander.js`, `animal-plan.js`, `decor-plan.js` and `ground-cover-plan.js` call `SA.forestStreams.inWater(x, z, pad)`.
+  New scenery planners should check it next to `SA.forestPaths.onPath`.
 - **Water moves and has edges (AS-0298).** The river and pond (`render/world.js`, geometry baked in world coordinates) move with a
   two-sine vertex-shader wave on one `uTime` uniform (`SA.render.applyWaterWave`; `world.userData.update(dt)` advances the clock, no
   allocation; constants in `SA.waterBanks.WAVE`, kept to a few cm so wading is unchanged). `SA.waterBanks` (pure, `game/water-banks-plan.js`)

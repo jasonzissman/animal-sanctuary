@@ -61,6 +61,7 @@
     if (M.groundHeight(x, z) < M.WATER_LEVEL + DRY) return false;
     if (SA.player && SA.player.inSpawnZone(x, z)) return false;
     if (SA.station && SA.station.inFootprint(x, z, 1)) return false;
+    if (SA.forestStreams && SA.forestStreams.inWater(x, z, 0.1)) return false;   // no plants in the forest streams (AS-0301)
     if (SA.forestPaths && SA.forestPaths.onPath(x, z, pad)) return false;   // bare dirt on the forest paths (AS-0300)
     if (SA.peaks) {
       for (var i = 0; i < SA.peaks.LIST.length; i++) {

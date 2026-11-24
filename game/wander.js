@@ -81,6 +81,7 @@
       if (SA.forestStreams && SA.forestStreams.inWater(x, z, STREAM_PAD)) return false;   // forest streams (AS-0301): look, don't wade
       if (SA.fallenLogs && SA.fallenLogs.near(x, z, LOG_PAD)) return false;   // fallen logs (AS-0302) are obstacles
       if (SA.desertPlan && SA.desertPlan.near(x, z, 0.5)) return false;   // so are the desierto's arch and oasis (AS-0308)
+      if (SA.mountainPlan && SA.mountainPlan.inField(x, z, 0.3)) return false;   // and the montaña's boulder field (AS-0309)
       if (SA.surfaces && SA.surfaces.walkable(x, z, 0.9)) return true;   // animals may cross a bridge along its middle (AS-0158)
       return M.groundHeight(x, z) >= M.WATER_LEVEL + 0.45;
     }

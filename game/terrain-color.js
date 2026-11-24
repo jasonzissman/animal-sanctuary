@@ -85,7 +85,10 @@
   // Forest path dirt (AS-0300): light tan in two tones blended by noise, lighter than the grass around it.
   var FOREST_LO = -56, FOREST_HI = 0, DIRT_A = hex('#e2c797'), DIRT_B = hex('#d0b080');
 
-  var STYLES = { bosque: forest, selva: jungle, desierto: desert, montana: mountain };
+  // Mountain trail (AS-0309): sandy gravel in two tones, lighter than the scree, still darker than the snow so it shows all the way up.
+  var TRAIL_HI = -50, TRAIL_A = hex('#d9c9a0'), TRAIL_B = hex('#c9b88d');
+
+  var STYLES ={ bosque: forest, selva: jungle, desierto: desert, montana: mountain };
   var scratch = { r: 0, g: 0, b: 0 };
 
   function paint(id, x, z, h, seed, o) { (STYLES[id] || forest)(x, z, h, seed, o); }
@@ -119,7 +122,16 @@
         o.b += (DIRT_A[2] + (DIRT_B[2] - DIRT_A[2]) * dn - o.b) * k;
       }
     }
-    var shade = 1 + Math.max(-0.08, Math.min(0.1, height * 0.05));   // a touch lighter uphill, darker in dips
+    if (SA.mountainTrail && x < TRAIL_HI) {   // AS-0309: the switchback trail is lighter, warmer ground than the grey scree and the snow beside it
+      var trail = SA.mountainTrail.strength(x, z);
+      if (trail > 0) {
+        var tn = noise(x * 0.8, z * 0.8, (seed | 0) + 51), tk = trail * 0.95;
+        o.r += (TRAIL_A[0] + (TRAIL_B[0] - TRAIL_A[0]) * tn - o.r) * tk;
+        o.g += (TRAIL_A[1] + (TRAIL_B[1] - TRAIL_A[1]) * tn - o.g) * tk;
+        o.b += (TRAIL_A[2] + (TRAIL_B[2] - TRAIL_A[2]) * tn - o.b) * tk;
+      }
+    }
+    var shade = 1 +Math.max(-0.08, Math.min(0.1, height * 0.05));   // a touch lighter uphill, darker in dips
     o.r = clamp01(o.r * shade); o.g = clamp01(o.g * shade); o.b = clamp01(o.b * shade);
     return o;
   }

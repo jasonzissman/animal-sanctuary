@@ -4,6 +4,7 @@
  * invisible enlarged box flagged userData.stationBoardPick) is raycast. An animal in front of the board wins (hitsAnimal), and taps are
  * ignored while taps are paused (SA.picking.isPaused, e.g. the album is open) or when the player is too far away
  * (SA.station.canTapBoard). The door frame has no tap volume. Thin: the rules live in game/station-board.js.
+ * The bed (AS-0170) is one more instance with opts.act (called instead of opening the card).
  * The Insignias board (AS-0239) uses a second instance with opts.target = SA.station.badgesTarget() and opts.source = 'badges'.
  */
 (function (root) {
@@ -27,10 +28,10 @@
 
     /** Open the missions when (x, y) is on the board. Returns true when the tap was on the board and handled. */
     function tapAt(x, y) {
-      if (SA.picking.isPaused() || !SA.station || !SA.station.open) return false;
-      if (opts.hitsAnimal && opts.hitsAnimal(x, y)) return false;
+      if (SA.picking.isPaused() || !SA.station || !SA.station.open) return false;      if (opts.hitsAnimal && opts.hitsAnimal(x, y)) return false;
       if (!hitsBoard(x, y)) return false;
       if (!SA.station.canTapBoard(opts.getPlayer ? opts.getPlayer() : null, opts.target)) return false;
+      if (opts.act) { opts.act(); return true; }   // the bed (AS-0170): the tap sleeps instead of opening a card
       SA.station.open(opts.source || 'tap');
       return true;
     }

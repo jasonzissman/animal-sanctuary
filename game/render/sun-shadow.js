@@ -53,15 +53,16 @@
     markReceivers(opts.world);
     (opts.casters || []).forEach(markCasters);
     var dynamic = opts.dynamic || [], counts = dynamic.map(function (g) { markCasters(g); return (g.children || []).length; });
-    var texel = (2 * e) / CFG.mapSize, lastX = NaN, lastZ = NaN;
+    var texel = (2 * e) / CFG.mapSize, lastX = NaN, lastZ = NaN, lastKey = NaN;
 
     function follow() {
       var p = opts.getPlayer && opts.getPlayer();
       if (!p) return;
       // Snap to the texel grid in world x/z so the shadow map does not swim as the player walks.
       var x = Math.round(p.x / texel) * texel, z = Math.round(p.z / texel) * texel;
-      if (x === lastX && z === lastZ) return;
-      lastX = x; lastZ = z;
+      var o = CFG.offset, key = o.x + o.y * 1e3 + o.z * 1e6;   // the day/night cycle (AS-0170) moves the sun's offset: re-aim when it changes too
+      if (x === lastX && z === lastZ && key === lastKey) return;
+      lastX = x; lastZ = z; lastKey = key;
       sun.target.position.set(x, 0, z);
       sun.position.set(x + CFG.offset.x, CFG.offset.y, z + CFG.offset.z);
       if (sun.target.updateMatrixWorld) sun.target.updateMatrixWorld();

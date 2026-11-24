@@ -80,7 +80,7 @@ test('the Insignias board is a Use target on the front wall, opposite the missio
   assert.deepEqual([t.id, t.kind, t.source], ['station-badges', 'board', 'badges']);
   assert.equal(t.x, k.x);
   assert.equal(SA.station.badgesTarget(), t, 'one stable object');
-  assert.equal(SA.station.boardTargets().length, 2);
+  assert.equal(SA.station.boardTargets().length, 3, 'plus the bed (AS-0170)');
   assert.equal(SA.station.boardTargets()[0], SA.station.boardTarget());
   assert.equal(SA.station.boardTargets()[1], t);
   assert.equal(SA.station.boardTargets(), SA.station.boardTargets(), 'stable list');

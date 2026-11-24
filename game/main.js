@@ -237,6 +237,22 @@
     var fragileWatch = null;
     try { if (SA.missionFragile) fragileWatch = SA.missionFragile.create({ toast: function (m) { if (ctl && ctl.toast) ctl.toast(m); } }); }
     catch (e) { report('missionFragile.start', e); }
+    // Day and night (AS-0170): the clock is saved; at nightfall and at sunrise a soft voice greets and names the sky; the station bed sleeps to morning.
+    var clock = null;
+    try {
+      if (SA.daynight) {
+        clock = SA.daynight.instance();
+        clock.onPhase(function (ev) {
+          var night = ev.to === 'night', morning = ev.to === 'dawn';
+          if (!night && !morning) return;
+          if (ctl && ctl.toast) ctl.toast(night ? '🌙 ¡Buenas noches!' : '☀️ ¡Buenos días!');
+          SA.audio.say(night ? 'phrase:buenasnoches' : 'phrase:buenosdias', function () {
+            SA.audio.say(night ? 'thing:luna' : 'thing:sol', function () { if (night) SA.audio.say('thing:estrellas'); });
+          });
+        });
+      }
+      if (SA.sleepView) SA.sleepView.create(root.document);
+    } catch (e) { report('daynight.start', e); }
     var last = null;
     function loop(now) {
       var dt = last === null ? 0 : Math.min((now - last) / 1000, 0.25);
@@ -244,6 +260,7 @@
       // A fragile carried thing wobbles when the kid jumps (SA.carry, AS-0231); hand-item.js draws the wobble in stage.render.
       if (SA.carry) { try { SA.carry.update(dt, stage.rig.getPlayer()); } catch (e) { SA.carry = null; report('carry.update', e); } }
       if (fragileWatch) { try { fragileWatch.update(dt, stage.rig.getPlayer()); } catch (e) { fragileWatch = null; report('missionFragile.update', e); } }
+      if (clock) { try { clock.update(dt); } catch (e) { clock = null; report('daynight.update', e); } }
       stage.render(dt);
       if (hotbar) { try { hotbar.update(); } catch (e) { hotbar = null; report('hotbar.update', e); } }
       if (useBtn) { try { useBtn.update(); } catch (e) { useBtn = null; report('useButton.update', e); } }

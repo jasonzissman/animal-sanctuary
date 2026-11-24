@@ -148,7 +148,7 @@
         return null;
       }
       return { update: function (p) { list.forEach(function (t) { if (t.update) t.update(p); }); }, locate: function (id) { return first('locate', id); },
-        target: function (s) { return first('target', s); } };
+        target: function (s) { return first('target', s); }, hintTarget: function (s) { return first('hintTarget', s); } };
     }
 
     function target() {
@@ -161,6 +161,14 @@
         t = { x: p.x, z: p.z, role: 'npc', id: 'scientist' };
       }
       return t;
+    }
+
+    // AS-0365: where a listen-only (noArrow) step's target is, for the faint pointer after repeated 🔊 taps (null when no world piece knows it).
+    function hintTarget() {
+      var th = thing(), a;
+      try { a = missions().active(); } catch (e) { return null; }
+      if (!a || !a.stepData || a.stepData.noArrow !== true) return null;
+      return th && th.hintTarget ? th.hintTarget(a.stepData) : null;
     }
 
     function update(player) {
@@ -181,7 +189,7 @@
       return report(s.kind === 'goTo' ? { type: 'arrived', place: id } : { type: 'found', target: id });
     }
 
-    var api = { report: report, onPick: onPick, update: update, target: target, create: create, celebrateHook: null, onGive: null, onStars: null, locate: null };
+    var api = { report: report, onPick: onPick, update: update, target: target, hintTarget: hintTarget, create: create, celebrateHook: null, onGive: null, onStars: null, locate: null };
     return api;
   }
 

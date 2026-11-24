@@ -153,6 +153,7 @@ globalThis.SA_MANIFEST = {
     'game/data/needs.js',
     'game/encounters.js',
     'game/task-gate.js',
+    'game/mission-directions.js',
     'game/mission-pill.js',
     'game/carry.js',
     'game/mission-spawn.js',

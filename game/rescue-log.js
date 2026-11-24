@@ -50,7 +50,7 @@
       if (animalId) row.animalId = animalId;
       if (typeof entry.need === 'string' && WORD.test(entry.need)) row.need = entry.need;
       if (typeof entry.biome === 'string' && WORD.test(entry.biome)) row.biome = entry.biome;
-      if (animalId || entry.night !== undefined) row.night = entry.night === true;
+      if (animalId || entry.night !== undefined) row.night = entry.night === undefined ? !!(SA.daynight && SA.daynight.isNight()) : entry.night === true;   // AS-0170: by default, whether it is night right now
       if (animalId) row.date = typeof entry.date === 'string' ? entry.date : today();
       if (entry.animal) row.animal = entry.animal;
       if (entry.key) row.key = String(entry.key).slice(0, 40);

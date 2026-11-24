@@ -64,6 +64,13 @@
   // Things a mission carries or visits (AS-0313): spoken when the egg is picked up and when it rests in the nest.
   add('thing', 'huevo', 'el huevo', 'the egg');
   add('thing', 'nido', 'el nido', 'the nest');
+  // Day and night (AS-0170): the greetings at each change of the sky and the words that go with them.
+  add('phrase', 'buenasnoches', '¡Buenas noches!', 'Good night!');
+  add('phrase', 'buenosdias', '¡Buenos días!', 'Good morning!');
+  add('thing', 'noche', 'la noche', 'the night');
+  add('thing', 'luna', 'la luna', 'the moon');
+  add('thing', 'estrellas', 'las estrellas', 'the stars');
+  add('thing', 'sol', 'el sol', 'the sun');
   // Mission 3 words (AS-0318): the river the puppy is stranded in, the log you cross it on, and the verb.
   add('thing', 'rio', 'el río', 'the river');
   add('thing', 'tronco', 'el tronco', 'the log');

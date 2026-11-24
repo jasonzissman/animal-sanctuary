@@ -13,6 +13,7 @@
  *          the station and whether the scientist already cheered each. Optional: absent until the first proof.
  *          names = { '<individualId>': { animalId, name, adj? } } (AS-0169, SA.names): pet names of rescued animals, keyed by herd instance id
  *          ('conejo#2'); name / adj are data ids ('luna', 'rapido'). Optional: absent until the first naming; no version bump.
+ *          daynight = { t } (AS-0170, SA.daynight): ms into the day/night cycle; optional, no version bump.
  *          album = { '<animalId>': { date: 'YYYY-MM-DD', pics: [{ id, date }] } } (v5, AS-0236): the first-photo date per photographed animal
  *          plus the kept picture entries (first ever + newest 3, SA.albumPics). Ids/dates only: the JPEGs live in IndexedDB (SA.photoStore).
  *          v4 saves had { '<animalId>':'YYYY-MM-DD' }; migrations[4] and normalize() turn that into { date, pics: [] } without loss.
@@ -157,7 +158,13 @@
     if (s.proofs !== undefined) out.proofs = normalizeProofs(s.proofs);           // optional proof photos sent to the station (AS-0206, SA.proofs)
     if (s.badges !== undefined) out.badges = normalizeBadges(s.badges);           // optional earned badge ids (AS-0167, SA.badges)
     if (s.names !== undefined) out.names = normalizeNames(s.names);               // optional pet names (AS-0169, SA.names)
+    if (s.daynight !== undefined) out.daynight = normalizeDaynight(s.daynight);   // optional clock time (AS-0170, SA.daynight)
     return out;
+  }
+
+  // Day/night clock (AS-0170): { t } = ms into the cycle; anything else is dropped (the game then starts in the morning).
+  function normalizeDaynight(d) {
+    return isObj(d) && typeof d.t === 'number' && isFinite(d.t) && d.t >= 0 ? { t: Math.floor(d.t) } : {};
   }
 
   // Pet names (AS-0169): { '<individualId>': { animalId, name, adj? } }. The key is an animal id with an optional '#n' herd instance

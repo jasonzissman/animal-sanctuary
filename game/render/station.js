@@ -112,6 +112,13 @@
       g.userData.photoBoard = photos;
     }
 
+    // The bed inside, the porch lamp and the glowing window at night (AS-0170): g.userData.night.setDark(0..1) is driven by render/daynight.js.
+    if (SA.render.buildStationNight && L.bed) {
+      var night = SA.render.buildStationNight(THREE, { layout: L, glass: m.glass, wood: m.wood, trim: m.trim });
+      g.add(night.group);
+      g.userData.night = night;
+    }
+
     // Bench: a plank seat on two legs, against the front wall.
     var b = L.bench, bx0 = b.x - b.w / 2, bx1 = b.x + b.w / 2, bz0 = b.z - b.d / 2, bz1 = b.z + b.d / 2, by = L.floorY;
     g.add(slab(THREE, m.wood, bx0, bx1, by + 0.42, by + 0.5, bz0, bz1));

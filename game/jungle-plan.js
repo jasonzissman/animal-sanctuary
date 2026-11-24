@@ -13,7 +13,12 @@
  *   SA.junglePlan.targets()   SA.climb target data (kind 'tree', generic: x, z, radius, topY, top), so the giants climb like any tree; their canopy
  *                             height is SA.perch.KINDS.giant scaled by the tree's own scale
  *   SA.junglePlan.avoidPoints() [[x, z], ...] trunk centres, for the animal/pickup avoid list
- * Rendering: game/render/jungle-giants.js.
+ *   layout().waterfall (AS-0389, slice 2/4): the selva's small waterfall on the pond's shore, or null. { x, z (foot of the sheet, just inside the water edge),
+ *       ang (outward from the pond), yaw (group turn so local +x points across the pond), local: true, moss: true, cx, cz, r (footprint circle: near() and
+ *       avoidPoints() keep scenery, animals and pickups off it), poolY (the pond's water level; no pool of its own), topY, lowY, fx: 0, sheetW,
+ *       cliff: [{ x, z, w, d, y, h }] LOCAL offsets, cliffSolids: [[x, z, r, 99]] world, added to solids() (rock, never jumped) }. Seeded after the giants
+ *       (same trees per seed), clear of the giants' canopies, spawn, station, lookouts, bridges and streams. The water itself is the pond: it blocks nobody extra.
+ * Rendering: game/render/jungle-giants.js, game/render/waterfall.js (createJungleWaterfall).
  */
 (function (root) {
   'use strict';
@@ -26,6 +31,7 @@
   var SPACING = 22;        // between trunks: the canopies (radius ~7.5) never overlap and a clearing fits between
   var MAX_SPREAD = 1.2;    // ground height difference round the trunk
   var VINES = 12;
+  var FALL_R = 4.2, FALL_H = 5, FALL_FACE = 0.4, FALL_TRIES = 400;   // waterfall footprint radius, the lip's height above the water, how far the face stands inside the water edge
   var FALLBACK = { height: 15, radius: 4.2 };   // used when SA.perch is not loaded (kind 'giant' in game/perch.js is the source)
   var cached = null, cachedSolids = null, cachedTargets = null;
 
@@ -67,6 +73,40 @@
       yaw: rand() * Math.PI * 2, tint: rand(), vines: vines };
   }
 
+  /** The waterfall site (AS-0389): a small mossy cliff on the pond's shore whose sheet falls into the water. The seeded search picks an angle round the
+   *  pond; the cliff stands on the outside (local +x points back across the pond), clear of every giant, the station, the spawn, lookouts, bridges and
+   *  streams, with dry rising ground behind it. Coordinates: x, z = the foot of the sheet (a hair inside the pond's water edge); cliff blocks and fx are
+   *  LOCAL offsets (x toward the pond, z along the face); the renderer turns the group by `yaw`. cliffSolids are world [x, z, r, 99]. */
+  function makeFalls(rand, giants) {
+    var M = SA.map, P = M.POND, range = M.biomeRange('selva'), B = M.BOUNDS, zs = [-1.65, 0, 1.65];
+    for (var t = 0; t < FALL_TRIES; t++) {
+      var ang = rand() * Math.PI * 2, ca = Math.cos(ang), sa = Math.sin(ang), d = P.radius + 0.6 - FALL_FACE;   // the sheet falls just inside the water edge
+      var x = P.x + ca * d, z = P.z + sa * d, cx = P.x + ca * (d + 2.2), cz = P.z + sa * (d + 2.2);
+      if (cx < range.lo + BORDER || cx > range.hi - BORDER || cz < B.minZ + BORDER || cz > B.maxZ - BORDER) continue;
+      if (giants.some(function (g) { return Math.hypot(cx - g.x, cz - g.z) < g.canopyR + FALL_R; })) continue;
+      if (SA.player && SA.player.inSpawnZone(cx, cz, FALL_R)) continue;
+      if (SA.station && SA.station.inFootprint(cx, cz, FALL_R + 1)) continue;
+      if (SA.lookouts && SA.lookouts.near(cx, cz, FALL_R + 2)) continue;
+      if (SA.surfaces && SA.surfaces.near(cx, cz, FALL_R + 2)) continue;
+      if (SA.forestStreams && SA.forestStreams.inWater(cx, cz, FALL_R + 2)) continue;
+      var low = Infinity, back = -Infinity;
+      for (var u = 0; u <= 4; u++) for (var v = -1; v <= 1; v++) {   // ground under the cliff: u runs from the face to the back, v across it
+        var gx = P.x + ca * (d + 0.4 + u * 0.8) - sa * v * 1.65, gz = P.z + sa * (d + 0.4 + u * 0.8) + ca * v * 1.65, gh = M.groundHeight(gx, gz);
+        if (gh < low) low = gh;
+        if (u === 4 && gh > back) back = gh;
+      }
+      if (back < M.WATER_LEVEL - 0.4 || M.isWater(P.x + ca * (d + 5), P.z + sa * (d + 5))) continue;   // land (not more water) behind the cliff
+      var topY = M.WATER_LEVEL + FALL_H, baseY = low - 0.6, yaw = Math.PI - ang, cy = Math.cos(yaw), sy = Math.sin(yaw);
+      if (topY - back < 3.5) continue;
+      var cliff = zs.map(function (dz, i) {   // left, middle (a notch for the water), right
+        return { x: i === 1 ? -1.2 : -1.0, z: dz, w: i === 1 ? 1.6 : 1.7, d: i === 1 ? 2.4 : 2.8, y: baseY, h: topY - (i === 1 ? 0.5 : i * 0.2) - baseY };
+      });
+      return { x: x, z: z, ang: ang, yaw: yaw, local: true, moss: true, cx: cx, cz: cz, r: FALL_R, poolY: M.WATER_LEVEL, lowY: low, topY: topY, fx: 0, sheetW: 1.5, cliff: cliff,
+        cliffSolids: zs.map(function (dz) { return [x + (-1.2) * cy + dz * sy, z - (-1.2) * sy + dz * cy, 1.2, 99]; }) };
+    }
+    return null;
+  }
+
   function layout(seed) {
     var M = SA.map, rand = M.rng(seed === undefined ? SEED : seed), range = M.biomeRange('selva'), B = M.BOUNDS, giants = [];
     for (var t = 0; t < TRIES && giants.length < COUNT; t++) {
@@ -75,21 +115,29 @@
       if (giants.some(function (g) { return Math.hypot(x - g.x, z - g.z) < SPACING; })) continue;
       giants.push(makeGiant(rand, x, z, giants.length));
     }
-    return { giants: giants };
+    return { giants: giants, waterfall: makeFalls(rand, giants) };   // after the giants, so the same seed keeps the same trees
   }
 
   function get() { return cached || (cached = layout()); }
 
   function solids() {
-    return cachedSolids || (cachedSolids = get().giants.map(function (g) { return [g.x, g.z, g.solidR, 99]; }));
+    if (cachedSolids) return cachedSolids;
+    var L = get(), out = L.giants.map(function (g) { return [g.x, g.z, g.solidR, 99]; });
+    if (L.waterfall) Array.prototype.push.apply(out, L.waterfall.cliffSolids);   // the cliff is rock: it cannot be jumped
+    return (cachedSolids = out);
   }
 
-  function avoidPoints() { return get().giants.map(function (g) { return [g.x, g.z]; }); }
+  function avoidPoints() {
+    var L = get(), out = L.giants.map(function (g) { return [g.x, g.z]; });
+    if (L.waterfall) out.push([L.waterfall.cx, L.waterfall.cz]);
+    return out;
+  }
 
+  /** True within pad of a trunk's solid base or of the waterfall's footprint. */
   function near(x, z, pad) {
-    var G = get().giants, p = pad || 0;
+    var L = get(), G = L.giants, p = pad || 0, w = L.waterfall;
     for (var i = 0; i < G.length; i++) if (Math.hypot(x - G[i].x, z - G[i].z) < G[i].solidR + p) return true;
-    return false;
+    return !!w && Math.hypot(x - w.cx, z - w.cz) < w.r + p;
   }
 
   function targets() {

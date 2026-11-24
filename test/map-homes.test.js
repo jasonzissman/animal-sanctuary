@@ -47,7 +47,7 @@ test('animals spread over the strip instead of clustering in the old middle (z r
   const spots = Object.values(SA.animalPlan.placements(world(SA), {}));
   assert.ok(spots.some((s) => s.z > 18) && spots.some((s) => s.z < -18), 'homes beyond the old +-18 band');
   assert.ok(spots.every((s) => s.radius >= SA.animalPlan.DEFAULT_RADIUS));
-  assert.ok(spots.some((s) => s.radius > SA.animalPlan.DEFAULT_RADIUS), 'sparse biomes hand empty quadrants to a roaming animal');
+  // (Since AS-0270 every biome has 5 species for 4 quadrants, so no quadrant is left over for a roaming wander area.)
 });
 
 test('mission anchors (both pigs) for many seeds: inside BOUNDS, dry, off the spawn clearing, far apart', () => {

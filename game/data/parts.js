@@ -52,7 +52,7 @@
 
   var ICONS = { cabeza: '🙂', cuerpo: '🧸', orejas: '👂', ojos: '👀', hocico: '🐽', pico: '🐤', cola: '〰️', patas: '🐾',
     alas: '🪽', caparazon: '🐢', cuernos: '🐂', aletas: '🐟', plumas: '🪶', nariz: '👃', joroba: '🐫', mejillas: '😊',
-    pelo: '🧶', barriga: '🫃', cresta: '👑', cuello: '🦒' };
+    pelo: '🧶', barriga: '🫃', cresta: '👑', cuello: '🦒', manchas: '🐆', garras: '🦥' };
 
   function part(key, es, en, gender, number, builder, anchor, reaction) {
     return { id: key, key: key, label: { es: es, en: en }, gender: gender, number: number,
@@ -79,6 +79,8 @@
     part('pelo', 'el pelo', 'fur', 'm', 'sg', 'box', 'top', 'wiggle'),
     part('barriga', 'la barriga', 'belly', 'f', 'sg', 'sphere', 'bottom', 'wobble'),
     part('cresta', 'la cresta', 'crest', 'f', 'sg', 'cone', 'top', 'wiggle'),
-    part('cuello', 'el cuello', 'neck', 'm', 'sg', 'cylinder', 'front', 'boing')
+    part('cuello', 'el cuello', 'neck', 'm', 'sg', 'cylinder', 'front', 'boing'),
+    part('manchas', 'las manchas', 'spots', 'f', 'pl', 'sphere', 'top', 'wobble'),
+    part('garras', 'las garras', 'claws', 'f', 'pl', 'cone', 'bottom', 'wiggle')
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

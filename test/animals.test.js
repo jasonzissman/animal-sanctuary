@@ -11,14 +11,14 @@ const good = () => ({
   parts: [part()], easterEgg: false,
 });
 
-test('4 biomes, 16 real animals and 1 easter egg are registered, all in known biomes', () => {
+test('4 biomes, 20 real animals and 1 easter egg are registered, all in known biomes', () => {
   const SA = loadGame(FILES);
   assert.deepEqual(Array.from(SA.data.all('biomes'), (b) => b.id), ['bosque', 'selva', 'desierto', 'montana']);
   const everything = SA.data.all('animals');
   assert.deepEqual(Array.from(everything.filter((a) => a.story), (a) => a.id), ['cerda', 'cerdito']);   // AS-0232: not in the world population
   const all = everything.filter((a) => !a.story);
   assert.deepEqual(Array.from(all, (a) => a.id),
-    ['conejo', 'pato', 'tortuga', 'mono', 'tucan', 'rana', 'camello', 'serpiente', 'cabra', 'aguila', 'raton', 'zorrodesierto', 'lagartija', 'correcaminos', 'oso', 'llama', 'condor']);
+    ['conejo', 'pato', 'tortuga', 'mono', 'tucan', 'rana', 'camello', 'serpiente', 'cabra', 'aguila', 'raton', 'zorrodesierto', 'lagartija', 'correcaminos', 'oso', 'llama', 'condor', 'ciervo', 'ardilla', 'jaguar', 'perezoso']);
   assert.deepEqual(Array.from(all.filter((a) => a.easterEgg), (a) => a.id), ['raton']);
   const animals = all.filter((a) => !a.easterEgg);
   for (const a of all) {
@@ -28,8 +28,8 @@ test('4 biomes, 16 real animals and 1 easter egg are registered, all in known bi
     for (const p of a.parts) assert.ok(SA.data.get('parts', p.part), `${a.id}/${p.part}`);
   }
   const byBiome = (b) => Array.from(animals.filter((a) => a.biome === b), (a) => a.id);
-  assert.deepEqual(byBiome('bosque'), ['conejo', 'pato', 'tortuga']);
-  assert.deepEqual(byBiome('selva'), ['mono', 'tucan', 'rana']);
+  assert.deepEqual(byBiome('bosque'), ['conejo', 'pato', 'tortuga', 'ciervo', 'ardilla']);
+  assert.deepEqual(byBiome('selva'), ['mono', 'tucan', 'rana', 'jaguar', 'perezoso']);
   assert.deepEqual(byBiome('desierto'), ['camello', 'serpiente', 'zorrodesierto', 'lagartija', 'correcaminos']);
   assert.deepEqual(byBiome('montana'), ['cabra', 'aguila', 'oso', 'llama', 'condor']);
   // AS-0269: the mountain trio are regular herd species with correct Spanish gender.
@@ -37,6 +37,21 @@ test('4 biomes, 16 real animals and 1 easter egg are registered, all in known bi
   assert.deepEqual(['oso', 'llama', 'condor'].map((id) => g(id).name.gender), ['m', 'f', 'm']);
   assert.equal(g('condor').name.es, 'cóndor');
   for (const id of ['oso', 'llama', 'condor']) assert.ok(g(id).herd >= 3 && g(id).herd <= 5, id);
+  // AS-0270: the forest and jungle newcomers are regular herd species with correct gender, names and parts.
+  assert.deepEqual(['ciervo', 'ardilla', 'jaguar', 'perezoso'].map((id) => g(id).name.gender), ['m', 'f', 'm', 'm']);
+  for (const id of ['ciervo', 'ardilla', 'jaguar', 'perezoso']) assert.ok(g(id).herd >= 3 && g(id).herd <= 5 && !g(id).story && !g(id).easterEgg, id);
+  assert.equal(g('perezoso').perch, 'tree');
+  assert.ok(g('jaguar').parts.some((p) => p.part === 'manchas') && g('perezoso').parts.some((p) => p.part === 'garras'));
+  assert.ok(g('ciervo').parts.some((p) => p.part === 'cuernos') && g('ardilla').parts.some((p) => p.part === 'cola'));
+});
+
+test('AS-0270: every biome has at least 5 regular species (no story animals, no easter eggs)', () => {
+  const SA = loadGame(FILES);
+  const regular = SA.data.all('animals').filter((a) => !a.story && !a.easterEgg);
+  for (const b of SA.data.all('biomes')) {
+    const n = regular.filter((a) => a.biome === b.id).length;
+    assert.ok(n >= 5, `${b.id} has only ${n} regular species (needs >= 5)`);
+  }
 });
 
 test('new animals use the new parts (joroba, cuernos) and Spanish names agree', () => {

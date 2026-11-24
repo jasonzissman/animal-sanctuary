@@ -112,7 +112,9 @@
         { kind: 'goTo', place: 'roca', line: { es: 'Cruza el río', icon: '🌊', en: 'Cross the river' } },
         { kind: 'carry', item: 'perrito', line: { es: 'Recoge al perrito', icon: '🐶', en: 'Pick up the puppy' } },
         { kind: 'deliver', item: 'perrito', to: 'orilla', line: { es: 'Llévalo a la orilla', icon: '🏞️', en: 'Take it to the bank' } },
-        { kind: 'dry', item: 'perrito', line: { es: 'Sécalo', icon: '🧽', en: 'Dry it off' } }],
+        { kind: 'dry', item: 'perrito', line: { es: 'Sécalo', icon: '🧽', en: 'Dry it off' } },
+        // AS-0321: the dry puppy wags its tail; a photo of it ends the mission (and earns the sticker).
+        { kind: 'photo', target: 'perrito', line: { es: 'Foto del perrito', icon: '📷', en: 'Puppy photo' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

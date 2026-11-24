@@ -5,7 +5,8 @@ import { loadGame } from './helpers/vm.js';
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js', 'game/data/vocab.js',
   'game/data/foods.js', 'game/data/items.js', 'game/save.js', 'game/map.js', 'game/station.js', 'game/surfaces.js', 'game/player.js', 'game/inventory.js', 'game/photo.js',
   'game/data/step-kinds.js', 'game/mission-run.js', 'game/data/missions.js', 'game/missions.js', 'game/focus.js', 'game/mission-pill.js',
-  'game/carry.js', 'game/mission-carry.js', 'game/mission-log.js', 'game/mission-runtime.js'];
+  'game/carry.js', 'game/mission-carry.js', 'game/mission-log.js', 'game/mission-runtime.js',
+  'game/data/badges.js', 'game/badges.js', 'game/rescue-log.js'];
 
 function setup() {
   const SA = loadGame(FILES);
@@ -49,17 +50,20 @@ function pushAcross(ctx, frames = 600) {
   return c;
 }
 
-test('data: mission 3 follows mission 2, one intro line of <= 4 words, steps push, cross, pick up, take to the bank, dry', () => {
+test('data: mission 3 follows mission 2, one intro line of <= 4 words, steps push, cross, pick up, take to the bank, dry, photo', () => {
   const { SA, missions } = setup();
   const rows = SA.data.all('missions');
   assert.deepEqual(Array.from(rows.map((m) => m.n)), [1, 2, 3]);
   const m = rows[2];
   assert.equal(m.id, 'rio');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['push', 'goTo', 'carry', 'deliver', 'dry']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['push', 'goTo', 'carry', 'deliver', 'dry', 'photo']);
+  assert.equal(m.steps[5].line.es, 'Foto del perrito');
+  assert.equal(m.steps[5].line.icon, '📷');
+  assert.equal(m.steps[5].target, m.river.animal);
   assert.equal(m.steps[0].line.es, 'Empuja el tronco');
   assert.equal(m.steps[1].line.es, 'Cruza el río');
-  assert.deepEqual(Array.from(m.steps.slice(2).map((x) => x.line.es)), ['Recoge al perrito', 'Llévalo a la orilla', 'Sécalo']);
+  assert.deepEqual(Array.from(m.steps.slice(2).map((x) => x.line.es)), ['Recoge al perrito', 'Llévalo a la orilla', 'Sécalo', 'Foto del perrito']);
   assert.equal(m.steps[2].item, m.river.animal);
   assert.equal(m.steps[3].to, m.river.bank);
   assert.equal(m.steps[4].item, m.river.animal);
@@ -218,6 +222,8 @@ function finishRio(ctx) {
   thing.update(at({ x: c.bank.x, z: c.bank.z }), 0.016);
   SA.inventory.equip('esponja');
   for (let i = 0; i < c.pupState.need; i++) thing.rub(at({ x: c.bank.x + 1, z: c.bank.z }));
+  SA.inventory.equip('camara');
+  thing.snap(at({ x: c.bank.x + 1, z: c.bank.z }));                                 // the finale photo ends the mission (AS-0321)
   return c;
 }
 
@@ -262,14 +268,96 @@ test('carry back and dry: pick up on the rock (mojado), set down on the bank, sp
   assert.equal(thing.rub(p).status, 'done');
   assert.equal(c.pupState.wet, false);
   assert.ok(said.includes('adj:seco'), 'seco is spoken once it is dry');
+  assert.equal(missions.active().stepData.kind, 'photo', 'drying moves on to the photo (AS-0321): the mission is not over yet');
+  assert.equal(thing.target(missions.active().stepData).id, 'orilla', 'the compass points at the puppy on the bank');
+  assert.equal(cheers.length, 0);
+  assert.equal(SA.save.get().stars, stars);
+  assert.equal(thing.rub(p).status, 'none', 'nothing more to dry');
+  assert.ok(tracked.some((t) => t[0] === 'log.dried'));
+});
+
+// Drives mission 3 to the photo step (the puppy dry on the bank) and returns the context plus a player standing by the bank.
+function toPhoto() {
+  const ctx = startRio(flow());
+  const { SA, thing, rt } = ctx, c = thing.current();
+  pushAcross(ctx);
+  rt.update({ x: c.rock.x, z: c.rock.z, heading: EAST });
+  rt.update({ x: c.rock.x, z: c.rock.z, heading: EAST });
+  const p = { x: c.bank.x + 1, z: c.bank.z, heading: EAST };
+  rt.update(p);
+  rt.update(p);
+  SA.inventory.equip('esponja');
+  for (let i = 0; i < 3; i++) thing.rub(p);
+  assert.equal(ctx.missions.active().stepData.kind, 'photo');
+  return Object.assign(ctx, { c, p });
+}
+
+test('finale: a photo of the dry puppy completes the mission once, pays the stars, keeps the picture and earns the sticker', () => {
+  const ctx = toPhoto();
+  const { SA, thing, missions, said, cheers, tracked, c, p } = ctx;
+  const stars = SA.save.get().stars || 0, stickers = [];
+  thing.onSticker = (e) => stickers.push(e);
+  assert.equal(thing.snap(p).status, 'nocamera', 'the sponge is in hand, not the camera');
+  assert.equal(thing.snap({ x: c.bank.x + 40, z: c.bank.z }).status, 'nocamera');
+  SA.inventory.equip('camara');
+  assert.equal(thing.snap({ x: c.bank.x + 40, z: c.bank.z }).status, 'far', 'too far from the puppy');
+  assert.equal(missions.active().stepData.kind, 'photo');
+  assert.equal(thing.snap(p).status, 'complete');
   assert.equal(missions.active(), null);
   assert.equal(missions.status('rio'), 'done');
   assert.equal(cheers.length, 1);
-  assert.equal(SA.save.get().stars, stars + 2);
-  assert.equal(thing.rub(p).status, 'none', 'nothing more to dry');
-  assert.ok(tracked.some((t) => t[0] === 'log.dried'));
+  assert.equal(SA.save.get().stars, stars + 2, 'the mission reward');
+  assert.equal(SA.save.get().photos.perrito, 1, 'the photo is kept for the album');
+  assert.equal(SA.rescueLog.count('river'), 1);
+  assert.ok(said.includes('phrase:guau'));
+  assert.equal(stickers.length, 1);
+  assert.ok(Array.from(stickers[0].badges.map((b) => b.id)).includes('perrito-feliz'), 'the mission sticker');
+  assert.ok(tracked.some((t) => t[0] === 'log.photo'));
+  assert.equal(thing.snap(p).status, 'none', 'one photo only');
   assert.equal(thing.current().phase, 'locked', 'the bridge stays after the mission');
   assert.ok(thing.sync(), 'and stays after sync with no mission');
+});
+
+test('finale: the mission is replayable and the sticker is never earned a second time; the photo needs the dry puppy and the photo step', () => {
+  const ctx = toPhoto();
+  const { SA, thing, missions, rt, c, p } = ctx;
+  SA.inventory.equip('camara');
+  thing.snap(p);
+  assert.equal(SA.rescueLog.count('river'), 1);
+  assert.equal(missions.start('rio').ok, true, 'a finished mission can be replayed');
+  thing.sync();
+  const c2 = thing.current();
+  assert.equal(c2.pupState.wet, true, 'a replay starts with a wet puppy on the rock');
+  assert.equal(thing.snap({ x: c2.bank.x, z: c2.bank.z }).status, 'none', 'no photo before the photo step');
+  assert.equal(c2.pupState.snapped, undefined);
+  pushAcross(ctx);
+  rt.update({ x: c2.rock.x, z: c2.rock.z, heading: EAST });
+  rt.update({ x: c2.rock.x, z: c2.rock.z, heading: EAST });
+  const p2 = { x: c2.bank.x + 1, z: c2.bank.z, heading: EAST };
+  rt.update(p2);
+  rt.update(p2);
+  SA.inventory.equip('esponja');
+  for (let i = 0; i < 3; i++) thing.rub(p2);
+  SA.inventory.equip('camara');
+  assert.equal(thing.snap(p2).status, 'complete');
+  assert.equal(SA.rescueLog.count('river'), 1, 'the sticker row is logged once');
+  assert.equal(SA.save.get().photos.perrito, 2, 'but the photobook keeps the new picture');
+  assert.equal(missions.status('rio'), 'done');
+  assert.ok(c);
+});
+
+test('finale resume: a reload on the photo step puts the dry puppy on the towel, ready for its picture', () => {
+  const ctx = toPhoto();
+  const { SA, missions } = ctx;
+  const fresh = { addFixed: () => {}, removeFixed: () => {}, near: () => false };
+  const again = SA.missionLog.create({ missions, surfaces: fresh, runtime: { report: (e) => ctx.rt.report(e) }, audio: { say: () => {} }, track: () => {} });
+  again.update({ x: 0, z: 0, heading: 0 }, 0.016);
+  again.update({ x: 0, z: 0, heading: 0 }, 0.016);
+  const ps = again.current().pupState;
+  assert.equal(ps.phase, 'bank');
+  assert.equal(ps.wet, false, 'dry (and wagging) after a reload');
+  SA.inventory.equip('camara');
+  assert.equal(again.snap({ x: again.current().bank.x, z: again.current().bank.z }).status, 'complete');
 });
 
 test('steps advance in order: rubbing or walking to the bank early does nothing', () => {

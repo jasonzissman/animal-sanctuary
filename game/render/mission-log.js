@@ -170,6 +170,7 @@
         pup.position.set(cur.bank.x, gh(cur.bank.x, cur.bank.z) + 0.05, cur.bank.z);
         pup.rotation.set(0, Math.PI / 2 + (cur.pupState.wet ? Math.sin(t * 9) * 0.06 : Math.sin(t * 2) * 0.25), 0);   // shivers while wet, looks around once dry
         wetLook(cur, pup.position, dt);
+        if (SA.wag) { try { if (cur.pupState.wet) SA.wag.rest(pup); else SA.wag.apply(pup, t); } catch (e) { /* the wag is only a flourish */ } }   // AS-0321: dry = happy tail wag
       } else if (!locked) {
         wetLook(cur, cur.pup, dt);
         pup.position.y = cur.pup.y;
@@ -192,6 +193,7 @@
     }
 
     // A tap or click on the wet puppy on the bank rubs it with the sponge (SA.missionLog.rub). Without the sponge in hand it is equipped.
+    // AS-0321: the same tap on the dry puppy with la cámara takes the finale photo (SA.missionLog.snap).
     function tapAt(x, y) {
       var cur = log.sync && log.sync();
       if (!cur || !pup || !cur.pupState || cur.pupState.phase !== 'bank' || !opts.canvas || !opts.camera || (SA.picking && SA.picking.isPaused && SA.picking.isPaused())) return false;
@@ -200,11 +202,13 @@
       var ray = new THREE.Raycaster();
       ray.setFromCamera(new THREE.Vector2(((x - r.left) / r.width) * 2 - 1, -(((y - r.top) / r.height) * 2 - 1)), opts.camera);
       if (!ray.intersectObjects(pup.userData.pickVolumes || [], false).length) return false;
-      var res = log.rub(opts.getPlayer && opts.getPlayer());
-      if (res.status === 'noitem' && SA.inventory && SA.inventory.equip(res.item)) {
-        try { SA.audio.say('item:' + res.item); } catch (e) { /* sound is best effort */ }      // la esponja is now in hand: tap again
+      var who = opts.getPlayer && opts.getPlayer();
+      // Wet: the sponge rubs it; dry (AS-0321): la cámara takes its photo (SA.missionLog.snap). Either tool is equipped on the first tap.
+      var res = cur.pupState.wet ? log.rub(who) : log.snap(who), item = res.status === 'noitem' ? res.item : res.status === 'nocamera' ? (SA.photo ? SA.photo.CAMERA : 'camara') : null;
+      if (item && SA.inventory && SA.inventory.equip(item)) {
+        try { SA.audio.say('item:' + item); } catch (e) { /* sound is best effort */ }      // the tool is now in hand: tap again
       }
-      return res.status === 'rub' || res.status === 'done';
+      return res.status === 'rub' || res.status === 'done' || res.status === 'complete' || res.status === 'step';
     }
     if (opts.canvas && opts.canvas.addEventListener && SA.picking && SA.picking.createTapTracker) {
       var tracker = SA.picking.createTapTracker();

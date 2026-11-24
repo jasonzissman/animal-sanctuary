@@ -21,13 +21,18 @@
  *       (default 'lavar' = la esponja, game/data/actions.js) `rubs` times (default 3) makes it seco and says "seco". The puppy is
  *       `cur.pupState` { phase: 'rock' | 'held' | 'bank', wet, rubs, need }; the render shows wet as a dark tint and drips.
  *   SA.missionLog.rub(player?)    -> { status: 'none' | 'far' | 'noitem' | 'rub' | 'done', have?, need? }  one sponge tap on the puppy
+ *   Finale (AS-0321, slice 4 of AS-0182): once dry the puppy wags its tail (SA.wag, drawn by the render). The row ends with a 'photo' step
+ *       (target = the animal id): SA.missionLog.snap(player?) is a tap on the puppy with la cámara in hand, within 9 of the bank. It sends
+ *       the photo event (the runtime completes the mission and pays the reward), keeps the picture in the album (SA.photo.record) and
+ *       logs one rescue row { kind: 'river', key: <mission id> } for the sticker (badge 'perrito-feliz', once, never again on a replay).
+ *       -> { status: 'none' | 'nocamera' | 'far' | 'complete' | ... }. SA.missionLog.onSticker({ mission, badges }) is the hook for main.js.
  *   SA.missionLog.solids()        -> [[x, z, r], ...] the sliding log's footprint as circles (none once locked: you walk ON it)
  *   SA.missionLog.logX()          -> the log centre's x now          SA.missionLog.logSpan() the west and east end x
  *   SA.missionLog.locate(id)      -> { x, z, r } | null   the rock, only once the log is locked (wading to it does not count)
  *   SA.missionLog.target(step)    -> { x, z, role, id } | null   where the step points the compass: the log (push), the rock (goTo)
  *   SA.missionLog.current()       the state without re-reading the mission;  onChange(fn) -> unsubscribe
  *   SA.missionLog.setSolids(listOrFn)  the walk list kept clear when placing (scene.js sets it)
- *   SA.missionLog.create({ missions?, audio?, track?, runtime?, surfaces?, solids?, later?, carry?, inventory? })   a separate instance (tests)
+ *   SA.missionLog.create({ missions?, audio?, track?, runtime?, surfaces?, solids?, later?, carry?, inventory?, photo?, rescueLog? })   a separate instance (tests)
  * Rendering: game/render/mission-log.js.
  */
 (function (root) {
@@ -40,7 +45,7 @@
   var WEST = 7.7, EAST = 3.0;                 // the log centre starts this far west of the rock's centre and ends this far west of it
   var PUSH_SPEED = 2.2, TOUCH_BACK = 1.15, TOUCH_FWD = 0.25, TOUCH_SIDE = R + 0.65, FACING = 0.4;
   var ROCK_REACH = ROCK_R + 0.5, TRIES = 400;
-  var BANK_OFF = 1.0, BANK_REACH = 2.5, RUB_REACH = 4, RUBS = 3;   // the towel lies this far west of the log's start; sponge range; default rubs
+  var BANK_OFF = 1.0, BANK_REACH = 2.5, RUB_REACH = 4, RUBS = 3, SNAP_REACH = 9;   // the towel lies this far west of the log's start; sponge range; default rubs
 
   function ok(spec) { return !!spec && typeof spec.rock === 'string' && typeof spec.log === 'string' && typeof spec.animal === 'string'; }
 
@@ -181,8 +186,9 @@
     // The puppy's trip (AS-0320): picked up on the rock, set down on the bank's towel, then sponged dry.
     function carrying(player, s) {
       var ps = cur.pupState, id = cur.spec.animal, c = carryApi();
-      if (ps.phase === 'rock' && s && (s.kind === 'deliver' || s.kind === 'dry')) {
-        if (s.kind === 'dry') toBank(true);                                 // resumed (a reload) at the drying step: it is on the towel (never stuck)
+      if (ps.phase === 'rock' && s && (s.kind === 'deliver' || s.kind === 'dry' || s.kind === 'photo')) {
+        if (s.kind === 'photo') { ps.wet = false; toBank(true); }           // resumed (a reload) at the photo step: it is dry on the towel, wagging
+        else if (s.kind === 'dry') toBank(true);                            // resumed at the drying step: it is on the towel (never stuck)
         else if (c.pickUp(id, {})) ps.phase = 'held';                       // resumed at the deliver step: it is in the arms at once
       } else if (ps.phase === 'rock' && s && s.kind === 'carry' && s.item === id && player &&
           Math.hypot(player.x - cur.rock.x, player.z - cur.rock.z) <= ROCK_REACH) {
@@ -225,6 +231,29 @@
       return { status: 'done', have: ps.rubs, need: ps.need };
     }
 
+    // The finale (AS-0321): a tap on the dry, wagging puppy with la cámara in hand while the 'photo' step is current takes its photo.
+    // It goes into the album (SA.photo.record), completes the mission (stars) and logs the mission sticker (rescue kind 'river').
+    function snap(player) {
+      var a = active(), s = a && a.stepData, ps = cur && cur.pupState;
+      if (!cur || !cur.bank || !s || s.kind !== 'photo' || ps.phase !== 'bank' || ps.wet || ps.snapped) return { status: 'none' };
+      var inv = opts.inventory || SA.inventory;
+      if (!inv || inv.equipped() !== 'camara') return { status: 'nocamera' };
+      if (player && Math.hypot(player.x - cur.bank.x, player.z - cur.bank.z) > SNAP_REACH) return { status: 'far' };
+      sfx('shutter');
+      var r = null;
+      try { r = (opts.runtime || SA.missionRuntime).report({ type: 'photo', target: cur.spec.animal }); } catch (e) { r = null; }
+      if (!r || (r.status !== 'complete' && r.status !== 'step')) return r || { status: 'none' };
+      ps.snapped = true;
+      emit();
+      try { (opts.photo || SA.photo).record(cur.spec.animal); } catch (e) { /* the album never blocks play */ }
+      track('log.photo', { id: a.id });
+      var rec = { earned: [] };
+      try { rec = (opts.rescueLog || SA.rescueLog).record({ kind: 'river', mission: a.id, animal: cur.spec.animal, key: a.id }) || rec; } catch (e) { /* the log never blocks play */ }
+      say('phrase:guau');
+      if (api.onSticker) { try { api.onSticker({ mission: a.id, badges: rec.earned || [] }); } catch (e) { /* the view never breaks play */ } }
+      return r;
+    }
+
     function solids() {
       if (!cur || cur.phase !== 'ready') return [];
       if (cache) return cache;
@@ -246,15 +275,16 @@
       if (step.kind === 'goTo' && step.place === cur.rock.id) return { x: cur.rock.x, z: cur.rock.z, role: 'rock', id: cur.rock.id };
       if (!cur.bank) return null;
       if (step.kind === 'carry' && step.item === cur.pup.id && cur.pupState.phase === 'rock') return { x: cur.rock.x, z: cur.rock.z, role: 'item', id: cur.pup.id };
-      if ((step.kind === 'deliver' && step.to === cur.bank.id) || (step.kind === 'dry' && step.item === cur.pup.id)) return { x: cur.bank.x, z: cur.bank.z, role: 'to', id: cur.bank.id };
+      if ((step.kind === 'deliver' && step.to === cur.bank.id) || (step.kind === 'dry' && step.item === cur.pup.id) || (step.kind === 'photo' && step.target === cur.pup.id)) return { x: cur.bank.x, z: cur.bank.z, role: 'to', id: cur.bank.id };
       return null;
     }
 
-    return { sync: sync, update: update, rub: rub, solids: solids, locate: locate, target: target, current: function () { return cur; }, logX: logX,
+    var api = { sync: sync, update: update, rub: rub, snap: snap, onSticker: null, solids: solids, locate: locate, target: target, current: function () { return cur; }, logX: logX,
       logSpan: function () { return cur ? [logX() - HALF, logX() + HALF] : null; },
       setSolids: function (s) { solidsSrc = s; },
       onChange: function (fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; },
       place: place, create: create, PUSH_SPEED: PUSH_SPEED, HALF: HALF, ROCK_REACH: ROCK_REACH };
+    return api;
   }
 
   SA.missionLog = create();

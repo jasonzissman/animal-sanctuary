@@ -103,7 +103,10 @@
       var a = null;
       try { a = missions().active(); } catch (e) { a = null; }
       var s = a && a.stepData;
-      if (cur.phase === 'ground' && player && s && s.kind === 'carry' && s.item === cur.spec.item &&
+      if (cur.phase === 'ground' && s && s.kind === 'deliver' && s.item === cur.spec.item) {
+        // Resumed (a reload) on the deliver step: the hand is not saved, so the egg is back in hand at once (never stuck, AS-0238).
+        if (carry().pickUp(cur.spec.item, {})) { setPhase('held'); track('carry.resume', { item: cur.spec.item }); }
+      } else if (cur.phase === 'ground' && player && s && s.kind === 'carry' && s.item === cur.spec.item &&
           Math.hypot(player.x - cur.item.x, player.z - cur.item.z) <= PICK_REACH) {
         if (carry().pickUp(cur.spec.item, { fragile: !!s.fragile })) {
           setPhase('held');

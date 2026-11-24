@@ -375,7 +375,8 @@ current; when your change sets or changes something future tickets must follow, 
   bank, egg 5-7 units from it, seeded like `SA.missionSpawn`), walks the kid up to the egg to pick it up automatically on the `carry` step
   (`SA.carry.pickUp`; says "el huevo"), and says "el nido" when the `deliver` step drops it there (vocab keys `thing:huevo`, `thing:nido`).
   `SA.missionRuntime` asks it (`opts.thing`) for `update`, `locate` and `target` (the compass) after the spawned animals. The egg stays
-  in the nest after the mission. `render/mission-carry.js` draws the egg and nest from primitives; the steps are the generic carry / deliver
+  in the nest after the mission (in memory only: after a reload the egg and nest are gone until the mission is replayed). The hand is not
+  saved, so a reload on the `deliver` step puts the egg straight back in hand (never stuck, AS-0238). `render/mission-carry.js` draws the egg and nest from primitives; the steps are the generic carry / deliver
   kinds, so new carry missions are data rows. Mission 2 ends on the placement for now (a photo step can follow in a later slice).
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist

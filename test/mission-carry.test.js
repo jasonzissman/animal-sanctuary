@@ -177,3 +177,26 @@ test('a replay re-places the egg for the new run', () => {
   assert.equal(again.phase, 'ground');
   assert.notEqual(again, cur);
 });
+
+test('a reload on the deliver step puts the egg back in hand, so the kid can still finish', () => {
+  const ctx = startEgg(setup());
+  const first = ctx.thing.current();
+  ctx.rt.update(at(first.item));                                 // picked up: now on the deliver step
+  assert.equal(ctx.missions.active().stepData.kind, 'deliver');
+  // "reload": the save keeps the step; a fresh carry + mission-carry + runtime know nothing about the hand
+  const carry = ctx.SA.carry.create({ track: () => {} });
+  const said = [];
+  const thing = ctx.SA.missionCarry.create({ missions: ctx.missions, carry, audio: { say: (k) => said.push(k) }, track: () => {} });
+  const rt = ctx.SA.missionRuntime.create({ missions: ctx.missions, carry, thing, spawn: null, celebrate: () => {}, track: () => {} });
+  thing.sync();
+  assert.equal(thing.current().phase, 'ground');
+  assert.equal(carry.holds('huevo'), false);
+  rt.update(at(thing.current().to, 8, 0));
+  assert.equal(carry.holds('huevo'), true, 'back in hand without walking to the egg');
+  assert.equal(thing.current().phase, 'held');
+  const res = rt.update(at(thing.current().to, 1, 0));
+  assert.equal(res.status, 'complete');
+  thing.update(at(thing.current().to));
+  assert.equal(thing.current().phase, 'placed');
+  assert.ok(said.includes('thing:nido'));
+});

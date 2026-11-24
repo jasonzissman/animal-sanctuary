@@ -353,7 +353,14 @@ current; when your change sets or changes something future tickets must follow, 
   `ratoncampo` / `ratoncito`, the baby is `babyParts` of the adult), speaks `thing:ratones` on arrival and `thing:familia` on the photo, and
   `snap()` (a tap on a mouse with la cámara, `game/render/mission-pantry.js`) completes the mission and logs `{ kind: 'pantry' }` for the
   sticker `despensa-secreta`. The tree is the prop row `arbolhueco` (`mission: true` = never in the sandbox tray; builder `hollowtree`
-  in `game/render/hollow-tree.js`). Later slices add the tracks that lead to the tree.
+  in `game/render/hollow-tree.js`).
+  **Mission 8 trail (AS-0347, slice 2):** a first step `{ kind: 'trail', trail: 'huellas' }` ("Sigue las huellas" 🐾; new step kind, event
+  `trailed`) precedes the `goTo`. `pantry.trail: { id, say: { start } }` declares it; `SA.missionTrail` (`game/mission-trail.js`, pure) lays paw
+  prints (`las huellas`, spoken with `seguir` after the step line) and strawberry crumbs from an empty basket beside the station door to the tree's
+  doorstep, along a dry route from `SA.trailRoute` (`game/trail-route.js`: A* over dry cells, through the river's ford, round the station), with a
+  raised log across the way to walk under. `game/render/mission-trail.js` shows the prints ONLY while the step is active (the next 3 glow and
+  pulse); the basket and log stay for the whole mission. The compass points 5 prints ahead of your progress. The step finishes within 6.6 of
+  the tree (so a straight dash works too: no fail state), then `goTo` / `photo` go on as before. Slice 3 adds the rest of the mission.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

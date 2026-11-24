@@ -47,6 +47,8 @@
  *           the hollow tree) stands hidden in the bosque with the mouse family inside (animal ids; `babies` = 1..5 of `baby`); a 'goTo' step
  *           { place } walks up to it and a 'photo' step { target: place } photographs the family. `say.arrive` / `say.photo` are vocab keys spoken once.
  *           game/mission-pantry.js owns it; nothing special-cases the animal id.
+ *           AS-0347: `pantry.trail` { id, say?: { start } } is the footprint-and-crumb trail from the empty basket at the station to the tree;
+ *           a 'trail' step { trail: id } finishes when you reach the tree's doorstep (game/mission-trail.js). `say.start` = vocab key(s) spoken at the step.
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -166,6 +168,11 @@
         Object.keys(pa.say).forEach(function (k) { if (['arrive', 'photo'].indexOf(k) < 0 || typeof pa.say[k] !== 'string' || !pa.say[k]) fail('pantry.say.' + k, 'must be a vocab key for arrive, photo'); });
       }
     }
+    if (m.pantry && m.pantry.trail !== undefined) {
+      var tr = m.pantry.trail, ts = tr && tr.say && tr.say.start;
+      if (!tr || typeof tr !== 'object' || Array.isArray(tr) || typeof tr.id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(tr.id)) fail('pantry.trail', 'must be { id, say? } with a lowercase id');
+      if (tr.say !== undefined && (!tr.say || typeof tr.say !== 'object' || [].concat(ts || []).some(function (x) { return typeof x !== 'string' || !x; }))) fail('pantry.trail.say', 'must be { start: vocab key or list }');
+    }
     m.steps.forEach(function (s, i) {
       if (s.gives !== undefined && (typeof s.gives !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.gives))) fail('steps[' + i + '].gives', 'must be a lowercase vocab id string');
     });
@@ -270,12 +277,14 @@
     // Mission 8 (AS-0346, slice 1 of AS-0187): the strawberry thieves. A hidden hollow tree in the bosque holds a pantry piled with strawberries
     // and a mouse family (mamá, papá, 3 babies), placed by game/mission-pantry.js only while this mission runs. Walk up to the tree (goTo), then
     // photograph the family with la cámara; the photo (target = the place, so a wild mouse never completes it) ends the mission and earns the
-    // sticker 'despensa-secreta'. Following the tracks to the tree comes in a later slice.
+    // sticker 'despensa-secreta'. AS-0347: the first step follows the footprints and crumbs from the empty basket at the station to the tree (game/mission-trail.js).
     { id: 'ladrones', n: 8, es: 'Los ladrones de fresas', en: 'The strawberry thieves', icon: '🍓',
       intro: { es: '¡Faltan fresas!', en: 'Strawberries are missing!', icon: '🍓' },
       pantry: { tree: 'arbolhueco', place: 'despensa', family: { mama: 'ratoncampo', papa: 'ratoncampo', baby: 'ratoncito', babies: 3 },
+        trail: { id: 'huellas', say: { start: ['thing:huellas', 'phrase:seguir'] } },
         say: { arrive: 'thing:ratones', photo: 'thing:familia' } },
-      steps: [{ kind: 'goTo', place: 'despensa', line: { es: 'Busca la despensa', icon: '🌳', en: 'Find the pantry' } },
+      steps: [{ kind: 'trail', trail: 'huellas', line: { es: 'Sigue las huellas', icon: '🐾', en: 'Follow the tracks' } },
+        { kind: 'goTo', place: 'despensa', line: { es: 'Busca la despensa', icon: '🌳', en: 'Find the pantry' } },
         { kind: 'photo', target: 'despensa', line: { es: 'Foto de la familia', icon: '📷', en: 'Family photo' } }],
       reward: { stars: 2 } }
   ]);

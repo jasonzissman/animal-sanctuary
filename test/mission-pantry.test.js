@@ -31,6 +31,7 @@ function startLadrones(ctx) {
   const r = ctx.missions.start('ladrones');
   assert.equal(r.ok, true, JSON.stringify(r));
   ctx.pantry.sync();
+  assert.equal(ctx.rt.report({ type: 'trailed', trail: 'huellas' }).status, 'step', 'AS-0347: the footprints step comes first; these tests start after it');
   return ctx;
 }
 const step = (ctx) => ctx.missions.active().stepData;
@@ -44,11 +45,12 @@ test('data: mission 8 follows mission 7, one intro line of <= 4 words, steps goT
   assert.equal(m.id, 'ladrones');
   assert.equal(typeof m.intro, 'object');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['goTo', 'photo']);
-  assert.equal(m.steps[0].place, 'despensa');
-  assert.equal(m.steps[1].target, 'despensa', 'a place, so a photo of some wild mouse never completes it');
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['trail', 'goTo', 'photo']);
+  assert.equal(m.steps[0].trail, m.pantry.trail.id, 'AS-0347: the first step follows the footprints');
+  assert.equal(m.steps[1].place, 'despensa');
+  assert.equal(m.steps[2].target, 'despensa', 'a place, so a photo of some wild mouse never completes it');
   m.steps.forEach((s) => assert.ok(s.line.es.split(/\s+/).length <= 4 && s.line.icon));
-  assert.deepEqual([m.steps[0].line.es, m.steps[1].line.es], ['Busca la despensa', 'Foto de la familia']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.line.es)), ['Sigue las huellas', 'Busca la despensa', 'Foto de la familia']);
   SA.missionRun.validate(m.steps);
   const f = m.pantry.family;
   assert.equal(f.babies, 3);
@@ -105,7 +107,8 @@ test('place: a hidden hollow tree on flat dry ground in the bosque with mamá, p
   const cur = pantry.current(), t = cur.tree;
   assert.equal(SA.map.biomeAt(t.x), 'bosque');
   assert.equal(SA.map.isWater(t.x, t.z), false);
-  assert.ok(Math.hypot(t.x, t.z) >= 22, 'hidden away from the station');
+  const sp = SA.station.spawn();
+  assert.ok(Math.hypot(t.x - sp.x, t.z - sp.z) >= 22, 'hidden away from the station');
   assert.equal(cur.family.length, 5);
   assert.deepEqual(Array.from(cur.family.map((f) => f.role)), ['mama', 'papa', 'baby', 'baby', 'baby']);
   assert.deepEqual(Array.from(new Set(cur.family.map((f) => f.animal))).sort(), ['ratoncampo', 'ratoncito']);
@@ -180,6 +183,7 @@ test('a replay is a fresh seed, pays no second sticker or stars', () => {
   assert.equal(pantry.snap({ x: t.x, z: t.z + 2 }).status, 'complete');
   const stars = SA.save.get().stars || 0;
   assert.equal(missions.start('ladrones').replay, true);
+  assert.equal(ctx.rt.report({ type: 'trailed', trail: 'huellas' }).status, 'step', 'a replay follows the footprints again');
   pantry.sync();
   assert.notEqual(pantry.current().key, first.key);
   const t2 = pantry.current().tree;
@@ -198,7 +202,7 @@ test('each step line is spoken through audio and small tasks pause while the mis
   assert.equal(pill.update(), true);
   frame(ctx, { x: t.x, z: t.z + 2, y: t.y });
   pill.update();
-  assert.deepEqual(spoken, ['Busca la despensa', 'Foto de la familia']);
+  assert.deepEqual(spoken, ['Busca la despensa', 'Foto de la familia'], 'the trail step line was spoken (and shown) before these');
   assert.deepEqual(shown, spoken);
   const focus = SA.focus.create({ missions: ctx.missions });
   assert.equal(focus.active(), 'mission');

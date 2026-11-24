@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const FILES = ['game/vendor/three.min.js', 'game/sa.js', 'game/picking.js', 'game/mission-sky.js', 'game/render/telescope.js', 'game/render/sky-view.js', 'game/ui/sky-view-ui.js'];
+const FILES = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/constellations.js', 'game/constellations.js', 'game/picking.js', 'game/mission-sky.js', 'game/render/telescope.js', 'game/render/sky-view.js', 'game/ui/sky-view-ui.js'];
 
 function world() {
   const ctx = vm.createContext({ console });
@@ -60,9 +60,10 @@ test('sky view: renders only while open, aims the camera from yaw / pitch, draws
   assert.ok(Math.abs(v.camera.rotation.x - 0.6) < 1e-9 && Math.abs(v.camera.rotation.y + 0.4) < 1e-9, 'pitch up, yaw turns the other way round the y axis');
   const kinds = {};
   v.scene.traverse((o) => { kinds[o.type] = (kinds[o.type] || 0) + 1; });
-  assert.equal(kinds.Points, 2, 'small and big stars');
+  assert.equal(kinds.Points, 2 + 3, 'small and big stars, plus the brighter stars of each of the 3 constellations');
+  assert.equal(kinds.LineSegments, 3, 'one line set per constellation (hidden until found)');
   assert.ok(kinds.Mesh > 30, 'dome, moon and horizon hills');
-  const moon = v.scene.children.find((c) => c.type === 'Group');
+  const moon = v.scene.children.find((c) => c.type === 'Group' && c.children[0].type === 'Mesh');
   assert.ok(moon && Math.hypot(moon.position.x, moon.position.y, moon.position.z) > 40, 'the moon sits far out on the dome');
   assert.equal(v.tapAt(50, 50), false, 'taps are ignored while the view is open');
   open = false;
@@ -91,8 +92,8 @@ test('controls: opening shows the layer, the exit button closes, drag and keys a
   const keyHandlers = {};
   ctx.addEventListener = (t, f) => { keyHandlers[t] = f; };
   const ui = SA.skyViewUi.create(doc, { mission: M, onToggle: (on) => toggles.push(on), raf: () => 1 });
-  const [layer] = doc.body.children, [flash, exit, cam] = layer.children;
-  assert.ok(flash && exit && cam);
+  const [layer] = doc.body.children, [flash, prog, pop, exit, cam] = layer.children;
+  assert.ok(flash && prog && pop && exit && cam);
   assert.match(layer.style.cssText, /display:none/);
   M.onView(true);
   assert.equal(ui.isOpen(), true);

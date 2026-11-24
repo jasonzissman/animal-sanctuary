@@ -184,6 +184,8 @@ globalThis.SA_MANIFEST = {
     'game/mission-race-pace.js',
     'game/mission-race.js',
     'game/mission-letter.js',
+    'game/data/constellations.js',
+    'game/constellations.js',
     'game/mission-sky.js',
     'game/mission-gather.js',
     'game/trail-route.js',

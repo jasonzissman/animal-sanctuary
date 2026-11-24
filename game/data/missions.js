@@ -462,12 +462,14 @@
         { kind: 'photo', target: 'torre', line: { es: 'Foto desde arriba', icon: '📷', en: 'Photo from the top' } }],
       reward: { stars: 2 } },
     // Mission 12 (AS-0371, slice 1 of AS-0191): Noche de estrellas. It can only START at night (`night: true`; by day the board says "wait for night").
-    // Climb the station roof and tap the telescope (the 'look' step opens the night-sky view: drag or arrows / WASD to aim, a big exit button), then take a
+    // Climb the station roof and tap the telescope (the 'look' step opens the night-sky view: drag, tap or arrows / WASD to aim, a big exit button), aim at the
+    // 3 animal constellations (the 'stargaze' step: each lights up with lines and is spoken, AS-0372), then take a
     // photo of the sky with the camera button in that view: it goes into the album ('el cielo' page) and ends the mission with the sticker 'noche-de-estrellas'.
     { id: 'estrellas', n: 12, es: 'Noche de estrellas', en: 'Starry night', icon: '🔭', night: true,
       intro: { es: '¡Mira las estrellas!', en: 'Look at the stars!', icon: '🌟' },
       sky: { place: 'cielo', say: { night: 'thing:noche', sky: 'thing:cielo', moon: 'thing:luna', stars: 'thing:estrellas' } },
       steps: [{ kind: 'look', target: 'cielo', line: { es: 'Mira el telescopio', icon: '🔭', en: 'Look through the telescope' } },
+        { kind: 'stargaze', target: 'cielo', n: 3, line: { es: 'Busca las constelaciones', icon: '✨', en: 'Find the constellations' } },   // AS-0372: 🐢 🐰 🦅 (game/data/constellations.js)
         { kind: 'photo', target: 'cielo', line: { es: 'Foto del cielo', icon: '📷', en: 'Photo of the sky' } }],
       reward: { stars: 2 } }
   ]);

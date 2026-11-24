@@ -63,6 +63,7 @@
     { id: 'goTo', event: 'arrived', required: { place: 'string' }, match: { place: 'place' } },
     { id: 'talk', event: 'talked', required: { who: 'string' }, match: { who: 'who' } },
     { id: 'look', event: 'looked', required: { target: 'string' }, match: { target: 'target' } },   // AS-0371: look through the roof telescope (SA.missionSky reports it)
+    { id: 'stargaze', event: 'stargazed', required: { target: 'string', n: 'number' }, match: { target: 'target' }, progress: { total: 'n' } },   // AS-0372: find n constellations in the telescope view (SA.missionSky reports each)
     { id: 'photo', event: 'photo', required: {}, optional: { target: 'string' }, match: { target: 'target' } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

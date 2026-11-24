@@ -8,7 +8,7 @@ import { loadGame } from './helpers/vm.js';
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/plants.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/props.js', 'game/data/foods.js', 'game/data/items.js', 'game/data/hand-models.js', 'game/save.js', 'game/mountain-trail.js', 'game/map.js',
   'game/station.js', 'game/data/step-kinds.js', 'game/mission-run.js', 'game/data/missions.js', 'game/missions.js', 'game/missions-board.js',
-  'game/data/badges.js', 'game/album.js', 'game/badges.js', 'game/rescue-log.js', 'game/mission-sky.js', 'game/mission-runtime.js'];
+  'game/data/badges.js', 'game/album.js', 'game/badges.js', 'game/rescue-log.js', 'game/data/constellations.js', 'game/constellations.js', 'game/mission-sky.js', 'game/mission-runtime.js'];
 
 const ALL = ['mama', 'huevo', 'rio', 'fiesta', 'doctor', 'aguila', 'censo', 'ladrones', 'hogar', 'carrera', 'mensaje'];
 
@@ -30,6 +30,8 @@ const json = (v) => JSON.parse(JSON.stringify(v));
 const step = (ctx) => ctx.missions.active().stepData;
 function unlock(ctx) { for (const id of ALL) { assert.equal(ctx.missions.start(id).ok, true, id); ctx.missions.complete(); } }
 function startEstrellas(ctx) { unlock(ctx); const r = ctx.missions.start('estrellas'); assert.equal(r.ok, true, JSON.stringify(r)); ctx.sky.sync(); return ctx; }
+// AS-0372: aim the open view straight at every constellation (the 3rd one moves the mission on to the photo step).
+function findAll(ctx) { for (const c of ctx.SA.data.all('constellations')) ctx.sky.aim(c.center.yaw - ctx.sky.view().yaw, c.center.pitch - ctx.sky.view().pitch); }
 function roofPlayer(ctx) { const t = ctx.SA.station.layout().telescope; return { x: t.x + 1.2, z: t.z, y: t.y }; }
 
 test('data: mission 12 follows mission 11, night only, one intro line of <= 4 words, look then photo steps; it validates', () => {
@@ -39,7 +41,8 @@ test('data: mission 12 follows mission 11, night only, one intro line of <= 4 wo
   assert.equal(m.id, 'estrellas');
   assert.equal(m.night, true);
   assert.ok(m.intro.es.split(/\s+/).length <= 4 && m.intro.icon && !Array.isArray(m.intro));
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['look', 'photo']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['look', 'stargaze', 'photo']);
+  assert.equal(m.steps[1].n, SA.data.all('constellations').length, 'one star picture per count');
   m.steps.forEach((s) => { assert.ok(s.line.es.split(/\s+/).length <= 4 && s.line.icon, s.line.es); assert.equal(s.target, m.sky.place); });
   SA.missionRun.validate(m.steps);
   assert.ok(SA.data.get('badges', 'noche-de-estrellas'));
@@ -132,10 +135,14 @@ test('flow: look through the telescope, take the sky photo: album page, sticker,
   assert.equal(sky.open({ x: tele.x, z: tele.z, y: 0 }).status, 'far', 'on the ground below the roof: not on the roof');
   assert.equal(sky.open(player).status, 'step');
   assert.equal(sky.view().open, true);
+  assert.equal(step(ctx).kind, 'stargaze');
+  assert.equal(sky.view().photo, false, 'no photo until the constellations are found');
+  assert.equal(sky.snap().status, 'none');
+  assert.equal(ctx.rt.target(), null, 'no compass arrow once through the telescope');
+  assert.deepEqual(said.filter((k) => k.startsWith('thing:')), ['thing:noche', 'thing:cielo', 'thing:luna', 'thing:estrellas']);
+  findAll(ctx);
   assert.equal(step(ctx).kind, 'photo');
   assert.equal(sky.view().photo, true);
-  assert.equal(ctx.rt.target(), null, 'no compass arrow on the photo step');
-  assert.deepEqual(said.filter((k) => k.startsWith('thing:')), ['thing:noche', 'thing:cielo', 'thing:luna', 'thing:estrellas']);
   assert.equal(SA.album.has('cielo'), false);
   const r = sky.snap();
   assert.equal(r.status, 'complete');
@@ -159,9 +166,10 @@ test('flow: the photo needs the open view and the photo step; closing and re-ope
   const { sky, said } = ctx, player = roofPlayer(ctx);
   assert.equal(sky.snap().status, 'none', 'no view, no photo');
   sky.open(player);
+  findAll(ctx);
   assert.equal(sky.close(), true);
   assert.equal(sky.close(), false);
-  assert.equal(step(ctx).kind, 'photo', 'the look step stays done');
+  assert.equal(step(ctx).kind, 'photo', 'the look and star steps stay done');
   assert.equal(sky.snap().status, 'none', 'closed view: no photo');
   const before = said.filter((k) => k.startsWith('thing:')).length;
   sky.open(player);
@@ -216,6 +224,7 @@ test('stars: deterministic, above the horizon, a few bigger ones', () => {
 test('replay: a finished night mission can be replayed at night and gives no second reward', () => {
   const ctx = startEstrellas(setup());
   ctx.sky.open(roofPlayer(ctx));
+  findAll(ctx);
   ctx.sky.snap();
   ctx.state.night = false;
   assert.equal(ctx.missions.start('estrellas').reason, 'night');
@@ -223,6 +232,9 @@ test('replay: a finished night mission can be replayed at night and gives no sec
   assert.equal(ctx.missions.start('estrellas').replay, true);
   ctx.sky.sync();
   ctx.sky.open(roofPlayer(ctx));
+  assert.equal(ctx.sky.view().found, 0, 'a replay starts with the constellations dark again');
+  assert.equal(ctx.sky.snap().status, 'none', 'and the photo waits for all three again');
+  findAll(ctx);
   const r = ctx.sky.snap();
   assert.equal(r.status, 'complete');
   assert.equal(r.reward, null);

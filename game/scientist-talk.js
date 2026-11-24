@@ -29,6 +29,8 @@
     carry: { es: '¡Lleva!', icon: '🎒', key: 'phrase:pasolleva' },
     deliver: { es: '¡Entrega!', icon: '📬', key: 'phrase:pasoentrega' },
     collect: { es: '¡Recoge!', icon: '🧺', key: 'phrase:pasorecoge' },
+    touch: { es: '¡Toca!', icon: '👆', key: 'phrase:pasotoca' },
+    fill: { es: '¡Llena!', icon: '💧', key: 'phrase:pasollena' },
     'go-to': { es: '¡Ve allí!', icon: '📍', key: 'phrase:pasove' },
     photo: { es: 'Tómale una foto', icon: '📷', key: 'phrase:tomalefoto' }
   };

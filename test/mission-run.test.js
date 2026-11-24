@@ -119,7 +119,7 @@ test('validation: unknown kind, missing and mistyped params fail with a clear er
 
 test('every kind in the registry has a unit case or is photo, and the kinds list is complete', () => {
   const SA = load();
-  assert.deepEqual([...SA.missionRun.kinds()].sort(), ['carry', 'collect', 'deliver', 'dry', 'find', 'follow', 'goTo', 'hatch', 'help', 'invite', 'party', 'photo', 'push', 'talk']);
+  assert.deepEqual([...SA.missionRun.kinds()].sort(), ['carry', 'collect', 'deliver', 'dry', 'fill', 'find', 'follow', 'goTo', 'hatch', 'help', 'invite', 'party', 'photo', 'push', 'talk', 'touch']);
 });
 
 test('step-kind rows are validated at load; a new kind is just a new row', () => {

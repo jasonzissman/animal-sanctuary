@@ -441,6 +441,16 @@ current; when your change sets or changes something future tickets must follow, 
   replayable on the board), goes into the album (`SA.photo.record`) and logs one rescue row `{ kind: 'party', key: <mission id> }` → the sticker
   `fiesta-feliz` (once; `onSticker` in main.js shows it). A reload on the photo step resumes the party quietly. The tree, monkey and friends
   disappear when the mission ends (as for every mission piece).
+  **Mission 5, Doctor del santuario (AS-0331, slice 1 of AS-0184):** row `doctor` (n 5, unlocks after Mission 4; intro '¡El camello está
+  enfermo!'). Steps: `touch` {animal 'camello', part 'frente'} → `carry` 'cubo' → `fill` 'cubo' → `deliver` 'cubo' to 'camello'. New step
+  kinds `touch` (event `touched`) and `fill` (event `filled`) are plain `step-kinds.js` rows. `doctor: { animal, part, item, say? }`
+  (validated in `data/missions.js`) is placed by `SA.missionDoctor` (`mission-doctor.js`, pure; joins the runtime's world-thing list): a
+  dedicated sick camel stands 11-17 from the oasis (not a herd camel) and the bucket on the pool rim, only while the mission runs. A tap on
+  the camel's invisible, enlarged forehead sphere (`userData { animalId, part: 'frente' }`, `render/mission-doctor.js`, its own raycast like
+  the baby's tap) calls `SA.missionDoctor.touch`, which needs the kid within 4.2 (else "¡Acércate!") and speaks `say.touch`
+  ('tiene fiebre'). Walking up picks the bucket up (SA.carry slot), walking to the pool holding it fills it (`say.fill` 'el agua'), and
+  `SA.carry.deliver` drops it at the camel. A reload on fill / deliver puts the bucket back in hand. The renderer shows the droopy
+  nose-down pose, a bobbing thermometer and blue water in the held bucket. Later slices add the care steps and the recovery.
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

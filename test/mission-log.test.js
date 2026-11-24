@@ -53,7 +53,7 @@ function pushAcross(ctx, frames = 600) {
 test('data: mission 3 follows mission 2, one intro line of <= 4 words, steps push, cross, pick up, take to the bank, dry, photo', () => {
   const { SA, missions } = setup();
   const rows = SA.data.all('missions');
-  assert.deepEqual(Array.from(rows.map((m) => m.n)), [1, 2, 3, 4, 5]);
+  assert.deepEqual(Array.from(rows.map((m) => m.n)), [1, 2, 3, 4, 5, 6]);
   const m = rows[2];
   assert.equal(m.id, 'rio');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);

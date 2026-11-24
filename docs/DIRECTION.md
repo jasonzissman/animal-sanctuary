@@ -468,6 +468,16 @@ current; when your change sets or changes something future tickets must follow, 
   then; healthy it stands, hops, loses the thermometer and the umbrella (`say.healthy` '¡Estoy sano!'). `SA.missionDoctor.snap(player?)` (a tap
   on it with la cámara, render/mission-doctor.js) records the photo, completes the mission (stars) and logs a `{ kind: 'doctor' }` rescue row
   → sticker `camello-sano`; `onSticker` is hooked in main.js. Later missions needing "wait until tomorrow" reuse the `recover` step kind.
+- **Mission 6, El nido del águila (AS-0336, slice 1 of AS-0185):** row `aguila` (n 6, unlocks after Mission 5; intro '¡Busca la pluma!' + one
+  '¡Vamos!'). Steps are generic kinds: `collect` { item: 'pluma', n: 1 }, `goTo` 'cima' (the flat top of peak `nest.summit`), `goTo`
+  'nido-aguila' (the nest peak `nest.peak`). `nest: { item, summit, peak, summitPlace, nestPlace, chick, mama, say? }` (validated in
+  `data/missions.js`) is owned by `SA.missionNest` (`mission-nest.js`, pure; joins the runtime's world-thing list; `render/mission-nest.js`
+  draws it): la pluma (item row `pluma`, a hand model too) lies a step off the trail's lower leg, walking up to it puts it in the inventory
+  (`SA.inventory`) and reports `collected`; the nest peak's `locate` answers only once you were out over the rope bridge (near its middle
+  and well above the ground under it), so climbing straight up the far peak does not skip the bridge. The compass points at the feather,
+  the summit, the bridge (until crossed) and then the nest. `say` keys speak at each moment (la pluma; arriba + la montaña; el puente; el nido).
+  The nest (twig ring) with a small chick and mamá (built from the animal ids in the data through `SA.render.animalBuilder`) exists only
+  while the mission runs. Giving the feather to the chick and the photo/sticker are the next slices.
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

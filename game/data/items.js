@@ -40,7 +40,8 @@
     item('venda', '🩹', 'la venda', 'bandage', 'f', 'tool', false),
     item('fresa', '🍓', 'la fresa', 'strawberry', 'f', 'food', true),
     item('roca', '🪨', 'la roca', 'rock', 'f', 'find', true),
-    item('espina', '🌵', 'la espina', 'thorn', 'f', 'find', true)       // pulled out of a paw (action quitarespina)
+    item('espina', '🌵', 'la espina', 'thorn', 'f', 'find', true),      // pulled out of a paw (action quitarespina)
+    item('pluma', '🪶', 'la pluma', 'feather', 'f', 'find', false)      // AS-0336: the feather Mission 6 finds near the mountain trail
   ];
 
   SA.data.defineKind('items', validateItem);

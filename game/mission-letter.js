@@ -6,9 +6,12 @@
  * pill speaks the leg's short line when it starts and its 🔊 repeats it (SA.missionPill), and the steps carry `noArrow: true`, so the compass is hidden.
  * Nothing exists unless this mission runs; nothing here knows a mission id or an animal id.
  *
- *   SA.missionLetter.place(spec, seed, opts?) -> { tower: { id, x, z, topY, r }, legs: [{ place, x, z, r }], box: { x, y, z, r } } | null
- *                                         PURE, deterministic from the seed. The legs are dry waypoints along the way from the station to the tower, each at
- *                                         least GAP m from the last (`at` 0..1 along the way, `side` -2 left .. 2 right of it, `near: 'water'` prefers the bank)
+ *   SA.missionLetter.place(spec, seed, opts?) -> { tower: { id, x, z, topY, r }, legs: [{ place, x, z, r }], box: { x, y, z, r }, turnsOk, bridge } | null
+ *                                         PURE, deterministic from the seed. The tower is on the far side of the river from the start, and the legs are true to
+ *                                         what is said: { bridge: 'near' | 'far' } are the two ends of the REAL river bridge (SA.surfaces.bridges) that gives
+ *                                         the shortest walk to the tower (so "Ve al puente" reaches a bridge and "Cruza el río" is its far bank), and
+ *                                         { at, turn: 'left' | 'right' } is a point `at` of the way from the last leg to the tower (`turnsOk`: the tower really
+ *                                         is on that hand of the way you were walking). Bridge ends have a generous radius (LEG_R 4 m).
  *   SA.missionLetter.onTop(tower, p)      -> true when p stands on the tower platform (inside its half-width, feet above topY - 1.5)
  *   SA.missionLetter.sync(opts?)          the current state | null; reads SA.missions.active() and places on a new mission/seed
  *   SA.missionLetter.update(player)       polled each frame (SA.missionRuntime calls it): once the letter is handed over by the scientist it is put in the hand
@@ -23,17 +26,18 @@
 (function (root) {
   'use strict';
   var SA = root.SA;
-  var LEG_R = 4, GAP = 10, SIDE = 9, EDGE = 6, GIVE_REACH = 2.4, PHOTO_REACH = 5, BOX_BACK = 1.2, RINGS = [0, 3, 6, 9, 12, 16], ANGLES = 12;
+  var LEG_R = 4, TURN_R = 3, BRIDGE_GAP = 6, TURN_GAP = 3.5, END_OFF = 1.5, EDGE = 6, GIVE_REACH = 2.4, PHOTO_REACH = 5, BOX_BACK = 1.2;
+  var RINGS = [0, 2, 4, 6, 9], BRIDGE_RINGS = [0, 1.5, 3], ANGLES = 12;
 
   function startPoint() {
     try { if (SA.station && SA.station.spawn) return SA.station.spawn(); } catch (e) { /* fall through */ }
     return { x: 0, z: 0 };
   }
 
-  function dryOk(x, z) {
+  function dryOk(x, z, margin) {     // margin: how far above the water level the ground must be (a bridge's bank end is a low, wet-edged slope)
     var M = SA.map, B = M.BOUNDS;
     if (x < B.minX + EDGE || x > B.maxX - EDGE || z < B.minZ + EDGE || z > B.maxZ - EDGE) return false;
-    if (M.isWater(x, z) || M.groundHeight(x, z) < M.WATER_LEVEL + 0.3) return false;
+    if (M.isWater(x, z) || M.groundHeight(x, z) < M.WATER_LEVEL + (margin === undefined ? 0.3 : margin)) return false;
     if (SA.station && SA.station.inFootprint && SA.station.inFootprint(x, z, 3)) return false;
     return true;
   }
@@ -43,37 +47,75 @@
     return Math.abs(p.x - t.x) <= t.r && Math.abs(p.z - t.z) <= t.r && p.y >= t.topY - 1.5;
   }
 
-  function spotFor(base, leg, avoid) {
-    var M = SA.map, fallback = null;
-    for (var r = 0; r < RINGS.length; r++) {
-      for (var k = 0; k < (RINGS[r] ? ANGLES : 1); k++) {
-        var a = k * Math.PI * 2 / ANGLES, x = base.x + Math.cos(a) * RINGS[r], z = base.z + Math.sin(a) * RINGS[r];
-        if (!dryOk(x, z) || avoid.some(function (q) { return Math.hypot(q.x - x, q.z - z) < GAP; })) continue;
-        if (leg.near !== 'water' || (M.nearWater && M.nearWater(x, z, 5))) return { x: x, z: z };
-        if (!fallback) fallback = { x: x, z: z };
+  // The first free dry spot at or around `base` (searching outward by `rings`), at least `gap` from every point in `avoid`.
+  function spotFor(base, rings, avoid, gap, margin) {
+    for (var r = 0; r < rings.length; r++) {
+      for (var k = 0; k < (rings[r] ? ANGLES : 1); k++) {
+        var a = k * Math.PI * 2 / ANGLES, x = base.x + Math.cos(a) * rings[r], z = base.z + Math.sin(a) * rings[r];
+        if (dryOk(x, z, margin) && !avoid.some(function (q) { return Math.hypot(q.x - x, q.z - z) < gap; })) return { x: x, z: z };
       }
     }
-    return fallback;
+    return null;
   }
 
+  // The real river bridge to cross on the way from s to the tower t: the shortest walk s -> near end, far end -> t.
+  // -> { near: { x, z }, far: { x, z }, dx, dz } (dx, dz: the crossing direction, near -> far) | null
+  function crossing(s, t) {
+    var decks = (SA.surfaces && SA.surfaces.bridges && SA.surfaces.bridges()) || [], best = null;
+    decks.forEach(function (d) {
+      var e = d.halfLen + END_OFF;
+      [1, -1].forEach(function (sg) {
+        var n = { x: d.x - d.dx * e * sg, z: d.z - d.dz * e * sg }, f = { x: d.x + d.dx * e * sg, z: d.z + d.dz * e * sg };
+        var cost = Math.hypot(n.x - s.x, n.z - s.z) + Math.hypot(t.x - f.x, t.z - f.z);
+        if (!best || cost < best.cost) best = { cost: cost, near: n, far: f, dx: d.dx * sg, dz: d.dz * sg };
+      });
+    });
+    return best;
+  }
+
+  /** Is q on the left of a walker at `from` heading (hx, hz)? (heading +z: the right hand is -x, so the left is +x) */
+  function leftOf(from, hx, hz, q) {
+    var len = Math.hypot(hx, hz) || 1;
+    return ((q.x - from.x) * (hz / len) + (q.z - from.z) * (-hx / len)) > 0;
+  }
+
+  // Legs: { place, bridge: 'near' | 'far' } is an end of the real river bridge on the way to the tower (SA.surfaces.bridges); any other leg is `at` (0..1)
+  // of the way from the last point to the tower, and `turn: 'left' | 'right'` says which hand the tower is on as you walk on from the last leg (`turnsOk`).
   function place(spec, seed, opts) {
     var M = SA.map;
     if (!M || !SA.lookouts || !spec || !Array.isArray(spec.legs)) return null;
+    var S = startPoint(), wantsBridge = spec.legs.some(function (g) { return g.bridge; });
     var towers = SA.lookouts.towers().filter(function (t) { return t.biome === (spec.biome || 'bosque'); });
+    if (wantsBridge) {     // a tower on the other side of the river from the start, so "Cruza el río" is true
+      var across = towers.filter(function (t) { return (t.x < M.riverX(t.z)) !== (S.x < M.riverX(S.z)); });
+      if (across.length) towers = across;
+    }
     var t = towers[(((typeof seed === 'number' ? seed : 1) >>> 0) % Math.max(1, towers.length))];
     if (!t) return null;
-    var S = startPoint(), dx = t.x - S.x, dz = t.z - S.z, len = Math.hypot(dx, dz) || 1, rx = -dz / len, rz = dx / len;   // (rx, rz): to the right of the way
-    var avoid = [{ x: S.x, z: S.z }, { x: t.x, z: t.z }], legs = [];
+    var X = wantsBridge ? crossing(S, t) : null;
+    if (wantsBridge && !X) return null;
+    var avoid = [{ x: S.x, z: S.z }, { x: t.x, z: t.z }], legs = [], prev = S, heading = { x: t.x - S.x, z: t.z - S.z }, turnsOk = true;
     for (var i = 0; i < spec.legs.length; i++) {
-      var g = spec.legs[i], side = typeof g.side === 'number' ? g.side : 0;
-      var base = { x: S.x + dx * g.at + rx * side * SIDE, z: S.z + dz * g.at + rz * side * SIDE };
-      var p = spotFor(base, g, avoid);
+      var g = spec.legs[i], base, p;
+      if (g.bridge) {
+        base = g.bridge === 'far' ? X.far : X.near;
+        p = spotFor(base, BRIDGE_RINGS, avoid, BRIDGE_GAP, 0);
+        heading = { x: X.dx, z: X.dz };
+      } else {
+        var at = typeof g.at === 'number' ? g.at : 0.5;
+        base = { x: prev.x + (t.x - prev.x) * at, z: prev.z + (t.z - prev.z) * at };
+        if (g.turn) turnsOk = turnsOk && leftOf(prev, heading.x, heading.z, t) === (g.turn === 'left');
+        p = spotFor(base, RINGS, avoid, TURN_GAP);
+        if (p) heading = { x: p.x - prev.x, z: p.z - prev.z };
+      }
       if (!p) return null;
       avoid.push(p);
-      legs.push({ place: g.place, x: p.x, z: p.z, r: LEG_R });
+      legs.push({ place: g.place, x: p.x, z: p.z, r: g.bridge ? LEG_R : TURN_R });
+      prev = p;
     }
     var bx = t.x - t.face.x * BOX_BACK, bz = t.z - t.face.z * BOX_BACK;     // on the platform, away from the ladder
-    return { tower: { id: t.id, x: t.x, z: t.z, topY: t.topY, r: t.platform / 2 }, legs: legs, box: { x: bx, y: t.topY, z: bz, r: GIVE_REACH } };
+    return { tower: { id: t.id, x: t.x, z: t.z, topY: t.topY, r: t.platform / 2 }, legs: legs, box: { x: bx, y: t.topY, z: bz, r: GIVE_REACH }, turnsOk: turnsOk,
+      bridge: X ? { near: X.near, far: X.far } : null };
   }
 
   function create(opts) {

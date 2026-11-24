@@ -45,7 +45,7 @@ test('data: mission 11 follows mission 10, one intro line of <= 4 words, spoken 
   assert.ok(m.intro.es.split(/\s+/).length <= 4 && m.intro.icon);
   assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['talk', 'goTo', 'goTo', 'goTo', 'goTo', 'give', 'photo']);
   m.steps.forEach((s) => assert.ok(s.line.es.split(/\s+/).length <= 4 && s.line.icon, s.line.es));
-  assert.deepEqual(Array.from(m.steps.slice(1).map((s) => s.noArrow)), [true, true, true, true, true, true], 'every step after the letter has no compass arrow');
+  assert.deepEqual(Array.from(m.steps.slice(1).map((s) => s.noArrow === true)), [true, true, true, true, false, false], 'the legs and the climb have no compass arrow');
   assert.equal(m.steps[1].line.es, 'Ve al puente');
   assert.equal(m.steps[2].line.es, 'Cruza el río');
   assert.equal(m.steps[4].place, m.letter.place);
@@ -62,22 +62,24 @@ test('data: mission 11 follows mission 10, one intro line of <= 4 words, spoken 
 
 test('data: the letter field and the noArrow flag are validated with clear errors', () => {
   const { SA } = setup();
-  const good = { item: 'carta', place: 'torre', box: 'buzon', legs: [{ place: 'puente', at: 0.4 }] };
+  const good = { item: 'carta', place: 'torre', box: 'buzon', legs: [{ place: 'puente', bridge: 'near' }] };
   let n = 0;
   const row = (letter, extra = {}) => ({ id: 'x11' + (n++), n: 99, es: 'X', en: 'X', icon: '✉️', intro: { es: 'Hola', icon: '✉️' }, letter,
     steps: [{ kind: 'goTo', place: 'puente', line: { es: 'Ve', icon: '🌉' }, ...extra }], reward: { stars: 1 } });
   assert.doesNotThrow(() => SA.data.register('missions', [row({ ...good, biome: 'bosque', say: { give: 'thing:carta', photo: 'thing:torre' } })]));
-  assert.doesNotThrow(() => SA.data.register('missions', [row({ ...good, legs: [{ place: 'puente', at: 0.4, side: -1, near: 'water' }] }, { noArrow: true })]));
+  assert.doesNotThrow(() => SA.data.register('missions', [row({ ...good, legs: [{ place: 'puente', at: 0.4, turn: 'right' }] }, { noArrow: true })]));
   assert.throws(() => SA.data.register('missions', [row({ ...good, item: 'Carta' })]), /letter\.item/);
   assert.throws(() => SA.data.register('missions', [row({ ...good, legs: [] })]), /letter\.legs/);
   assert.throws(() => SA.data.register('missions', [row({ ...good, legs: [{ place: 'puente', at: 1.5 }] })]), /legs\[0\]\.at/);
-  assert.throws(() => SA.data.register('missions', [row({ ...good, legs: [{ place: 'puente', at: 0.4, near: 'moon' }] })]), /near/);
+  assert.throws(() => SA.data.register('missions', [row({ ...good, legs: [{ place: 'puente', at: 0.4, turn: 'up' }] })]), /turn/);
+  assert.throws(() => SA.data.register('missions', [row({ ...good, legs: [{ place: 'puente', bridge: 'middle' }] })]), /bridge/);
+  assert.throws(() => SA.data.register('missions', [row({ ...good, legs: [{ place: 'puente' }] })]), /legs\[0\]\.at/);
   assert.throws(() => SA.data.register('missions', [row({ ...good, legs: [{ place: 'otro', at: 0.4 }] })]), /matching goTo/);
   assert.throws(() => SA.data.register('missions', [row({ ...good, say: { give: '' } })]), /letter\.say\.give/);
   assert.throws(() => SA.data.register('missions', [row(good, { noArrow: 'yes' })]), /noArrow/);
 });
 
-test('place: dry waypoints along the way to the tower, apart from each other, deterministic, left of the way for side -1', () => {
+test('place: the spoken legs are true: the bridge is a real bridge, the river is crossed, the tower is on the left after crossing', () => {
   const { SA } = setup();
   const spec = SA.data.get('missions', 'mensaje').letter;
   const a = SA.missionLetter.place(spec, 7), b = SA.missionLetter.place(spec, 7);
@@ -86,9 +88,27 @@ test('place: dry waypoints along the way to the tower, apart from each other, de
   assert.equal(a.legs.length, 3);
   const tw = SA.lookouts.towers().find((t) => t.id === a.tower.id);
   assert.equal(tw.biome, 'bosque');
-  const pts = [SA.station.spawn(), ...a.legs, a.tower];
-  for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) assert.ok(Math.hypot(pts[i].x - pts[j].x, pts[i].z - pts[j].z) >= 9, `points ${i} and ${j} are apart`);
-  a.legs.forEach((g) => assert.ok(!SA.map.isWater(g.x, g.z), g.place + ' is on dry ground'));
+  const S = SA.station.spawn(), M = SA.map, [puente, rio, izq] = a.legs;
+  a.legs.forEach((g) => assert.ok(!M.isWater(g.x, g.z), g.place + ' is on dry ground'));
+  // "Ve al puente": the waypoint is at the end of a real river bridge (the end deck is at most a few metres away), on the start's side of the river.
+  const near = (g) => SA.surfaces.bridges().some((d) => Math.hypot(g.x - d.x, g.z - d.z) <= d.halfLen + 3.5);
+  assert.ok(near(puente) && near(rio), 'both legs are at a real bridge');
+  const side = (p) => Math.sign(p.x - M.riverX(p.z));
+  assert.equal(side(puente), side(S), 'the bridge leg is on this side of the river');
+  // "Cruza el río": the far end of that bridge is on the tower's side, so the river really is crossed.
+  assert.equal(side(rio), side(a.tower));
+  assert.notEqual(side(rio), side(puente));
+  assert.ok(Math.hypot(puente.x - rio.x, puente.z - rio.z) >= 12, 'the two ends are a bridge-length apart');
+  // "A la izquierda": the tower is to the left of the way you were walking (across the bridge), and the point is on the way to it.
+  assert.equal(a.turnsOk, true);
+  assert.ok(Math.hypot(izq.x - a.tower.x, izq.z - a.tower.z) < Math.hypot(rio.x - a.tower.x, rio.z - a.tower.z), 'closer to the tower than the far bank');
+  const dir = { x: rio.x - puente.x, z: rio.z - puente.z }, to = { x: a.tower.x - rio.x, z: a.tower.z - rio.z };
+  assert.ok((to.x * dir.z - to.z * dir.x > 0) === (spec.legs[2].turn === 'left'), 'left of the crossing direction (heading +z has +x on its left)');
+  // Generous targets for beginners.
+  assert.ok(puente.r >= 4 && rio.r >= 4 && izq.r >= 3);
+  // Stepping into the far-bank circle from the bridge does not already count as the left turn (the legs never skip each other).
+  const k = rio.r / Math.hypot(dir.x, dir.z), entry = { x: rio.x - dir.x * k, z: rio.z - dir.z * k };
+  assert.ok(Math.hypot(entry.x - izq.x, entry.z - izq.z) > izq.r + 1);
   // The box stands on the platform, away from the ladder.
   assert.ok(Math.abs(a.box.x - tw.x) <= 2 && Math.abs(a.box.z - tw.z) <= 2);
   assert.ok((a.box.x - tw.x) * tw.face.x + (a.box.z - tw.z) * tw.face.z < 0);

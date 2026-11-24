@@ -70,8 +70,9 @@
            (rabbit m/s, where on the path it stops for its carrot 0.1..0.9, how long it eats in s, seconds per countdown word, start-line radius).
   letter  optional { item, place, box, legs, biome?, say?: { give?, photo? } } (AS-0364): Mission 11's letter (item id, kept in hand), the id of the lookout
            tower's platform (`place`, a 'goTo' step that only counts on top), the mailbox id (`box`, the 'give' step's `to`) and the spoken-direction `legs`
-           (1..6 { place, at: 0..1 along the way from the station to the tower, side?: -2 left..2 right, near?: 'water' }); each leg is a 'goTo' step { place }.
-           game/mission-letter.js places the waypoints (never drawn, never an arrow). `say.give` / `say.photo` are vocab keys spoken once.
+           (1..6 legs, each a 'goTo' step { place }): { place, bridge: 'near' | 'far' } is an end of the real river bridge on the way to the tower
+           (SA.surfaces.bridges), otherwise { place, at?: 0..1 of the way from the last leg to the tower, turn?: 'left' | 'right' (which hand the tower is on
+           as you walk on from the last leg) }. game/mission-letter.js places the waypoints (never drawn, never an arrow). `say.give` / `say.photo` are vocab keys spoken once.
            A step may carry `noArrow: true` (AS-0364): the mission compass is hidden while that step is current (a listen-and-find step).
   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
@@ -254,9 +255,10 @@
       le.legs.forEach(function (g, gi) {
         var gf = 'letter.legs[' + gi + ']';
         if (!g || typeof g !== 'object' || typeof g.place !== 'string' || !lid.test(g.place)) fail(gf + '.place', 'must be a lowercase id string (the id a goTo step names)');
-        if (typeof g.at !== 'number' || !(g.at > 0 && g.at < 1)) fail(gf + '.at', 'must be a number between 0 and 1 (how far along the way from the station to the tower)');
-        if (g.side !== undefined && (typeof g.side !== 'number' || !(g.side >= -2 && g.side <= 2))) fail(gf + '.side', 'must be a number from -2 (left) to 2 (right)');
-        if (g.near !== undefined && g.near !== 'water') fail(gf + '.near', 'must be "water" when present');
+        if (g.bridge !== undefined && g.bridge !== 'near' && g.bridge !== 'far') fail(gf + '.bridge', 'must be "near" or "far" (an end of the river bridge on the way)');
+        if (g.bridge === undefined && g.at === undefined) fail(gf + '.at', 'is needed when the leg has no bridge');
+        if (g.at !== undefined && (typeof g.at !== 'number' || !(g.at > 0 && g.at < 1))) fail(gf + '.at', 'must be a number between 0 and 1 (how far along the way from the last leg to the tower)');
+        if (g.turn !== undefined && g.turn !== 'left' && g.turn !== 'right') fail(gf + '.turn', 'must be "left" or "right" (which hand the tower is on)');
         if (!m.steps.some(function (s) { return s.kind === 'goTo' && s.place === g.place; })) fail(gf, 'needs a matching goTo step { place }');
       });
       if (le.say !== undefined && (!le.say || typeof le.say !== 'object' || Array.isArray(le.say))) fail('letter.say', 'must be { give?, photo? } vocab keys');
@@ -429,15 +431,15 @@
     { id: 'mensaje', n: 11, es: 'Mensaje perdido', en: 'The lost message', icon: '✉️',
       intro: { es: '¡Lleva la carta!', en: 'Deliver the letter!', icon: '✉️' },
       letter: { item: 'carta', place: 'torre', box: 'buzon', biome: 'bosque',
-        legs: [{ place: 'puente', at: 0.3, near: 'water' }, { place: 'rio', at: 0.55, near: 'water' }, { place: 'izquierda', at: 0.8, side: -1 }],
+        legs: [{ place: 'puente', bridge: 'near' }, { place: 'rio', bridge: 'far' }, { place: 'izquierda', at: 0.5, turn: 'left' }],
         say: { give: 'thing:carta', photo: 'thing:torre' } },
       steps: [{ kind: 'talk', who: 'scientist', gives: 'carta', line: { es: 'Toma la carta', icon: '✉️', en: 'Take the letter' } },
         { kind: 'goTo', place: 'puente', noArrow: true, line: { es: 'Ve al puente', icon: '🌉', en: 'Go to the bridge' } },
         { kind: 'goTo', place: 'rio', noArrow: true, line: { es: 'Cruza el río', icon: '🌊', en: 'Cross the river' } },
         { kind: 'goTo', place: 'izquierda', noArrow: true, line: { es: 'A la izquierda', icon: '⬅️', en: 'To the left' } },
         { kind: 'goTo', place: 'torre', noArrow: true, line: { es: 'Sube la torre', icon: '🗼', en: 'Climb the tower' } },
-        { kind: 'give', item: 'carta', to: 'buzon', noArrow: true, line: { es: 'Entrega la carta', icon: '📬', en: 'Hand over the letter' } },
-        { kind: 'photo', target: 'torre', noArrow: true, line: { es: 'Foto desde arriba', icon: '📷', en: 'Photo from the top' } }],
+        { kind: 'give', item: 'carta', to: 'buzon', line: { es: 'Entrega la carta', icon: '📬', en: 'Hand over the letter' } },
+        { kind: 'photo', target: 'torre', line: { es: 'Foto desde arriba', icon: '📷', en: 'Photo from the top' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -6,6 +6,7 @@
  *         door:   { x, z, width, height }      centre of the doorway in the front wall (z = cz - halfD)
  *         window: { x, z, width, height, y }   in the front wall, beside the door
  *         roof:   { y, overhang, thickness }, dish: { x, y, z, radius }   satellite dish on the roof, antenna: { x, y, z, height }
+ *         telescope: { x, y, z, radius }   Mission 12's telescope on the roof (AS-0371; solid on the roof, y = the roof surface)
  *         sign:   { text: 'Estación', icon: 'atom', x, y, z }              over the door
  *         board:  { x, y, z, width, height, depth, facing }  the "Lista de misiones" board on the back wall's inner face, facing the door (AS-0210)
  *         badgesBoard: { x, y, z, width, height, depth, facing }  the "Insignias" board on the front wall's inner face, left of the doorway, facing +z (AS-0239)
@@ -81,6 +82,7 @@
       roof: { y: yTop, overhang: 0.5, thickness: 0.3 },
       dish: { x: cx - 1.5, y: yTop + 0.3, z: cz + 0.6, radius: 0.8 },
       antenna: { x: cx + 1.9, y: yTop + 0.3, z: cz + 1.2, height: 2.2 },
+      telescope: { x: cx + 0.8, y: yTop + 0.3, z: cz - 0.5, radius: 0.5 },   // AS-0371: Mission 12's roof telescope (y = the roof surface)
       sign: { text: 'Estación', icon: 'atom', x: cx, y: y0 + DOOR_H + 0.5, z: fz - t - 0.05 },
       bench: { x: cx - 2.1, z: fz - t - 0.55, w: 1.7, d: 0.55 },
       // "Lista de misiones" board (AS-0210): on the inside face of the back wall, centred on the doorway's line so it is the first thing
@@ -143,7 +145,7 @@
     var noClimb = [{ x0: d.x - d.width / 2 - m, x1: d.x + d.width / 2 + m, z0: fz - 3, z1: fz + t },
       { x0: L.cx - L.halfW, x1: L.cx + L.halfW, z0: fz, z1: L.cz + L.halfD }];
     // The dish and the antenna stay solid on the roof (circles on the flat top).
-    var solids = [[L.dish.x, L.dish.z, L.dish.radius * 0.8], [L.antenna.x, L.antenna.z, 0.35]];
+    var solids = [[L.dish.x, L.dish.z, L.dish.radius * 0.8], [L.antenna.x, L.antenna.z, 0.35], [L.telescope.x, L.telescope.z, 0.4]];
     return { kind: 'building', id: 'station', x: L.cx, z: L.cz, footprint: { w: 2 * L.halfW + L.wallT, d: 2 * L.halfD + L.wallT },
       topY: L.roof.y + L.roof.thickness, top: { shape: 'rect', size: { w: 2 * (L.halfW + o), d: 2 * (L.halfD + o) }, solids: solids }, noClimb: noClimb };
   }

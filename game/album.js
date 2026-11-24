@@ -6,7 +6,8 @@
  *
  *   SA.album.add(animalId, now?)  records the first photo of a species; true when it is new. Unknown ids are ignored.
  *                                 `now` (a Date) is only for tests.
- *   SA.album.has(animalId)        true once photographed
+ *   SA.album.addSky(now?)         the night-sky photo's page 'cielo' (AS-0371); true when new. entries() then ends with { id: 'cielo', icon: '🌙', es: 'el cielo', parts: [] }
+ *   SA.album.has(animalId)      true once photographed
  *   SA.album.entries()            one card per species (data order). Photographed card:
  *                                 { id, seen: true, icon, es: 'el conejo', en, date, key: 'animal:conejo',
  *                                   parts: [{ key, icon, es: 'las orejas', speak: 'part:orejas' }] }.
@@ -44,6 +45,16 @@
     return true;
   }
 
+  // AS-0371: the night-sky photo of Mission 12 is one extra page, 'el cielo' (save.album.cielo, the same { date, pics } shape as an animal).
+  var SKY = 'cielo';
+  function addSky(now) {
+    if (!SA.save || Object.prototype.hasOwnProperty.call(stored().album, SKY)) return false;
+    var patch = {};
+    patch[SKY] = { date: (now && typeof now.toISOString === 'function' && isFinite(now) ? now : new Date()).toISOString().slice(0, 10), pics: [] };
+    SA.save.update({ album: patch });
+    return true;
+  }
+
   function nameEs(a) {
     var v = SA.vocab && SA.vocab.get ? SA.vocab.get('animal:' + a.id) : null;
     return v && v.es ? v.es : a.name.es;
@@ -71,6 +82,9 @@
       out.push({ id: a.id, seen: true, icon: a.icon, es: nameEs(a), en: a.name.en, date: s.album[a.id] && s.album[a.id].date || null,
         key: 'animal:' + a.id, parts: partCards(a) });
     });
+    if (Object.prototype.hasOwnProperty.call(s.album, SKY)) {
+      out.push({ id: SKY, seen: true, icon: '🌙', es: 'el cielo', en: 'the sky', date: s.album[SKY] && s.album[SKY].date || null, key: 'thing:cielo', parts: [] });
+    }
     return out;
   }
 
@@ -81,5 +95,5 @@
 
   function speakKey(entry) { return entry && entry.seen ? entry.key : null; }
 
-  SA.album = { add: add, has: has, entries: entries, progress: progress, speakKey: speakKey };
+  SA.album = { add: add, addSky: addSky, has: has, entries: entries, progress: progress, speakKey: speakKey };
 })(typeof window !== 'undefined' ? window : globalThis);

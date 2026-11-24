@@ -75,6 +75,11 @@
            as you walk on from the last leg) }. game/mission-letter.js places the waypoints (never drawn, never an arrow). `say.give` / `say.photo` are vocab keys spoken once.
            A step may carry `noArrow: true` (AS-0364): the mission compass is hidden while that step is current (a listen-and-find step).
            AS-0365: such a step may add `hintAfter: n` (whole number >= 1, default 2): after n taps on 🔊 a faint pointer toward its target appears (game/mission-directions.js).
+  night   optional boolean (AS-0371): the mission can only START at night (SA.daynight isNight); by day SA.missions.start answers { ok: false, reason: 'night' }
+           and the board shows the card waiting for night with a gentle line. A running mission is never interrupted by the dawn.
+  sky     optional { place, say?: { night?, sky?, moon?, stars? } } (AS-0371): Mission 12's roof telescope (game/mission-sky.js). A 'look' step { target: place }
+           is a tap on the telescope (it opens the night-sky view) and a 'photo' step { target: place } is the camera button inside that view.
+           `say.*` are vocab keys (a string or a list) spoken once: at the start (night), when the view opens (sky) and at the photo step (moon, stars).
   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -265,6 +270,19 @@
       if (le.say !== undefined && (!le.say || typeof le.say !== 'object' || Array.isArray(le.say))) fail('letter.say', 'must be { give?, photo? } vocab keys');
       if (le.say) Object.keys(le.say).forEach(function (k) { if (['give', 'photo'].indexOf(k) < 0 || typeof le.say[k] !== 'string' || !le.say[k]) fail('letter.say.' + k, 'must be a vocab key for give, photo'); });
     }
+    if (m.night !== undefined && typeof m.night !== 'boolean') fail('night', 'must be true or false (true = the mission only starts at night)');
+    if (m.sky !== undefined) {      // AS-0371: Mission 12's roof telescope and sky view (game/mission-sky.js)
+      var sk = m.sky;
+      if (!sk || typeof sk !== 'object' || Array.isArray(sk)) fail('sky', 'must be { place, say? }');
+      if (typeof sk.place !== 'string' || !/^[a-z][a-z0-9-]*$/.test(sk.place)) fail('sky.place', 'must be a lowercase id string (the id the look and photo steps name)');
+      if (!m.steps.some(function (s) { return s.kind === 'look' && s.target === sk.place; })) fail('sky', 'needs a look step { target: place }');
+      if (!m.steps.some(function (s) { return s.kind === 'photo' && s.target === sk.place; })) fail('sky', 'needs a photo step { target: place }');
+      if (sk.say !== undefined && (!sk.say || typeof sk.say !== 'object' || Array.isArray(sk.say))) fail('sky.say', 'must be { night?, sky?, moon?, stars? } vocab keys');
+      if (sk.say) Object.keys(sk.say).forEach(function (k) {
+        var v = [].concat(sk.say[k]);
+        if (['night', 'sky', 'moon', 'stars'].indexOf(k) < 0 || !v.length || v.some(function (x) { return typeof x !== 'string' || !x; })) fail('sky.say.' + k, 'must be vocab key(s) for night, sky, moon, stars');
+      });
+    }
     m.steps.forEach(function (s, i) {
       if (s.noArrow !== undefined && typeof s.noArrow !== 'boolean') fail('steps[' + i + '].noArrow', 'must be true or false (true hides the mission compass on that step)');
       if (s.hintAfter !== undefined && (!Number.isInteger(s.hintAfter) || s.hintAfter < 1 || !s.noArrow)) fail('steps[' + i + '].hintAfter', 'must be a whole number >= 1 on a noArrow step (🔊 repeats before the faint pointer shows)');
@@ -442,6 +460,15 @@
         { kind: 'goTo', place: 'torre', noArrow: true, line: { es: 'Sube la torre', icon: '🗼', en: 'Climb the tower' } },
         { kind: 'give', item: 'carta', to: 'buzon', line: { es: 'Entrega la carta', icon: '📬', en: 'Hand over the letter' } },
         { kind: 'photo', target: 'torre', line: { es: 'Foto desde arriba', icon: '📷', en: 'Photo from the top' } }],
+      reward: { stars: 2 } },
+    // Mission 12 (AS-0371, slice 1 of AS-0191): Noche de estrellas. It can only START at night (`night: true`; by day the board says "wait for night").
+    // Climb the station roof and tap the telescope (the 'look' step opens the night-sky view: drag or arrows / WASD to aim, a big exit button), then take a
+    // photo of the sky with the camera button in that view: it goes into the album ('el cielo' page) and ends the mission with the sticker 'noche-de-estrellas'.
+    { id: 'estrellas', n: 12, es: 'Noche de estrellas', en: 'Starry night', icon: '🔭', night: true,
+      intro: { es: '¡Mira las estrellas!', en: 'Look at the stars!', icon: '🌟' },
+      sky: { place: 'cielo', say: { night: 'thing:noche', sky: 'thing:cielo', moon: 'thing:luna', stars: 'thing:estrellas' } },
+      steps: [{ kind: 'look', target: 'cielo', line: { es: 'Mira el telescopio', icon: '🔭', en: 'Look through the telescope' } },
+        { kind: 'photo', target: 'cielo', line: { es: 'Foto del cielo', icon: '📷', en: 'Photo of the sky' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

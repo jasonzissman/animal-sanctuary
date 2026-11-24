@@ -62,6 +62,7 @@
     { id: 'collect', event: 'collected', required: { item: 'string', n: 'number' }, match: { item: 'item' }, progress: { total: 'n' } },
     { id: 'goTo', event: 'arrived', required: { place: 'string' }, match: { place: 'place' } },
     { id: 'talk', event: 'talked', required: { who: 'string' }, match: { who: 'who' } },
+    { id: 'look', event: 'looked', required: { target: 'string' }, match: { target: 'target' } },   // AS-0371: look through the roof telescope (SA.missionSky reports it)
     { id: 'photo', event: 'photo', required: {}, optional: { target: 'string' }, match: { target: 'target' } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

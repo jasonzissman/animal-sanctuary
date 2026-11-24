@@ -52,7 +52,10 @@
       if (r && r.ok) closeMenu(); else render();   // busy (another one is running): just refresh, nothing breaks
     }
 
+    function nightNow() { try { return SA.daynight && SA.daynight.instance ? !!SA.daynight.instance().isNight() : true; } catch (e) { return true; } }
+
     function tapCard(c) {
+      if (c.waiting) { say(SA.missionsBoard.ESPERA_NOCHE); return; }   // AS-0371: gentle, no punishment: just a spoken hint, the card stays
       if (c.state === 'next' && D && !SA.missions.active()) { beginTalk(c.id); return; }   // the scientist introduces a new mission (speaking its lines) before ¡Vamos! starts it
       say(c.speak);
       if (c.state === 'locked' || c.state === 'active') return;   // active: its Continuar / Abandonar buttons do the work
@@ -99,10 +102,11 @@
       node = el('button', base + 'flex-direction:column;gap:.15em;padding:.3em;margin:0;width:' + L.cardW + 'px;height:' + L.cardH + 'px;' + look);
       node.type = 'button';
       node.setAttribute('aria-label', c.es);
-      node.appendChild(el('div', 'font-size:1.1rem;line-height:1;', c.id === pointId && c.state === 'next' ? '👇 ' + c.glyph : c.glyph));
+      if (c.waiting) node.style.cssText += 'background:#2b3a67;border-color:#7d8fd0;color:#fff;box-shadow:none;';   // AS-0371: waiting for night
+      node.appendChild(el('div', 'font-size:1.1rem;line-height:1;', c.waiting ? '🌙' : c.id === pointId && c.state === 'next' ? '👇 ' + c.glyph : c.glyph));
       node.appendChild(el('div', 'font-size:2.6rem;line-height:1.1;', c.state === 'locked' ? String(c.n) : c.icon));
-      node.appendChild(el('div', 'font-size:1rem;line-height:1.1;text-align:center;overflow-wrap:anywhere;', c.state === 'locked' ? '' : c.es));
-      if (c.en) node.appendChild(el('div', 'font-size:.8rem;font-weight:400;', c.en));
+      node.appendChild(el('div', 'font-size:1rem;line-height:1.1;text-align:center;overflow-wrap:anywhere;', c.state === 'locked' ? '' : c.waiting ? SA.missionsBoard.ESPERA_NOCHE : c.es));
+      if (c.en) node.appendChild(el('div', 'font-size:.8rem;font-weight:400;', c.waiting ? SA.missionsBoard.ESPERA_NOCHE_EN : c.en));
       node.addEventListener('click', function () { tapCard(c); });
       return node;
     }
@@ -174,7 +178,7 @@
         return;
       }
       talkBox.style.cssText = 'display:none;';
-      var cards = SA.missionsBoard.cards(SA.missions.list(), { english: english() });
+      var cards = SA.missionsBoard.cards(SA.missions.list(), { english: english(), isNight: nightNow() });
       var s = size(), L = SA.missionsBoard.layout(cards.length, s.w, s.h);
       grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:' + L.gap + 'px;justify-content:center;align-content:flex-start;box-sizing:border-box;' +
         'width:' + L.availW + 'px;max-width:100%;max-height:' + L.maxH + 'px;overflow-y:' + (L.scroll ? 'auto' : 'visible') + ';padding:6px;';

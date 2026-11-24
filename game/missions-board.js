@@ -1,7 +1,8 @@
 /* SA.missionsBoard: pure mapping for the Misiones board in the station menu (no THREE, no DOM; unit-tested in node:vm).
  *
  *   SA.missionsBoard.cards(list, opts?) -> [card]   list = SA.missions.list() (in order); opts.english adds the English title.
- *       card = { id, n, state: 'done'|'next'|'locked'|'active', icon, glyph, es, en|null, speak, tappable, silhouette }
+ *       card = { id, n, state: 'done'|'next'|'locked'|'active', icon, glyph, es, en|null, speak, tappable, silhouette, waiting }
+ *       waiting (AS-0371): a `night: true` mission that is open while opts.isNight === false (day): shown as 🌙 and it says SA.missionsBoard.ESPERA_NOCHE.
  *       done -> ✅ + the mission icon (tap replays); next -> ⭐ + icon, glows (tap starts it); active -> ▶️ "En curso";
  *       locked -> 🔒, a grey silhouette: icon hidden, only its number shows, and tapping says "Misión N" so the title stays a surprise.
  *   SA.missionsBoard.layout(count, viewW, viewH) -> { cols, rows, cardW, cardH, gap, availW, maxH, scroll }
@@ -27,7 +28,9 @@
         id: m.id, n: m.n, state: state, glyph: GLYPH[state],
         icon: locked ? '' : m.icon, es: locked ? 'Misión ' + m.n : m.es, en: !locked && english ? m.en : null,
         speak: locked ? 'Misión ' + m.n : m.es,
-        tappable: true, silhouette: locked
+        tappable: true, silhouette: locked,
+        // AS-0371: a night mission that is open (next or done) while it is day waits for night: a 🌙 card that only says a gentle line when tapped
+        waiting: m.night === true && (state === 'next' || state === 'done') && !!opts && opts.isNight === false
       };
     });
   }
@@ -55,5 +58,5 @@
   function pointAndStartFirst() { return { ok: false, reason: 'no-board' }; }
 
   SA.missionsBoard = { cards: cards, layout: layout, pointAndStartFirst: pointAndStartFirst, EN_CURSO: 'En curso', CONTINUAR: 'Continuar',
-    ABANDONAR: 'Abandonar', PROXIMAMENTE: 'Próximamente' };
+    ABANDONAR: 'Abandonar', PROXIMAMENTE: 'Próximamente', ESPERA_NOCHE: 'Espera a la noche', ESPERA_NOCHE_EN: 'Wait for night' };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -422,6 +422,19 @@ current; when your change sets or changes something future tickets must follow, 
   false, with the count back to 0, the moment the next step starts. Then a second `SA.compassView` (`faint: true`, opacity 0.35, same placement/maths) points at
   `SA.missionRuntime.hintTarget()` (a world piece's `hintTarget(step)`, here `SA.missionLetter`: the leg waypoint or the tower). No timers, never a failure; the
   normal compass stays hidden on those steps. Telemetry: `directions.hint { repeats }` once per step.
+- **Mission 12 core (AS-0371, slice 1 of AS-0191): Noche de estrellas.** `estrellas` (n 12, "¡Mira las estrellas!" 🌟, unlocked by `mensaje`) is the first
+  **night-only mission: a mission row may carry `night: true`**, and `SA.missions.start` then answers `{ ok: false, reason: 'night' }` by day (clock =
+  `SA.daynight.instance().isNight()`, or `opts.isNight()` in tests; a mission already running is never cut off by the dawn, other missions are never gated).
+  The board maps that to `card.waiting` (`SA.missionsBoard.cards(list, { isNight })`): a dark-blue 🌙 card that only says "Espera a la noche" when tapped,
+  never a punishment, and no start card. `sky: { place, say?: { night, sky, moon, stars } }` plus two generic steps: a new step kind **`look`** (event `looked`,
+  `{ target }`) = tap the **roof telescope** (`SA.station.layout().telescope`, solid on the roof; `render/telescope.js` builds it with a generous invisible pick
+  volume) and `photo { target: place }` = the 📷 button inside the view. `SA.missionSky` (`game/mission-sky.js`, pure, node:vm-tested) holds the state: `open(player)`
+  (needs the roof, 4.5 m), `aim(dyaw, dpitch)` (pitch clamped, yaw wraps), `snap()`, `target()` (the compass points at the telescope on the look step),
+  `view()` and `onView(fn)`. **The sky view** is a second little THREE scene (`render/sky-view.js`: dome, ~260 stars, the moon at `SA.missionSky.MOON`, a dark
+  horizon ring) drawn on the same canvas in place of the world while open (`scene.js` swaps the final `renderer.render`); its controls are DOM
+  (`ui/sky-view-ui.js`: drag, arrows / WASD captured so the player never walks, big ✕ exit top right + Escape, big 📷 on the photo step, a flash). The sky photo is one
+  extra album page `cielo` (`SA.album.addSky()`, `entries()` ends with `{ id: 'cielo', icon: '🌙', es: 'el cielo' }`; the picture comes from `render/photo-capture.js`'s
+  `special.cielo` hook), completes the mission and logs `{ kind: 'sky' }` -> sticker `noche-de-estrellas`. The next slice (animal constellations) builds on this view.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

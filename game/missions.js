@@ -7,7 +7,8 @@
  *       the running one is 'active' (a replay of a done mission is 'active' while it runs, 'done' again after).
  *   SA.missions.next()        -> the first available row (what the scientist offers), or null; comingSoon() = every built mission is done
  *   SA.missions.start(id)     -> { ok, reason?, mission?, replay?, seed? }
- *       Only the station's Misiones board calls this (never the world). reason: 'unknown' | 'locked' | 'busy' (one at a time,
+ *       Only the station's Misiones board calls this (never the world). reason: 'unknown' | 'locked' | 'night' (a `night: true` row by day,
+ *       AS-0371; opts.isNight() overrides the shared SA.daynight clock) | 'busy' (one at a time,
  *       also when it is the same one) | 'not-at-station' (when opts.canStart says no). A replay gets a fresh seed so the step
  *       runner can pick other spots; the first play has replay:false.
  *   SA.missions.active()      -> { id, step, seed, replay, mission, stepData } | null   (restored from the save)
@@ -63,6 +64,11 @@
     function write(done, active, waiting, completions) {
       store().update({ missions: { done: done, active: active, waiting: waiting || null, completions: completions || 0 } });
     }
+    // AS-0371: night rows (`night: true`) only start at night. opts.isNight() overrides; the default reads the shared day/night clock (true when there is none).
+    function isNight() {
+      if (typeof opts.isNight === 'function') return !!opts.isNight();
+      try { return SA.daynight && SA.daynight.instance ? !!SA.daynight.instance().isNight() : true; } catch (e) { return true; }
+    }
     function stepKind(row, i) { var s = row.steps[i]; return s ? s.kind : ''; }
 
     function statusOf(id, p) {
@@ -112,6 +118,7 @@
       }
       var st = statusOf(id, p);
       if (st === 'locked') return { ok: false, reason: 'locked' };
+      if (f.row.night === true && !(parked && parked.id === id) && !isNight()) return { ok: false, reason: 'night' };   // AS-0371: a night mission only starts at night
       if (parked && parked.id === id) {                // the parked mission is picked up again where it waits
         write(p.done, act(id, parked.step, parked.seed, !!parked.replay, parked.wait), null, p.completions);
         track('mission.start', { id: id, replay: !!parked.replay });

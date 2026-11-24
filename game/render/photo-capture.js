@@ -2,7 +2,8 @@
  * Thin render glue for the photobook: when a photo of an animal is taken (SA.photo.record -> SA.albumPics.shot), this renders one frame
  * and copies the part of the canvas around that animal into a small (~240 px wide) JPEG. Rendering right before reading the canvas means
  * the drawing buffer is still valid, so the renderer does not need preserveDrawingBuffer. Any failure returns null (the photo still counts).
- *   o = { renderer, scene, camera, animals (Group; children are named by animal id), doc?, width? (240), quality? (0.6) }
+ *   o = { renderer, scene, camera, animals (Group; children are named by animal id), doc?, width? (240), quality? (0.6),
+ *         special? { id: () => dataURL | null } pictures that are not animals (AS-0371: 'cielo', the night-sky view's frame) }
  */
 (function (root) {
   'use strict';
@@ -18,6 +19,7 @@
 
     return function capture(animalId) {
       try {
+        if (o.special && typeof o.special[animalId] === 'function') return o.special[animalId]();   // AS-0371: 'cielo' (the telescope view) is no animal
         var g = SA.render.instances.get(o.animals, animalId);   // AS-0255: the tapped / nearest instance
         if (!g || g.visible === false || !doc) return null;
         o.scene.updateMatrixWorld(true);

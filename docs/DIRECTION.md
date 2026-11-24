@@ -434,7 +434,15 @@ current; when your change sets or changes something future tickets must follow, 
   horizon ring) drawn on the same canvas in place of the world while open (`scene.js` swaps the final `renderer.render`); its controls are DOM
   (`ui/sky-view-ui.js`: drag, arrows / WASD captured so the player never walks, big ✕ exit top right + Escape, big 📷 on the photo step, a flash). The sky photo is one
   extra album page `cielo` (`SA.album.addSky()`, `entries()` ends with `{ id: 'cielo', icon: '🌙', es: 'el cielo' }`; the picture comes from `render/photo-capture.js`'s
-  `special.cielo` hook), completes the mission and logs `{ kind: 'sky' }` -> sticker `noche-de-estrellas`. The next slice (animal constellations) builds on this view.
+  `special.cielo` hook), completes the mission and logs `{ kind: 'sky' }` -> sticker `noche-de-estrellas`. 
+  **Constellations (AS-0372):** between `look` and `photo` the mission has a counted step `stargaze { target: place, n: 3 }` (new step kind, event `stargazed`). Rows in
+  `game/data/constellations.js` (kind `constellations`: `id`, `say` vocab key such as `animal:tortuga` so the spoken name has its article, `icon`, `center {yaw,pitch}`,
+  `stars` as tangent-plane offsets, `lines` as index pairs, optional `reach`) are three original star pictures: la tortuga, el conejo, el águila. `game/constellations.js` (pure)
+  holds the maths (`nearest(yaw, pitch, found)`: default reach 0.4 rad ≈ 23°, generous). `SA.missionSky.aim()` / `aimTowards(nx, ny, aspect)` (a tap centres the view on the tapped
+  spot) / `open()` run `check()`: with the view open on the `stargaze` step, aiming near an unfound picture finds it (chime, its name spoken, `onFound`, one `stargazed` report);
+  after 3 the `photo` step unlocks (before that the camera button is hidden and `snap()` does nothing). `view()` gains `constellations[{id, icon, lit, center}]`, `found`, `total`,
+  `gaze`; every picture counts as lit once the photo step is reached (reload / re-open); a replay starts dark again. The sky view draws each picture's brighter stars always, and
+  its lines plus a soft halo when lit; the UI shows the animal icons dim until found with `n/3` (top centre) and pops the found animal big with a glow. No timers, no fail state.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

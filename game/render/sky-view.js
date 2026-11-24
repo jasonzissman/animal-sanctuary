@@ -38,6 +38,35 @@
     layer(all.filter(function (s) { return s.size < 1.5; }), 2.5, 0xdfe8ff);
     var bigStars = layer(all.filter(function (s) { return s.size >= 1.5; }), 5, 0xfff2b8);
 
+    // Constellations (AS-0372): brighter stars for each picture (rows from SA.constellations); once found, its lines draw and a soft animal-coloured halo glows
+    // behind it. The row data is the only source (no id is special-cased).
+    var C = SA.constellations, found = [];
+    (C ? C.list() : []).forEach(function (row) {
+      var pts = C.points(row), pos = new Float32Array(pts.length * 3), g = new THREE.Group();
+      pts.forEach(function (p, i) { var v = dir(p.yaw, p.pitch, R - 1); pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z; });
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      var stars = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xfff7d6, size: 7, sizeAttenuation: false }));
+      var lp = [];
+      C.segments(row).forEach(function (s) { s.forEach(function (p) { var v = dir(p.yaw, p.pitch, R - 1); lp.push(v.x, v.y, v.z); }); });
+      var lgeo = new THREE.BufferGeometry();
+      lgeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lp), 3));
+      var lines = new THREE.LineSegments(lgeo, new THREE.LineBasicMaterial({ color: 0xffe08a }));
+      lines.visible = false;
+      var halo = new THREE.Mesh(new THREE.SphereGeometry(9, 14, 10), new THREE.MeshBasicMaterial({ color: 0xffd36b, transparent: true, opacity: 0.16 }));
+      halo.position.copy(dir(row.center.yaw, row.center.pitch, R - 4));
+      halo.scale.set(1.15, 0.8, 0.3);
+      halo.visible = false;
+      g.add(stars); g.add(lines); g.add(halo);
+      scene.add(g);
+      found.push({ id: row.id, lines: lines, halo: halo, stars: stars });
+    });
+    function showFound() {
+      var v = M.view(), lit = {};
+      ((v && v.constellations) || []).forEach(function (c) { lit[c.id] = c.lit; });
+      found.forEach(function (f) { f.lines.visible = !!lit[f.id]; f.halo.visible = !!lit[f.id]; });
+    }
+
     // The moon: a pale disc with a soft halo, exactly where SA.missionSky.MOON says.
     var moon = new THREE.Group();
     moon.add(new THREE.Mesh(new THREE.SphereGeometry(3.2, 14, 10), new THREE.MeshBasicMaterial({ color: 0xfff6d0 })));
@@ -73,7 +102,10 @@
 
     function render() {
       place();
-      bigStars.material.size = 5 + Math.sin(Date.now() / 400) * 0.8;      // the bright ones twinkle a little
+      var tw = Math.sin(Date.now() / 400) * 0.8;
+      bigStars.material.size = 5 + tw;                                    // the bright ones twinkle a little
+      showFound();
+      found.forEach(function (f) { f.stars.material.size = 7 + tw; f.halo.material.opacity = 0.16 + Math.sin(Date.now() / 600) * 0.04; });
       o.renderer.render(scene, cam);
     }
 

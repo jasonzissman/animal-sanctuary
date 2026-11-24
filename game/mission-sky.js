@@ -14,7 +14,11 @@
  *   SA.missionSky.close()           the big exit button: the view closes (progress is kept; the telescope can be tapped again) -> true when it was open
  *   SA.missionSky.onView            set by the UI: fn(open) when the view opens or closes (it shows / hides the controls)
  *   SA.missionSky.aim(dyaw, dpitch) turn the view (radians; pitch is kept between PITCH_MIN and PITCH_MAX, yaw wraps) -> { yaw, pitch }
- *   SA.missionSky.snap()            the camera button, only on the photo step with the view open: { status: 'none' | 'complete' | 'step' }. Shutter sound, the
+ *   SA.missionSky.aimTowards(nx, ny, aspect)  a tap on the sky centres the view on the tapped spot (AS-0372; nx, ny in -1..1 from the screen centre)
+ *   (AS-0372) a 'stargaze' step { target: place, n } (after 'look'): aiming the view's centre near a constellation (game/data/constellations.js, maths in
+ *                                   game/constellations.js) finds it: chime, its name is spoken (vocab `say`), the step counts it ({ type: 'stargazed' }); after n the
+ *                                   photo step unlocks. `onFound({ id, icon, found })` is the UI hook; view() adds { constellations: [{ id, icon, lit, center }], found, total, gaze }
+ *   SA.missionSky.snap()          the camera button, only on the photo step with the view open: { status: 'none' | 'complete' | 'step' }. Shutter sound, the
  *                                   photo goes into the album as 'el cielo' (SA.album.addSky + SA.albumPics.shot('cielo')), the mission completes (stars) and logs one
  *                                   rescue row { kind: 'sky' } -> the sticker 'noche-de-estrellas' (onSticker hook for main.js)
  *   SA.missionSky.view()            -> { open, yaw, pitch, photo, moon: { yaw, pitch }, moonInView } | null   what the renderer / controls draw
@@ -28,6 +32,7 @@
   var REACH = 4.5, ROOF_SLACK = 1.5;
   var PITCH_MIN = -0.15, PITCH_MAX = 1.45, FOV = 1.0;          // view limits (radians): from just under the horizon to nearly overhead
   var MOON = { yaw: 0.9, pitch: 0.65 };                        // where the moon hangs in the dome (the renderer draws it exactly here)
+  var CAM_FOV = 50 * Math.PI / 180;                            // the sky camera's vertical field of view (game/render/sky-view.js)
   var TWO_PI = Math.PI * 2;
 
   function stars(n) {
@@ -67,11 +72,12 @@
     function sync() {
       var a = active(), spec = a && a.mission && a.mission.sky, key = spec ? a.id + ':' + a.seed : null;
       if ((cur && cur.key) === key) return cur;
-      cur = spec ? { key: key, spec: spec, open: false, snapped: false, yaw: 0, pitch: 0.5, said: {} } : null;
+      cur = spec ? { key: key, spec: spec, open: false, snapped: false, yaw: 0, pitch: 0.5, said: {}, found: [] } : null;
       return cur;
     }
 
     function isLook(s) { return !!(cur && s && s.kind === 'look' && s.target === cur.spec.place); }
+    function isGaze(s) { return !!(cur && s && s.kind === 'stargaze' && s.target === cur.spec.place); }
     function isPhoto(s) { return !!(cur && s && s.kind === 'photo' && s.target === cur.spec.place); }
     function once(k, keys) { if (!cur || cur.said[k]) return; cur.said[k] = true; say(keys); }
 
@@ -105,6 +111,7 @@
         once('sky', [].concat(sayOf('sky') || [], sayOf('moon') || [], sayOf('stars') || []));        // "el cielo", then "la luna", "las estrellas" (the photo step)
       }
       if (isPhoto(stepOf())) once('photo', [].concat(sayOf('moon') || [], sayOf('stars') || []));    // opened again (or after a reload) on the photo step
+      check();
       return { status: status };
     }
 
@@ -115,7 +122,37 @@
       if (!cur) return null;
       cur.yaw = wrapYaw(cur.yaw + (Number(dyaw) || 0));
       cur.pitch = clamp(cur.pitch + (Number(dpitch) || 0), PITCH_MIN, PITCH_MAX);
+      check();
       return { yaw: cur.yaw, pitch: cur.pitch };
+    }
+
+    // A tap on the sky: centre the view on the tapped spot (nx, ny in -1..1 from the screen centre, ny down; aspect = width / height of the screen).
+    function aimTowards(nx, ny, aspect) {
+      if (!cur) return null;
+      var t = Math.tan(CAM_FOV / 2), a = Number(aspect) > 0 ? Number(aspect) : 1.33;
+      var dyaw = Math.atan(clamp(Number(nx) || 0, -1, 1) * a * t) / Math.max(0.3, Math.cos(cur.pitch));
+      return aim(dyaw, -Math.atan(clamp(Number(ny) || 0, -1, 1) * t));
+    }
+
+    // Aiming the view's centre near an unfound constellation finds it: a chime, its name (with the article) is spoken, the step counts it. Only on the
+    // 'stargaze' step with the view open; aiming anywhere else just looks around (never a fail state).
+    function check() {
+      if (!cur || !cur.open || !isGaze(stepOf()) || !SA.constellations) return null;
+      var c = SA.constellations.nearest(cur.yaw, cur.pitch, cur.found);
+      if (!c) return null;
+      cur.found.push(c.id);
+      sfx('chime');
+      say(c.say);
+      track('sky.constellation', { id: c.id, found: cur.found.length });
+      if (api.onFound) { try { api.onFound({ id: c.id, icon: c.icon, found: cur.found.length }); } catch (e) { /* a view never breaks play */ } }
+      report({ type: 'stargazed', target: cur.spec.place });
+      return c;
+    }
+
+    // What the sky view draws: every constellation with `lit` (found; all of them once the photo step is reached, also after a reload or a replay).
+    function constellations() {
+      var all = SA.constellations ? SA.constellations.list() : [], lit = isPhoto(stepOf()) || !!(cur && cur.snapped);
+      return all.map(function (c) { return { id: c.id, icon: c.icon, say: c.say, center: c.center, lit: lit || (cur ? cur.found.indexOf(c.id) >= 0 : false) }; });
     }
 
     function moonInView() {
@@ -144,7 +181,9 @@
 
     function view() {
       if (!cur) return null;
-      return { open: cur.open, yaw: cur.yaw, pitch: cur.pitch, photo: isPhoto(stepOf()) && !cur.snapped, moon: { yaw: MOON.yaw, pitch: MOON.pitch }, moonInView: moonInView() };
+      var cs = constellations();
+      return { open: cur.open, yaw: cur.yaw, pitch: cur.pitch, photo: isPhoto(stepOf()) && !cur.snapped, moon: { yaw: MOON.yaw, pitch: MOON.pitch }, moonInView: moonInView(),
+        constellations: cs, found: cs.filter(function (c) { return c.lit; }).length, total: cs.length, gaze: isGaze(stepOf()) };
     }
 
     // The compass points at the telescope while the look step is current.
@@ -155,8 +194,8 @@
       return { x: t.x, z: t.z, role: 'telescope', id: cur.spec.place };
     }
 
-    var api = { sync: sync, update: update, canUse: canUse, open: open, close: close, aim: aim, snap: snap, view: view, target: target, locate: function () { return null; },
-      onSticker: null, onView: null, current: function () { return cur; }, create: create, stars: stars, REACH: REACH, MOON: MOON, FOV: FOV, PITCH_MIN: PITCH_MIN, PITCH_MAX: PITCH_MAX };
+    var api = { sync: sync, update: update, canUse: canUse, open: open, close: close, aim: aim, aimTowards: aimTowards, snap: snap, view: view, target: target, locate: function () { return null; },
+      onSticker: null, onView: null, onFound: null, current: function () { return cur; }, create: create, stars: stars, REACH: REACH, MOON: MOON, FOV: FOV, PITCH_MIN: PITCH_MIN, PITCH_MAX: PITCH_MAX };
     return api;
   }
 

@@ -56,8 +56,9 @@
     },
     bridge: function (THREE, m) {
       var g = new THREE.Group();
-      for (var i = -3; i <= 3; i++) g.add(mesh(THREE, new THREE.BoxGeometry(0.5, 0.14, 1.8), m.wood, i * 0.55, 0.2, 0));
-      [-0.95, 0.95].forEach(function (z) {
+      // Deck top 0.27 and half-size 1.925 x 1.3 match SA.surfaces.propDeck (the avatar walks on it, the rails block).
+      for (var i = -3; i <= 3; i++) g.add(mesh(THREE, new THREE.BoxGeometry(0.5, 0.14, 2.6), m.wood, i * 0.55, 0.2, 0));
+      [-1.2, 1.2].forEach(function (z) {
         g.add(mesh(THREE, new THREE.BoxGeometry(3.6, 0.12, 0.12), m.wood, 0, 0.75, z));
         [-1.7, 0, 1.7].forEach(function (x) { g.add(mesh(THREE, new THREE.BoxGeometry(0.12, 0.6, 0.12), m.wood, x, 0.5, z)); });
       });

@@ -23,7 +23,8 @@
  * Terrain never blocks (AS-0109): the player walks on any ground, dips and water included (they wade, and the avatar may
  * sink below the surface for a moment; heightAt is the floor and SA.map.cameraHeight keeps the camera above the water).
  *
- *   SA.player.heightAt(x, z)           terrain height under the feet (SA.map.groundHeight); SA.climb.step eases y toward it
+ *   SA.player.heightAt(x, z)           height under the feet: SA.map.groundHeight, or a bridge deck's top over it (SA.surfaces, AS-0158); SA.climb.step eases y toward it
+ *   SA.player.inWater(x, z)            in the river/pond water (false on a bridge deck): wading splashes
  *   SA.player.SPAWN_CLEAR             radius (world units) around the spawn kept free of decor and animals
  *   SA.player.inSpawnZone(x, z, pad?)  true when (x, z) is within SPAWN_CLEAR + pad of the spawn
  *   SA.player.spawnZone()              [x, z, SPAWN_CLEAR] avoid point (same shape as SA.propAvoid.points)
@@ -128,7 +129,13 @@
   }
 
   /** Terrain height under the player's feet at (x, z): the single source is SA.map.groundHeight. */
-  function heightAt(x, z) { return SA.map.groundHeight(x, z); }
+  function heightAt(x, z) {
+    var g = SA.map.groundHeight(x, z), d = SA.surfaces ? SA.surfaces.heightAt(x, z) : null;   // a bridge deck (AS-0158) lifts you above the water
+    return d !== null && d > g ? d : g;
+  }
+
+  /** In the river/pond water, but not while standing on a bridge deck over it. */
+  function inWater(x, z) { return SA.map.isWater(x, z) && !(SA.surfaces && SA.surfaces.onDeck(x, z)); }
 
   function step(state, input, dt, obstacles) {
     var S = spawnPoint();
@@ -167,6 +174,6 @@
   function inSpawnZone(x, z, pad) { var S = spawnPoint(); return Math.hypot(x - S.x, z - S.z) < SPAWN_CLEAR + (pad || 0); }
   function spawnZone() { var S = spawnPoint(); return [S.x, S.z, SPAWN_CLEAR]; }
 
-  SA.player = { step: step, floorAt: floorAt, CLEAR_MARGIN: CLEAR_MARGIN, heightAt: heightAt, spawn: spawn, SPEED: SPEED, RUN_SPEED: RUN_SPEED, BACK_SPEED: BACK_SPEED, TURN_RATE: TURN_RATE, RADIUS: RADIUS,
+  SA.player = { step: step, floorAt: floorAt, CLEAR_MARGIN: CLEAR_MARGIN, heightAt: heightAt, inWater: inWater, spawn: spawn, SPEED: SPEED, RUN_SPEED: RUN_SPEED, BACK_SPEED: BACK_SPEED, TURN_RATE: TURN_RATE, RADIUS: RADIUS,
     SPAWN_CLEAR: SPAWN_CLEAR, inSpawnZone: inSpawnZone, spawnZone: spawnZone };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -56,7 +56,7 @@
     var streamStones = SA.forestStreams ? SA.forestStreams.stoneSolids() : [];   // low solids [x, z, r, h] (AS-0301), static
     var logSolids = SA.fallenLogs ? SA.fallenLogs.solids() : [];   // low solids [x, z, r, h] along each fallen log (AS-0302), static
     function obstacles() {
-      return stationWalls.concat(streamStones, logSolids,SA.blocking.obstacles({
+      return stationWalls.concat(streamStones, logSolids, SA.surfaces ? SA.surfaces.solids() : [], SA.blocking.obstacles({
         decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor, scale: o.scale ? o.scale.x : 1 }; }),
         propPoints: solidPropPoints,
         animals: animals.children.map(function (g) {
@@ -185,6 +185,7 @@
       if (SA.propAvoid && SA.habitat) {
         var records = SA.habitat.list();
         solidPropPoints = SA.blocking.solidProps(records);
+        if (SA.surfaces) SA.surfaces.setPlaced(records);   // the placed puentes are walkable decks (AS-0158)
         ambient.setAvoid(avoid.concat(spawnZone, SA.propAvoid.points(records)));   // wanderers still keep clear of every prop
       }
     }
@@ -216,6 +217,9 @@
     }
 
     // The fallen logs (AS-0302): one merged bark mesh; their footprint is in the obstacles above (hop over, stand on top).
+    if (SA.render.createBridges && SA.surfaces) {   // the two river bridges (AS-0158)
+      try { SA.render.createBridges(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('bridges.create', e); }
+    }
     if (SA.render.createFallenLogs && SA.fallenLogs) {
       try { SA.render.createFallenLogs(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('fallenLogs.create', e); }
     }

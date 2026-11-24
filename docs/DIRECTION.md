@@ -281,6 +281,11 @@ current; when your change sets or changes something future tickets must follow, 
   variety with discretion: fun, never cluttered, ~60 fps (instancing, auto quality).
   Things to climb and cross (AS-0158 to AS-0160): river bridges, a rope bridge between mountain peaks, ladders up the
   station and lookout towers. Walkable surfaces and climb targets are generic data, so more can be added freely.
+  Walkable decks (AS-0158): `SA.surfaces` (pure, `game/surfaces.js`) holds decks `{ x, z, dx, dz, halfLen, halfWid, y, ramp, railR }`:
+  `SA.player.heightAt` returns the deck top over water, ramps ease the ends into the ground, rail circles (`surfaces.solids()`, no
+  height, so a hop never clears them) are added to the player's obstacles in `scene.js`. Two seeded river bridges
+  (`render/bridges.js`) plus every placed `puente` prop (`setPlaced`; the prop is no longer a solid blocker). A new walkable thing
+  (rope bridge, tower deck) = one more deck record; use `SA.player.inWater` (not `SA.map.isWater`) for wading sounds.
   Rocks (AS-0299): `SA.rocks` (pure, `game/rocks.js`) gives a seeded spec per rock (boulder / flat / stack / jagged, trim, yaw, tilt, a
   per-biome colour: red-orange desert, grey mountain, mossy bosque/selva); `game/render/rocks.js` builds shared flat-shaded geometry.
   Every kind is normalised to about the data `height` of `roca`/`rocaarena`, and each rock is a Group at the placed scale, so collision and shadows work as before.

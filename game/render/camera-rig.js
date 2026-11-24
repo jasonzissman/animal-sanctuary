@@ -229,7 +229,7 @@
           jumpTap = false;
           if ((hop.event === 'takeoff' || hop.event === 'double') && SA.audio && SA.audio.sfx) SA.audio.sfx(hop.event === 'double' ? 'hop2' : 'hop');
           if (hop.event === 'land' && SA.audio && SA.audio.sfx && SA.footsteps) {   // one soft landing sound per hop (AS-0119)
-            var ls = SA.footsteps.landSound(player.climb && player.climb.mode === 'canopy' ? 'canopy' : !player.climb && SA.map.isWater(player.x, player.z) ? 'water' : 'ground');
+            var ls = SA.footsteps.landSound(player.climb && player.climb.mode === 'canopy' ? 'canopy' : !player.climb && SA.player.inWater(player.x, player.z) ? 'water' : 'ground');
             SA.audio.sfx(ls.sfx, ls.volume);
           }
         }
@@ -237,14 +237,14 @@
         moving = Math.hypot(player.x - before.x, player.z - before.z) > 1e-4 || player.heading !== before.heading;
         isRunning = moving && running;
         if (steps && SA.audio && SA.audio.sfx) {   // soft steps on the ground, splashes in water, leafy brushes in a canopy (muted / locked: silent)
-          var surface = player.climb && player.climb.mode === 'canopy' ? 'canopy' : !player.climb && SA.map.isWater(player.x, player.z) ? 'water' : 'ground';
+          var surface = player.climb && player.climb.mode === 'canopy' ? 'canopy' : !player.climb && SA.player.inWater(player.x, player.z) ? 'water' : 'ground';
           var fs = SA.footsteps.step(steps, { moving: Math.hypot(player.x - before.x, player.z - before.z) > 1e-4, running: running,
             air: !!(hop && (hop.air || hop.lift > 0)) || !!prick.active, climbing: climbing(), surface: surface }, dt);   // turning on the spot makes no step
           steps = fs.state;
           if (fs.event) SA.audio.sfx(fs.event.sfx, fs.event.volume, fs.event.rate);
         }
         if (moveSnd && SA.audio && SA.audio.sfx) {   // one splash walking into water, a steady rustle during the climb, a leaf pop in the canopy
-          var ms = SA.movesound.step(moveSnd, { water: !player.climb && SA.map.isWater(player.x, player.z), air: !!(hop && (hop.air || hop.lift > 0)) || !!prick.active,
+          var ms = SA.movesound.step(moveSnd, { water: !player.climb && SA.player.inWater(player.x, player.z), air: !!(hop && (hop.air || hop.lift > 0)) || !!prick.active,
             climbing: climbing(), canopy: !!player.climb && player.climb.mode === 'canopy' }, dt);
           moveSnd = ms.state;
           ms.events.forEach(function (ev) { SA.audio.sfx(ev.sfx, ev.volume, ev.rate); });

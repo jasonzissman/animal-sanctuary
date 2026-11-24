@@ -12,7 +12,10 @@
     var current = null, shown = false;
     function targetPos() {
       var r = o.game.current();
-      var obj = r && o.animals && SA.render && SA.render.instances ? SA.render.instances.get(o.animals, r.answerId) : r && o.animals && o.animals.getObjectByName(r.answerId);
+      // AS-0256: any animal that fits the clue is right (r.answerIds), so point at the nearest instance of any of them.
+      var obj = r && o.animals && SA.render && SA.render.instances
+        ? SA.render.instances.nearest(o.animals, r.answerIds && r.answerIds.length ? r.answerIds : [r.answerId])
+        : r && o.animals && o.animals.getObjectByName(r.answerId);
       return obj ? { x: obj.position.x, y: obj.position.y, z: obj.position.z } : null;
     }
     var arrow = SA.hintArrow.create(o.doc, function () { pointer.tap(targetPos()); });

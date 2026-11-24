@@ -9,7 +9,9 @@
  *   inst.tapped(animalId, instanceId)  remember the instance the player just tapped, so species-keyed reactions play on it
  *   inst.setNear(x, z)                 the player's position (set each frame by the nearby-task gate); null clears it
  *   inst.keyOf(g)                      the instance key of a group (its name)
- *   inst.reset()                       forget taps and the player position (tests)
+ *   inst.nearest(animals, ids)         the visible group nearest the player among every instance of the species in `ids` (id or array;
+ *                                      any matching species counts, AS-0122); without a player position, inst.get of the first id
+ *   inst.reset()                      forget taps and the player position (tests)
  * `inst.now` (default Date.now) is the clock for TAPPED_MS.
  */
 (function (root) {
@@ -52,9 +54,23 @@
     return list[0];
   }
 
+  // AS-0256: any animal that fits a clue is right, so a hint points at the nearest instance of ANY of the species in `ids`.
+  function nearest(animals, ids) {
+    ids = typeof ids === 'string' ? [ids] : (ids || []);
+    if (!near) return ids.length ? get(animals, ids[0]) : null;
+    var best = null, bd = Infinity;
+    ids.forEach(function (id) {
+      of(animals, id).forEach(function (c) {
+        var d = Math.hypot(c.position.x - near.x, c.position.z - near.z);
+        if (c.visible !== false && d < bd) { bd = d; best = c; }
+      });
+    });
+    return best || (ids.length ? get(animals, ids[0]) : null);
+  }
+
   var inst = SA.render.instances = {
     TAPPED_MS: TAPPED_MS, now: function () { return Date.now(); },
-    byId: byId, of: of, get: get,
+    byId: byId, of: of, get: get, nearest: nearest,
     tapped: function (animalId, instanceId) { if (animalId && instanceId) last[animalId] = { id: instanceId, at: inst.now() }; },
     setNear: function (x, z) { if (x === null || x === undefined) near = null; else { near = near || { x: 0, z: 0 }; near.x = x; near.z = z; } },
     keyOf: function (g) { return g ? g.name : null; },

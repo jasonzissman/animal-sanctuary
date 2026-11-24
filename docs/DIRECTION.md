@@ -254,7 +254,9 @@ current; when your change sets or changes something future tickets must follow, 
   instanceId is exact, a species id means the instance tapped last (8 s), else the one nearest the player, else the first. Never
   call `getObjectByName(animalId)` on the animals group. Hits carry `instanceId`, so reactions play on the tapped instance, while
   picks/`part.tap` still report `animalId`. `SA.render.createAmbient` keys its wander rigs by instanceId (each from its own home
-  and radius); its controls (hold/pin/setCue...) accept either key. Herd placement (AS-0254): the animal data field `herd` (1-5, default 1; regular
+  and radius); its controls (hold/pin/setCue...) accept either key. AS-0256 (slice 3): photos, album, clue answers and missions
+  count by `animalId` (any instance is the species); hints use `instances.nearest(animals, answerIds)` (nearest instance of any
+  fitting species); the easter-egg reveal shows every instance. Herd placement (AS-0254): the animal data field `herd` (1-5, default 1; regular
   species declare 3-5) and `SA.animalPlan.herdPlacements(animals, opts)` give `{ instanceId: '<id>#<n>', animalId, x, z, y, rotY,
   radius }` per instance, each with its own home in a different sub-area (`subAreas`, 2 x 3) of the biome strip, same clearances.
 - **Small inventory (AS-0154, AS-0155).** Tools (cámara, cepillo, esponja, venda), la fresa as the only food, and rocks.

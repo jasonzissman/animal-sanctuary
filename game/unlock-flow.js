@@ -36,8 +36,11 @@
     }
 
     function reveal(animal) {
-      var g = o.group && (SA.render && SA.render.instances ? SA.render.instances.get(o.group, animal.id) : o.group.getObjectByName(animal.id));
+      var inst = SA.render && SA.render.instances;
+      var all = o.group && inst ? inst.of(o.group, animal.id) : [];     // AS-0256: every instance of the creature appears
+      var g = all.length ? inst.get(o.group, animal.id) : o.group && o.group.getObjectByName ? o.group.getObjectByName(animal.id) : null;
       if (!g) return false;
+      all.forEach(function (x) { x.visible = true; });
       g.visible = true;
       faceTo(g);
       sfx('fanfare');

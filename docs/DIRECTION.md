@@ -389,6 +389,17 @@ current; when your change sets or changes something future tickets must follow, 
   **Fragile carry (AS-0314, slice 2):** a `carry` step with `fragile: true` (data, never an id check) makes running or jumping wobble the
   held thing (`SA.carry`) and `SA.missionFragile` (`game/mission-fragile.js`, pure) fires "¡Despacio!" (toast, voice `phrase:despacio`, a
   worried `quack` SFX), at most once per 4 s. It is only a reaction: nothing breaks, drops or resets.
+  **Mission 3, El rescate en el río (AS-0319, slice 2 of AS-0182):** the row `rio` (n 3) declares `river: { animal, rock, log }`. `SA.missionLog`
+  (`game/mission-log.js`, pure) places a flat-topped rock in the river (on `SA.map.riverX(z)`, away from the ford, bridges, station) with the
+  puppy (`perrito`) on it, and the fallen log (`tronco`, 5.4 long, across the river) on the dry west bank. The log slides east along a straight
+  path (`PUSH_SPEED` 2.2) while the kid touches its west end facing east, is a solid circle chain (`solids()`, added to the scene obstacles)
+  while sliding, then at the bridged spot (overlapping the rock) it locks: `SA.surfaces.addFixed` registers walkable decks for the log and the
+  rock (`removeFixed` drops them on a replay), `thing:tronco` is said and `{type:'pushed'}` advances the new generic `push` step kind. The
+  `goTo` step with `place: <rock id>` only counts once the log is locked (`locate()` is null before: wading to the rock never completes it);
+  reaching the rock says `animal:perrito` then `phrase:guau` and the mission ends (more steps come in later slices). `SA.missionRuntime` asks
+  both `SA.missionCarry` and `SA.missionLog` for `locate` / `target` (the compass). A reload past the push step locks the log at once. The
+  bridge stays after the mission, in memory only. `render/mission-log.js` draws the rock, log and the shivering, crying puppy (tear, whimper
+  by distance), which hops when the bridge locks.
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

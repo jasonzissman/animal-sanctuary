@@ -161,6 +161,7 @@ globalThis.SA_MANIFEST = {
     'game/mission-log.js',
     'game/mission-bananas.js',
     'game/mission-doctor.js',
+    'game/flight.js',
     'game/mission-nest.js',
     'game/mission-friends.js',
     'game/party-melody.js',

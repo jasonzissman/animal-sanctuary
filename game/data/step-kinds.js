@@ -55,6 +55,7 @@
     { id: 'touch', event: 'touched', required: { animal: 'string', part: 'string' }, match: { animal: 'animal', part: 'part' } },   // AS-0331: tap a body part (the sick camel's la frente)
     { id: 'recover', event: 'recovered', required: { animal: 'string' }, match: { animal: 'animal' } },   // AS-0333: the sick animal rests until the next session / mission
     { id: 'fill', event: 'filled', required: { item: 'string' }, match: { item: 'item' } },   // AS-0331: fill the held bucket at the water
+    { id: 'give', event: 'gave', required: { item: 'string', to: 'string' }, match: { item: 'item', to: 'to' } },   // AS-0337: hand the held item to an animal (the eagle chick's feather)
     { id: 'collect', event: 'collected', required: { item: 'string', n: 'number' }, match: { item: 'item' }, progress: { total: 'n' } },
     { id: 'goTo', event: 'arrived', required: { place: 'string' }, match: { place: 'place' } },
     { id: 'talk', event: 'talked', required: { who: 'string' }, match: { who: 'who' } },

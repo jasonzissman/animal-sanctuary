@@ -201,7 +201,7 @@
     // The sick camel by the oasis, its thermometer and the bucket (mission 5, AS-0331): they exist only while that mission runs.
     var missionDoctor = SA.render.createMissionDoctor && SA.missionDoctor ? SA.render.createMissionDoctor(THREE, { scene: scene, solids: function () { return obstacles(); }, getPlayer: rig.getPlayer, canvas: renderer.domElement, camera: camera }) : null;
     // The feather by the mountain trail and the eagle's nest on the far peak (mission 6, AS-0336): they exist only while that mission runs.
-    var missionNest = SA.render.createMissionNest && SA.missionNest ? SA.render.createMissionNest(THREE, { scene: scene, solids: function () { return obstacles(); } }) : null;
+    var missionNest = SA.render.createMissionNest && SA.missionNest ? SA.render.createMissionNest(THREE, { scene: scene, solids: function () { return obstacles(); }, getPlayer: rig.getPlayer, canvas: renderer.domElement, camera: camera }) : null;
     var treetop = SA.render.createTreetopTell &&SA.treetopTell ? SA.render.createTreetopTell(THREE, { animals: animals, trees: trees, treeNodes: treeNodes, getPlayer: rig.getPlayer, scene: scene }) : null;
     // Placed props (this session and restored from the save) join the decor in the wander avoid list. The save is
     // already updated when the sandbox calls add/remove, so the list is rebuilt from SA.habitat.list().

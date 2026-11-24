@@ -14,12 +14,31 @@
  *                                  the summit peak and `say.bridge` once when you are out over the bridge; says `say.nest` at the nest
  *   SA.missionNest.locate(id)      -> { x, z, r } | null   the summit (summitPlace) or, once you crossed the bridge, the nest (nestPlace)
  *   SA.missionNest.target(step)    -> { x, z, role, id } | null   compass: the feather, the summit, then the bridge until you crossed, then the nest
- *   SA.missionNest.current() / onChange(fn) / setSolids(listOrFn) / create({ missions?, audio?, inventory?, report?, track?, solids? })
+ *   AS-0337 (slice 2): the 'give' step { item, to }. SA.missionNest.give(player?) is a tap on the chick (render/mission-nest.js) holding the feather:
+ *   on the give step, near the nest and with the item in the bag it takes the item out of the inventory, speaks `say.give`, reports
+ *   { type: 'gave', item, to } (the step moves on to the photo) and starts the chick's first flight (SA.flight, pure path / timing math):
+ *   flap, one small loop beside mamá, land back in the nest. `say.fly` ('volar') is spoken when the loop begins. Early, far or empty-handed taps
+ *   never fail: the chick just wobbles (view().nudge) and a short cue is spoken ('¡Acércate!', or la pluma when you hold none) -> { ok, reason? }.
+ *   SA.missionNest.spots()   -> { bowl, chick, mama, face } | null   where the nest, the chick and mamá sit (render and reach share it)
+ *   SA.missionNest.view()    -> { feather, crossed, flight, flown, nudge } | null   flight = seconds since the flight began (null when none), flown = the
+ *                               feather was given (the chick sits in the nest again afterwards), nudge = seconds since a wobble (null when none)
+ *   SA.missionNest.current() / onChange(fn) / setSolids(listOrFn) / create({ missions?, audio?, inventory?, report?, track?, solids?, now? })
  */
 (function (root) {
   'use strict';
   var SA = root.SA;
   var PICK_REACH = 1.6, EDGE = 4, SIDE = 2.0, AT_S = [9, 12, 7, 15, 5, 18], MID_REACH = 2.5, ABOVE_GROUND = 2;
+  var GIVE_REACH = 4.5, BACK = 0.55, NUDGE_S = 0.7, SEAT = 0.15;      // the nest sits a little past the summit centre, away from the bridge
+  var SEATS = { mama: [-0.18, 0.05], chick: [0.2, -0.05] };           // where mamá and the chick sit in the bowl (world offsets)
+
+  // Where the bowl, mamá and the chick sit: pure from the two peak tops (the renderer draws exactly here).
+  function spotsOf(cur) {
+    if (!cur) return null;
+    var n = cur.nest, s = cur.summit, dx = n.x - s.x, dz = n.z - s.z, len = Math.hypot(dx, dz) || 1;
+    var bx = n.x + dx / len * BACK, bz = n.z + dz / len * BACK;
+    function at(k) { return { x: bx + SEATS[k][0], y: n.y + SEAT, z: bz + SEATS[k][1] }; }
+    return { bowl: { x: bx, y: n.y, z: bz }, mama: at('mama'), chick: at('chick'), face: Math.atan2(-dx, -dz) };
+  }
 
   function peakById(id) {
     var list = SA.peaks ? SA.peaks.LIST : [];
@@ -83,6 +102,8 @@
     function stepOf() { var a = null; try { a = missions().active(); } catch (e) { a = null; } return a && a.stepData; }
     function sayOf(k) { return cur && cur.spec.say ? cur.spec.say[k] : null; }
     function inv() { return opts.inventory || SA.inventory; }
+    function now() { return opts.now ? opts.now() : Date.now(); }
+    function secondsSince(t) { return t == null ? null : Math.max(0, (now() - t) / 1000); }
 
     function sync(o) {
       var a = null;
@@ -92,7 +113,7 @@
       if ((cur && cur.key) === key) return cur;
       var src = (o && o.solids) || solidsSrc;
       var p = spec ? place(spec, a.seed, { solids: typeof src === 'function' ? src() : src || [] }) : null;
-      cur = p ? { key: key, spec: spec, feather: p.feather, summit: p.summit, nest: p.nest, bridge: p.bridge, said: {}, crossed: false } : null;
+      cur = p ? { key: key, spec: spec, feather: p.feather, summit: p.summit, nest: p.nest, bridge: p.bridge, said: {}, crossed: false, flightAt: null, nudgeAt: null } : null;
       emit();
       return cur;
     }
@@ -116,6 +137,7 @@
       if (!cur) return null;
       var s = stepOf();
       if (!isCollect(s) && !cur.feather.taken) { cur.feather.taken = true; emit(); }          // a reload past the feather: none is left lying
+      if (cur.flightAt != null && !cur.said.fly && secondsSince(cur.flightAt) >= SA.flight.PHASES.flap) once('fly', sayOf('fly'));   // 'volar' as the loop begins
       if (!player) return cur;
       if (isCollect(s) && !cur.feather.taken && Math.hypot(player.x - cur.feather.x, player.z - cur.feather.z) <= PICK_REACH) {
         cur.feather.taken = true;
@@ -156,12 +178,40 @@
         var at = !cur.crossed && cur.bridge ? cur.bridge : cur.nest;       // the rope bridge first, then the nest across it
         return { x: at.x, z: at.z, role: 'place', id: cur.spec.nestPlace };
       }
+      if (step.kind === 'give' && step.item === cur.spec.item) { var sp = spotsOf(cur); return { x: sp.chick.x, z: sp.chick.z, role: 'animal', id: step.to }; }   // the chick
+      if (step.kind === 'photo') return { x: cur.nest.x, z: cur.nest.z, role: 'place', id: cur.spec.nestPlace };                                           // the family at the nest
       return null;
     }
 
-    function view() { return cur ? { feather: cur.feather.taken ? null : cur.feather, crossed: cur.crossed } : null; }
+    // A tap on the chick (AS-0337). Never punishing: the wrong moment just makes it wobble and says a short cue.
+    function nudge(cue) { cur.nudgeAt = now(); emit(); if (cue) say(cue); }
+    function give(player) {
+      sync();
+      if (!cur) return { ok: false, reason: 'none' };
+      var s = stepOf(), p = player || last, sp = spotsOf(cur), item = cur.spec.item;
+      if (cur.flightAt != null && secondsSince(cur.flightAt) < (SA.flight ? SA.flight.DURATION : 0)) return { ok: false, reason: 'busy' };
+      if (!SA.flight || !s || s.kind !== 'give' || s.item !== item) { nudge(); return { ok: false, reason: 'step' };}     // too early (or already done): it just wobbles
+      if (p && Math.hypot(p.x - sp.chick.x, p.z - sp.chick.z) > GIVE_REACH) { nudge('phrase:acercate'); return { ok: false, reason: 'far' }; }
+      var iv = inv(), held = false;
+      try { held = !!(iv && iv.has && iv.has(item)); } catch (e) { held = false; }
+      if (!held) { nudge('item:' + item); return { ok: false, reason: 'noitem' }; }   // empty-handed: it looks for la pluma
+      try { iv.remove(item); } catch (e) { /* the bag never breaks the loop */ }
+      cur.flightAt = now();
+      emit();
+      say(sayOf('give'));
+      track('nest.give', { item: item, to: s.to });
+      report({ type: 'gave', item: item, to: s.to });
+      return { ok: true };
+    }
 
-    return { sync: sync, update: update, locate: locate, target: target, view: view, current: function () { return cur; },
+    function view() {
+      if (!cur) return null;
+      var s = stepOf(), dur = SA.flight ? SA.flight.DURATION : 0, fl = secondsSince(cur.flightAt), nd = secondsSince(cur.nudgeAt);
+      return { feather: cur.feather.taken ? null : cur.feather, crossed: cur.crossed,
+        flight: fl != null && fl < dur ? fl : null, flown: cur.flightAt != null || !!(s && s.kind === 'photo'), nudge: nd != null && nd < NUDGE_S ? nd : null };
+    }
+
+    return { sync: sync, update: update, locate: locate, target: target, view: view, give: give, spots: function () { return spotsOf(cur); }, current: function () { return cur; },
       setSolids: function (s) { solidsSrc = s; },
       onChange: function (fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; },
       create: create, PICK_REACH: PICK_REACH };

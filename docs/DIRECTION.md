@@ -217,6 +217,11 @@ current; when your change sets or changes something future tickets must follow, 
   2048 PCFSoft map whose ±32 window follows the player (texel-snapped, no per-frame allocation). Animals (re-marked when the herd
   group changes), the avatar, trees, rocks and peaks cast; the vertex-coloured ground receives. New world solids that should
   shadow must be under `decor`/`animals`, or be passed to `sunShadow.mark(node)`; flowers and invisible pick volumes never cast.
+- **Ground cover is soft, instanced and recycled around the player (AS-0294).** `SA.groundCoverPlan` (pure, seeded jittered grid per
+  biome strip; tints from the biome data; keeps off water, spawn, station and peaks) plans grass tufts and tiny plants;
+  `render/ground-cover.js` draws one `InstancedMesh` per biome/kind from a fixed pool refilled every metre walked (`select()`: full
+  density near, thinning to a 30 m radius). Sway is a vertex-shader bend on one `uTime` uniform, no per-frame allocation. It is
+  never added to obstacle/decor lists, so the player walks through it. More vegetation (bushes, ferns, tree kinds) should reuse this pattern.
 - **Water never blocks the player (AS-0109, replaces the AS-0077 soft wall).** `SA.player.step` has no shore/nearestDry
   rule any more: only obstacle circles and the map edge stop the player. `SA.player.heightAt(x, z)` is the feet-height
   helper; the avatar follows the floor (so it can sink under the surface) and `SA.map.cameraHeight` keeps the chase camera

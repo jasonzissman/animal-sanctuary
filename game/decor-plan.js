@@ -55,6 +55,7 @@
     if (SA.fallenLogs && SA.fallenLogs.near(x, z, 1.4)) return false;   // no tree grows through a fallen log (AS-0302)
     if (SA.desertPlan && SA.desertPlan.near(x, z, 1)) return false;   // and off the desierto's rock arch and oasis (AS-0308)
     if (SA.mountainPlan && SA.mountainPlan.near(x, z, 1)) return false;   // and off the mountain trail and boulder field (AS-0309)
+    if (SA.junglePlan && SA.junglePlan.near(x, z, 1.5)) return false;   // and off the selva's giant tree trunks (AS-0388)
     if (SA.surfaces && SA.surfaces.near(x, z, 1.6)) return false;   // and off the river bridges and their ends (AS-0158)
     if (SA.lookouts && SA.lookouts.near(x, z, 1.2)) return false;   // and off the lookout towers and their ladder approach (AS-0160)
     if (SA.forestPaths && SA.forestPaths.onPath(x, z, 1)) return false;   // and the forest dirt paths (AS-0300; a trunk is up to ~1 m wide)

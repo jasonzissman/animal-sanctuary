@@ -45,6 +45,7 @@
     var y = M.groundHeight(x, z);
     if (SA.player && SA.player.inSpawnZone(x, z)) return false;       // the spawn stays clear (AS-0105)
     if (SA.station && SA.station.inFootprint(x, z, 1)) return false;  // and so does the research station's footprint
+    if (SA.desertPlan && SA.desertPlan.near(x, z, 1)) return false;   // and the desierto's arch and oasis (AS-0308)
     if (where === 'water') return y >= M.WATER_LEVEL + 0.15 && M.nearWater(x, z, 3.5);
     return y >= M.WATER_LEVEL + 0.45;
   }

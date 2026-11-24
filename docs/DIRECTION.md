@@ -332,6 +332,10 @@ current; when your change sets or changes something future tickets must follow, 
   `match` facts (trait / length / count / biome / part); `round.answerIds` lists every animal in play that fits and
   `round.pick` is correct for any of them (the result names the picked one; `answerId` is just the one the hint shows).
   An animal may list `traits.alsoMoves` (turtle: `['nada']`) so it also fits other movement clues.
+  **Census list (AS-0340, slice 1 of Mission 7 AS-0186):** `SA.census` (`game/census.js`, pure) builds the scientist's checklist
+  ("tres animales grises, dos que nadan y uno que salta"): 2-3 entries `{ trait, value, n, es, icon }` over colour / movement / size
+  / diet, only where at least n distinct non-story, non-egg species fit, from a seed or rng (`opts.avoid` rerolls a replay).
+  `matches(animal, entry)`, `tick(state, animal)` (an animal ticks every unfinished entry it fits, once each) and `isDone(state)`.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

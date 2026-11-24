@@ -135,6 +135,16 @@
   add('number', 'una', 'una');
   add('phrase', 'y', 'y');
 
+  // Census phrases (AS-0340): "tres animales grises, dos que nadan y uno que salta". Plural verbs agree with "animales"
+  // (the singular verbs are the movement: keys above); diet adjectives get all four agreeing forms under adj:.
+  add('phrase', 'animal', 'animal', 'animal');
+  add('phrase', 'animales', 'animales', 'animals');
+  add('phrase', 'que', 'que', 'that');
+  ['saltan', 'nadan', 'vuelan', 'trepan', 'caminan lento', 'corren', 'reptan'].forEach(function (w) { add('movement', w, w); });
+  ['herbívor', 'carnívor', 'omnívor', 'insectívor'].forEach(function (stem) {
+    ['o', 'os', 'a', 'as'].forEach(function (end) { add('adj', stem + end, stem + end); });
+  });
+
   add('phrase', 'muybien', '¡Muy bien!');
   add('phrase', 'otravez', '¡Otra vez!');
   add('phrase', 'dondeesta', '¿Dónde está?');

@@ -229,6 +229,11 @@ current; when your change sets or changes something future tickets must follow, 
   `render/ground-cover.js` draws one `InstancedMesh` per biome/kind from a fixed pool refilled every metre walked (`select()`: full
   density near, thinning to a 30 m radius). Sway is a vertex-shader bend on one `uTime` uniform, no per-frame allocation. It is
   never added to obstacle/decor lists, so the player walks through it. More vegetation (bushes, ferns, tree kinds) should reuse this pattern.
+- **Water moves and has edges (AS-0298).** The river and pond (`render/world.js`, geometry baked in world coordinates) move with a
+  two-sine vertex-shader wave on one `uTime` uniform (`SA.render.applyWaterWave`; `world.userData.update(dt)` advances the clock, no
+  allocation; constants in `SA.waterBanks.WAVE`, kept to a few cm so wading is unchanged). `SA.waterBanks` (pure, `game/water-banks-plan.js`)
+  finds the real shore lines only on the water meshes (low ground elsewhere has no water) and seeds pebbles and reeds along them;
+  `render/water-banks.js` draws a foam ribbon on the same wave plus one `InstancedMesh` each for pebbles and reeds. All soft, static.
 - **Water never blocks the player (AS-0109, replaces the AS-0077 soft wall).** `SA.player.step` has no shore/nearestDry
   rule any more: only obstacle circles and the map edge stop the player. `SA.player.heightAt(x, z)` is the feet-height
   helper; the avatar follows the floor (so it can sink under the surface) and `SA.map.cameraHeight` keeps the chase camera

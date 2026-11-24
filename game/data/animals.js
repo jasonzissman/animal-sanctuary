@@ -420,6 +420,59 @@
         p('cabeza', '#b78f86', 0.4, 1, [0, 1.52, 0.5]), p('pico', '#e6dfc8', [0.18, 0.2, 0.4], 1, [0, 1.45, 0.85]),
         p('alas', '#15151a', [0.12, 0.9, 2.4], 2, [0.55, 1.05, 0]), p('cola', '#1c1c22', [0.4, 0.1, 0.8], 1, [0, 0.9, -0.85]),
         p('patas', '#8a8a92', [0.1, 0.75, 0.1], 2, [0.2, 0.375, 0]), eyes(0.09, [0.12, 1.57, 0.66])
+      ], easterEgg: false },
+    // AS-0270: forest (ciervo, ardilla) and jungle (jaguar, perezoso) species: bosque and selva now have 5 each. Appended last
+    // so earlier species keep their herd homes.
+    { id: 'ciervo', name: { es: 'ciervo', en: 'deer', gender: 'm' }, icon: '🦌', biome: 'bosque', herd: 3,
+      traits: { size: 'mediano', color: 'marrón', movement: 'corre', diet: 'herbívoro', legs: 4 },
+      parts: shrink([
+        // Tawny deer: slim body on four long thin legs, a leaning neck (extra pieces of la cabeza), a dark nose, a small white tail
+        // and tall branching antlers (cuernos 1.1 before shrinking: the only ones over the "cuernos largos" threshold).
+        p('cuerpo', '#a9753f', [0.8, 0.85, 1.5], 1, [0, 1.3, 0]),
+        { part: 'cabeza', color: '#a9753f', scale: [0.4, 0.4, 0.6], count: 1, offset: [0, 2.05, 0.9],
+          also: [{ scale: [0.28, 0.8, 0.28], count: 1, offset: [0, 1.7, 0.72], rot: [0.4, 0, 0], builder: 'cylinder' }] },
+        p('hocico', '#4a3220', [0.18, 0.18, 0.2], 1, [0, 1.98, 1.22]), eyes(0.09, [0.15, 2.12, 1.05]),
+        p('orejas', '#8f5f30', [0.12, 0.3, 0.12], 2, [0.2, 2.3, 0.75]),
+        { part: 'cuernos', color: '#d8c8a0', builder: 'cylinder', scale: [0.06, 1.1, 0.06], count: 2, offset: [0.1, 2.75, 0.8],
+          also: [{ scale: [0.05, 0.5, 0.05], count: 2, offset: [0.2, 2.85, 0.92] }, { scale: [0.05, 0.4, 0.05], count: 2, offset: [0.2, 3.0, 0.68] }] },
+        p('cola', '#f2ead8', [0.12, 0.2, 0.12], 1, [0, 1.6, -0.8]),
+        { part: 'patas', color: '#8f5f30', builder: 'cylinder', scale: [0.12, 1.3, 0.12], count: 4, offset: [0.25, 0.65, 0], row: 0.5 },
+        p('barriga', '#e8d6b0', [0.5, 0.3, 0.9], 1, [0, 1.05, 0.1])
+      ], 0.8), easterEgg: false },
+    { id: 'ardilla', name: { es: 'ardilla', en: 'squirrel', gender: 'f' }, icon: '🐿️', biome: 'bosque', herd: 3,
+      traits: { size: 'pequeño', color: 'rojo', movement: 'trepa', diet: 'omnívoro', legs: 4 },
+      parts: [
+        // Small red-brown squirrel with tufted ears and a big bushy tail standing up behind it (cola 1.0, tipped with a paler ball).
+        p('cuerpo', '#b5532a', [0.45, 0.5, 0.7], 1, [0, 0.55, 0]), p('cabeza', '#b5532a', 0.4, 1, [0, 0.9, 0.3]),
+        p('hocico', '#e8c9a0', 0.12, 1, [0, 0.85, 0.5]), eyes(0.1, [0.11, 0.96, 0.46]),
+        p('orejas', '#8f3f1c', [0.1, 0.2, 0.1], 2, [0.12, 1.15, 0.25]),
+        p('patas', '#8f3f1c', [0.1, 0.45, 0.1], 4, [0.15, 0.225, 0]),
+        { part: 'cola', color: '#c4622f', builder: 'sphere', scale: [0.45, 1.0, 0.5], count: 1, offset: [0, 0.95, -0.55],
+          also: [{ scale: 0.32, count: 1, offset: [0, 1.4, -0.6], color: '#e8a070' }] },
+        p('barriga', '#f0d9b0', [0.3, 0.3, 0.4], 1, [0, 0.45, 0.2])
+      ], easterEgg: false },
+    { id: 'jaguar', name: { es: 'jaguar', en: 'jaguar', gender: 'm' }, icon: '🐆', biome: 'selva', herd: 3,
+      traits: { size: 'mediano', color: 'amarillo', movement: 'corre', diet: 'carnívoro', legs: 4 },
+      parts: [
+        // Golden cat: long low body, broad round head, short thick legs, a medium tail, and black spots (manchas) on the back
+        // and flanks: the part that makes it the one answer of "Toca las manchas".
+        p('cuerpo', '#d9a441', [0.8, 0.75, 1.7], 1, [0, 0.85, 0]), p('cabeza', '#d9a441', 0.6, 1, [0, 1.0, 1.0]),
+        p('hocico', '#ecd29a', [0.3, 0.25, 0.3], 1, [0, 0.9, 1.3]), eyes(0.1, [0.17, 1.08, 1.25], '#f4f4a0'),
+        p('orejas', '#c48f30', 0.15, 2, [0.2, 1.35, 0.95]), p('cola', '#d9a441', [0.14, 0.14, 0.7], 1, [0, 0.95, -1.05]),
+        { part: 'patas', color: '#c48f30', builder: 'cylinder', scale: [0.2, 0.72, 0.2], count: 4, offset: [0.25, 0.36, 0], row: 0.5 },
+        { part: 'manchas', color: '#2a1c10', builder: 'sphere', scale: [0.2, 0.12, 0.2], count: 4, offset: [0.15, 1.17, 0.45], row: 0.45,
+          also: [{ scale: [0.08, 0.2, 0.2], count: 2, offset: [0.37, 0.95, 0.3] }, { scale: [0.08, 0.2, 0.2], count: 2, offset: [0.37, 0.95, -0.4] }] },
+        p('barriga', '#ecd29a', [0.5, 0.3, 0.9], 1, [0, 0.6, 0.1])
+      ], easterEgg: false },
+    { id: 'perezoso', name: { es: 'perezoso', en: 'sloth', gender: 'm' }, icon: '🦥', biome: 'selva', herd: 4, perch: 'tree',
+      traits: { size: 'mediano', color: 'gris', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
+      parts: [
+        // Shaggy grey-brown sloth with a pale round face, very long limbs ending in pale curved claws (garras).
+        p('cuerpo', '#8c8068', [0.8, 0.8, 1.0], 1, [0, 0.9, 0]), p('cabeza', '#b3a58a', 0.55, 1, [0, 1.4, 0.45]),
+        p('hocico', '#3a2a20', 0.15, 1, [0, 1.33, 0.72]), eyes(0.12, [0.14, 1.46, 0.7]),
+        p('pelo', '#6f6450', [0.7, 0.2, 0.8], 1, [0, 1.3, -0.1]), p('cola', '#8c8068', 0.15, 1, [0, 0.7, -0.55]),
+        { part: 'patas', color: '#7d7058', builder: 'cylinder', scale: [0.14, 1.2, 0.14], count: 4, offset: [0.3, 0.6, 0], row: 0.25 },
+        { part: 'garras', color: '#efe6d0', scale: [0.08, 0.22, 0.08], count: 4, offset: [0.3, 0.08, 0.05], row: 0.25 }, p('barriga', '#a89c82', [0.5, 0.3, 0.6], 1, [0, 0.55, 0.3])
       ], easterEgg: false }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

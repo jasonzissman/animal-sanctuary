@@ -49,12 +49,14 @@
     ['hocico', 'el hocico'], ['pico', 'el pico'], ['cola', 'la cola'], ['patas', 'las patas'], ['alas', 'las alas'],
     ['caparazon', 'el caparazón'], ['cuernos', 'los cuernos'], ['aletas', 'las aletas'], ['plumas', 'las plumas'],
     ['nariz', 'la nariz'], ['joroba', 'la joroba'], ['mejillas', 'las mejillas'],
-    ['pelo', 'el pelo'], ['barriga', 'la barriga'], ['cresta', 'la cresta'], ['cuello', 'el cuello']].forEach(function (p) { add('part', p[0], p[1]); });
+    ['pelo', 'el pelo'], ['barriga', 'la barriga'], ['cresta', 'la cresta'], ['cuello', 'el cuello'],
+    ['manchas', 'las manchas'], ['garras', 'las garras']].forEach(function (p) { add('part', p[0], p[1]); });
 
   [['conejo', 'el conejo'], ['pato', 'el pato'], ['tortuga', 'la tortuga'], ['mono', 'el mono'],
     ['tucan', 'el tucán'], ['rana', 'la rana'], ['camello', 'el camello'], ['serpiente', 'la serpiente'],
     ['zorrodesierto', 'el zorro del desierto'], ['lagartija', 'la lagartija'], ['correcaminos', 'el correcaminos'],
     ['oso', 'el oso'], ['llama', 'la llama'], ['condor', 'el cóndor'],
+    ['ciervo', 'el ciervo'], ['ardilla', 'la ardilla'], ['jaguar', 'el jaguar'], ['perezoso', 'el perezoso'],
     ['cabra', 'la cabra'], ['aguila', 'el águila'], ['raton', 'el ratón chispa'],
     ['cerda', 'la cerda'], ['cerdito', 'el cerdito']].forEach(function (a) { add('animal', a[0], a[1]); });
 

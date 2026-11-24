@@ -104,6 +104,12 @@
       adjectives: [{ id: 'grande', min: 2.0, forms: { m: { sg: 'grande', pl: 'grandes' }, f: { sg: 'grande', pl: 'grandes' } } }] },
     { id: 'part-length-pelo', type: 'partAdjective', lead: lead.withPart, parts: ['pelo'],
       adjectives: [{ id: 'largo', min: 1.0, forms: { m: { sg: 'largo', pl: 'largos' }, f: { sg: 'larga', pl: 'largas' } } }] },
+    // AS-0270: "manchas grandes" (the jaguar's rosettes) and "garras largas" (the sloth's claws): parts only one animal has, so the
+    // clue has one answer. "cuernos largos" (the deer's antlers) uses the existing part-length template.
+    { id: 'part-size-manchas', type: 'partAdjective', lead: lead.withPart, parts: ['manchas'],
+      adjectives: [{ id: 'grande', min: 0.15, forms: { m: { sg: 'grande', pl: 'grandes' }, f: { sg: 'grande', pl: 'grandes' } } }] },
+    { id: 'part-length-garras', type: 'partAdjective', lead: lead.withPart, parts: ['garras'],
+      adjectives: [{ id: 'largo', min: 0.2, forms: { m: { sg: 'largo', pl: 'largos' }, f: { sg: 'larga', pl: 'largas' } } }] },
     { id: 'trait-movement', type: 'trait', lead: lead.that, trait: 'movement',
       values: ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre', 'repta'] },
     { id: 'trait-size', type: 'trait', lead: lead.plain, trait: 'size', values: ['pequeño', 'mediano', 'grande'] },
@@ -120,7 +126,7 @@
       values: ['pequeño', 'mediano', 'grande'] },
     { id: 'touch-part', type: 'touchPart', lead: lead.touch,
       parts: ['cabeza', 'orejas', 'ojos', 'hocico', 'pico', 'cola', 'patas', 'alas', 'caparazon', 'cuernos', 'aletas',
-        'plumas', 'nariz', 'joroba', 'cresta', 'cuello'] }
+        'plumas', 'nariz', 'joroba', 'cresta', 'cuello', 'manchas', 'garras'] }
   ];
   SA.data.register('clueTemplates', templates);
 

@@ -156,6 +156,7 @@ globalThis.SA_MANIFEST = {
     'game/carry.js',
     'game/mission-spawn.js',
     'game/mission-carry.js',
+    'game/mission-fragile.js',
     'game/mission-runtime.js',
     'game/greeting.js',
     'game/scientist-talk.js',

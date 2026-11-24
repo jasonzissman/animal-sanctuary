@@ -172,12 +172,17 @@
     catch (e) { report('settings.start', e); }
     // 🎒 menu (top-right): holds sound, 🏡, 📖 and ⚙️; M toggles mute, Escape / an outside tap closes it.
     try { if (SA.menuView) menuView = SA.menuView.create(root.document, root); } catch (e) { report('menu.start', e); }
+    // Running or jumping with the fragile egg: a worried quack and "¡Despacio!" (AS-0314), rate-limited; never a penalty.
+    var fragileWatch = null;
+    try { if (SA.missionFragile) fragileWatch = SA.missionFragile.create({ toast: function (m) { if (ctl && ctl.toast) ctl.toast(m); } }); }
+    catch (e) { report('missionFragile.start', e); }
     var last = null;
     function loop(now) {
       var dt = last === null ? 0 : Math.min((now - last) / 1000, 0.25);
       last = now;
       // A fragile carried thing wobbles when the kid jumps (SA.carry, AS-0231); hand-item.js draws the wobble in stage.render.
       if (SA.carry) { try { SA.carry.update(dt, stage.rig.getPlayer()); } catch (e) { SA.carry = null; report('carry.update', e); } }
+      if (fragileWatch) { try { fragileWatch.update(dt, stage.rig.getPlayer()); } catch (e) { fragileWatch = null; report('missionFragile.update', e); } }
       stage.render(dt);
       if (hotbar) { try { hotbar.update(); } catch (e) { hotbar = null; report('hotbar.update', e); } }
       if (useBtn) { try { useBtn.update(); } catch (e) { useBtn = null; report('useButton.update', e); } }

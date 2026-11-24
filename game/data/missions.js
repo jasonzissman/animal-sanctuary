@@ -80,7 +80,7 @@
     { id: 'huevo', n: 2, es: 'El huevo perdido', en: 'The lost egg', icon: '🥚',
       intro: { es: '¡Salva el huevo!', en: 'Save the egg!', icon: '🥚' },
       carry: { item: 'huevo', to: 'nido', near: 'pond' },
-      steps: [{ kind: 'carry', item: 'huevo', line: { es: 'Recoge el huevo', icon: '🥚', en: 'Pick up the egg' } },
+      steps: [{ kind: 'carry', item: 'huevo', fragile: true, line: { es: 'Recoge el huevo', icon: '🥚', en: 'Pick up the egg' } },
         { kind: 'deliver', item: 'huevo', to: 'nido', line: { es: 'Llévalo al nido', icon: '🪺', en: 'Take it to the nest' } }],
       reward: { stars: 2 } }
   ]);

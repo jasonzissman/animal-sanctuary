@@ -49,6 +49,9 @@
  *           game/mission-pantry.js owns it; nothing special-cases the animal id.
  *           AS-0347: `pantry.trail` { id, say?: { start } } is the footprint-and-crumb trail from the empty basket at the station to the tree;
  *           a 'trail' step { trail: id } finishes when you reach the tree's doorstep (game/mission-trail.js). `say.start` = vocab key(s) spoken at the step.
+ *           AS-0348: `pantry.gift` (an item id, items.js) is what the family hands back for a 'give' step { item, to, n? } (tap the mice near the tree with the
+ *           strawberries in the bag); `say.give` / `say.gift` (vocab key or list) are spoken at the share and the gift. A mission's `bananas` may carry
+ *           `bag: true` (AS-0348): each pickup also goes into the inventory (and the pickups only stand while their 'collect' step is current).
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -114,6 +117,7 @@
       if (typeof b.item !== 'string' || !/^[a-z][a-z0-9-]*$/.test(b.item)) fail('bananas.item', 'must be a lowercase id string');
       if (!Number.isInteger(b.n) || b.n < 1 || b.n > 6) fail('bananas.n', 'must be a whole number from 1 to 6');
       if (b.biome !== undefined && (typeof b.biome !== 'string' || !b.biome)) fail('bananas.biome', 'must be a biome id string');
+      if (b.bag !== undefined && typeof b.bag !== 'boolean') fail('bananas.bag', 'must be true or false');
     }
     if (m.friends !== undefined) {
       var fr = m.friends, idRe = /^[a-z][a-z0-9-]*$/;
@@ -163,9 +167,14 @@
       if (!pf || typeof pf !== 'object' || Array.isArray(pf)) fail('pantry.family', 'must be { mama, papa, baby, babies }');
       ['mama', 'papa', 'baby'].forEach(function (k) { if (typeof pf[k] !== 'string' || !pid.test(pf[k])) fail('pantry.family.' + k, 'must be an animal id string'); });
       if (!Number.isInteger(pf.babies) || pf.babies < 1 || pf.babies > 5) fail('pantry.family.babies', 'must be a whole number from 1 to 5');
+      if (pa.gift !== undefined && (typeof pa.gift !== 'string' || !pid.test(pa.gift))) fail('pantry.gift', 'must be an item id string');
       if (pa.say !== undefined) {
-        if (!pa.say || typeof pa.say !== 'object' || Array.isArray(pa.say)) fail('pantry.say', 'must be { arrive?, photo? } vocab keys');
-        Object.keys(pa.say).forEach(function (k) { if (['arrive', 'photo'].indexOf(k) < 0 || typeof pa.say[k] !== 'string' || !pa.say[k]) fail('pantry.say.' + k, 'must be a vocab key for arrive, photo'); });
+        var PS = ['arrive', 'photo', 'give', 'gift'];
+        if (!pa.say || typeof pa.say !== 'object' || Array.isArray(pa.say)) fail('pantry.say', 'must be { arrive?, photo?, give?, gift? } vocab keys');
+        Object.keys(pa.say).forEach(function (k) {
+          var v = pa.say[k], list = Array.isArray(v) ? v : [v];
+          if (PS.indexOf(k) < 0 || !list.length || list.some(function (x) { return typeof x !== 'string' || !x; })) fail('pantry.say.' + k, 'must be a vocab key (or list) for ' + PS.join(', '));
+        });
       }
     }
     if (m.pantry && m.pantry.trail !== undefined) {
@@ -280,11 +289,16 @@
     // sticker 'despensa-secreta'. AS-0347: the first step follows the footprints and crumbs from the empty basket at the station to the tree (game/mission-trail.js).
     { id: 'ladrones', n: 8, es: 'Los ladrones de fresas', en: 'The strawberry thieves', icon: '🍓',
       intro: { es: '¡Faltan fresas!', en: 'Strawberries are missing!', icon: '🍓' },
-      pantry: { tree: 'arbolhueco', place: 'despensa', family: { mama: 'ratoncampo', papa: 'ratoncampo', baby: 'ratoncito', babies: 3 },
+      // AS-0348 (slice 3): the babies were just hungry. Pick up 3 strawberries (the bosque pickups of `bananas`, kept in the bag), tap the mice to share
+      // them (the 'give' step), and they happily hop and hand back a shiny acorn (`pantry.gift`, into the inventory); then the family photo.
+      bananas: { item: 'fresa', n: 3, biome: 'bosque', bag: true },
+      pantry: { tree: 'arbolhueco', place: 'despensa', family: { mama: 'ratoncampo', papa: 'ratoncampo', baby: 'ratoncito', babies: 3 }, gift: 'bellota',
         trail: { id: 'huellas', say: { start: ['thing:huellas', 'phrase:seguir'] } },
-        say: { arrive: 'thing:ratones', photo: 'thing:familia' } },
+        say: { arrive: 'thing:ratones', give: 'phrase:compartir', gift: 'item:bellota', photo: 'thing:familia' } },
       steps: [{ kind: 'trail', trail: 'huellas', line: { es: 'Sigue las huellas', icon: '🐾', en: 'Follow the tracks' } },
         { kind: 'goTo', place: 'despensa', line: { es: 'Busca la despensa', icon: '🌳', en: 'Find the pantry' } },
+        { kind: 'collect', item: 'fresa', n: 3, line: { es: 'Recoge 3 fresas', icon: '🍓', en: 'Pick up 3 strawberries' } },
+        { kind: 'give', item: 'fresa', to: 'ratoncampo', n: 3, line: { es: 'Comparte las fresas', icon: '🐭', en: 'Share the strawberries' } },
         { kind: 'photo', target: 'despensa', line: { es: 'Foto de la familia', icon: '📷', en: 'Family photo' } }],
       reward: { stars: 2 } }
   ]);

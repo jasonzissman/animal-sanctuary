@@ -67,3 +67,25 @@ test('a tap on a mouse on the photo step takes the photo; a tap elsewhere or on 
   assert.equal(r.tapAt(100, 100), false, 'not the photo step');
   assert.equal(snaps.length, 1);
 });
+
+test('AS-0348: on the share step a tap on a mouse gives the strawberries (not the photo) and the family hops while it cheers', () => {
+  const { SA, THREE } = world();
+  const cur = state();
+  const gives = [];
+  let cheer = null;
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 500);
+  camera.position.set(-30, 2.5, 16);
+  camera.lookAt(-30, 1.5, 10.6);
+  camera.updateMatrixWorld(true);
+  const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 200 }) };
+  const thing = { current: () => cur, view: () => ({ photo: false, share: true, cheer }), give: (p) => { gives.push(p); return { ok: true }; },
+    snap: () => { throw new Error('no photo on the share step'); } };
+  const r = SA.render.createMissionPantry(THREE, { scene: new THREE.Scene(), thing, canvas, camera, getPlayer: () => ({ x: 1, z: 2 }) });
+  const g = r.update(0.1);
+  assert.equal(r.tapAt(5, 5), false, 'a tap on empty sky');
+  assert.equal(r.tapAt(100, 100), true);
+  assert.deepEqual(gives, [{ x: 1, z: 2 }]);
+  const ys = (c) => { cheer = c; r.update(0.1); return g.children.slice(1).map((m) => m.position.y); };
+  const calm = ys(null), hop = ys(0.3);
+  assert.ok(hop.some((y, i) => y > calm[i] + 0.05), 'the mice hop higher while cheering');
+});

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/plants.js', 'game/data/animals.js',
-  'game/data/vocab.js', 'game/data/props.js', 'game/data/foods.js', 'game/data/items.js', 'game/save.js', 'game/mountain-trail.js', 'game/map.js', 'game/peaks.js',
+  'game/data/vocab.js', 'game/data/props.js', 'game/data/foods.js', 'game/data/items.js', 'game/data/hand-models.js', 'game/save.js', 'game/mountain-trail.js', 'game/map.js', 'game/peaks.js',
   'game/station.js', 'game/player.js', 'game/npc.js', 'game/inventory.js', 'game/photo.js', 'game/data/step-kinds.js', 'game/mission-run.js',
   'game/data/missions.js', 'game/missions.js', 'game/focus.js', 'game/mission-pill.js', 'game/data/badges.js', 'game/album.js', 'game/badges.js',
   'game/rescue-log.js', 'game/mission-pantry.js', 'game/mission-runtime.js'];
@@ -34,23 +34,38 @@ function startLadrones(ctx) {
   assert.equal(ctx.rt.report({ type: 'trailed', trail: 'huellas' }).status, 'step', 'AS-0347: the footprints step comes first; these tests start after it');
   return ctx;
 }
+// AS-0348: after reaching the tree the mission collects 3 strawberries and shares them; this walks those two steps (the bag as the pickups would fill it).
+function toPhoto(ctx, t) {
+  ctx.pantry.update({ x: t.x, z: t.z + 2, y: t.y }); ctx.rt.update({ x: t.x, z: t.z + 2, y: t.y });
+  for (let i = 0; i < 3; i++) { ctx.SA.inventory.add('fresa', 1); ctx.rt.report({ type: 'collected', item: 'fresa' }); }
+  assert.equal(ctx.pantry.give({ x: t.x, z: t.z + 2 }).ok, true);
+  assert.equal(ctx.missions.active().stepData.kind, 'photo');
+}
 const step = (ctx) => ctx.missions.active().stepData;
 const frame = (ctx, p) => { ctx.pantry.update(p); return ctx.rt.update(p); };
 const json = (v) => JSON.parse(JSON.stringify(v));
 
-test('data: mission 8 follows mission 7, one intro line of <= 4 words, steps goTo -> photo; it validates', () => {
+test('data: mission 8 follows mission 7, one intro line of <= 4 words, steps trail -> goTo -> collect -> give -> photo; it validates', () => {
   const { SA } = setup();
   const m = SA.data.all('missions')[7];
   assert.equal(m.n, 8);
   assert.equal(m.id, 'ladrones');
   assert.equal(typeof m.intro, 'object');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['trail', 'goTo', 'photo']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['trail', 'goTo', 'collect', 'give', 'photo']);
   assert.equal(m.steps[0].trail, m.pantry.trail.id, 'AS-0347: the first step follows the footprints');
   assert.equal(m.steps[1].place, 'despensa');
-  assert.equal(m.steps[2].target, 'despensa', 'a place, so a photo of some wild mouse never completes it');
+  assert.deepEqual(json(m.steps[2]).item, 'fresa');
+  assert.equal(m.steps[2].n, 3, 'AS-0348: pick up 3 strawberries');
+  assert.deepEqual([m.steps[3].item, m.steps[3].n, m.steps[3].to], ['fresa', 3, m.pantry.family.mama], 'then share the 3 with the mouse family');
+  assert.equal(m.steps[4].target, 'despensa', 'a place, so a photo of some wild mouse never completes it');
   m.steps.forEach((s) => assert.ok(s.line.es.split(/\s+/).length <= 4 && s.line.icon));
-  assert.deepEqual(Array.from(m.steps.map((s) => s.line.es)), ['Sigue las huellas', 'Busca la despensa', 'Foto de la familia']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.line.es)), ['Sigue las huellas', 'Busca la despensa', 'Recoge 3 fresas', 'Comparte las fresas', 'Foto de la familia']);
+  assert.deepEqual(json(m.bananas), { item: 'fresa', n: 3, biome: 'bosque', bag: true });
+  assert.equal(m.pantry.gift, 'bellota');
+  assert.equal(SA.vocab.get('phrase:compartir').es, 'compartir');
+  assert.equal(SA.vocab.get('item:bellota').es, 'la bellota');
+  assert.ok(SA.data.get('handmodels', 'bellota'), 'the acorn is drawn in the hand and the bag');
   SA.missionRun.validate(m.steps);
   const f = m.pantry.family;
   assert.equal(f.babies, 3);
@@ -137,8 +152,26 @@ test('the whole mission: reach the tree (goTo), then photograph the family with 
   assert.equal(step(ctx).kind, 'goTo', 'far away does nothing');
   assert.equal(pantry.snap({ x: t.x, z: t.z }).status, 'none', 'too early for the photo');
   frame(ctx, { x: t.x + 1, z: t.z + 2, y: t.y });
-  assert.equal(step(ctx).kind, 'photo', 'reaching the hollow tree completes the goTo step');
+  assert.equal(step(ctx).kind, 'collect', 'reaching the hollow tree completes the goTo step; the strawberries come next');
   assert.ok(said.includes('thing:ratones'), 'los ratones is spoken at the tree');
+  assert.equal(pantry.snap({ x: t.x, z: t.z + 2 }).status, 'none', 'no photo before the share');
+  // AS-0348: pick up 3 strawberries, share them, get the acorn.
+  for (let i = 0; i < 3; i++) { SA.inventory.add('fresa', 1); ctx.rt.report({ type: 'collected', item: 'fresa' }); }
+  assert.equal(step(ctx).kind, 'give');
+  assert.deepEqual(json(ctx.rt.target()), { x: t.x, z: t.z, role: 'place', id: 'despensa' }, 'the compass points back at the mice');
+  assert.equal(pantry.view().share, true);
+  assert.equal(pantry.give({ x: t.x + 40, z: t.z }).reason, 'far');
+  assert.equal(step(ctx).kind, 'give', 'a far tap loses nothing');
+  assert.equal(pantry.give({ x: t.x, z: t.z + 3 }).ok, true);
+  assert.equal(SA.inventory.count('fresa'), 0, 'the 3 strawberries were shared');
+  assert.equal(SA.inventory.count('bellota'), 1, 'the mice gave a shiny acorn');
+  assert.ok(said.includes('sfx:squeak'), 'a happy squeak');
+  assert.deepEqual(said.filter((k) => k === 'phrase:compartir' || k === 'item:bellota'), ['phrase:compartir', 'item:bellota']);
+  assert.ok(pantry.view().cheer != null, 'the family hops happily');
+  assert.equal(pantry.give({ x: t.x, z: t.z }).ok, false, 'no second acorn');
+  assert.equal(SA.inventory.count('bellota'), 1);
+  assert.ok(ctx.tracked.some(([n]) => n === 'pantry.share'));
+  assert.equal(step(ctx).kind, 'photo');
   assert.deepEqual(json(ctx.rt.target()), { x: t.x, z: t.z, role: 'place', id: 'despensa' });
   assert.equal(pantry.view().photo, true);
   // The photo.
@@ -168,7 +201,7 @@ test('the whole mission: reach the tree (goTo), then photograph the family with 
 test('a photo of some wild mouse (or any animal) never finishes the photo step; only the family at the tree does', () => {
   const ctx = startLadrones(setup());
   const t = ctx.pantry.current().tree;
-  frame(ctx, { x: t.x, z: t.z + 2, y: t.y });
+  toPhoto(ctx, t);
   assert.equal(ctx.rt.report({ type: 'photo', target: 'raton' }).status, 'ignored');
   assert.equal(ctx.rt.report({ type: 'photo', target: 'ratoncampo' }).status, 'ignored');
   assert.equal(step(ctx).kind, 'photo');
@@ -178,7 +211,7 @@ test('a replay is a fresh seed, pays no second sticker or stars', () => {
   const ctx = startLadrones(setup());
   const { SA, pantry, missions } = ctx, first = pantry.current();
   const t = first.tree;
-  frame(ctx, { x: t.x, z: t.z + 2, y: t.y });
+  toPhoto(ctx, t);
   SA.inventory.equip('camara');
   assert.equal(pantry.snap({ x: t.x, z: t.z + 2 }).status, 'complete');
   const stars = SA.save.get().stars || 0;
@@ -187,7 +220,8 @@ test('a replay is a fresh seed, pays no second sticker or stars', () => {
   pantry.sync();
   assert.notEqual(pantry.current().key, first.key);
   const t2 = pantry.current().tree;
-  frame(ctx, { x: t2.x, z: t2.z + 2, y: t2.y });
+  toPhoto(ctx, t2);
+  assert.equal(SA.inventory.count('bellota'), 1, 'the acorn is a one-off find: a replay does not stack a second');
   assert.equal(pantry.snap({ x: t2.x, z: t2.z + 2 }).status, 'complete');
   assert.equal(SA.save.get().stars || 0, stars, 'no second star reward');
   assert.equal(ctx.log.count('pantry'), 1, 'the rescue log keys by mission: a replay adds no row');
@@ -202,7 +236,7 @@ test('each step line is spoken through audio and small tasks pause while the mis
   assert.equal(pill.update(), true);
   frame(ctx, { x: t.x, z: t.z + 2, y: t.y });
   pill.update();
-  assert.deepEqual(spoken, ['Busca la despensa', 'Foto de la familia'], 'the trail step line was spoken (and shown) before these');
+  assert.deepEqual(spoken, ['Busca la despensa', 'Recoge 3 fresas'], 'the trail step line was spoken (and shown) before these');
   assert.deepEqual(shown, spoken);
   const focus = SA.focus.create({ missions: ctx.missions });
   assert.equal(focus.active(), 'mission');
@@ -215,4 +249,44 @@ test('the hollow tree is a mission prop: it is built by a data builder key and n
   assert.equal(p.builder, 'hollowtree');
   assert.equal(p.mission, true);
   assert.equal(SA.vocab.get('prop:arbolhueco').es, 'el árbol hueco');
+});
+
+test('AS-0348: sharing never gets stuck: a tap before the give step does nothing, a bag that came up short still counts', () => {
+  const ctx = startLadrones(setup());
+  const { SA, pantry } = ctx, t = pantry.current().tree;
+  frame(ctx, { x: t.x, z: t.z + 2, y: t.y });
+  assert.deepEqual(json(pantry.give({ x: t.x, z: t.z + 2 })), { ok: false, reason: 'step' }, 'still on the collect step');
+  assert.equal(SA.inventory.count('bellota'), 0);
+  SA.inventory.add('fresa', 3);
+  for (let i = 0; i < 3; i++) ctx.rt.report({ type: 'collected', item: 'fresa' });
+  SA.inventory.remove('fresa', 2);                               // two were fed to an animal on the way back
+  assert.equal(pantry.give({ x: t.x, z: t.z + 2 }).ok, true);
+  assert.equal(SA.inventory.count('fresa'), 0);
+  assert.equal(SA.inventory.count('bellota'), 1);
+  assert.equal(step(ctx).kind, 'photo');
+});
+
+test('AS-0348: the strawberry pickups (bananas.bag) wait for the collect step, then go into the bag; none are left standing afterwards', () => {
+  const SA = loadGame([...FILES, 'game/mission-bananas.js']);
+  SA.save.reset();
+  const missions = SA.missions.create({});
+  let rt = null;
+  const bananas = SA.missionBananas.create({ missions, audio: { say: () => {} }, report: (e) => rt.report(e), track: () => {} });
+  rt = SA.missionRuntime.create({ missions, thing: bananas, spawn: null, celebrate: () => {}, track: () => {} });
+  for (const id of ['mama', 'huevo', 'rio', 'fiesta', 'doctor', 'aguila', 'censo']) { missions.start(id); missions.complete(); }
+  missions.start('ladrones');
+  bananas.sync();
+  const items = bananas.current().items;
+  assert.equal(items.length, 3);
+  assert.equal(bananas.shown(), false, 'hidden on the first steps');
+  bananas.update({ x: items[0].x, z: items[0].z });
+  assert.equal(bananas.visible().length, 3, 'not picked up before the collect step');
+  rt.report({ type: 'trailed', trail: 'huellas' });
+  rt.report({ type: 'arrived', place: 'despensa' });
+  assert.equal(missions.active().stepData.kind, 'collect');
+  assert.equal(bananas.shown(), true);
+  items.forEach((it) => bananas.update({ x: it.x, z: it.z }));
+  assert.equal(SA.inventory.count('fresa'), 3, 'each strawberry goes into the bag');
+  assert.equal(missions.active().stepData.kind, 'give');
+  assert.equal(bananas.shown(), false);
 });

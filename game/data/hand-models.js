@@ -60,7 +60,8 @@
     model('fresa', [cone(0.07, 0.14, 0xe8553d, 0, 0.09, 0, [Math.PI, 0, 0]), box(0.08, 0.025, 0.08, 0x4caf50, 0, 0.17, 0)]),
     model('roca', [ball(0.1, 0x8d8d92, 0, 0.09, 0, [1.1, 0.8, 1]), ball(0.05, 0xa6a6ab, 0.05, 0.14, 0.03)]),
     model('espina', [cone(0.03, 0.2, 0x6d4c2a, 0, 0.12, 0), cyl(0.04, 0.04, 0.03, 0x3f5a2a, 0, 0.02, 0)]),
-    model('pluma', [cyl(0.008, 0.01, 0.3, 0xc9b48a, 0, 0.15, 0), cone(0.05, 0.22, 0xf4f1ea, 0, 0.16, 0)])   // AS-0336: a white quill (flat vane on a shaft)
+    model('pluma', [cyl(0.008, 0.01, 0.3, 0xc9b48a, 0, 0.15, 0), cone(0.05, 0.22, 0xf4f1ea, 0, 0.16, 0)]),   // AS-0336: a white quill (flat vane on a shaft)
+    model('bellota', [ball(0.07, 0xf2c14e, 0, 0.1, 0, [1, 1.25, 1]), ball(0.075, 0x8a5a2b, 0, 0.19, 0, [1, 0.55, 1]), cyl(0.008, 0.012, 0.05, 0x5b3a1c, 0, 0.25, 0)])   // AS-0348: a shiny golden acorn
   ];
 
   SA.data.defineKind('handmodels', validateHandModel);

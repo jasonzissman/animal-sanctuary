@@ -34,6 +34,8 @@
  *           AS-0332: `medicine` / `shade` (optional item ids) are the medicine and the umbrella lying on the station bench; `shade` is also
  *           the props row (game/data/props.js) planted beside the animal when it is delivered, after which the animal lies down and rests.
  *           `say.shade` is spoken at the shade, `say.rest` is the animal's one line afterwards ('¡Mañana estaré mejor!').
+ *           AS-0333: a 'recover' step (the mission waits: it moves on at the next session or once another mission is finished, SA.missions.settle)
+ *           and a 'photo' step of the healthy animal; `say.healthy` is spoken when it is well again ('¡Estoy sano!').
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -121,8 +123,8 @@
       ['animal', 'part', 'item'].forEach(function (k) { if (typeof d[k] !== 'string' || !did.test(d[k])) fail('doctor.' + k, 'must be a lowercase id string'); });
       ['medicine', 'shade'].forEach(function (k) { if (d[k] !== undefined && (typeof d[k] !== 'string' || !did.test(d[k]))) fail('doctor.' + k, 'must be a lowercase id string'); });
       if (d.say !== undefined) {
-        var SAYS = ['touch', 'fill', 'give', 'med', 'shade', 'rest'];
-        if (!d.say || typeof d.say !== 'object' || Array.isArray(d.say)) fail('doctor.say', 'must be { touch?, fill?, give?, med?, shade?, rest? } vocab keys');
+        var SAYS = ['touch', 'fill', 'give', 'med', 'shade', 'rest', 'healthy'];
+        if (!d.say || typeof d.say !== 'object' || Array.isArray(d.say)) fail('doctor.say', 'must be { touch?, fill?, give?, med?, shade?, rest?, healthy? } vocab keys');
         Object.keys(d.say).forEach(function (k) { if (SAYS.indexOf(k) < 0 || typeof d.say[k] !== 'string' || !d.say[k]) fail('doctor.say.' + k, 'must be a vocab key for ' + SAYS.join(', ')); });
       }
     }
@@ -190,7 +192,7 @@
     { id: 'doctor', n: 5, es: 'Doctor del santuario', en: 'Sanctuary doctor', icon: '🩺',
       intro: { es: '¡El camello está enfermo!', en: 'The camel is sick!', icon: '🤒' },
       doctor: { animal: 'camello', part: 'frente', item: 'cubo', medicine: 'medicina', shade: 'sombrilla',
-        say: { touch: 'phrase:tienefiebre', fill: 'thing:agua', give: 'thing:agua', med: 'thing:medicina', shade: 'thing:sombra', rest: 'phrase:mananamejor' } },
+        say: { touch: 'phrase:tienefiebre', fill: 'thing:agua', give: 'thing:agua', med: 'thing:medicina', shade: 'thing:sombra', rest: 'phrase:mananamejor', healthy: 'phrase:estoysano' } },
       steps: [{ kind: 'touch', animal: 'camello', part: 'frente', line: { es: 'Toca la frente', icon: '🤒', en: 'Touch the forehead' } },
         { kind: 'carry', item: 'cubo', line: { es: 'Recoge el cubo', icon: '🪣', en: 'Pick up the bucket' } },
         { kind: 'fill', item: 'cubo', line: { es: 'Llénalo de agua', icon: '💧', en: 'Fill it with water' } },
@@ -199,7 +201,10 @@
         { kind: 'carry', item: 'medicina', line: { es: 'Busca la medicina', icon: '💊', en: 'Get the medicine' } },
         { kind: 'deliver', item: 'medicina', to: 'camello', line: { es: 'Dale la medicina', icon: '🐫', en: 'Give the medicine' } },
         { kind: 'carry', item: 'sombrilla', line: { es: 'Recoge la sombrilla', icon: '⛱️', en: 'Pick up the umbrella' } },
-        { kind: 'deliver', item: 'sombrilla', to: 'camello', line: { es: 'Haz sombra al camello', icon: '⛱️', en: 'Give the camel shade' } }],
+        { kind: 'deliver', item: 'sombrilla', to: 'camello', line: { es: 'Haz sombra al camello', icon: '⛱️', en: 'Give the camel shade' } },
+        // AS-0333 (slice 3): it rests until the next session (or the next finished mission), then the photo of the healthy camel.
+        { kind: 'recover', animal: 'camello', line: { es: 'Mañana estará mejor', icon: '🌙', en: 'Better tomorrow' } },
+        { kind: 'photo', target: 'camello', line: { es: 'Foto del camello sano', icon: '📷', en: 'Photo of the healthy camel' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

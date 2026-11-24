@@ -53,6 +53,7 @@
     { id: 'invite', event: 'invited', required: { animal: 'string' }, match: { animal: 'animal' } },   // AS-0327: walk up to a friend, it then follows you
     { id: 'party', event: 'partied', required: { place: 'string' }, match: { place: 'place' } },   // AS-0328: the short party at the monkey's tree
     { id: 'touch', event: 'touched', required: { animal: 'string', part: 'string' }, match: { animal: 'animal', part: 'part' } },   // AS-0331: tap a body part (the sick camel's la frente)
+    { id: 'recover', event: 'recovered', required: { animal: 'string' }, match: { animal: 'animal' } },   // AS-0333: the sick animal rests until the next session / mission
     { id: 'fill', event: 'filled', required: { item: 'string' }, match: { item: 'item' } },   // AS-0331: fill the held bucket at the water
     { id: 'collect', event: 'collected', required: { item: 'string', n: 'number' }, match: { item: 'item' }, progress: { total: 'n' } },
     { id: 'goTo', event: 'arrived', required: { place: 'string' }, match: { place: 'place' } },

@@ -104,3 +104,30 @@ test('AS-0332: the medicine and umbrella sit on the bench, ride in hand, the umb
   assert.ok(r.animalNode().position.y < y0 - 0.3 && r.animalNode().scale.y < 0.8, 'the camel lies down');
   assert.equal(SA.render.propBuilders.umbrella(THREE, SA.render.propMaterials(THREE)).children.length >= 2, true);
 });
+
+test('AS-0333: resting it still droops with its thermometer; healthy it stands tall and hops, no thermometer, umbrella folded away; a tap takes the photo', () => {
+  const { SA, THREE } = world();
+  const cur = { ...spot(), stock: { shade: { id: 'sombrilla', x: 3, y: 0.5, z: 3 } } };
+  const snaps = [];
+  const view = { sick: true, healthy: false, checked: true, phase: 'given', med: '', shade: 'given', rested: true, umbrella: { x: 11, y: 1, z: 4 } };
+  const thing = { current: () => cur, view: () => view, touch() {}, snap: (p) => { snaps.push(p); return { status: 'complete' }; } };
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+  const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }) };
+  const r = SA.render.createMissionDoctor(THREE, { scene: new THREE.Scene(), thing, canvas, camera });
+  for (let i = 0; i < 30; i++) r.update(0.1);
+  const [camel, thermo, , umb] = r.group.children;
+  assert.ok(camel.rotation.x > 0.05, 'still droopy while it rests');
+  assert.equal(thermo.visible, true);
+  assert.equal(umb.visible, true);
+  Object.assign(view, { sick: false, healthy: true, rested: false, umbrella: null });
+  for (let i = 0; i < 40; i++) r.update(0.1);
+  assert.equal(camel.rotation.x, 0, 'the droop is gone');
+  assert.equal(thermo.visible, false);
+  assert.equal(umb.visible, false);
+  assert.ok(camel.position.y >= cur.animal.y - 0.01 && camel.scale.y > 0.95, 'standing, not lying down');
+  const c = new THREE.Vector3(); camel.updateMatrixWorld(true); new THREE.Box3().setFromObject(camel).getCenter(c);
+  camera.position.set(c.x, c.y, c.z + 12); camera.lookAt(c); camera.updateMatrixWorld(true);
+  assert.equal(r.tapAt(50, 50), true, 'a tap on the healthy camel takes its photo');
+  assert.equal(snaps.length, 1);
+  assert.equal(r.tapAt(1, 1), false);
+});

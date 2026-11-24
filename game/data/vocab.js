@@ -86,6 +86,7 @@
   add('thing', 'sombrilla', 'la sombrilla', 'the umbrella');
   add('thing', 'sombra', 'la sombra', 'the shade');
   add('phrase', 'mananamejor', '¡Mañana estaré mejor!', 'Tomorrow I will be better!');
+  add('phrase', 'estoysano', '¡Estoy sano!', 'I am healthy!');
   add('phrase', 'pasotoca', '¡Toca!', 'Touch it!');
   add('phrase', 'pasollena', '¡Llena!', 'Fill it!');
   add('phrase', 'cruzar', 'cruzar', 'to cross');

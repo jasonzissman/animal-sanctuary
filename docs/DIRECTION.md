@@ -456,7 +456,18 @@ current; when your change sets or changes something future tickets must follow, 
   (also on the bench) → `deliver` it. `doctor.medicine` / `doctor.shade` name the two items, `say.med` / `say.shade` / `say.rest` their
   vocab. Delivering the umbrella stands it beside the camel (the sandbox prop row `sombrilla`, builder `umbrella`, shown by the doctor
   renderer), the camel lies down, 'la sombra' then '¡Mañana estaré mejor!' are spoken in sequence (`SA.wordSeq`), and the resting scene
-  lingers ~9 s after the mission completes (the umbrella is the last step for now; slice 3 adds the finale).
+  lingers ~9 s after the mission ends.
+  **Slice 3 (AS-0333): the camel rests, then gets well.** The game has no day/night, so "tomorrow" = the next session (page load) or the
+  next finished mission, whichever is first. After the umbrella comes a `recover` step (step-kinds row; ' Mañana estará mejor 🌙') then a
+  `photo` step (target the camel). `SA.missions` stamps the active mission on reaching a `recover` step with `wait: { session, mark }`
+  (`session` = a per-page-load id, `mark` = `missions.completions` at that moment; both in `santuario_save_v1` under `missions`, normalized
+  by `save.js`, no version bump: absent = none) and `SA.missions.settle()` (polled by `SA.missionDoctor.update`) advances it once the session
+  differs or `completions` passed `mark` (a missing stamp counts as due: never stuck). While it waits the board is not blocked: `start(other)`
+  parks the waiting mission in `missions.waiting`; finishing the other mission (`complete()` → `settle()`) brings it back on the photo step,
+  and starting it from the board picks it up where it waits. The camel droops with its thermometer (and lies under the umbrella) until
+  then; healthy it stands, hops, loses the thermometer and the umbrella (`say.healthy` '¡Estoy sano!'). `SA.missionDoctor.snap(player?)` (a tap
+  on it with la cámara, render/mission-doctor.js) records the photo, completes the mission (stars) and logs a `{ kind: 'doctor' }` rescue row
+  → sticker `camello-sano`; `onSticker` is hooked in main.js. Later missions needing "wait until tomorrow" reuse the `recover` step kind.
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

@@ -41,7 +41,7 @@ test('data: mission 5 follows mission 4, a one-line intro of <= 4 words, steps i
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
   assert.equal(m.intro.es, '¡El camello está enfermo!');
   assert.deepEqual(Array.from(m.steps.map((s) => s.kind + ':' + (s.item || s.part))),
-    ['touch:frente', 'carry:cubo', 'fill:cubo', 'deliver:cubo', 'carry:medicina', 'deliver:medicina', 'carry:sombrilla', 'deliver:sombrilla']);
+    ['touch:frente', 'carry:cubo', 'fill:cubo', 'deliver:cubo', 'carry:medicina', 'deliver:medicina', 'carry:sombrilla', 'deliver:sombrilla', 'recover:undefined', 'photo:undefined']);
   assert.equal(SA.data.get('props', m.doctor.shade).builder, 'umbrella');   // the umbrella is a registered prop row
   for (const k of ['thing:medicina', 'thing:sombra', 'thing:sombrilla', 'phrase:mananamejor']) assert.ok(SA.vocab.get(k), k);
   assert.match(SA.vocab.get('phrase:mananamejor').es, /Mañana/);
@@ -226,9 +226,9 @@ test('shade: the umbrella goes up beside the camel (la sombra), it lies down and
   assert.equal(doctor.view().rested, false);
   assert.equal(said.includes('thing:sombra'), false);
   const res = rt.update(at(cur.animal));
-  assert.equal(res.status, 'complete', 'the umbrella is the last step');
-  assert.equal(ctx.cheers.length, 1);
-  assert.equal(JSON.stringify(SA.save.get().missions).includes('doctor'), true);
+  assert.equal(res.status, 'step', 'the umbrella is followed by the wait (AS-0333)');
+  assert.equal(step(ctx), 'recover');
+  assert.equal(ctx.cheers.length, 0);
   doctor.update(at(cur.animal));               // the next frame
   const v = doctor.view();
   assert.equal(v.rested, true);
@@ -241,14 +241,12 @@ test('shade: the umbrella goes up beside the camel (la sombra), it lies down and
   assert.deepEqual(said.slice(-2), ['thing:sombra', 'phrase:mananamejor']);
   assert.ok(SA.vocab.get('phrase:mananamejor').es.includes('Mañana'));
   assert.equal(SA.carry.holds('sombrilla'), false);
-  assert.ok(doctor.current(), 'the resting camel stays a while after the mission ended');
-  clock.t += 5000;
+  assert.ok(doctor.current(), 'the resting camel stays while the mission waits');
+  assert.equal(doctor.view().sick, true);
+  assert.equal(doctor.view().healthy, false);
+  clock.t += 20000;
   doctor.sync();
-  assert.ok(doctor.current());
-  clock.t += 6000;
-  doctor.sync();
-  assert.equal(doctor.current(), null);
-  assert.equal(doctor.view().rested, false);
+  assert.ok(doctor.current(), 'it never leaves while the mission waits');
 });
 
 test('a reload on the medicine or umbrella delivery step puts the item back in hand; past the water the bucket is not left at the pool', () => {

@@ -29,8 +29,11 @@
  *   party   optional { say, seconds? } (AS-0328): the party at the tree once the 'party' step starts (game/mission-party.js): confetti,
  *           balloons, dancing, the tune (SA.partyMelody) and the vocab key `say` spoken; `seconds` overrides the tune's length.
  *   doctor  optional { animal, part, item, say? } (AS-0331): the sick animal (its id), the body part a 'touch' step taps ('frente'), and the
- *           bucket id a 'carry' / 'fill' / 'deliver' sequence moves; `say` { touch?, fill?, give? } vocab keys spoken on those steps.
- *           game/mission-doctor.js places the animal by the oasis and the bucket at the pool's edge only while the mission runs.
+ *           bucket id a 'carry' / 'fill' / 'deliver' sequence moves; `say` { touch?, fill?, give?, med?, shade?, rest? } vocab keys spoken on
+ *           those steps. game/mission-doctor.js places the animal by the oasis and the bucket at the pool's edge only while the mission runs.
+ *           AS-0332: `medicine` / `shade` (optional item ids) are the medicine and the umbrella lying on the station bench; `shade` is also
+ *           the props row (game/data/props.js) planted beside the animal when it is delivered, after which the animal lies down and rests.
+ *           `say.shade` is spoken at the shade, `say.rest` is the animal's one line afterwards ('¡Mañana estaré mejor!').
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -116,9 +119,11 @@
       var d = m.doctor, did = /^[a-z][a-z0-9-]*$/;
       if (!d || typeof d !== 'object' || Array.isArray(d)) fail('doctor', 'must be { animal, part, item, say? }');
       ['animal', 'part', 'item'].forEach(function (k) { if (typeof d[k] !== 'string' || !did.test(d[k])) fail('doctor.' + k, 'must be a lowercase id string'); });
+      ['medicine', 'shade'].forEach(function (k) { if (d[k] !== undefined && (typeof d[k] !== 'string' || !did.test(d[k]))) fail('doctor.' + k, 'must be a lowercase id string'); });
       if (d.say !== undefined) {
-        if (!d.say || typeof d.say !== 'object' || Array.isArray(d.say)) fail('doctor.say', 'must be { touch?, fill?, give? } vocab keys');
-        Object.keys(d.say).forEach(function (k) { if (['touch', 'fill', 'give'].indexOf(k) < 0 || typeof d.say[k] !== 'string' || !d.say[k]) fail('doctor.say.' + k, 'must be a vocab key for touch, fill or give'); });
+        var SAYS = ['touch', 'fill', 'give', 'med', 'shade', 'rest'];
+        if (!d.say || typeof d.say !== 'object' || Array.isArray(d.say)) fail('doctor.say', 'must be { touch?, fill?, give?, med?, shade?, rest? } vocab keys');
+        Object.keys(d.say).forEach(function (k) { if (SAYS.indexOf(k) < 0 || typeof d.say[k] !== 'string' || !d.say[k]) fail('doctor.say.' + k, 'must be a vocab key for ' + SAYS.join(', ')); });
       }
     }
     m.steps.forEach(function (s, i) {
@@ -184,11 +189,17 @@
     // pick up the bucket at the pool, fill it, and take it to the camel. game/mission-doctor.js places the camel and the bucket from `doctor`.
     { id: 'doctor', n: 5, es: 'Doctor del santuario', en: 'Sanctuary doctor', icon: '🩺',
       intro: { es: '¡El camello está enfermo!', en: 'The camel is sick!', icon: '🤒' },
-      doctor: { animal: 'camello', part: 'frente', item: 'cubo', say: { touch: 'phrase:tienefiebre', fill: 'thing:agua', give: 'thing:agua' } },
+      doctor: { animal: 'camello', part: 'frente', item: 'cubo', medicine: 'medicina', shade: 'sombrilla',
+        say: { touch: 'phrase:tienefiebre', fill: 'thing:agua', give: 'thing:agua', med: 'thing:medicina', shade: 'thing:sombra', rest: 'phrase:mananamejor' } },
       steps: [{ kind: 'touch', animal: 'camello', part: 'frente', line: { es: 'Toca la frente', icon: '🤒', en: 'Touch the forehead' } },
         { kind: 'carry', item: 'cubo', line: { es: 'Recoge el cubo', icon: '🪣', en: 'Pick up the bucket' } },
         { kind: 'fill', item: 'cubo', line: { es: 'Llénalo de agua', icon: '💧', en: 'Fill it with water' } },
-        { kind: 'deliver', item: 'cubo', to: 'camello', line: { es: 'Dale agua al camello', icon: '🐫', en: 'Give the camel water' } }],
+        { kind: 'deliver', item: 'cubo', to: 'camello', line: { es: 'Dale agua al camello', icon: '🐫', en: 'Give the camel water' } },
+        // AS-0332 (slice 2): the medicine from the station bench, given to the camel; then the umbrella from the bench, put up beside it.
+        { kind: 'carry', item: 'medicina', line: { es: 'Busca la medicina', icon: '💊', en: 'Get the medicine' } },
+        { kind: 'deliver', item: 'medicina', to: 'camello', line: { es: 'Dale la medicina', icon: '🐫', en: 'Give the medicine' } },
+        { kind: 'carry', item: 'sombrilla', line: { es: 'Recoge la sombrilla', icon: '⛱️', en: 'Pick up the umbrella' } },
+        { kind: 'deliver', item: 'sombrilla', to: 'camello', line: { es: 'Haz sombra al camello', icon: '⛱️', en: 'Give the camel shade' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

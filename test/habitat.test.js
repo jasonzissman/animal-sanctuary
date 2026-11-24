@@ -32,10 +32,10 @@ function spot(SA, propId, biome, skip = 0) {
   throw new Error('no spot');
 }
 
-test('props data: five props with Spanish article names, costs, builders, biomes and vocab entries', () => {
+test('props data: six props with Spanish article names, costs, builders, biomes and vocab entries', () => {
   const SA = setup();
   const props = SA.data.all('props');
-  assert.deepEqual([...props.map((p) => p.id)].sort(), ['arbol', 'charca', 'flores', 'puente', 'roca']);
+  assert.deepEqual([...props.map((p) => p.id)].sort(), ['arbol', 'charca', 'flores', 'puente', 'roca', 'sombrilla']);
   assert.equal(SA.data.get('props', 'arbol').name.es, 'el árbol');
   for (const p of props) {
     assert.ok(p.cost >= 1 && p.builder && p.biomes.length);
@@ -296,14 +296,14 @@ test('render props: builds each prop from data, removes it, and 50 props stay li
   const props = SA.render.createProps(THREE, { canvas, camera });
   for (const p of SA.data.all('props')) assert.ok(SA.render.propBuilders[p.builder], 'builder for ' + p.id);
   SA.data.all('props').forEach((p, i) => assert.ok(props.add({ id: 'q' + i, prop: p.id, x: i * 2, z: 0 })));
-  assert.equal(props.count(), 5);
+  assert.equal(props.count(), 6);
   assert.equal(props.add({ id: 'q0', prop: 'roca', x: 0, z: 0 }), null, 'duplicate id ignored');
   assert.equal(props.add({ id: 'zz', prop: 'dragon', x: 0, z: 0 }), null, 'unknown prop ignored');
   assert.equal(props.remove('q0'), true);
   assert.equal(props.remove('q0'), false);
-  assert.equal(props.count(), 4);
+  assert.equal(props.count(), 5);
   for (let i = 0; i < 50; i++) props.add({ id: 'b' + i, prop: SA.data.all('props')[i % 4].id, x: -30 + (i % 10) * 2, z: -10 + Math.floor(i / 10) * 2 });
-  assert.equal(props.count(), 54);
+  assert.equal(props.count(), 55);
   assert.ok(props.group.children.length < 100);
 
   // taps: dragging never acts; a tap on a placed prop removes it, a tap on empty ground goes to onGround

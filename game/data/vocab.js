@@ -81,6 +81,11 @@
   add('thing', 'frente', 'la frente', 'the forehead');
   add('phrase', 'enfermo', 'enfermo', 'sick');
   add('phrase', 'tienefiebre', 'tiene fiebre', 'has a fever');
+  // Mission 5, slice 2 (AS-0332): the medicine from the station and the shade so the camel rests.
+  add('thing', 'medicina', 'la medicina', 'the medicine');
+  add('thing', 'sombrilla', 'la sombrilla', 'the umbrella');
+  add('thing', 'sombra', 'la sombra', 'the shade');
+  add('phrase', 'mananamejor', '¡Mañana estaré mejor!', 'Tomorrow I will be better!');
   add('phrase', 'pasotoca', '¡Toca!', 'Touch it!');
   add('phrase', 'pasollena', '¡Llena!', 'Fill it!');
   add('phrase', 'cruzar', 'cruzar', 'to cross');

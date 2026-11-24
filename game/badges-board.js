@@ -56,6 +56,7 @@
       if (rule.kind === 'hatch') return 'Salva ' + num + (one ? 'huevo' : 'huevos');
       if (rule.kind === 'river') return 'Salva ' + num + (one ? 'perrito' : 'perritos');
       if (rule.kind === 'race') return 'Haz ' + num + (one ? 'carrera' : 'carreras');
+      if (rule.kind === 'letter') return 'Lleva ' + num + (one ? 'carta' : 'cartas');
       if (rule.kind === 'home') return 'Haz ' + num + (one ? 'hogar' : 'hogares');
       if (rule.kind === 'pantry') return 'Halla ' + num + (one ? 'despensa' : 'despensas');
       if (rule.kind === 'census') return 'Haz ' + num + (one ? 'censo' : 'censos');

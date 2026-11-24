@@ -399,6 +399,17 @@ current; when your change sets or changes something future tickets must follow, 
   runs the flag path at 8 m/s but stops 12 s for a carrot halfway (`race.pace { speed, stopAt, stopFor, beat, wait }` in the mission row), so a walking
   player (4 m/s) always wins with some slack (swept in `test/mission-race-pace.test.js`). If the rabbit wins it says "¡Otra vez!" and the race is back at
   the countdown at once (no lives, no failure screen, flags reset); a win says "¡Ganaste!". `rápido` / `lento` are spoken when the rabbit bolts / stops.
+- **Mission 11 core (AS-0364, slice 1 of AS-0190):** `mensaje` (n 11, "¡Lleva la carta!" ✉️, unlocked by `carrera`) declares
+  `letter: { item, place, box, legs: [{ place, bridge?: 'near'|'far', at?, turn?: 'left'|'right' }], biome?, say? }`. The scientist hands over la carta (`talk` step with `gives`);
+  `SA.missionLetter` (`game/mission-letter.js`, pure) keeps it in the hand (inventory + `SA.carry`, put back after a reload) until the mailbox. Each leg is a
+  plain `goTo` step. **The spoken line must be true in the world, because nothing is drawn:** the tower is on the far side of the river from the start;
+  `bridge: 'near'|'far'` legs are the two ends of the real `SA.surfaces.bridges()` deck on the shortest walk (r 4 m); an `at`/`turn` leg is a point `at` of the
+  way from the last leg to the tower, and `turn` is checked (`turnsOk`, tested) against the way you were walking. The pill speaks each leg's line when it starts and
+  🔊 repeats it (no new audio path).
+  **`noArrow: true` on a step (a data flag, not a mission id) makes `SA.missionRuntime.target()` return null, so the compass hides;** the legs and the tower
+  climb use it. The tower step only counts when you stand on the platform (`SA.missionLetter.onTop`); then the `give` step hands the letter over
+  automatically near the mailbox (`game/render/mission-letter.js` draws it with a glow ring) and a tap on the mailbox with la cámara is the photo that completes
+  the mission and logs `{ kind: 'letter' }` -> sticker `cartero-valiente`. Later slices add the other direction words and the harder legs.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

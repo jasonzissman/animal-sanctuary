@@ -36,6 +36,11 @@
  *           `say.shade` is spoken at the shade, `say.rest` is the animal's one line afterwards ('¡Mañana estaré mejor!').
  *           AS-0333: a 'recover' step (the mission waits: it moves on at the next session or once another mission is finished, SA.missions.settle)
  *           and a 'photo' step of the healthy animal; `say.healthy` is spoken when it is well again ('¡Estoy sano!').
+ *   nest    optional { item, summit, peak, summitPlace, nestPlace, chick, mama, say? } (AS-0336): `item` is the feather lying near the mountain
+ *           trail (a 'collect' step { item, n: 1 } picks it up into the inventory), `summit` the peak id (game/peaks.js) a 'goTo' step
+ *           { place: summitPlace } climbs, `peak` the nest peak across the rope bridge (a 'goTo' { place: nestPlace } that only counts after
+ *           you crossed the bridge), `chick` / `mama` the animal ids sitting in the nest. `say` { feather?, summit?, bridge?, nest? }: vocab
+ *           key(s) spoken at each moment (a string or a list). game/mission-nest.js owns it; nothing special-cases the animal id.
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -128,6 +133,20 @@
         Object.keys(d.say).forEach(function (k) { if (SAYS.indexOf(k) < 0 || typeof d.say[k] !== 'string' || !d.say[k]) fail('doctor.say.' + k, 'must be a vocab key for ' + SAYS.join(', ')); });
       }
     }
+    if (m.nest !== undefined) {
+      var n = m.nest, nid = /^[a-z][a-z0-9-]*$/;
+      if (!n || typeof n !== 'object' || Array.isArray(n)) fail('nest', 'must be { item, summit, peak, summitPlace, nestPlace, chick, mama, say? }');
+      ['item', 'summit', 'peak', 'summitPlace', 'nestPlace', 'chick', 'mama'].forEach(function (k) { if (typeof n[k] !== 'string' || !nid.test(n[k])) fail('nest.' + k, 'must be a lowercase id string'); });
+      if (n.summit === n.peak) fail('nest.peak', 'must be a different peak from the summit');
+      if (n.say !== undefined) {
+        var NS = ['feather', 'summit', 'bridge', 'nest'];
+        if (!n.say || typeof n.say !== 'object' || Array.isArray(n.say)) fail('nest.say', 'must be { feather?, summit?, bridge?, nest? } vocab keys');
+        Object.keys(n.say).forEach(function (k) {
+          var v = n.say[k], list = Array.isArray(v) ? v : [v];
+          if (NS.indexOf(k) < 0 || !list.length || list.some(function (x) { return typeof x !== 'string' || !x; })) fail('nest.say.' + k, 'must be a vocab key (or list) for ' + NS.join(', '));
+        });
+      }
+    }
     m.steps.forEach(function (s, i) {
       if (s.gives !== undefined && (typeof s.gives !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.gives))) fail('steps[' + i + '].gives', 'must be a lowercase vocab id string');
     });
@@ -205,6 +224,18 @@
         // AS-0333 (slice 3): it rests until the next session (or the next finished mission), then the photo of the healthy camel.
         { kind: 'recover', animal: 'camello', line: { es: 'Mañana estará mejor', icon: '🌙', en: 'Better tomorrow' } },
         { kind: 'photo', target: 'camello', line: { es: 'Foto del camello sano', icon: '📷', en: 'Photo of the healthy camel' } }],
+      reward: { stars: 2 } },
+    // Mission 6 (AS-0336, slice 1 of AS-0185): the eagle's nest. Pick up la pluma near the mountain trail (it goes into the inventory), climb
+    // the grey peak `nest.summit`, then cross the rope bridge to the nest peak `nest.peak`, where the chick and mamá sit in the nest.
+    // game/mission-nest.js places the feather and tracks the climb; the steps are the generic collect / goTo kinds. Giving the feather
+    // back to the chick is the next slice.
+    { id: 'aguila', n: 6, es: 'El nido del águila', en: "The eagle's nest", icon: '🦅',
+      intro: { es: '¡Busca la pluma!', en: 'Find the feather!', icon: '🪶' },
+      nest: { item: 'pluma', summit: 'pico-n1', peak: 'pico-n2', summitPlace: 'cima', nestPlace: 'nido-aguila', chick: 'aguila', mama: 'aguila',
+        say: { feather: 'item:pluma', summit: ['phrase:arriba', 'biome:montana'], bridge: 'thing:puente', nest: 'thing:nido' } },
+      steps: [{ kind: 'collect', item: 'pluma', n: 1, line: { es: 'Busca la pluma', icon: '🪶', en: 'Find the feather' } },
+        { kind: 'goTo', place: 'cima', line: { es: 'Sube la montaña', icon: '⛰️', en: 'Climb the mountain' } },
+        { kind: 'goTo', place: 'nido-aguila', line: { es: 'Cruza el puente', icon: '🌉', en: 'Cross the bridge' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

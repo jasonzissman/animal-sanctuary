@@ -94,6 +94,12 @@
         if (SA.missionDoctor) SA.missionDoctor.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
         // The summit photo of the eagles earned the mission 6 sticker (AS-0338).
         if (SA.missionNest) SA.missionNest.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
+        // Mission 7 census (AS-0341): a la cámara shot of an animal ticks the list (the trait word is spoken by SA.missionCensus); the finished list earns the sticker.
+        if (SA.missionCensus) {
+          SA.missionCensus.onTick = function (r) { if (ctl && ctl.celebrate && r && r.entry) ctl.celebrate(r.entry.icon + ' ' + r.entry.value); };
+          SA.missionCensus.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
+          SA.picking.onPick(function (p) { if (SA.photo && SA.photo.isShot(p)) SA.missionCensus.photo(p.animalId); });
+        }
         rt.onGive = function (id) { if (id === 'corona' && ctl && ctl.celebrate) ctl.celebrate('👑 ¡La corona!'); };
         SA.picking.onPick(rt.onPick);
         if (SA.npc && SA.npc.onTalk) SA.npc.onTalk(function () { rt.report({ type: 'talked', who: 'scientist' }); return false; });

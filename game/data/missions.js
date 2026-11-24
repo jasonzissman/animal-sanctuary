@@ -242,6 +242,13 @@
         { kind: 'goTo', place: 'nido-aguila', line: { es: 'Cruza el puente', icon: '🌉', en: 'Cross the bridge' } },
         { kind: 'give', item: 'pluma', to: 'aguila', line: { es: 'Dale la pluma', icon: '🪶', en: 'Give the feather' } },
         { kind: 'photo', target: 'nido-aguila', line: { es: 'Foto de las águilas', icon: '📷', en: 'Photo of the eagles' } }],
+      reward: { stars: 2 } },
+    // Mission 7 (AS-0341, slice 2 of AS-0186): the animal census. One 'census' step: when it starts SA.missionCensus asks SA.census for a fresh list
+    // (a replay draws a different one); every photo with la cámara that fits an entry ticks it and speaks the trait; the full list finishes the
+    // mission and earns the sticker 'censo-completo'.
+    { id: 'censo', n: 7, es: 'Censo de animales', en: 'Animal census', icon: '📋',
+      intro: { es: '¡Cuenta los animales!', en: 'Count the animals!', icon: '📋' },
+      steps: [{ kind: 'census', line: { es: 'Fotografía la lista', icon: '📷', en: 'Photograph the list' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

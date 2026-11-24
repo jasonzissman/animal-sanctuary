@@ -46,6 +46,8 @@ test('the greeting lines ARE the scientist\'s reminder: no mission, an active mi
   SA.missions.complete();
   SA.missions.start('aguila');
   SA.missions.complete();
+  SA.missions.start('censo');
+  SA.missions.complete();
   assert.deepEqual(same(), ['Ayuda a los animales: busca, ayuda, foto', '¡Muy bien! Pronto, más misiones.']);
   SA.greeting.lines().forEach((l) => { if (/^phrase:/.test(l.key)) assert.equal(SA.vocab.get(l.key).es, l.es); });
 });

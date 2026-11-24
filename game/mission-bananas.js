@@ -18,12 +18,17 @@
  *   AS-0348: `bananas.bag: true` also puts each pickup into the inventory (Mission 8's strawberries); the pickups wait (shown() false) until their
  *   'collect' step is current, which need not be the first step. SA.missionBananas.shown() -> the collect step is current (the renderer draws only then).
  *   SA.missionBananas.current()     the state; onChange(fn) -> unsubscribe; setSolids(listOrFn) the walk list kept clear
- *   SA.missionBananas.create({ missions?, audio?, report?, track?, solids? })   a separate instance (tests)
+ *   SA.missionBananas.create({ missions?, audio?, report?, track?, solids?, specOf?, anchor? })   a separate instance (tests)
+ *   AS-0351: `specOf(mission) -> spec` replaces `mission.bananas` (SA.missionGather runs one instance per gathered kind) and `anchor() -> { x, z } | null`
+ *   places the pickups in a ring around that point (Mission 9's build spot) instead of anywhere in the biome; no anchor yet = nothing placed yet.
+ *   The anchor may carry `avoid: [{ x, z }, ...]` (other kinds' spots), which the pickups keep 3.2 m clear of (more than the 2.6 m gather reach).
+ *   `spec.say` (a vocab key, e.g. 'item:palo') is spoken on each pickup instead of the running count.
  */
 (function (root) {
   'use strict';
   var SA = root.SA;
   var PICK_REACH = 1.6, APART = 9, EDGE = 4, TRIES = 400, MIN_FROM_START = 10, MAX_FROM_START = 42;
+  var RING_MIN = 8, RING_MAX = 16, RING_APART = 4, AVOID_GAP = 3.2;
 
   function startPoint() {
     try { if (SA.station && SA.station.spawn) return SA.station.spawn(); } catch (e) { /* fall through */ }
@@ -42,17 +47,27 @@
     return true;
   }
 
+  function itemSalt(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 9973; return h; }
+
   function place(spec, seed, opts) {
     var M = SA.map, range = spec && M && M.biomeRange ? M.biomeRange(spec.biome || 'selva') : null;
     if (!range) return null;
-    var solids = (opts && opts.solids) || [], S = startPoint();
-    var rand = M.rng(((typeof seed === 'number' ? seed : 1) >>> 0) + 7121);
-    var out = [];
+    var solids = (opts && opts.solids) || [], S = startPoint(), anchor = opts && opts.anchor;
+    var rand = M.rng(((typeof seed === 'number' ? seed : 1) >>> 0) + 7121 + (anchor ? itemSalt(spec.item) : 0));
+    var out = [], apart = anchor ? RING_APART : APART;
     for (var t = 0; t < TRIES && out.length < spec.n; t++) {
-      var x = range.lo + EDGE + rand() * (range.hi - range.lo - 2 * EDGE), z = M.BOUNDS.minZ + EDGE + rand() * (M.BOUNDS.maxZ - M.BOUNDS.minZ - 2 * EDGE);
-      var d = Math.hypot(x - S.x, z - S.z);
-      if (d < MIN_FROM_START || d > MAX_FROM_START || !dryOk(x, z, solids, range)) continue;
-      if (out.some(function (o) { return Math.hypot(o.x - x, o.z - z) < APART; })) continue;
+      var x, z;
+      if (anchor) {            // AS-0351: in a ring around the build spot (outside the family's corner, within a short walk)
+        var ang = rand() * Math.PI * 2, rad = RING_MIN + rand() * (RING_MAX - RING_MIN);
+        x = anchor.x + Math.cos(ang) * rad; z = anchor.z + Math.sin(ang) * rad;
+        if (!dryOk(x, z, solids, range)) continue;
+        if ((anchor.avoid || []).some(function (o) { return Math.hypot(o.x - x, o.z - z) < AVOID_GAP; })) continue;   // another kind's spot: no auto pick-up on the step change
+      } else {
+        x = range.lo + EDGE + rand() * (range.hi - range.lo - 2 * EDGE); z = M.BOUNDS.minZ + EDGE + rand() * (M.BOUNDS.maxZ - M.BOUNDS.minZ - 2 * EDGE);
+        var d = Math.hypot(x - S.x, z - S.z);
+        if (d < MIN_FROM_START || d > MAX_FROM_START || !dryOk(x, z, solids, range)) continue;
+      }
+      if (out.some(function (o) { return Math.hypot(o.x - x, o.z - z) < apart; })) continue;
       out.push({ id: spec.item + '-' + (out.length + 1), x: x, z: z, y: M.groundHeight(x, z), taken: false });
     }
     return out.length === spec.n ? out : null;
@@ -76,11 +91,13 @@
     function sync(o) {
       var a = null;
       try { a = missions().active(); } catch (e) { a = null; }
-      var spec = a && a.mission && a.mission.bananas;
+      var spec = a && a.mission && (opts.specOf ? opts.specOf(a.mission) : a.mission.bananas);
       var key = spec ? a.id + ':' + a.seed : null;
       if ((cur && cur.key) === key) return cur;
       var src = (o && o.solids) || solidsSrc;
-      var items = spec ? place(spec, a.seed, { solids: typeof src === 'function' ? src() : src || [] }) : null;
+      var at = null;
+      if (spec && opts.anchor) { try { at = opts.anchor(); } catch (e) { at = null; } }
+      var items = spec && (!opts.anchor || at) ? place(spec, a.seed, { solids: typeof src === 'function' ? src() : src || [], anchor: at }) : null;
       cur = items ? { key: key, spec: spec, items: items } : null;
       emit();
       return cur;
@@ -112,14 +129,14 @@
         return cur;
       }
       if (!player) return cur;
-      var hit = visible().filter(function (i) { return Math.hypot(player.x - i.x, player.z - i.z) <= PICK_REACH; })[0];
+      var hit = visible().filter(function (i) { return Math.hypot(player.x - i.x, player.z - i.z) <= (cur.spec.reach || PICK_REACH); })[0];
       if (!hit) return cur;
       hit.taken = true;
       if (cur.spec.bag) { try { var iv = opts.inventory || SA.inventory; if (iv && iv.add) iv.add(cur.spec.item, 1); } catch (e) { /* the bag never breaks the loop */ } }   // AS-0348: kept for the share step
       emit();
       var r = report({ type: 'collected', item: cur.spec.item });
       var have = r && r.status === 'progress' ? r.have : cur.spec.n;
-      say('number:' + have);
+      say(cur.spec.say || 'number:' + have);
       track('collect.pickup', { item: cur.spec.item, have: have });
       return cur;
     }

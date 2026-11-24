@@ -42,7 +42,11 @@
     item('roca', '🪨', 'la roca', 'rock', 'f', 'find', true),
     item('espina', '🌵', 'la espina', 'thorn', 'f', 'find', true),      // pulled out of a paw (action quitarespina)
     item('pluma', '🪶', 'la pluma', 'feather', 'f', 'find', false),     // AS-0336: the feather Mission 6 finds near the mountain trail
-    item('bellota', '🌰', 'la bellota', 'acorn', 'f', 'find', false)    // AS-0348: the shiny acorn the mouse family gives back in Mission 8
+    item('bellota', '🌰', 'la bellota', 'acorn', 'f', 'find', false),   // AS-0348: the shiny acorn the mouse family gives back in Mission 8
+    // AS-0351: what Mission 9 gathers near the build spot before building the rabbit home (mission-only pickups, kept in the bag)
+    item('palo', '🪵', 'el palo', 'stick', 'm', 'find', true),
+    item('hoja', '🍃', 'la hoja', 'leaf', 'f', 'find', true),
+    item('hierba', '🌾', 'la hierba', 'soft grass', 'f', 'find', true)
   ];
 
   SA.data.defineKind('items', validateItem);

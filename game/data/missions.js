@@ -57,6 +57,9 @@
  *           rabbit family waiting beside it (animal ids; `babies` = 1..5 of `baby`). A 'goTo' step { place } walks to the spot and a 'photo'
  *           step { target: place } photographs the family. `say.arrive` / `say.photo` are vocab keys spoken once. Neither the spot nor the
  *           family exists unless this mission is the active one; nothing special-cases the animal id.
+ *           AS-0351: `home.gather` (optional, 1..4 of { item, n, say? }) are the mission-only pickups lying 8-16 m around the spot (item ids from
+ *           items.js, `say` a vocab key, default 'item:<id>'); each needs its own 'collect' step { item, n } and goes into the inventory.
+ *           game/mission-gather.js owns them; they exist only while this mission runs and only while their collect step is current.
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -200,6 +203,16 @@
         if (!ho.say || typeof ho.say !== 'object' || Array.isArray(ho.say)) fail('home.say', 'must be { arrive?, photo? } vocab keys');
         Object.keys(ho.say).forEach(function (k) { if (['arrive', 'photo'].indexOf(k) < 0 || typeof ho.say[k] !== 'string' || !ho.say[k]) fail('home.say.' + k, 'must be a vocab key for arrive, photo'); });
       }
+      if (ho.gather !== undefined) {
+        if (!Array.isArray(ho.gather) || ho.gather.length < 1 || ho.gather.length > 4) fail('home.gather', 'must be 1 to 4 { item, n } entries');
+        ho.gather.forEach(function (g, gi) {
+          var gf = 'home.gather[' + gi + ']';
+          if (!g || typeof g !== 'object' || typeof g.item !== 'string' || !hid.test(g.item)) fail(gf + '.item', 'must be an item id string');
+          if (!Number.isInteger(g.n) || g.n < 1 || g.n > 6) fail(gf + '.n', 'must be a whole number from 1 to 6');
+          if (g.say !== undefined && (typeof g.say !== 'string' || !g.say)) fail(gf + '.say', 'must be a vocab key');
+          if (!m.steps.some(function (s) { return s.kind === 'collect' && s.item === g.item && s.n === g.n; })) fail(gf, 'needs a matching collect step { item, n }');
+        });
+      }
     }
     m.steps.forEach(function (s, i) {
       if (s.gives !== undefined && (typeof s.gives !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.gives))) fail('steps[' + i + '].gives', 'must be a lowercase vocab id string');
@@ -326,8 +339,14 @@
     // 'hogar-nuevo'. Later slices add the building itself.
     { id: 'hogar', n: 9, es: 'Construir un hogar', en: 'Build a home', icon: '🏡',
       intro: { es: 'Construye una casa', en: 'Build a house', icon: '🏡' },
-      home: { place: 'hogar', biome: 'bosque', family: { adult: 'conejo', baby: 'conejito', babies: 3 }, say: { arrive: 'thing:casa', photo: 'thing:familia' } },
-      steps: [{ kind: 'goTo', place: 'hogar', line: { es: 'Ve al lugar', icon: '📍', en: 'Go to the spot' } },
+      // AS-0351 (slice 2): before walking to the spot, gather sticks, leaves and soft grass lying around it (`home.gather`, game/mission-gather.js):
+      // each kind has its own 'collect' step, its pickups stand only while that step is current, and each goes into the bag and speaks its word.
+      home: { place: 'hogar', biome: 'bosque', family: { adult: 'conejo', baby: 'conejito', babies: 3 }, say: { arrive: 'thing:casa', photo: 'thing:familia' },
+        gather: [{ item: 'palo', n: 3 }, { item: 'hoja', n: 3 }, { item: 'hierba', n: 1 }] },
+      steps: [{ kind: 'collect', item: 'palo', n: 3, line: { es: 'Recoge 3 palos', icon: '🪵', en: 'Pick up 3 sticks' } },
+        { kind: 'collect', item: 'hoja', n: 3, line: { es: 'Recoge 3 hojas', icon: '🍃', en: 'Pick up 3 leaves' } },
+        { kind: 'collect', item: 'hierba', n: 1, line: { es: 'Recoge la hierba', icon: '🌾', en: 'Pick up the soft grass' } },
+        { kind: 'goTo', place: 'hogar', line: { es: 'Ve al lugar', icon: '📍', en: 'Go to the spot' } },
         { kind: 'photo', target: 'hogar', line: { es: 'Foto de la familia', icon: '📷', en: 'Family photo' } }],
       reward: { stars: 2 } }
   ]);

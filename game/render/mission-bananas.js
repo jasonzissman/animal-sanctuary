@@ -72,4 +72,11 @@
 
     return { group: group, update: update };
   };
+
+  // AS-0351: Mission 9's sticks, leaves and grass: one banana-style renderer per SA.missionGather instance (each draws only while its step is current).
+  SA.render.createMissionGather = function (THREE, opts) {
+    var gather = opts.thing || SA.missionGather;
+    var views = gather.things().map(function (t) { return SA.render.createMissionBananas(THREE, { scene: opts.scene, solids: opts.solids, thing: t }); });
+    return { group: views.map(function (v) { return v.group; }), update: function (dt) { views.forEach(function (v) { v.update(dt); }); } };
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

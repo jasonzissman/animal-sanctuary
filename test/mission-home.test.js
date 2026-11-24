@@ -32,13 +32,15 @@ function startHogar(ctx) {
   const r = ctx.missions.start('hogar');
   assert.equal(r.ok, true, JSON.stringify(r));
   ctx.home.sync();
+  // AS-0351: the three collect steps come first (their pickups are tested in mission-gather.test.js); pass them here so these tests start at the goTo.
+  while (step(ctx).kind === 'collect') ctx.rt.report({ type: 'collected', item: step(ctx).item });
   return ctx;
 }
 const step = (ctx) => ctx.missions.active().stepData;
 const frame = (ctx, p) => { ctx.home.update(p); return ctx.rt.update(p); };
 const json = (v) => JSON.parse(JSON.stringify(v));
 
-test('data: mission 9 follows mission 8, one intro line of <= 4 words, steps goTo -> photo; it validates', () => {
+test('data: mission 9 follows mission 8, one intro line of <= 4 words, steps collect x3 -> goTo -> photo; it validates', () => {
   const { SA } = setup();
   const m = SA.data.all('missions')[8];
   assert.equal(m.n, 9);
@@ -46,9 +48,9 @@ test('data: mission 9 follows mission 8, one intro line of <= 4 words, steps goT
   assert.equal(typeof m.intro, 'object');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
   assert.equal(m.intro.es, 'Construye una casa');
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['goTo', 'photo']);
-  assert.equal(m.steps[0].place, m.home.place);
-  assert.equal(m.steps[1].target, m.home.place, 'a place, so a photo of some wild rabbit never completes it');
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['collect', 'collect', 'collect', 'goTo', 'photo']);
+  assert.equal(m.steps[3].place, m.home.place);
+  assert.equal(m.steps[4].target, m.home.place, 'a place, so a photo of some wild rabbit never completes it');
   m.steps.forEach((s) => assert.ok(s.line.es.split(/\s+/).length <= 4 && s.line.icon));
   SA.missionRun.validate(m.steps);
   const f = m.home.family;
@@ -196,6 +198,7 @@ test('a replay is a fresh run, pays no second sticker or stars', () => {
   const stars = SA.save.get().stars || 0;
   assert.equal(missions.start('hogar').replay, true);
   home.sync();
+  while (step(ctx).kind === 'collect') ctx.rt.report({ type: 'collected', item: step(ctx).item });
   const s2 = home.current().spot;
   assert.equal(s2.r > 0, true);
   frame(ctx, { x: s2.x, z: s2.z, y: s2.y });

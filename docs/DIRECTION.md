@@ -374,6 +374,11 @@ current; when your change sets or changes something future tickets must follow, 
   ONLY while this mission is active. `game/render/mission-home.js` draws a low-poly ground marker (earth patch, 4 pennant stakes, pulsing glow
   ring) and the family; a tap on a rabbit with la cámara calls `snap()`, which completes the mission and logs `{ kind: 'home' }` for the sticker
   `hogar-nuevo`. New vocab for the building slices: `thing:palo/hoja/hierba/casa`, `phrase:abajo/encima/construir`. Later slices add the nest/burrow building.
+  **Mission 9 materials (AS-0351, slice 2):** three `collect` steps come first (`palo` x3, `hoja` x3, `hierba` x1; new stackable `find` items with
+  hand models) and `home.gather` lists them. `SA.missionGather` (`game/mission-gather.js`) runs one `SA.missionBananas` instance per entry (that module
+  gained optional `specOf`/`anchor`/`spec.say`/`spec.reach`): the pickups lie 8-16 m around the build spot, different kinds 3.2 m apart, exist only
+  while Mission 9 runs and only while their own collect step is current, go into the bag and speak `item:<id>` (el palo / la hoja / la hierba).
+  `hoja` is no longer a retired item id in `save.js`. `game/render/mission-bananas.js` has `createMissionGather` (one view per instance).
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

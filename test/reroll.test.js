@@ -125,7 +125,8 @@ test('watcher: a camera biome with too few animals is not re-rolled into', () =>
   b.cur = 'desierto';
   const pool = SA.data.all('animals').filter((a) => !a.easterEgg && a.biome === 'desierto');
   for (let i = 0; i < 50; i++) w.update(0.1);
-  assert.equal(rerolls, pool.length >= 3 ? 1 : 0);
+  // This stub never starts the new round, so a biome with enough animals keeps re-rolling; one with too few never does.
+  assert.ok(pool.length >= 3 ? rerolls >= 1 : rerolls === 0);
 });
 
 test('controller: reroll starts a new round with a soft toast, but not during care or after the answer', () => {

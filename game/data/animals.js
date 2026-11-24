@@ -346,6 +346,43 @@
       unlock: { type: 'all', of: [
         { type: 'stars', min: 10 },
         { type: 'sameTap', target: 'tree', biome: 'bosque', count: 5 }
-      ] } }
+      ] } },
+    // AS-0268: three more desert species (desierto now has 5). Listed LAST on purpose: herd homes are drawn from one shared seeded
+    // sequence in list order (SA.animalPlan.herdPlacements), so appending leaves every earlier species exactly where it was.
+    { id: 'zorrodesierto', name: { es: 'zorro del desierto', en: 'fennec fox', gender: 'm' }, icon: '🦊', biome: 'desierto', herd: 4,
+      traits: { size: 'pequeño', color: 'amarillo', movement: 'corre', diet: 'omnívoro', legs: 4 },
+      parts: [
+        // A small sandy fox with VERY large ears (taller than its head), a pale belly, a dark nose and a bushy dark-tipped tail.
+        // Ears 1.5 tall: the only ones above the "orejas grandes" clue threshold (game/data/clues.js), so the clue names it.
+        p('cuerpo', '#e6c88e', [0.7, 0.55, 1.0], 1, [0, 0.6, 0]), p('cabeza', '#ecd2a0', 0.55, 1, [0, 0.95, 0.62]),
+        p('orejas', '#e6c88e', [0.34, 1.5, 0.12], 2, [0.22, 1.85, 0.5]), p('hocico', '#3a2c22', 0.14, 1, [0, 0.9, 0.92]),
+        eyes(0.11, [0.14, 1.02, 0.82]), p('patas', '#d6b27a', [0.11, 0.5, 0.11], 4, [0.22, 0.25, 0]),
+        { part: 'cola', color: '#e0be84', scale: [0.26, 0.26, 0.75], count: 1, offset: [0, 0.65, -0.85],
+          also: [{ scale: [0.28, 0.28, 0.3], count: 1, offset: [0, 0.65, -1.25], color: '#4a3a2c', builder: 'sphere' }] },
+        p('pelo', '#f2e0b8', [0.5, 0.14, 0.55], 1, [0, 0.88, 0.05]), p('barriga', '#f4e6c4', [0.5, 0.2, 0.8], 1, [0, 0.4, 0.05])
+      ], easterEgg: false },
+    { id: 'lagartija', name: { es: 'lagartija', en: 'lizard', gender: 'f' }, icon: '🦎', biome: 'desierto', herd: 5,
+      traits: { size: 'pequeño', color: 'azul', movement: 'corre', diet: 'insectívoro', legs: 4 },
+      parts: [
+        // Low and flat: four short splayed legs and a tail longer than the body (two pieces, both answer as la cola).
+        // Blue (a collared/blue-tailed lizard) because green, brown and orange are taken by the other clue answers.
+        p('cuerpo', '#4f93c9', [0.45, 0.28, 1.1], 1, [0, 0.3, 0]), p('cabeza', '#62a6da', [0.4, 0.26, 0.45], 1, [0, 0.32, 0.62]),
+        eyes(0.1, [0.14, 0.43, 0.78]), { part: 'patas', color: '#3f7fb0', scale: [0.12, 0.34, 0.12], count: 4, offset: [0.15, 0.17, 0], row: 0.4 },
+        { part: 'cola', color: '#3f7fb0', scale: [0.18, 0.14, 0.75], count: 1, offset: [0, 0.27, -0.92],
+          also: [{ scale: [0.12, 0.1, 0.7], count: 1, offset: [0, 0.25, -1.6] }] },
+        p('barriga', '#bfe0ee', [0.35, 0.15, 0.8], 1, [0, 0.2, 0])
+      ], easterEgg: false },
+    { id: 'correcaminos', name: { es: 'correcaminos', en: 'roadrunner', gender: 'm' }, icon: '🐦', biome: 'desierto', herd: 3,
+      traits: { size: 'mediano', color: 'marrón', movement: 'corre', diet: 'omnívoro', legs: 2 },
+      parts: [
+        // A long, level body on two tall legs, a long flat tail, a spiky crest and a strong beak.
+        // Short wings (<= 0.4: the "alas cortas" clue names it), legs just under the "patas largas" threshold (the camel's).
+        p('cuerpo', '#8a6a46', [0.5, 0.5, 1.1], 1, [0, 0.9, 0]), p('cabeza', '#9a7a52', 0.4, 1, [0, 1.22, 0.6]),
+        p('pico', '#d8b04a', [0.12, 0.12, 0.4], 1, [0, 1.17, 1.0]), p('cresta', '#3b2c20', [0.16, 0.4, 0.2], 1, [0, 1.55, 0.5]),
+        p('alas', '#76583a', [0.08, 0.4, 0.35], 2, [0.3, 0.9, -0.05]), eyes(0.1, [0.12, 1.29, 0.75]),
+        p('patas', '#b9a58a', [0.1, 0.75, 0.1], 2, [0.15, 0.375, 0.05]),
+        { part: 'cola', color: '#6e5236', scale: [0.25, 0.1, 0.75], count: 1, offset: [0, 0.95, -0.92], builder: 'box',
+          also: [{ scale: [0.2, 0.08, 0.6], count: 1, offset: [0, 0.95, -1.55] }] }
+      ], easterEgg: false }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

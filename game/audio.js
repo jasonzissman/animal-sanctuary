@@ -38,6 +38,9 @@
     pop: [{ w: 'sine', f: 600, f2: 200, t: 0, d: 0.09, g: 0.35 }, { n: 1, hp: 2500, t: 0, d: 0.03, g: 0.12 }],
     splash: [{ n: 1, lp: 1800, hp: 300, t: 0, d: 0.5, g: 0.3 }, { n: 1, hp: 3000, t: 0.08, d: 0.3, g: 0.12 },
              { w: 'sine', f: 300, f2: 700, t: 0, d: 0.12, g: 0.15 }],
+    // Soft creak of the rope bridge under your feet (AS-0159): a low wooden groan that slides down, with a faint rope rasp. Gentle, never scary.
+    creak: [{ w: 'triangle', f: 210, f2: 150, t: 0, d: 0.3, g: 0.1, wob: 31 }, { w: 'sine', f: 330, f2: 250, t: 0.05, d: 0.2, g: 0.04 },
+            { n: 1, lp: 1400, hp: 600, t: 0, d: 0.18, g: 0.03 }],
     fanfare: arp([523.25, 659.25, 783.99, 1046.5], 0.14, 0.3, 0.25, 'triangle')
       .concat([{ w: 'triangle', f: 1046.5, t: 0.56, d: 0.7, g: 0.25 }, { w: 'sine', f: 659.25, t: 0.56, d: 0.7, g: 0.18 },
                { w: 'sine', f: 783.99, t: 0.56, d: 0.7, g: 0.18 }]),

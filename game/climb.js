@@ -60,7 +60,7 @@
   function lerp(a, b, k) { return a + (b - a) * k; }
 
   // Ground height under the avatar: the single terrain source, SA.map.groundHeight.
-  function groundAt(x, z) { return SA.player.heightAt ? SA.player.heightAt(x, z) : SA.map.groundHeight(x, z); }
+  function groundAt(x, z, y) { return SA.player.heightAt ? SA.player.heightAt(x, z, y) : SA.map.groundHeight(x, z); }
 
   // ---- Shapes: { round, r, hw, hd }, centred on the target ----
   function circle(r) { return { round: true, r: r, hw: r, hd: r }; }
@@ -225,14 +225,18 @@
       var g = SA.player.step(state, input, dt, obstacles);
       // Feet follow the terrain, eased so slopes feel natural (no prior y, e.g. at spawn, snaps straight to the ground).
       // On a peak's slope the feet never lag below the visible rock (AS-0214: followHeight may trail the ground by up to 0.5).
-      return aboveRock({ x: g.x, z: g.z, heading: g.heading, y: SA.map.followHeight(state.y, groundAt(g.x, g.z), dt), climb: null });
+      return aboveRock({ x: g.x, z: g.z, heading: g.heading, y: SA.map.followHeight(state.y, groundAt(g.x, g.z, state.y), dt), climb: null });
     }
     dt = Math.max(0, Math.min(MAX_DT, num(dt, 0)));
     var n = c.target;
     if (c.mode === 'canopy' || c.mode === 'top') {
       var w = SA.player.step(state, input, dt, n.solids);   // the flat top is open, bar its solids (the station's dish and antenna)
       var walked = copy(state, { x: w.x, z: w.z, heading: w.heading, y: n.topY });
-      if (edgeDist(n.top, n.x, n.z, w.x, w.z) > 0) return leave(walked, c, input, targets);   // walked off the edge: a fall, or the landing assist
+      if (edgeDist(n.top, n.x, n.z, w.x, w.z) > 0) {
+        var deck = SA.surfaces && SA.surfaces.exitTo ? SA.surfaces.exitTo(w.x, w.z, n.topY) : null;   // a rope bridge starts at this top (AS-0159): walk onto it
+        if (deck !== null) return copy(state, { x: w.x, z: w.z, heading: w.heading, y: deck, climb: null });
+        return leave(walked, c, input, targets);   // walked off the edge: a fall, or the landing assist
+      }
       return walked;
     }
     var dur = c.dur || (c.mode === 'up' ? UP_TIME : DOWN_TIME), t = Math.min(1, c.t + dt / dur), k = ease(t);

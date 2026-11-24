@@ -30,6 +30,8 @@
     g.dispose();
   }
 
+  SA.render.deckBox = box;   // the rope bridge (game/render/rope-bridge.js, AS-0159) builds from the same boxes
+
   function at(d, u, v) { return [d.x + d.dx * u - d.dz * v, d.z + d.dz * u + d.dx * v]; }
 
   function build(THREE, d, out) {

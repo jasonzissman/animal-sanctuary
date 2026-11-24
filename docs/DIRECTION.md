@@ -419,8 +419,17 @@ current; when your change sets or changes something future tickets must follow, 
   mission seed ONLY while that mission runs (gone when it ends or is abandoned), takes one when the kid walks within 1.6, reports `collected`
   and says `number:N` (uno / dos / tres); `render/mission-bananas.js` draws bobbing bunches. The generic counted `collect` kind already
   lived in `data/step-kinds.js`. A step with `gives` (a vocab `thing:` id) is spoken and passed to `SA.missionRuntime.onGive(id)` when met
-  (main.js toasts the crown); the runtime's `target()` points the compass at the scientist's post for a `talk` step. Later slices add the
-  invite-friends, party and photo steps after the crown (the mission currently completes right after it).
+  (main.js toasts the crown); the runtime's `target()` points the compass at the scientist's post for a `talk` step.
+  **Invite two friends (AS-0327, slice 2):** after the crown come `invite` steps (`{ kind: 'invite', animal }`, event `invited`) for 'conejo'
+  and 'ciervo', then `goTo` 'arbol-mono' ('Al árbol del mono', 4 words: the step validator caps lines at 4). The row's
+  `friends: { animals, tree, monkey?, biome?, friendBiome?, say? }` is placed by `SA.missionFriends` (`mission-friends.js`, pure; friends in the
+  bosque, the monkey's tree in the selva, only while the mission runs). Walking within 2.8 of the named friend invites it (no button), speaks
+  one `say` word ('thing:fiesta', then 'thing:regalo') and from then on it follows: `SA.follow.stepGroup` makes EVERY follower trail the player
+  on its own breadcrumbs (they keep apart; each waits at the water and follows again when you come back). "Invited" is derived from the saved
+  step index, so a reload keeps them at your side. `locate('arbol-mono')` answers only while every friend is invited and within 6.5 of the tree,
+  so arriving alone does nothing. The compass shows the next friend, then the tree (`SA.missionFriends` joins the runtime's `thing()` list).
+  `render/mission-friends.js` draws the tree, the monkey and the friends. Later slices add the party and photo steps (the mission currently
+  completes on reaching the tree).
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

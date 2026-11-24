@@ -51,6 +51,9 @@
       try { nxt = m && m.next ? m.next() : null; } catch (e) { nxt = null; }
       if (nxt) { state = 'choose'; lines.push(copy(BOARD)); } else lines.push(copy(ALL_DONE));
     }
+    try {   // AS-0175: after the 3rd rescue she offers to pick an animal friend (the view adds the 🐾 button for this line)
+      if (SA.friend && SA.friend.pending()) { var o = SA.friend.offer(); lines.push({ role: 'friend', es: o.es, en: enOf(o.key), icon: '🐾', key: o.key }); }
+    } catch (e) { /* the offer never breaks the talk */ }
     return { state: state, lines: lines, missionId: id };
   }
 

@@ -40,6 +40,17 @@
     var game = null;
     // The rescue mission (SA.mission, played by SA.missionFlow): find an animal that fits, help it, then la cámara photo.
     try { game = SA.mission.create({ biome: function () { return SA.round.biomeForRig(stage.rig); } });
+      // Your animal friend (AS-0175) leads the way whenever a hint is used (silhouette, biome glow or the arrow): it runs toward the nearest answer.
+      var askHint = game.hint;
+      game.hint = function () {
+        var r = askHint.apply(this, arguments);
+        try {
+          var m = game.current && game.current(), ids = m && !m.done ? (m.answerIds && m.answerIds.length ? m.answerIds : [m.answerId]) : null;
+          var obj = ids && SA.render.instances ? SA.render.instances.nearest(stage.animals, ids) : null;
+          if (obj && SA.friend) SA.friend.hint({ x: obj.position.x, z: obj.position.z });
+        } catch (e) { /* the friend never breaks a hint */ }
+        return r;
+      };
       ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx, pin: stage.ambient, biomeFx: stage.biomeGlow,
         onProgress: function () { if (unlocks) unlocks.check(); }, mission: game,
         // Small tasks appear only near their animal (AS-0225): the gate reads where the player and the visible animals are.
@@ -231,6 +242,15 @@
         });
       }
     } catch (e) { report('names.start', e); }
+    // Your animal friend (AS-0175): the picture cards (from the scientist or the station's 'Mi amigo' row) and the rename card; it cheers on a rescue.
+    try {
+      if (SA.friendCard && SA.friend) {
+        SA.friendCard.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); }, nameCard: nameCard,
+          body: stationMenu && stationMenu.body ? stationMenu.body : null });
+        if (SA.names) SA.names.onRescued(function () { SA.friend.celebrate(); });
+        // The scientist's offer after the 3rd rescue: she says it when you talk to her (scientist-talk) and the 🐾 button opens the cards.
+      }
+    } catch (e) { report('friend.start', e); }
     // Grown-up drawer (press-and-hold gear, an item of the 🎒 menu). Never blocks the main loop.
     var menuView = null;
     try { if (SA.settingsView) SA.settingsView.create(root.document, { onOpen: function () { if (menuView) menuView.used('settings'); } }); }

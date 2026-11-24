@@ -14,6 +14,7 @@
  *          names = { '<individualId>': { animalId, name, adj? } } (AS-0169, SA.names): pet names of rescued animals, keyed by herd instance id
  *          ('conejo#2'); name / adj are data ids ('luna', 'rapido'). Optional: absent until the first naming; no version bump.
  *          daynight = { t } (AS-0170, SA.daynight): ms into the day/night cycle; optional, no version bump.
+ *          friend = { id, animalId } (AS-0175, SA.friend): the one rescued animal that follows you; id may be a herd instance ('conejo#2'); optional.
  *          album = { '<animalId>': { date: 'YYYY-MM-DD', pics: [{ id, date }] } } (v5, AS-0236): the first-photo date per photographed animal
  *          plus the kept picture entries (first ever + newest 3, SA.albumPics). Ids/dates only: the JPEGs live in IndexedDB (SA.photoStore).
  *          v4 saves had { '<animalId>':'YYYY-MM-DD' }; migrations[4] and normalize() turn that into { date, pics: [] } without loss.
@@ -159,7 +160,15 @@
     if (s.badges !== undefined) out.badges = normalizeBadges(s.badges);           // optional earned badge ids (AS-0167, SA.badges)
     if (s.names !== undefined) out.names = normalizeNames(s.names);               // optional pet names (AS-0169, SA.names)
     if (s.daynight !== undefined) out.daynight = normalizeDaynight(s.daynight);   // optional clock time (AS-0170, SA.daynight)
+    var fr = normalizeFriend(s.friend);                                           // optional animal friend (AS-0175, SA.friend)
+    if (fr) out.friend = fr; else delete out.friend;
     return out;
+  }
+
+  // Animal friend (AS-0175): { id, animalId } with id an animal id plus an optional '#n' herd instance; anything else drops the friend.
+  function normalizeFriend(f) {
+    if (!isObj(f) || typeof f.id !== 'string' || !/^[a-z0-9_-]+(#\d+)?$/.test(f.id)) return null;
+    return { id: f.id, animalId: typeof f.animalId === 'string' && /^[a-z0-9_-]+$/.test(f.animalId) ? f.animalId : f.id.split('#')[0] };
   }
 
   // Day/night clock (AS-0170): { t } = ms into the cycle; anything else is dropped (the game then starts in the morning).

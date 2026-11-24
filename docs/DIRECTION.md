@@ -326,6 +326,17 @@ current; when your change sets or changes something future tickets must follow, 
   reloads; a story animal keeps its species id); `save.names = { id: { animalId, name, adj? } }` (optional, no version bump). `render/name-labels.js` floats the
   name over a named animal within ~9 units; a plain Use (no part, no camera) says '¡Hola, Luna la rápida!'; the album shows '💛 Mis amigos' chips. New name/adjective
   words are data rows, never code. Story missions' own photos do not offer the card yet (only the rescue loop does); they can call `SA.names.rescued(animalId)`.
+- **Animal friend (AS-0175).** After 3 rescues (`SA.rescueLog` rows, or 3 named animals) the scientist's talk/greeting adds a line
+  'Uno de tus amigos quiere acompañarte.' (`SA.scientistTalk` role `friend`, shown only while `SA.friend.pending()`) and a 🐾 button opens
+  `ui/friend-card.js`: one picture card per rescued species (named ones show 'Canela la valiente'); a tap picks it and, if unnamed, opens the name
+  card (`SA.nameCard.offer(id, { exact, force, done })`). Only one friend: `save.friend = { id, animalId }` (optional; id = the named herd instance
+  or the species id; the name stays in `save.names`). `SA.friend` (`game/friend.js`, pure) steps the friend with `SA.follow` and reports
+  `view.mode` (`follow | sit | chase | sleep | celebrate | run | call`); `render/friend.js` draws it OUTSIDE the herd group (never picked or
+  counted). It sits then chases a butterfly when you stop, sleeps with Zzz when idle and `SA.sleep.isAsleep`, hops when `SA.rescueLog.record`
+  (default log) fires, and a hint (`SA.mission.hint`, wrapped in main.js) calls `SA.friend.hint({x, z})`: it runs up to 6 units toward the nearest
+  answer animal, calls (species sound + '¡Por aquí!') and returns. The station card shows a 'Mi amigo' row with 🔄 swap and ✏️ rename
+  (`ui/friend-card.js`, source other than 'badges'); when posters on the walls replace the menu (AS-0379), move that row to a poster, same API.
+  Story-mission hints (`SA.missionRuntime.target()`) do not lead yet.
 - **Small inventory (AS-0154, AS-0155).** Tools (cámara, cepillo, esponja, venda), la fresa as the only food, and rocks.
   No flor or hoja collectibles. Add items only when a mission needs them; fewer is better.
 - **Lots of animals.** Several of each species (3-5) spread around each biome, and >= 5 species per biome. Any instance

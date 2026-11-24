@@ -13,6 +13,8 @@
  *           at (optional, AS-0233): 'baby' | 'mama', which spawned animal is this step's world target (game/mission-spawn.js).
  *   spawn   optional { baby, mama, minApart? }: animal ids (game/data/animals.js) the mission places in the mamá's biome when it
  *           starts, at least minApart (default 14) apart. A replay can name another species' baby.
+ *   carry   optional { item, to, near? } (AS-0313): the thing a 'carry' / 'deliver' step moves and its drop-off ids; game/mission-carry.js
+ *           places both on dry ground near `near` ('pond', the default) when the mission starts
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -53,6 +55,12 @@
       ['baby', 'mama'].forEach(function (k) { if (typeof sp[k] !== 'string' || !sp[k]) fail('spawn.' + k, 'must be an animal id string'); });
       if (sp.minApart !== undefined && (typeof sp.minApart !== 'number' || !(sp.minApart > 0))) fail('spawn.minApart', 'must be a number > 0');
     }
+    if (m.carry !== undefined) {
+      var c = m.carry;
+      if (!c || typeof c !== 'object' || Array.isArray(c)) fail('carry', 'must be { item, to, near? }');
+      ['item', 'to'].forEach(function (k) { if (typeof c[k] !== 'string' || !/^[a-z][a-z0-9-]*$/.test(c[k])) fail('carry.' + k, 'must be a lowercase id string'); });
+      if (c.near !== undefined && c.near !== 'pond') fail('carry.near', 'must be a known anchor ("pond")');
+    }
     var r = m.reward;
     if (!r || typeof r !== 'object' || typeof r.stars !== 'number' || r.stars < 0 || r.stars !== Math.floor(r.stars)) fail('reward', 'must be { stars: whole number >= 0 }');
   }
@@ -66,6 +74,14 @@
       steps: [{ kind: 'find', target: 'cerdito', at: 'baby', line: { es: 'Busca al cerdito', icon: '🐷', en: 'Find the piglet' } },
         { kind: 'follow', animal: 'cerdito', at: 'mama', line: { es: 'Llévalo con mamá', icon: '🐖', en: 'Take him to mama' } },
         { kind: 'photo', at: 'mama', line: { es: 'Toma una foto', icon: '📷', en: 'Take a photo' } }],
+      reward: { stars: 2 } },
+    // Mission 2 (AS-0313, slice 1 of AS-0181): a lost egg lies near a duck's nest by the pond; pick it up and set it in the nest.
+    // The egg and nest are placed by game/mission-carry.js from `carry`; the steps are the generic carry / deliver kinds.
+    { id: 'huevo', n: 2, es: 'El huevo perdido', en: 'The lost egg', icon: '🥚',
+      intro: { es: '¡Salva el huevo!', en: 'Save the egg!', icon: '🥚' },
+      carry: { item: 'huevo', to: 'nido', near: 'pond' },
+      steps: [{ kind: 'carry', item: 'huevo', line: { es: 'Recoge el huevo', icon: '🥚', en: 'Pick up the egg' } },
+        { kind: 'deliver', item: 'huevo', to: 'nido', line: { es: 'Llévalo al nido', icon: '🪺', en: 'Take it to the nest' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

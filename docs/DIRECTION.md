@@ -248,6 +248,9 @@ current; when your change sets or changes something future tickets must follow, 
   (`others` = `[[x, z, r], ...]`, `bodyRadius`); overlapping spawns are pushed apart in ~1 s. Placement (AS-0162): `SA.animalPlan.placements` spawns every animal
   (herds included) over its whole biome strip with the gap AND non-overlapping pick volumes (`pickRadius`); tree
   perchers (`SA.perch.create` `others`/`bodyRadius`, `claims()`) only sit on or hop to spots that are free by the same gap.
+  Herds (AS-0254, slice 1 of AS-0130, pure only: nothing renders them yet): the animal data field `herd` (1-5, default 1; regular
+  species declare 3-5) and `SA.animalPlan.herdPlacements(animals, opts)` give `{ instanceId: '<id>#<n>', animalId, x, z, y, rotY,
+  radius }` per instance, each with its own home in a different sub-area (`subAreas`, 2 x 3) of the biome strip, same clearances.
 - **Small inventory (AS-0154, AS-0155).** Tools (cámara, cepillo, esponja, venda), la fresa as the only food, and rocks.
   No flor or hoja collectibles. Add items only when a mission needs them; fewer is better.
 - **Lots of animals.** Several of each species (3-5) spread around each biome, and >= 5 species per biome. Any instance

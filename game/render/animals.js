@@ -41,6 +41,7 @@
       var g = new THREE.Group();
       g.name = animal.id;
       g.userData = { animalId: animal.id, pickVolumes: [] };
+      if (s && s.radius) g.userData.wanderRadius = s.radius;   // AS-0249: how far it roams from home (reaches empty quadrants)
       SA.animalPlan.plan(animal).forEach(function (spec) {
         var geo = geos[spec.builder] || (geos[spec.builder] = unitGeometry(THREE, spec.builder));
         var mat = mats[spec.color] || (mats[spec.color] = new THREE.MeshPhongMaterial({ color: spec.color, flatShading: true, specular: 0x000000 }));

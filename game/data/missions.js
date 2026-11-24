@@ -62,7 +62,7 @@
     // Mission 1 (AS-0173 builds it): a lost piglet follows you to mamá cerda. Later rows are added by their own tickets.
     { id: 'mama', n: 1, es: '¿Dónde está mamá?', en: 'Where is mama?', icon: '🐷',
       intro: { es: '¡Ayuda al cerdito!', en: 'Help the piglet!', icon: '🐷' },
-      spawn: { baby: 'cerdito', mama: 'cerda', minApart: 14 },
+      spawn: { baby: 'cerdito', mama: 'cerda', minApart: 24 },   // the map is 2x (AS-0249): finding mamá takes a longer walk
       steps: [{ kind: 'find', target: 'cerdito', at: 'baby', line: { es: 'Busca al cerdito', icon: '🐷', en: 'Find the piglet' } },
         { kind: 'follow', animal: 'cerdito', at: 'mama', line: { es: 'Llévalo con mamá', icon: '🐖', en: 'Take him to mama' } },
         { kind: 'photo', at: 'mama', line: { es: 'Toma una foto', icon: '📷', en: 'Take a photo' } }],

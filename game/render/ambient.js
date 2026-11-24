@@ -93,7 +93,7 @@
         wx: g.position.x, wz: g.position.z, r: SA.spacing ? SA.spacing.bodyRadius(a) : 0, perched: a.perch === 'tree' && !!SA.perch,
         w: a.perch === 'tree' && SA.perch ? perchWalker(a, g, i) : SA.wander.create({
           movement: a.traits.movement, biome: a.biome, home: { x: g.position.x, z: g.position.z },
-          seed: 100 + i, avoid: opts.avoid, others: othersOf(a.id), bodyRadius: SA.spacing ? SA.spacing.bodyRadius(a) : 0,
+          seed: 100 + i, radius: g.userData.wanderRadius, avoid: opts.avoid, others: othersOf(a.id), bodyRadius: SA.spacing ? SA.spacing.bodyRadius(a) : 0,
         }),
       };
       if (a.perch === 'tree' && SA.perch) g.userData.perched = true;   // up in a canopy: never blocks the walking player

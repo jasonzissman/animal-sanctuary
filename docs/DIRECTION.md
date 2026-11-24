@@ -290,7 +290,9 @@ current; when your change sets or changes something future tickets must follow, 
   on the montaña as a fixed deck (`SA.surfaces.addFixed`, `rope: true`, a height `profile` from one summit height to the other). You climb a peak
   (the trail's lower legs pass close by), walk off the summit toward the other peak (`SA.climb` top mode hands over via `SA.surfaces.exitTo`) and
   cross. While you stand on a rope deck only its rails block (`SA.surfaces.ropeSolidsAt` replaces every ground obstacle in `scene.js`; they are NOT in
-  `solids()`, so there is no wall on the ground below) and `SA.surfaces.confine` (camera-rig, after each step) clamps you inside the ropes. The mesh sways
+  `solids()`, so there is no wall on the ground below). A rope deck only counts for feet within `SA.surfaces.ROPE_REACH` (1.2 m) of its planks:
+  `heightAt/onDeck/ropeSolidsAt(x, z, y)`, `player.heightAt(x, z, y)` and `confine` (uses `prev.y`) take the player's height, so walking on the ground
+  UNDER the bridge neither lifts you onto it nor swaps in the rails (a call without y means the ground: animals walk beneath it too). `SA.surfaces.confine` (camera-rig, after each step) clamps you inside the ropes. The mesh sways
   and bobs a hair (more with you on it) and a soft `creak` SFX plays while you walk on it: visual/audio only, the surface never moves.
   Lookout towers (AS-0160): `SA.lookouts` (pure, `game/lookouts.js`, mesh `render/lookouts.js`): one seeded wooden tower in the forest and one in
   the desert, each with a ladder on one side. `SA.lookouts.targets()` are plain climb targets of kind `'ladder'` in the same `climbables` list as

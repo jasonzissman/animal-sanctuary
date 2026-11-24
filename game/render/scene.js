@@ -60,7 +60,7 @@
     var towerSolids =SA.lookouts ? SA.lookouts.solids() : [];   // the lookout towers' legs and sides on the ground (AS-0160), static
     var lookoutsView = null;   // the towers' merged mesh, built with the other static scenery below
     function obstacles() {
-      var pl = rig && rig.getPlayer ? rig.getPlayer() : null, rope = pl && SA.surfaces && SA.surfaces.ropeSolidsAt ? SA.surfaces.ropeSolidsAt(pl.x, pl.z) : null;
+      var pl = rig && rig.getPlayer ? rig.getPlayer() : null, rope = pl && SA.surfaces && SA.surfaces.ropeSolidsAt ? SA.surfaces.ropeSolidsAt(pl.x, pl.z, pl.y) : null;
       if (rope) return rope;   // up on the rope bridge (AS-0159) only its rails block: not the peak's ring or a boulder far below
       return stationWalls.concat(streamStones, logSolids, desertSolids, boulderSolids, towerSolids, SA.surfaces ? SA.surfaces.solids() : [], SA.blocking.obstacles({
         decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor, scale: o.scale ? o.scale.x : 1 }; }),

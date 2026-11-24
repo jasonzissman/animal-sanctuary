@@ -68,7 +68,7 @@
     function update(dt, player) {
       if (!(dt > 0)) return;
       time += dt;
-      var h = player && SA.surfaces.ropeSolidsAt(player.x, player.z) ? SA.surfaces.heightAt(player.x, player.z) : null;
+      var h = player && SA.surfaces.ropeSolidsAt(player.x, player.z, player.y) ? SA.surfaces.heightAt(player.x, player.z, player.y) : null;
       var on = h !== null && Math.abs(player.y - h) < 0.8;
       weight += ((on ? 1 : 0) - weight) * Math.min(1, dt * 2);
       var moved = !!(last && player && Math.hypot(player.x - last.x, player.z - last.z) > 1e-4);

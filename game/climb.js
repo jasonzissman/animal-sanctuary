@@ -60,7 +60,7 @@
   function lerp(a, b, k) { return a + (b - a) * k; }
 
   // Ground height under the avatar: the single terrain source, SA.map.groundHeight.
-  function groundAt(x, z) { return SA.player.heightAt ? SA.player.heightAt(x, z) : SA.map.groundHeight(x, z); }
+  function groundAt(x, z, y) { return SA.player.heightAt ? SA.player.heightAt(x, z, y) : SA.map.groundHeight(x, z); }
 
   // ---- Shapes: { round, r, hw, hd }, centred on the target ----
   function circle(r) { return { round: true, r: r, hw: r, hd: r }; }
@@ -225,7 +225,7 @@
       var g = SA.player.step(state, input, dt, obstacles);
       // Feet follow the terrain, eased so slopes feel natural (no prior y, e.g. at spawn, snaps straight to the ground).
       // On a peak's slope the feet never lag below the visible rock (AS-0214: followHeight may trail the ground by up to 0.5).
-      return aboveRock({ x: g.x, z: g.z, heading: g.heading, y: SA.map.followHeight(state.y, groundAt(g.x, g.z), dt), climb: null });
+      return aboveRock({ x: g.x, z: g.z, heading: g.heading, y: SA.map.followHeight(state.y, groundAt(g.x, g.z, state.y), dt), climb: null });
     }
     dt = Math.max(0, Math.min(MAX_DT, num(dt, 0)));
     var n = c.target;

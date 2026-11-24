@@ -39,6 +39,7 @@
   var MIN_GAP = 16;           // metres between the two bridges
   var FORD_CLEAR = 8;
   var PROP_HALF_LEN = 1.925, PROP_HALF_WID = 1.3, PROP_TOP = 0.27;   // the sandbox puente: seven 0.55 planks, deck top 0.27 above the ground/water
+  var ROPE_REACH = 1.2;   // a rope deck counts for a player whose feet are within this of its planks
   var cached = null, placed = [], placedSolids = [], cachedSolids = null, allSolids = null, fixed = [], ropeRails = null;
 
   function smooth(t) { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t); }
@@ -139,15 +140,22 @@
 
   function decks() { return bridges().concat(placed); }
 
-  function heightAt(x, z) {
+  /** The height of deck d at (x, z) for someone standing at height y, or null. A rope deck (rope: true) hangs high over open ground, so it only counts when
+   *  y is within ROPE_REACH of it: the ground under the bridge stays ground. Without a y it is the raw deck height. Other decks ignore y. */
+  function deckFor(d, x, z, y) {
+    var h = deckHeight(d, x, z);
+    return h !== null && d.rope && isFinite(y) && Math.abs(h - y) > ROPE_REACH ? null : h;
+  }
+
+  function heightAt(x, z, y) {
     var list = bridges(), best = null, i, h;
     for (i = 0; i < list.length; i++) { h = deckHeight(list[i], x, z); if (h !== null && (best === null || h > best)) best = h; }
     for (i = 0; i < placed.length; i++) { h = deckHeight(placed[i], x, z); if (h !== null && (best === null || h > best)) best = h; }
-    for (i = 0; i < fixed.length; i++) { h = deckHeight(fixed[i], x, z); if (h !== null && (best === null || h > best)) best = h; }
+    for (i = 0; i < fixed.length; i++) { h = deckFor(fixed[i], x, z, y); if (h !== null && (best === null || h > best)) best = h; }
     return best;
   }
 
-  function onDeck(x, z) { return heightAt(x, z) !== null; }
+  function onDeck(x, z, y) { return heightAt(x, z, y) !== null; }
 
   function walkable(x, z, margin) {
     var list = decks(), m = margin || 0;
@@ -178,9 +186,9 @@
   }
 
   /** The rail circles of every rope deck (cached); a player on a rope deck is blocked by these and nothing else. */
-  function ropeSolidsAt(x, z) {
+  function ropeSolidsAt(x, z, y) {
     var any = false, i;
-    for (i = 0; i < fixed.length; i++) if (fixed[i].rope && deckHeight(fixed[i], x, z) !== null) { any = true; break; }
+    for (i = 0; i < fixed.length; i++) if (fixed[i].rope && deckFor(fixed[i], x, z, y) !== null) { any = true; break; }
     if (!any) return null;
     if (!ropeRails) { ropeRails = []; fixed.forEach(function (d) { if (d.rope) ropeRails = ropeRails.concat(railCircles(d)); }); }
     return ropeRails;
@@ -200,7 +208,7 @@
     if (!prev || !next || next.climb) return next;
     for (var i = 0; i < fixed.length; i++) {
       var d = fixed[i];
-      if (!d.rope) continue;
+      if (!d.rope || deckFor(d, prev.x, prev.z, prev.y) === null) continue;   // prev walked on the ground beneath it, not on the planks
       var p = local(d, prev.x, prev.z), q = local(d, next.x, next.z), lim = d.halfWid - d.railR - 0.1;
       if (Math.abs(p.v) > d.halfWid || Math.abs(p.u) > d.halfLen || Math.abs(q.u) > d.halfLen || Math.abs(q.v) <= lim) continue;
       var v = q.v < 0 ? -lim : lim;
@@ -212,6 +220,6 @@
     return next;
   }
 
-  SA.surfaces = { addFixed: addFixed, confine: confine, ropeSolidsAt: ropeSolidsAt, exitTo: exitTo, topAt: topAt, SEED: SEED, HALF_WID: HALF_WID, RAMP: RAMP, layout: layout, bridges: bridges, propDeck: propDeck, setPlaced: setPlaced, decks: decks,
+  SA.surfaces = { ROPE_REACH: ROPE_REACH, addFixed: addFixed, confine: confine, ropeSolidsAt: ropeSolidsAt, exitTo: exitTo, topAt: topAt, SEED: SEED, HALF_WID: HALF_WID, RAMP: RAMP, layout: layout, bridges: bridges, propDeck: propDeck, setPlaced: setPlaced, decks: decks,
     deckHeight: deckHeight, railCircles: railCircles, heightAt: heightAt, onDeck: onDeck, walkable: walkable, near: near, solids: solids };
 })(typeof window !== 'undefined' ? window : globalThis);

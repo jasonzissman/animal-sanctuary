@@ -43,7 +43,7 @@ test('height test: walking end to end the player stands exactly on the planks, h
   for (let u = -D.halfLen; u <= D.halfLen; u += 0.25) {
     const [x, z] = at(u), h = S.heightAt(x, z);
     assert.ok(h !== null, 'a plank at u=' + u);
-    assert.ok(Math.abs(P.heightAt(x, z) - h) < 1e-9, 'the player stands on it');
+    assert.ok(Math.abs(P.heightAt(x, z, h) - h) < 1e-9, 'the player stands on it');
     assert.ok(Math.abs(h - S.topAt(D, u)) < 1e-9);
     const next = S.heightAt(...at(u + 0.25));
     if (next !== null) worst = Math.max(worst, Math.abs(next - h));
@@ -57,8 +57,8 @@ test('height test: walking end to end the player stands exactly on the planks, h
   assert.ok(rails && rails.length > 20);
   let s = { x: a.x, z: a.z, heading: Math.atan2(D.dx, D.dz), y: a.y, climb: null }, sawMiddle = false;
   for (let t = 0; t < 12 && local(s.x, s.z).u < half + 0.5; t += DT) {
-    s = SA.climb.step(s, { forward: 1 }, DT, S.ropeSolidsAt(s.x, s.z) || []);
-    const l = local(s.x, s.z), h = S.heightAt(s.x, s.z);
+    s = SA.climb.step(s, { forward: 1 }, DT, S.ropeSolidsAt(s.x, s.z, s.y) || []);
+    const l = local(s.x, s.z), h = S.heightAt(s.x, s.z, s.y);
     assert.ok(Math.abs(l.v) < D.halfWid, 'stays on the planks');
     if (h !== null && Math.abs(l.u) < half) assert.ok(Math.abs(s.y - h) < 0.35, `follows the deck at u=${l.u.toFixed(1)} (${s.y.toFixed(2)} vs ${h.toFixed(2)})`);
     if (Math.abs(l.u) < 1) sawMiddle = true;
@@ -67,8 +67,37 @@ test('height test: walking end to end the player stands exactly on the planks, h
   assert.ok(Math.abs(s.y - b.y) < 0.35, 'and ends level with it');
   // and back the other way
   s = { x: b.x, z: b.z, heading: Math.atan2(-D.dx, -D.dz), y: b.y, climb: null };
-  for (let t = 0; t < 12 && local(s.x, s.z).u > -half - 0.5; t += DT) s = SA.climb.step(s, { forward: 1 }, DT, S.ropeSolidsAt(s.x, s.z) || []);
+  for (let t = 0; t < 12 && local(s.x, s.z).u > -half - 0.5; t += DT) s = SA.climb.step(s, { forward: 1 }, DT, S.ropeSolidsAt(s.x, s.z, s.y) || []);
   assert.ok(local(s.x, s.z).u < -half, 'walkable both ways');
+});
+
+test('the ground under the bridge stays ground: walking beneath it neither lifts you onto the planks nor swaps in the rails', () => {
+  const [a, b] = RB.ends();
+  let checked = 0;
+  for (let u = -half + 3; u <= half - 3; u += 1) {   // over the gap, where the planks hang well above the ground
+    const [x, z] = at(u), g = M.groundHeight(x, z), h = S.heightAt(x, z);
+    if (h - g <= S.ROPE_REACH + 0.2) continue;
+    checked++;
+    assert.equal(S.heightAt(x, z, g), null, 'the planks do not count for feet on the ground');
+    assert.equal(S.ropeSolidsAt(x, z, g), null, 'no rails block the ground below');
+    assert.equal(P.heightAt(x, z, g), g, 'the player stays at ground level');
+    assert.equal(P.heightAt(x, z), g, 'and so do animals (no y given)');
+    assert.ok(!S.onDeck(x, z, g) && S.heightAt(x, z, h) === h && S.onDeck(x, z, h - 0.5));
+  }
+  assert.ok(checked >= 5, 'enough of the span hangs high: ' + checked);
+  // an actual walk across the ground under the bridge's middle, sideways to it: the height follows the terrain and nothing stops the walk
+  const [mx, mz] = at(0, -6), obs = SA.mountainPlan.solids();
+  let s = { x: mx, z: mz, heading: Math.atan2(-D.dz, D.dx), y: M.groundHeight(mx, mz), climb: null }, crossed = false;
+  assert.ok(S.heightAt(...at(0)) - M.groundHeight(...at(0)) > S.ROPE_REACH, 'the middle hangs high');
+  for (let t = 0; t < 4 && !crossed; t += DT) {
+    const prev = s;
+    s = S.confine(prev, SA.climb.step(s, { forward: 1 }, DT, S.ropeSolidsAt(s.x, s.z, s.y) || obs));
+    const l = local(s.x, s.z), g = M.groundHeight(s.x, s.z);
+    assert.ok(Math.abs(s.y - g) < 0.6, `at ground level under the bridge: ${s.y.toFixed(2)} vs ${g.toFixed(2)}`);
+    if (l.v > 0) crossed = true;
+  }
+  assert.ok(crossed, 'walked right under the span and out the other side (not held by the rails)');
+  assert.ok(a.y > 0 && b.y > 0);
 });
 
 test('the ropes block: pushing sideways (running, hopping) never gets off the planks', () => {
@@ -78,7 +107,7 @@ test('the ropes block: pushing sideways (running, hopping) never gets off the pl
         let s = { x: at(u)[0], z: at(u)[1], heading: Math.atan2(-D.dz * side, D.dx * side), y: S.heightAt(...at(u)), climb: null };
         for (let t = 0; t < 4; t += DT) {
           const prev = s;
-          s = S.confine(prev, SA.climb.step(s, input, DT, S.ropeSolidsAt(s.x, s.z) || []));   // the camera rig does the same after every step
+          s = S.confine(prev, SA.climb.step(s, input, DT, S.ropeSolidsAt(s.x, s.z, s.y) || []));   // the camera rig does the same after every step
           // (a run into the rope can slide along it; it only ever leaves by the far end, which is the level summit)
           assert.ok(Math.abs(local(s.x, s.z).u) > D.halfLen || Math.abs(local(s.x, s.z).v) < D.halfWid, `fell off at u=${u} side ${side} ${JSON.stringify(input)} v=${local(s.x, s.z).v} t=${t}`);
         }
@@ -91,12 +120,14 @@ test('the ropes block: pushing sideways (running, hopping) never gets off the pl
 });
 
 test('confine: a step that would end beside the rope bridge is clamped inside the rails; ends and other places are untouched', () => {
-  const [mx, mz] = at(0), prev = { x: mx, z: mz, heading: 1, y: 9, climb: null, extra: 7 };
-  const out = S.confine(prev, { x: at(0, 3)[0], z: at(0, 3)[1], heading: 1, y: 9, climb: null, extra: 7 });
+  const [mx, mz] = at(0), py = S.heightAt(mx, mz), prev = { x: mx, z: mz, heading: 1, y: py, climb: null, extra: 7 };
+  const out = S.confine(prev, { x: at(0, 3)[0], z: at(0, 3)[1], heading: 1, y: py, climb: null, extra: 7 });
   assert.ok(Math.abs(local(out.x, out.z).v) < D.halfWid - D.railR && Math.abs(local(out.x, out.z).u) < 1e-9 && out.extra === 7, 'back inside, same place along the deck');
-  const same = { x: at(1, 0.4)[0], z: at(1, 0.4)[1], heading: 1, y: 9, climb: null };
+  const same = { x: at(1, 0.4)[0], z: at(1, 0.4)[1], heading: 1, y: py, climb: null };
   assert.equal(S.confine(prev, same), same);
-  const end = { x: at(D.halfLen + 1, 0)[0], z: at(D.halfLen + 1, 0)[1], heading: 1, y: 9, climb: null };
+  const end = { x: at(D.halfLen + 1, 0)[0], z: at(D.halfLen + 1, 0)[1], heading: 1, y: py, climb: null };
+  const below = { ...prev, y: M.groundHeight(mx, mz) };   // standing on the ground under the middle: no rails for you
+  assert.equal(S.confine(below, { ...below, x: at(0, 3)[0], z: at(0, 3)[1] }).x, at(0, 3)[0], 'ground under the planks is not confined');
   assert.equal(S.confine(prev, end), end, 'walking off the end onto the summit is free');
   const ground = { x: at(0, 5)[0], z: at(0, 5)[1], heading: 1, y: 5, climb: null };
   assert.equal(S.confine({ x: ground.x, z: ground.z, y: 5 }, { ...ground, x: ground.x + 1 }).x, ground.x + 1, 'someone on the ground below is not confined');
@@ -156,7 +187,6 @@ test('both ends are reachable on foot from the trail: a walkable route to each p
     }
   }
   for (const p of peaks) {
-    const reach = SA.climb.EDGE_RANGE || 1.2;
     let found = false;
     for (let a = 0; a < 24 && !found; a++) {
       const x = p.x + Math.cos(a * Math.PI / 12) * (SA.peaks.SOLID_R + R + 0.3), z = p.z + Math.sin(a * Math.PI / 12) * (SA.peaks.SOLID_R + R + 0.3);
@@ -164,7 +194,6 @@ test('both ends are reachable on foot from the trail: a walkable route to each p
       if (ix >= 0 && iz >= 0 && ix < nx && iz < nz && seen[iz * nx + ix]) found = true;
     }
     assert.ok(found, `the trail's end connects on foot to the foot of ${p.id}`);
-    assert.ok(reach > 0);
   }
   // From the foot of the first peak: climb it, then walk off the summit straight onto the planks and over to the other peak.
   const targets = SA.peaks.targets(), ta = targets.find((t) => t.id === peaks[0].id), tb = targets.find((t) => t.id === peaks[1].id);
@@ -178,15 +207,19 @@ test('both ends are reachable on foot from the trail: a walkable route to each p
   for (let t = 0; t < 10 && s.climb; t += DT) s = SA.climb.step(s, { forward: 1 }, DT, [], targets);
   onPlanks = !s.climb;
   assert.ok(onPlanks, 'walking off the summit toward the other peak steps onto the planks (no fall)');
-  assert.ok(Math.abs(s.y - S.heightAt(s.x, s.z)) < 0.5);
-  for (let t = 0; t < 12 && local(s.x, s.z).u < half + 0.3; t += DT) s = SA.climb.step(s, { forward: 1 }, DT, S.ropeSolidsAt(s.x, s.z) || [], targets);
+  assert.ok(Math.abs(s.y - S.heightAt(s.x, s.z, s.y)) < 0.5);
+  for (let t = 0; t < 12 && local(s.x, s.z).u < half + 0.3; t += DT) s = SA.climb.step(s, { forward: 1 }, DT, S.ropeSolidsAt(s.x, s.z, s.y) || [], targets);
   assert.ok(local(s.x, s.z).u >= half, 'across to the second summit');
   assert.ok(Math.hypot(s.x - tb.x, s.z - tb.z) < 1.2 && Math.abs(s.y - tb.topY) < 0.5);
   // a different way off a summit is still the normal fall
-  let w = { x: ta.x, z: ta.z, heading: Math.atan2(-dirz, dirx), y: ta.topY, climb: null };
-  w = SA.climb.start({ ...w, x: ta.x + dirz * 2.4, z: ta.z - dirx * 2.4 }, ta);
+  const sx = ta.x + dirz * 2.4, sz = ta.z - dirx * 2.4;
+  let w = SA.climb.start({ x: sx, z: sz, heading: Math.atan2(-dirz, dirx), y: M.groundHeight(sx, sz), climb: null }, ta);
   for (let t = 0; t < 6 && w.climb && w.climb.mode === 'up'; t += DT) w = SA.climb.step(w, {}, DT, [], targets);
   assert.equal(w.climb && w.climb.mode, 'top');
+  w = { ...w, heading: Math.atan2(dirz, -dirx) };   // face away from the bridge, off the side of the summit
+  for (let t = 0; t < 6 && w.climb && w.climb.mode === 'top'; t += DT) w = SA.climb.step(w, { forward: 1 }, DT, [], targets);
+  assert.ok(w.climb && w.climb.mode === 'down' && w.climb.fall, 'a different way off the summit is still the normal fall');
+  assert.ok(S.heightAt(w.x, w.z, w.y) === null || local(w.x, w.z).u < -half, 'and not onto the planks');
 });
 
 test('surfaces: a profile rises linearly and is flat beyond its ends; fixed decks are idempotent', () => {

@@ -129,13 +129,13 @@
   }
 
   /** Terrain height under the player's feet at (x, z): the single source is SA.map.groundHeight. */
-  function heightAt(x, z) {
-    var g = SA.map.groundHeight(x, z), d = SA.surfaces ? SA.surfaces.heightAt(x, z) : null;   // a bridge deck (AS-0158) lifts you above the water
+  function heightAt(x, z, y) {
+    var g = SA.map.groundHeight(x, z), d = SA.surfaces ? SA.surfaces.heightAt(x, z, isFinite(y) ? y : g) : null;   // y: the feet's height (a high rope deck only counts near it)   // a bridge deck (AS-0158) lifts you above the water
     return d !== null && d > g ? d : g;
   }
 
   /** In the river/pond water, but not while standing on a bridge deck over it. */
-  function inWater(x, z) { return SA.map.isWater(x, z) && !(SA.surfaces && SA.surfaces.onDeck(x, z)); }
+  function inWater(x, z) { return SA.map.isWater(x, z) && !(SA.surfaces && SA.surfaces.onDeck(x, z, SA.map.groundHeight(x, z))); }
 
   function step(state, input, dt, obstacles) {
     var S = spawnPoint();

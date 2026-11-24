@@ -366,6 +366,14 @@ current; when your change sets or changes something future tickets must follow, 
   pickups only stand while their collect step is current, drawn from the item's hand model). The `give` kind has an optional `n`. Tapping the mice
   (`SA.missionPantry.give`) takes the strawberries from the bag (a short bag still counts: never stuck), the family squeaks and hops, `compartir`
   is spoken, and `pantry.gift` (`bellota`, a new `find` item with a hand model) goes into the inventory (once; a replay does not stack it).
+  **Mission 9 core (AS-0350, slice 1 of AS-0188):** `hogar` (n 9, "Construye una casa" 🏡, unlocked by `ladrones`) declares
+  `home: { place, family: { adult, baby, babies }, biome?, say? }` (validated in `game/data/missions.js`, documented in its header) and has two
+  generic steps: `goTo` the build spot (`place: 'hogar'`) then `photo` of the family (`target: 'hogar'`, a place, so a wild rabbit photo never
+  completes it). `SA.missionHome` (`game/mission-home.js`, pure, same shape as `SA.missionPantry`) picks a dry, flat, clear spot in the bosque
+  16+ from the station and puts the rabbit family (`conejo` + 3 story kits `conejito`, `babyParts` of the adult) beside it, facing it; both exist
+  ONLY while this mission is active. `game/render/mission-home.js` draws a low-poly ground marker (earth patch, 4 pennant stakes, pulsing glow
+  ring) and the family; a tap on a rabbit with la cámara calls `snap()`, which completes the mission and logs `{ kind: 'home' }` for the sticker
+  `hogar-nuevo`. New vocab for the building slices: `thing:palo/hoja/hierba/casa`, `phrase:abajo/encima/construir`. Later slices add the nest/burrow building.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

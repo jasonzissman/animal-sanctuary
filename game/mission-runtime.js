@@ -140,7 +140,7 @@
     // The river log and rock (SA.missionLog, AS-0319) answer the same way: the first world piece that knows the id / step wins.
     function thing() {
       if (opts.thing) return opts.thing;
-      var list = [SA.missionCarry, SA.missionLog, SA.missionBananas, SA.missionDoctor, SA.missionNest, SA.missionFriends, SA.missionParty, SA.missionCensus, SA.missionPantry, SA.missionTrail].filter(Boolean);
+      var list = [SA.missionCarry, SA.missionLog, SA.missionBananas, SA.missionDoctor, SA.missionNest, SA.missionFriends, SA.missionParty, SA.missionCensus, SA.missionPantry, SA.missionTrail, SA.missionHome].filter(Boolean);
       if (!list.length) return null;
       function first(fn, arg) {
         for (var i = 0; i < list.length; i++) { var r = list[i][fn] ? list[i][fn](arg) : null; if (r) return r; }

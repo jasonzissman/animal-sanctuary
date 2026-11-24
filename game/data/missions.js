@@ -52,6 +52,11 @@
  *           AS-0348: `pantry.gift` (an item id, items.js) is what the family hands back for a 'give' step { item, to, n? } (tap the mice near the tree with the
  *           strawberries in the bag); `say.give` / `say.gift` (vocab key or list) are spoken at the share and the gift. A mission's `bananas` may carry
  *           `bag: true` (AS-0348): each pickup also goes into the inventory (and the pickups only stand while their 'collect' step is current).
+ *   home    optional { place, family: { adult, baby, babies }, biome?, say?: { arrive?, photo? } } (AS-0350): the build spot the scientist chose
+ *           (game/mission-home.js marks it on dry flat ground of `biome`, default 'bosque', with a ground marker and a glow ring) and the new
+ *           rabbit family waiting beside it (animal ids; `babies` = 1..5 of `baby`). A 'goTo' step { place } walks to the spot and a 'photo'
+ *           step { target: place } photographs the family. `say.arrive` / `say.photo` are vocab keys spoken once. Neither the spot nor the
+ *           family exists unless this mission is the active one; nothing special-cases the animal id.
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -182,6 +187,20 @@
       if (!tr || typeof tr !== 'object' || Array.isArray(tr) || typeof tr.id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(tr.id)) fail('pantry.trail', 'must be { id, say? } with a lowercase id');
       if (tr.say !== undefined && (!tr.say || typeof tr.say !== 'object' || [].concat(ts || []).some(function (x) { return typeof x !== 'string' || !x; }))) fail('pantry.trail.say', 'must be { start: vocab key or list }');
     }
+    if (m.home !== undefined) {
+      var ho = m.home, hid = /^[a-z][a-z0-9-]*$/;
+      if (!ho || typeof ho !== 'object' || Array.isArray(ho)) fail('home', 'must be { place, family, biome?, say? }');
+      if (typeof ho.place !== 'string' || !hid.test(ho.place)) fail('home.place', 'must be a lowercase id string (the id a goTo step names)');
+      if (ho.biome !== undefined && (typeof ho.biome !== 'string' || !ho.biome)) fail('home.biome', 'must be a biome id string');
+      var hf = ho.family;
+      if (!hf || typeof hf !== 'object' || Array.isArray(hf)) fail('home.family', 'must be { adult, baby, babies }');
+      ['adult', 'baby'].forEach(function (k) { if (typeof hf[k] !== 'string' || !hid.test(hf[k])) fail('home.family.' + k, 'must be an animal id string'); });
+      if (!Number.isInteger(hf.babies) || hf.babies < 1 || hf.babies > 5) fail('home.family.babies', 'must be a whole number from 1 to 5');
+      if (ho.say !== undefined) {
+        if (!ho.say || typeof ho.say !== 'object' || Array.isArray(ho.say)) fail('home.say', 'must be { arrive?, photo? } vocab keys');
+        Object.keys(ho.say).forEach(function (k) { if (['arrive', 'photo'].indexOf(k) < 0 || typeof ho.say[k] !== 'string' || !ho.say[k]) fail('home.say.' + k, 'must be a vocab key for arrive, photo'); });
+      }
+    }
     m.steps.forEach(function (s, i) {
       if (s.gives !== undefined && (typeof s.gives !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.gives))) fail('steps[' + i + '].gives', 'must be a lowercase vocab id string');
     });
@@ -300,6 +319,16 @@
         { kind: 'collect', item: 'fresa', n: 3, line: { es: 'Recoge 3 fresas', icon: '🍓', en: 'Pick up 3 strawberries' } },
         { kind: 'give', item: 'fresa', to: 'ratoncampo', n: 3, line: { es: 'Comparte las fresas', icon: '🐭', en: 'Share the strawberries' } },
         { kind: 'photo', target: 'despensa', line: { es: 'Foto de la familia', icon: '📷', en: 'Family photo' } }],
+      reward: { stars: 2 } },
+    // Mission 9 (AS-0350, slice 1 of AS-0188): build a home for a new rabbit family. The scientist chooses a build spot in the bosque; while this
+    // mission runs game/mission-home.js marks it (ground marker + glow ring) and a rabbit family (an adult and 3 kits) waits beside it. For now: walk
+    // to the spot (goTo), then photograph the family (target = the place, so a wild rabbit never completes it) for the reward and the sticker
+    // 'hogar-nuevo'. Later slices add the building itself.
+    { id: 'hogar', n: 9, es: 'Construir un hogar', en: 'Build a home', icon: '🏡',
+      intro: { es: 'Construye una casa', en: 'Build a house', icon: '🏡' },
+      home: { place: 'hogar', biome: 'bosque', family: { adult: 'conejo', baby: 'conejito', babies: 3 }, say: { arrive: 'thing:casa', photo: 'thing:familia' } },
+      steps: [{ kind: 'goTo', place: 'hogar', line: { es: 'Ve al lugar', icon: '📍', en: 'Go to the spot' } },
+        { kind: 'photo', target: 'hogar', line: { es: 'Foto de la familia', icon: '📷', en: 'Family photo' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

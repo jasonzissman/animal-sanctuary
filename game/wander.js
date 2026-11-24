@@ -11,7 +11,7 @@
  *   w.state()         current { x, z, heading, lift, moving, mode, held }
  *
  * The animal stays inside its biome (SA.map.biomeAt, a margin from the border and the map edge), within `radius` of
- * home, off the water and clear of `avoid` points (each keeps clear by its optional radius r, default 1.3; an animal that
+ * home, off the water (river, pond and the forest streams of SA.forestStreams) and clear of `avoid` points (each keeps clear by its optional radius r, default 1.3; an animal that
  * already stands inside one may still walk out of it). Movement trait only changes the style/speed (never an animal id).
  * `others` (optional function -> [[x,z,r?],...], the other animals' current positions and body radii) and `minSeparation`
  * (default 2) make target selection softly avoid other animals; if every candidate is too close it takes the one with most
@@ -35,7 +35,8 @@
   var MARGIN = 0.3;             // extra room wander targets keep beyond the hard gap
   var SLIDES = [0.7, -0.7, 1.4, -1.4];   // radians a blocked step turns to try to slide along the gap
   var AVOID_RADIUS = 1.3;      // default keep-clear distance of an avoid point without its own radius
-  var EDGE = 1.5;             // keep this far from the biome border and the map edge
+  var STREAM_PAD = 0.4;       // wander targets keep this far from a forest stream's water edge (AS-0301)
+  var EDGE = 1.5;            // keep this far from the biome border and the map edge
   var STYLES = {                // speed = average walking speed; hop = hop height (0: none); float = hover height
     salta: { speed: 0.9, turn: 3.5, pause: [1.2, 3.2], hop: 0.55, hopRate: 1.6, float: 0 },
     nada: { speed: 0.8, turn: 2.5, pause: [1.5, 4], hop: 0, hopRate: 0, float: 0 },
@@ -76,6 +77,7 @@
     function inBounds(x, z) {
       if (x < B.minX + EDGE || x > B.maxX - EDGE || z < B.minZ + EDGE || z > B.maxZ - EDGE) return false;
       if (M.biomeAt(x - EDGE) !== biome || M.biomeAt(x + EDGE) !== biome) return false;
+      if (SA.forestStreams && SA.forestStreams.inWater(x, z, STREAM_PAD)) return false;   // forest streams (AS-0301): look, don't wade
       return M.groundHeight(x, z) >= M.WATER_LEVEL + 0.45;
     }
 

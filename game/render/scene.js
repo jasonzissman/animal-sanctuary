@@ -53,8 +53,9 @@
     var solidPropPoints = [];   // placed props that block the player (flores don't); rebuilt in refreshAvoid
     // Only things that should stop the player count: trees, rocks, ponds, bridges and big animals. Flowers, grass and small
     // animals are soft (SA.blocking reads that from data), so the player walks straight through them.
+    var streamStones = SA.forestStreams ? SA.forestStreams.stoneSolids() : [];   // low solids [x, z, r, h] (AS-0301), static
     function obstacles() {
-      return stationWalls.concat(SA.blocking.obstacles({
+      return stationWalls.concat(streamStones, SA.blocking.obstacles({
         decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor, scale: o.scale ? o.scale.x : 1 }; }),
         propPoints: solidPropPoints,
         animals: animals.children.map(function (g) {
@@ -206,6 +207,11 @@
     // Foam along the water edges plus instanced pebbles and reeds on the banks (AS-0298): soft, static, in no obstacle list.
     if (SA.render.createWaterBanks && SA.waterBanks) {
       try { SA.render.createWaterBanks(THREE, { scene: scene, world: world }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('waterBanks.create', e); }
+    }
+
+    // The small forest streams (AS-0301): one moving water ribbon plus instanced stepping stones; the stones are low solids you can stand on.
+    if (SA.render.createForestStreams && SA.forestStreams) {
+      try { SA.render.createForestStreams(THREE, { scene: scene, world: world }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('forestStreams.create', e); }
     }
 
     function resize() {

@@ -51,6 +51,7 @@
     if (M.groundHeight(x, z) < M.WATER_LEVEL + DRY) return false;
     if (SA.player && SA.player.inSpawnZone(x, z)) return false;       // the spawn stays clear (AS-0105)
     if (SA.station && SA.station.inFootprint(x, z, 1)) return false;  // and so does the research station's footprint
+    if (SA.forestStreams && SA.forestStreams.inWater(x, z, 1.2)) return false;   // and out of the forest streams (AS-0301)
     if (SA.forestPaths && SA.forestPaths.onPath(x, z, 1)) return false;   // and the forest dirt paths (AS-0300; a trunk is up to ~1 m wide)
     return true;
   }

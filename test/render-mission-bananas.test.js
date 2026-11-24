@@ -35,3 +35,18 @@ test('draws one bunch per pickup, hides taken ones and removes all when the miss
   r.update(0.1);
   assert.equal(r.group.children.length, 0);
 });
+
+test('AS-0351: createMissionGather draws one view per gather instance, each only while its own step is current', () => {
+  const { SA, THREE } = world();
+  const mk = (item, shown) => ({ shown: () => shown(), current: () => ({ key: 'hogar:1', spec: { item, n: 1 }, items: [{ id: item + '-1', x: 5, z: 5, y: 0, taken: false }] }) });
+  let step = 'palo';
+  const things = [mk('palo', () => step === 'palo'), mk('hoja', () => step === 'hoja')];
+  const scene = new THREE.Scene();
+  const r = SA.render.createMissionGather(THREE, { scene, thing: { things: () => things } });
+  assert.equal(r.group.length, 2);
+  r.update(0.1);
+  assert.deepEqual(Array.from(r.group.map((g) => g.children[0].visible)), [true, false]);
+  step = 'hoja';
+  r.update(0.1);
+  assert.deepEqual(Array.from(r.group.map((g) => g.children[0].visible)), [false, true]);
+});

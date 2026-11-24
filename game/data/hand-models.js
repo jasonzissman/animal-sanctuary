@@ -61,7 +61,11 @@
     model('roca', [ball(0.1, 0x8d8d92, 0, 0.09, 0, [1.1, 0.8, 1]), ball(0.05, 0xa6a6ab, 0.05, 0.14, 0.03)]),
     model('espina', [cone(0.03, 0.2, 0x6d4c2a, 0, 0.12, 0), cyl(0.04, 0.04, 0.03, 0x3f5a2a, 0, 0.02, 0)]),
     model('pluma', [cyl(0.008, 0.01, 0.3, 0xc9b48a, 0, 0.15, 0), cone(0.05, 0.22, 0xf4f1ea, 0, 0.16, 0)]),   // AS-0336: a white quill (flat vane on a shaft)
-    model('bellota', [ball(0.07, 0xf2c14e, 0, 0.1, 0, [1, 1.25, 1]), ball(0.075, 0x8a5a2b, 0, 0.19, 0, [1, 0.55, 1]), cyl(0.008, 0.012, 0.05, 0x5b3a1c, 0, 0.25, 0)])   // AS-0348: a shiny golden acorn
+    model('bellota', [ball(0.07, 0xf2c14e, 0, 0.1, 0, [1, 1.25, 1]), ball(0.075, 0x8a5a2b, 0, 0.19, 0, [1, 0.55, 1]), cyl(0.008, 0.012, 0.05, 0x5b3a1c, 0, 0.25, 0)]),   // AS-0348: a shiny golden acorn
+    // AS-0351: Mission 9's building materials: a forked brown stick, a green leaf on its stalk, a tuft of soft grass
+    model('palo', [cyl(0.02, 0.025, 0.34, 0x8a5a2b, 0, 0.17, 0), cyl(0.012, 0.016, 0.14, 0x8a5a2b, 0.05, 0.24, 0, [0, 0, -0.7])]),
+    model('hoja', [ball(0.09, 0x59b04a, 0, 0.14, 0, [1, 0.12, 1.5]), cyl(0.008, 0.01, 0.1, 0x3f7f35, 0, 0.05, 0)]),
+    model('hierba', [cone(0.035, 0.26, 0x8fcf5a, 0, 0.13, 0), cone(0.03, 0.2, 0x7bbf4a, 0.05, 0.1, 0, [0, 0, -0.3]), cone(0.03, 0.2, 0xa5db6a, -0.05, 0.1, 0, [0, 0, 0.3])])
   ];
 
   SA.data.defineKind('handmodels', validateHandModel);

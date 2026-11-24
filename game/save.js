@@ -33,7 +33,7 @@
   var VERSION = 6;
   var STARTING_KIT = ['camara', 'cepillo', 'esponja', 'venda'];
   var DEBOUNCE_MS = 500;
-  var RETIRED_ITEMS = { flor: true, hoja: true, platano: true, zanahoria: true, pez: true };   // removed items (AS-0154 flor/hoja, AS-0155 other foods): dropped from saved inventories
+  var RETIRED_ITEMS = { flor: true, platano: true, zanahoria: true, pez: true };   // removed items (AS-0154 flor, AS-0155 other foods): dropped from saved inventories. (AS-0351: 'hoja' is a real item again, Mission 9's leaves.)
 
   var state = null;
   var dirty = false;

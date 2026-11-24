@@ -49,16 +49,20 @@ function pushAcross(ctx, frames = 600) {
   return c;
 }
 
-test('data: mission 3 follows mission 2, one intro line of <= 4 words, steps push then cross', () => {
+test('data: mission 3 follows mission 2, one intro line of <= 4 words, steps push, cross, pick up, take to the bank, dry', () => {
   const { SA, missions } = setup();
   const rows = SA.data.all('missions');
   assert.deepEqual(Array.from(rows.map((m) => m.n)), [1, 2, 3]);
   const m = rows[2];
   assert.equal(m.id, 'rio');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['push', 'goTo']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['push', 'goTo', 'carry', 'deliver', 'dry']);
   assert.equal(m.steps[0].line.es, 'Empuja el tronco');
   assert.equal(m.steps[1].line.es, 'Cruza el río');
+  assert.deepEqual(Array.from(m.steps.slice(2).map((x) => x.line.es)), ['Recoge al perrito', 'Llévalo a la orilla', 'Sécalo']);
+  assert.equal(m.steps[2].item, m.river.animal);
+  assert.equal(m.steps[3].to, m.river.bank);
+  assert.equal(m.steps[4].item, m.river.animal);
   assert.equal(m.steps[0].item, m.river.log);
   assert.equal(m.steps[1].place, m.river.rock);
   assert.equal(missions.start('rio').reason, 'locked');
@@ -68,6 +72,8 @@ test('data: a bad river row is rejected with a clear error', () => {
   const { SA } = setup();
   const base = SA.data.all('missions')[2];
   assert.throws(() => SA.data.register('missions', [{ ...base, id: 'rio2', n: 4, river: { animal: 'perrito' } }]), /river\.rock/);
+  assert.throws(() => SA.data.register('missions', [{ ...base, id: 'rio3', n: 4, river: { ...base.river, rubs: 0 } }]), /river\.rubs/);
+  assert.throws(() => SA.data.register('missions', [{ ...base, id: 'rio4', n: 4, river: { ...base.river, bank: 'La Orilla' } }]), /river\.bank/);
   assert.throws(() => SA.data.register('missions', [{ ...base, id: 'rio3', n: 4, river: [] }]), /river/);
 });
 
@@ -180,7 +186,7 @@ test('pushing all the way locks the log at the bridged spot as a walkable surfac
   assert.ok(p.x > c.rock.x - 0.5, 'the kid walks across the bridge to the rock: ' + p.x);
 });
 
-test('crossing: reaching the rock over the locked log completes the mission, says the animal and its bark, and rewards once', () => {
+test('crossing: reaching the rock over the locked log says the animal and its bark and moves on to picking it up', () => {
   const ctx = startRio(flow());
   const { SA, thing, missions, rt, said, later, cheers } = ctx, c = thing.current();
   // wading to the rock first does nothing
@@ -191,20 +197,117 @@ test('crossing: reaching the rock over the locked log completes the mission, say
   assert.equal(missions.active().stepData.kind, 'goTo');
   rt.update({ x: c.log.x1 - 2, z: c.log.z });                                      // still on the bank side of the rock
   assert.equal(missions.active().stepData.kind, 'goTo');
-  const stars = SA.save.get().stars || 0;
   thing.update({ x: c.rock.x, z: c.rock.z, heading: EAST }, 0.016);
   assert.ok(said.includes('animal:perrito'));
   later.forEach((f) => f());
   assert.ok(said.includes('phrase:guau'));
   assert.equal(said.filter((k) => k === 'animal:perrito').length, 1, 'said once');
   const res = rt.update({ x: c.rock.x, z: c.rock.z });
-  assert.equal(res.status, 'complete');
+  assert.equal(res.status, 'step');
+  assert.equal(missions.active().stepData.kind, 'carry');
+  assert.equal(cheers.length, 0, 'the rescue is not over yet');
+});
+
+// The whole trip: push, cross, pick up, carry back over the log, set down on the towel, rub dry with the sponge.
+function finishRio(ctx) {
+  const { SA, thing, rt } = ctx, c = thing.current(), at = (o) => Object.assign({ heading: EAST }, o);
+  pushAcross(ctx);
+  rt.update(at({ x: c.rock.x, z: c.rock.z }));                                      // arrives (goTo)
+  rt.update(at({ x: c.rock.x, z: c.rock.z }));                                      // picks the puppy up (carry)
+  rt.update(at({ x: c.bank.x, z: c.bank.z }));                                      // sets it down (deliver)
+  thing.update(at({ x: c.bank.x, z: c.bank.z }), 0.016);
+  SA.inventory.equip('esponja');
+  for (let i = 0; i < c.pupState.need; i++) thing.rub(at({ x: c.bank.x + 1, z: c.bank.z }));
+  return c;
+}
+
+test('carry back and dry: pick up on the rock (mojado), set down on the bank, sponge it seco, then the mission completes once', () => {
+  const ctx = startRio(flow());
+  const { SA, thing, missions, rt, said, cheers, tracked } = ctx, c = thing.current();
+  assert.equal(c.pupState.phase, 'rock');
+  assert.equal(c.pupState.wet, true, 'it starts wet on the rock');
+  assert.equal(c.bank.id, 'orilla');
+  assert.ok(c.bank.x < c.log.x0 - 1, 'the bank is on the dry west side, before the log starts');
+  const stars = SA.save.get().stars || 0;
+  pushAcross(ctx);
+  rt.update({ x: c.rock.x, z: c.rock.z, heading: EAST });                           // goTo done
+  assert.equal(missions.active().stepData.kind, 'carry');
+  assert.equal(thing.target(missions.active().stepData).role, 'item', 'the compass points at the puppy');
+  assert.equal(SA.carry.holds('perrito'), false);
+  rt.update({ x: c.rock.x, z: c.rock.z, heading: EAST });                           // picks it up
+  assert.equal(c.pupState.phase, 'held');
+  assert.equal(SA.carry.holds('perrito'), true);
+  assert.ok(said.includes('adj:mojado'), 'mojado is spoken at the pick-up');
+  assert.equal(missions.active().stepData.kind, 'deliver');
+  assert.equal(thing.target(missions.active().stepData).id, 'orilla');
+  rt.update({ x: c.log.x1, z: c.log.z, heading: EAST });                            // half way: still held
+  assert.equal(missions.active().stepData.kind, 'deliver');
+  assert.equal(c.pupState.phase, 'held');
+  rt.update({ x: c.bank.x + 1, z: c.bank.z, heading: EAST });                       // at the bank: let go
+  assert.equal(missions.active().stepData.kind, 'dry');
+  rt.update({ x: c.bank.x + 1, z: c.bank.z, heading: EAST });
+  assert.equal(c.pupState.phase, 'bank');
+  assert.equal(SA.carry.holds('perrito'), false);
+  assert.ok(said.includes('thing:orilla'));
+  assert.equal(c.pupState.wet, true, 'still wet until the sponge is used');
+  const p = { x: c.bank.x + 1, z: c.bank.z, heading: EAST };
+  SA.inventory.equip('cepillo');
+  assert.equal(thing.rub(p).status, 'noitem', 'the brush does not dry it');
+  assert.equal(thing.rub({ x: c.bank.x + 30, z: c.bank.z }).status, 'far');
+  SA.inventory.equip('esponja');
+  assert.equal(thing.rub(p).status, 'rub');
+  assert.equal(c.pupState.wet, true);
+  assert.equal(thing.rub(p).status, 'rub');
+  assert.equal(said.includes('adj:seco'), false);
+  assert.equal(thing.rub(p).status, 'done');
+  assert.equal(c.pupState.wet, false);
+  assert.ok(said.includes('adj:seco'), 'seco is spoken once it is dry');
   assert.equal(missions.active(), null);
   assert.equal(missions.status('rio'), 'done');
   assert.equal(cheers.length, 1);
   assert.equal(SA.save.get().stars, stars + 2);
+  assert.equal(thing.rub(p).status, 'none', 'nothing more to dry');
+  assert.ok(tracked.some((t) => t[0] === 'log.dried'));
   assert.equal(thing.current().phase, 'locked', 'the bridge stays after the mission');
   assert.ok(thing.sync(), 'and stays after sync with no mission');
+});
+
+test('steps advance in order: rubbing or walking to the bank early does nothing', () => {
+  const ctx = startRio(flow());
+  const { SA, thing, missions, rt } = ctx, c = thing.current();
+  SA.inventory.equip('esponja');
+  assert.equal(thing.rub({ x: c.bank.x, z: c.bank.z }).status, 'none', 'no dry step yet');
+  pushAcross(ctx);
+  rt.update({ x: c.bank.x, z: c.bank.z, heading: EAST });
+  assert.equal(missions.active().stepData.kind, 'goTo', 'walking to the bank first does not skip the rock');
+  rt.update({ x: c.rock.x, z: c.rock.z, heading: EAST });
+  assert.equal(missions.active().stepData.kind, 'carry');
+  rt.update({ x: c.bank.x, z: c.bank.z, heading: EAST });                           // not near the puppy: not picked up
+  assert.equal(c.pupState.phase, 'rock');
+  assert.equal(missions.active().stepData.kind, 'carry');
+});
+
+test('resume: a reload at the deliver step puts the puppy in the arms; at the dry step it is on the towel (never stuck)', () => {
+  const ctx = startRio(flow());
+  const { SA, thing, missions, rt } = ctx, c = thing.current();
+  pushAcross(ctx);
+  rt.update({ x: c.rock.x, z: c.rock.z, heading: EAST });
+  rt.update({ x: c.rock.x, z: c.rock.z, heading: EAST });
+  assert.equal(missions.active().stepData.kind, 'deliver');
+  SA.carry.drop();                                                                  // a reload forgets the hand
+  const fresh = { addFixed: () => {}, removeFixed: () => {}, near: () => false };
+  const mk = () => SA.missionLog.create({ missions, surfaces: fresh, runtime: { report: () => {} }, audio: { say: () => {} }, track: () => {} });
+  const again = mk();
+  again.update({ x: 0, z: 0, heading: 0 }, 0.016);
+  again.update({ x: 0, z: 0, heading: 0 }, 0.016);
+  assert.equal(again.current().pupState.phase, 'held');
+  assert.equal(SA.carry.holds('perrito'), true);
+  SA.carry.drop();
+  missions.advance();                                                               // now on 'dry'
+  const third = mk();
+  third.update({ x: 0, z: 0, heading: 0 }, 0.016);
+  third.update({ x: 0, z: 0, heading: 0 }, 0.016);
+  assert.equal(third.current().pupState.phase, 'bank');
 });
 
 test('every step line is a short Spanish phrase (the pill speaks it) and the small tasks pause while the mission runs', () => {
@@ -220,6 +323,9 @@ test('every step line is a short Spanish phrase (the pill speaks it) and the sma
   pushAcross(ctx);
   pill.update();
   assert.deepEqual(said, ['Empuja el tronco', 'Cruza el río']);
+  ctx.rt.update({ x: ctx.thing.current().rock.x, z: ctx.thing.current().rock.z, heading: EAST });
+  pill.update();
+  assert.equal(said[2], 'Recoge al perrito');
 });
 
 test('resume: a reload on the cross step puts the log across at once (never stuck); a replay re-places with a fresh seed', () => {
@@ -235,7 +341,7 @@ test('resume: a reload on the cross step puts the log across at once (never stuc
   const deckBefore = SA.surfaces.heightAt(thing.current().log.x1, thing.current().log.z);
   assert.ok(deckBefore > 0);
   // finish, then replay: the old bridge goes away and a new scene is placed
-  ctx.rt.update({ x: thing.current().rock.x, z: thing.current().rock.z });
+  finishRio(ctx);
   assert.equal(missions.active(), null);
   const oldZ = thing.current().z === undefined ? thing.current().log.z : thing.current().log.z;
   assert.equal(missions.start('rio').ok, true);

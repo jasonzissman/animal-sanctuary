@@ -67,6 +67,7 @@
   add('thing', 'rio', 'el río', 'the river');
   add('thing', 'tronco', 'el tronco', 'the log');
   add('thing', 'roca', 'la roca', 'the rock');   // AS-0319: the rock the puppy waits on
+  add('thing', 'orilla', 'la orilla', 'the bank');   // AS-0320: where the rescued puppy is set down to dry
   add('phrase', 'cruzar', 'cruzar', 'to cross');
   add('phrase', 'guau', '¡Guau!', 'Woof!').pitch = 1.25;   // el perrito's bark (animal.voice)
 

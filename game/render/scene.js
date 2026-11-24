@@ -190,7 +190,7 @@
     // The egg hatches in the nest, mamá pato and the duckling, the tracks to the egg and the family photo tap (AS-0315).
     var missionHatch = SA.render.createMissionHatch && SA.missionHatch ? SA.render.createMissionHatch(THREE, { scene: scene, getPlayer: rig.getPlayer, canvas: renderer.domElement, camera: camera }) : null;
     // The river rock with the stranded puppy and the log you push across to it (mission 3, AS-0319).
-    var missionLog = SA.render.createMissionLog && SA.missionLog ? SA.render.createMissionLog(THREE, { scene: scene, solids: function () { return obstacles(); }, getPlayer: rig.getPlayer }) : null;
+    var missionLog = SA.render.createMissionLog && SA.missionLog ? SA.render.createMissionLog(THREE, { scene: scene, solids: function () { return obstacles(); }, getPlayer: rig.getPlayer, canvas: renderer.domElement, camera: camera }) : null;
     var treetop = SA.render.createTreetopTell &&SA.treetopTell ? SA.render.createTreetopTell(THREE, { animals: animals, trees: trees, treeNodes: treeNodes, getPlayer: rig.getPlayer, scene: scene }) : null;
     // Placed props (this session and restored from the save) join the decor in the wander avoid list. The save is
     // already updated when the sandbox calls add/remove, so the list is rebuilt from SA.habitat.list().

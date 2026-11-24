@@ -74,6 +74,8 @@
       var rv = m.river;
       if (!rv || typeof rv !== 'object' || Array.isArray(rv)) fail('river', 'must be { animal, rock, log }');
       ['animal', 'rock', 'log'].forEach(function (k) { if (typeof rv[k] !== 'string' || !/^[a-z][a-z0-9-]*$/.test(rv[k])) fail('river.' + k, 'must be a lowercase id string'); });
+      ['bank', 'action'].forEach(function (k) { if (rv[k] !== undefined && (typeof rv[k] !== 'string' || !/^[a-z][a-z0-9-]*$/.test(rv[k]))) fail('river.' + k, 'must be a lowercase id string'); });
+      if (rv.rubs !== undefined && (!Number.isInteger(rv.rubs) || rv.rubs < 1 || rv.rubs > 8)) fail('river.rubs', 'must be a whole number from 1 to 8');
     }
     var r = m.reward;
     if (!r || typeof r !== 'object' || typeof r.stars !== 'number' || r.stars < 0 || r.stars !== Math.floor(r.stars)) fail('reward', 'must be { stars: whole number >= 0 }');
@@ -104,9 +106,13 @@
     // locks as a bridge, then walk over it to the rock. game/mission-log.js places the rock, puppy and log from `river`.
     { id: 'rio', n: 3, es: 'Rescate en el río', en: 'River rescue', icon: '🐶',
       intro: { es: '¡Salva al perrito!', en: 'Save the puppy!', icon: '🐶' },
-      river: { animal: 'perrito', rock: 'roca', log: 'tronco' },
+      // AS-0320: `bank` is where the puppy is set down (a towel lies there), `rubs` the sponge taps that dry it, `action` the care action used.
+      river: { animal: 'perrito', rock: 'roca', log: 'tronco', bank: 'orilla', rubs: 3, action: 'lavar' },
       steps: [{ kind: 'push', item: 'tronco', line: { es: 'Empuja el tronco', icon: '🪵', en: 'Push the log' } },
-        { kind: 'goTo', place: 'roca', line: { es: 'Cruza el río', icon: '🌊', en: 'Cross the river' } }],
+        { kind: 'goTo', place: 'roca', line: { es: 'Cruza el río', icon: '🌊', en: 'Cross the river' } },
+        { kind: 'carry', item: 'perrito', line: { es: 'Recoge al perrito', icon: '🐶', en: 'Pick up the puppy' } },
+        { kind: 'deliver', item: 'perrito', to: 'orilla', line: { es: 'Llévalo a la orilla', icon: '🏞️', en: 'Take it to the bank' } },
+        { kind: 'dry', item: 'perrito', line: { es: 'Sécalo', icon: '🧽', en: 'Dry it off' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

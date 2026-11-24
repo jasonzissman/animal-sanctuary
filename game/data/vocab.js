@@ -105,6 +105,7 @@
   add('phrase', 'busca', '¡Busca!', 'Find it!');
   add('phrase', 'toca', '¡Toca!');
   add('phrase', 'casi', '¡Casi!');
+  add('phrase', 'despacio', '¡Despacio!', 'Slowly!');   // running or jumping with a fragile thing (AS-0314)
   add('phrase', 'yapuedevolar', '¡Ya puede volar!');
   add('phrase', 'yacaminabien', '¡Ya camina bien!', 'It walks well now!');   // the thorn is out (action quitarespina)
   add('phrase', 'yasecalmo', '¡Ya se calmó!', 'It is calm now!');   // the scared animal is calm (action acariciar; gender-neutral)

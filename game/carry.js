@@ -70,6 +70,7 @@
       var ev = player ? player.jump : null;
       if (ev && ev !== prevJump && (ev === 'takeoff' || ev === 'double')) jumped();
       prevJump = ev || null;
+      if (t >= DURATION && player && player.running && player.moving && fragile()) t = 0;   // running jostles it too (AS-0314), no telemetry spam
       if (t < DURATION) t = Math.min(DURATION, t + Math.max(0, Math.min(0.1, dt || 0)));
     }
 

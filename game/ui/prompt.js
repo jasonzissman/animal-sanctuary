@@ -453,6 +453,7 @@
     ctl.begin();
     // Easter-egg unlocks: a toast plus confetti (the 3D reveal and sounds are done by SA.unlockFlow).
     ctl.celebrate = function (msg) { view.toast(msg); view.confetti(); };
+    ctl.toast = view.toast;   // a short line with no confetti (SA.missionFragile's "¡Despacio!")
     // Habitat sandbox hooks: hide/show the bar and refresh the star badge after spending or refunding.
     ctl.setStars = view.setStars;
     ctl.setHidden = view.setHidden;

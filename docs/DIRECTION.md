@@ -378,6 +378,9 @@ current; when your change sets or changes something future tickets must follow, 
   in the nest after the mission (in memory only: after a reload the egg and nest are gone until the mission is replayed). The hand is not
   saved, so a reload on the `deliver` step puts the egg straight back in hand (never stuck, AS-0238). `render/mission-carry.js` draws the egg and nest from primitives; the steps are the generic carry / deliver
   kinds, so new carry missions are data rows. Mission 2 ends on the placement for now (a photo step can follow in a later slice).
+  **Fragile carry (AS-0314, slice 2):** a `carry` step with `fragile: true` (data, never an id check) makes running or jumping wobble the
+  held thing (`SA.carry`) and `SA.missionFragile` (`game/mission-fragile.js`, pure) fires "¡Despacio!" (toast, voice `phrase:despacio`, a
+  worried `quack` SFX), at most once per 4 s. It is only a reaction: nothing breaks, drops or resets.
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

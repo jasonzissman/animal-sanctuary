@@ -287,7 +287,20 @@
     ];
   }
 
-  var MOUSE_BABY = { of: 'ratoncampo', scale: 0.62, headScale: 1.4, eyeScale: 1.6 };   // AS-0346: a small, big-headed, big-eyed mouse baby
+  /** The rabbit's parts (el conejo). The kits (los conejitos, mission 9) are babyParts of this list. */
+  function rabbitParts() {
+    return [
+      p('cuerpo', '#a9a9b0', 1, 1, [0, 0.5, 0]), p('cabeza', '#a9a9b0', 0.7, 1, [0, 1.0, 0.5]),
+      p('orejas', '#c9c9d0', [0.25, 1.4, 0.25], 2, [0.14, 1.75, 0.45]), p('cola', '#ffffff', 0.3, 1, [0, 0.5, -0.55]),
+      p('patas', '#8e8e96', 0.35, 4, [0.28, 0.18, 0]), eyes(0.16, [0.17, 1.08, 0.77]),
+      p('hocico', '#f4b6c2', 0.14, 1, [0, 0.96, 0.84]),
+      p('pelo', '#d4d4da', [0.5, 0.16, 0.6], 1, [0, 0.94, -0.1]), p('barriga', '#e8e8ee', [0.5, 0.3, 0.5], 1, [0, 0.3, 0.3])
+    ];
+  }
+
+  var RABBIT_BABY = { of: 'conejo', scale: 0.6, headScale: 1.4, eyeScale: 1.6 };   // AS-0350: a small, big-headed, big-eyed kit
+
+  var MOUSE_BABY ={ of: 'ratoncampo', scale: 0.62, headScale: 1.4, eyeScale: 1.6 };   // AS-0346: a small, big-headed, big-eyed mouse baby
 
   var DUCKLING = { of: 'pato', scale: 0.5, headScale: 1.4, eyeScale: 1.6 };   // AS-0315: a small, big-headed, big-eyed hatchling
 
@@ -296,13 +309,7 @@
   SA.data.register('animals', [
     { id: 'conejo', name: { es: 'conejo', en: 'rabbit', gender: 'm' }, icon: '🐰', biome: 'bosque', herd: 5,
       traits: { size: 'pequeño', color: 'gris', movement: 'salta', diet: 'herbívoro', legs: 4 },
-      parts: [
-        p('cuerpo', '#a9a9b0', 1, 1, [0, 0.5, 0]), p('cabeza', '#a9a9b0', 0.7, 1, [0, 1.0, 0.5]),
-        p('orejas', '#c9c9d0', [0.25, 1.4, 0.25], 2, [0.14, 1.75, 0.45]), p('cola', '#ffffff', 0.3, 1, [0, 0.5, -0.55]),
-        p('patas', '#8e8e96', 0.35, 4, [0.28, 0.18, 0]), eyes(0.16, [0.17, 1.08, 0.77]),
-        p('hocico', '#f4b6c2', 0.14, 1, [0, 0.96, 0.84]),
-        p('pelo', '#d4d4da', [0.5, 0.16, 0.6], 1, [0, 0.94, -0.1]), p('barriga', '#e8e8ee', [0.5, 0.3, 0.5], 1, [0, 0.3, 0.3])
-      ], easterEgg: false },
+      parts: rabbitParts(), easterEgg: false },
     { id: 'pato', name: { es: 'pato', en: 'duck', gender: 'm' }, icon: '🦆', biome: 'bosque', herd: 4,
       traits: { size: 'mediano', color: 'amarillo', movement: 'nada', diet: 'omnívoro', legs: 2 },
       parts: duckParts(), easterEgg: false },
@@ -403,6 +410,10 @@
     { id: 'ratoncito', name: { es: 'ratoncito', en: 'baby mouse', gender: 'm' }, icon: '🐭', biome: 'bosque', story: true,
       baby: MOUSE_BABY, traits: { size: 'pequeño', color: 'gris', movement: 'camina lento', diet: 'omnívoro', legs: 4 },
       parts: babyParts(fieldMouseParts(), MOUSE_BABY), easterEgg: false },
+    // The kits of Mission 9's rabbit family (AS-0350): a story animal (not in the world population), placed beside the build spot by game/mission-home.js.
+    { id: 'conejito', name: { es: 'conejito', en: 'baby rabbit', gender: 'm' }, icon: '🐰', biome: 'bosque', story: true,
+      baby: RABBIT_BABY, traits: { size: 'pequeño', color: 'gris', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
+      parts: babyParts(rabbitParts(), RABBIT_BABY), easterEgg: false },
     // Easter egg #1 (original design): a blocky yellow mouse. Hidden until the player has 10 stars AND has tapped the
     // same tree of the forest 5 times. The condition is plain data (see game/unlocks.js).
     { id: 'raton', name: { es: 'ratón chispa', en: 'spark mouse', gender: 'm' }, icon: '🐭', biome: 'bosque',

@@ -59,7 +59,7 @@
     ['ciervo', 'el ciervo'], ['ardilla', 'la ardilla'], ['jaguar', 'el jaguar'], ['perezoso', 'el perezoso'],
     ['cabra', 'la cabra'], ['aguila', 'el águila'], ['raton', 'el ratón chispa'],
     ['cerda', 'la cerda'], ['cerdito', 'el cerdito'], ['patito', 'el patito'], ['perrito', 'el perrito'],
-    ['ratoncampo', 'el ratón de campo'], ['ratoncito', 'el ratoncito']].forEach(function (a) { add('animal', a[0], a[1]); });
+    ['ratoncampo', 'el ratón de campo'], ['ratoncito', 'el ratoncito'], ['conejito', 'el conejito']].forEach(function (a) { add('animal', a[0], a[1]); });
 
   // Things a mission carries or visits (AS-0313): spoken when the egg is picked up and when it rests in the nest.
   add('thing', 'huevo', 'el huevo', 'the egg');
@@ -98,6 +98,14 @@
   add('thing', 'huellas', 'las huellas', 'the footprints');   // AS-0347: the trail to the hollow tree
   add('phrase', 'seguir', 'seguir', 'to follow');
   add('phrase', 'compartir', 'compartir', 'to share');   // AS-0348: sharing the strawberries with the mouse family
+  // Mission 9 words (AS-0350): building a home (a nest or burrow) for a new rabbit family.
+  add('thing', 'palo', 'el palo', 'the stick');
+  add('thing', 'hoja', 'la hoja', 'the leaf');
+  add('thing', 'hierba', 'la hierba', 'the grass');
+  add('thing', 'casa', 'la casa', 'the house');
+  add('phrase', 'abajo', 'abajo', 'below');
+  add('phrase', 'encima', 'encima', 'on top');
+  add('phrase', 'construir', 'construir', 'to build');
   add('phrase', 'pasotoca', '¡Toca!', 'Touch it!');
   add('phrase', 'pasollena', '¡Llena!', 'Fill it!');
   add('phrase', 'cruzar', 'cruzar', 'to cross');

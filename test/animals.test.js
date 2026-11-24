@@ -15,7 +15,7 @@ test('4 biomes, 20 real animals and 1 easter egg are registered, all in known bi
   const SA = loadGame(FILES);
   assert.deepEqual(Array.from(SA.data.all('biomes'), (b) => b.id), ['bosque', 'selva', 'desierto', 'montana']);
   const everything = SA.data.all('animals');
-  assert.deepEqual(Array.from(everything.filter((a) => a.story), (a) => a.id), ['cerda', 'cerdito', 'patito', 'perrito', 'ratoncampo', 'ratoncito']);   // AS-0232 / AS-0315 / AS-0318 / AS-0346: not in the world population
+  assert.deepEqual(Array.from(everything.filter((a) => a.story), (a) => a.id), ['cerda', 'cerdito', 'patito', 'perrito', 'ratoncampo', 'ratoncito', 'conejito']);   // AS-0232 / AS-0315 / AS-0318 / AS-0346 / AS-0350: not in the world population
   const all = everything.filter((a) => !a.story);
   assert.deepEqual(Array.from(all, (a) => a.id),
     ['conejo', 'pato', 'tortuga', 'mono', 'tucan', 'rana', 'camello', 'serpiente', 'cabra', 'aguila', 'raton', 'zorrodesierto', 'lagartija', 'correcaminos', 'oso', 'llama', 'condor', 'ciervo', 'ardilla', 'jaguar', 'perezoso']);

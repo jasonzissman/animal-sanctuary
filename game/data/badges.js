@@ -64,6 +64,7 @@
     { id: 'aguilucho-volador', es: 'Aguilucho volador', en: 'Flying eaglet', icon: '🦅', rule: { kind: 'nest', count: 1 } },   // the mission 6 sticker (AS-0338)
     { id: 'censo-completo', es: 'Censo completo', en: 'Census done', icon: '📋', rule: { kind: 'census', count: 1 } },   // the mission 7 sticker (AS-0341)
     { id: 'despensa-secreta', es: 'Despensa secreta', en: 'Secret pantry', icon: '🍓', rule: { kind: 'pantry', count: 1 } },   // the mission 8 sticker (AS-0346)
+    { id: 'hogar-nuevo', es: 'Hogar nuevo', en: 'New home', icon: '🏡', rule: { kind: 'home', count: 1 } },   // the mission 9 sticker (AS-0350)
     { id: 'fiesta-feliz', es: 'Fiesta feliz', en: 'Happy party', icon: '🎉', rule: { kind: 'party', count: 1 } },   // the mission 4 sticker (AS-0328)
     { id: 'doctora-de-patitas', es: 'Doctora de patitas', en: 'Paw doctor', icon: '🩹', rule: { need: 'thorn', count: 5 } },
     { id: 'heroe-del-barro', es: 'Héroe del barro', en: 'Mud hero', icon: '🛁', rule: { need: 'mud', count: 5 } },

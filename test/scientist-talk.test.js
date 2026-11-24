@@ -66,6 +66,8 @@ test('every mission finished: the general line and a "more soon" line', () => {
   SA.missions.complete();
   SA.missions.start('ladrones');
   SA.missions.complete();
+  SA.missions.start('hogar');
+  SA.missions.complete();
   const r = SA.scientistTalk.reminder();
   assert.equal(r.state, 'done');
   assert.deepEqual(roles(r), ['general', 'board']);

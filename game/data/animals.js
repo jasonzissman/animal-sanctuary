@@ -18,6 +18,10 @@
  *   herd      optional integer 1-5 (default 1): how many of this species live in the world, each with its own home spot
  *             (SA.animalPlan.herdPlacements). Regular species declare 3-5; story animals and easter eggs stay at 1.
  *   voice     optional vocab key of the sound it makes ('phrase:oinc'); a vocab entry may set `pitch` (1 = normal, higher = squeakier)
+ *   wag       optional { part: <one of its part keys>, angle: radians 0..1.2, hz: swings per second 0.5..8 }: the happy tail-wag.
+ *             SA.wag (game/wag.js) turns it into a rotation, so any animal can wag; nothing special-cases an id (AS-0318).
+ *   sounds    optional { sad?: <SA.audio sfx name> }: the sfx a mission plays for a mood (the puppy's whine); engine code
+ *             reads SA.wag.sound(animal, 'sad') and never an id. test/puppy.test.js checks the names exist in SA.audio.
  *   baby      optional { of: <animal id>, scale, headScale, eyeScale }: marks a baby variant of another animal. Its parts list is
  *             built with SA.animals.babyParts (overall `scale`, the head group `headScale` x bigger, the eyes `eyeScale` x);
  *             the engine just reads parts, so nothing special-cases an id.
@@ -132,6 +136,20 @@
     if (a.story !== undefined && typeof a.story !== 'boolean') fail('story', 'must be true or false');
     if (a.herd !== undefined && (!Number.isInteger(a.herd) || a.herd < 1 || a.herd > 5)) fail('herd', 'must be an integer from 1 to 5 (got ' + JSON.stringify(a.herd) + ')');
     if (a.voice !== undefined && (typeof a.voice !== 'string' || !/^[a-z]+:\S+$/.test(a.voice))) fail('voice', 'must be a vocab key like "phrase:oinc"');
+    if (a.wag !== undefined) {
+      var w = a.wag;
+      if (!w || typeof w !== 'object') fail('wag', 'must be an object { part, angle, hz }');
+      if (!seen[w.part]) fail('wag.part', 'must be one of this animal\'s part keys (got ' + JSON.stringify(w.part) + ')');
+      if (!isNum(w.angle) || w.angle <= 0 || w.angle > 1.2) fail('wag.angle', 'must be a number of radians from 0 to 1.2');
+      if (!isNum(w.hz) || w.hz < 0.5 || w.hz > 8) fail('wag.hz', 'must be a number from 0.5 to 8');
+    }
+    if (a.sounds !== undefined) {
+      if (!a.sounds || typeof a.sounds !== 'object') fail('sounds', 'must be an object like { sad: "whine" }');
+      Object.keys(a.sounds).forEach(function (mood) {
+        if (mood !== 'sad') fail('sounds.' + mood, 'unknown mood (allowed: sad)');
+        if (typeof a.sounds[mood] !== 'string' || !/^[A-Za-z0-9]+$/.test(a.sounds[mood])) fail('sounds.' + mood, 'must be an SA.audio sfx name');
+      });
+    }
     if (a.baby !== undefined) {
       var b = a.baby;
       if (!b || typeof b !== 'object' || typeof b.of !== 'string' || !/^[a-z]+$/.test(b.of)) fail('baby.of', 'must be the id of the adult animal');
@@ -240,6 +258,22 @@
     ];
   }
 
+  /** The puppy (el perrito, mission 3): a small brown dog with a round head, a short snout, floppy ears, four stubby legs and an
+   *  upright tail that wags (animal.wag). Flat low-poly primitives only; every piece is a registered, raycastable part. */
+  function puppyParts() {
+    var BROWN = '#b5835a', DARK = '#7a5232', CREAM = '#f1dfc2';
+    return [
+      p('cuerpo', BROWN, [0.55, 0.5, 0.95], 1, [0, 0.55, 0]), p('cabeza', BROWN, 0.5, 1, [0, 0.85, 0.55]),
+      { part: 'hocico', color: CREAM, scale: [0.22, 0.18, 0.24], count: 1, offset: [0, 0.78, 0.86], builder: 'box',
+        also: [{ scale: 0.08, count: 1, offset: [0, 0.86, 0.98], builder: 'sphere', color: '#2a1a12' }] },
+      { part: 'orejas', color: DARK, builder: 'box', scale: [0.1, 0.3, 0.2], count: 2, offset: [0.27, 0.9, 0.5], rot: [0, 0, 0.35] },
+      eyes(0.1, [0.13, 0.92, 0.78]),
+      { part: 'patas', color: DARK, builder: 'cylinder', scale: [0.14, 0.4, 0.14], count: 4, offset: [0.17, 0.2, 0], row: 0.32 },
+      { part: 'cola', color: DARK, builder: 'cylinder', scale: [0.08, 0.4, 0.08], count: 1, offset: [0, 0.85, -0.55], rot: [-0.7, 0, 0] },
+      p('barriga', CREAM, [0.4, 0.2, 0.6], 1, [0, 0.38, 0.05])
+    ];
+  }
+
   var DUCKLING = { of: 'pato', scale: 0.5, headScale: 1.4, eyeScale: 1.6 };   // AS-0315: a small, big-headed, big-eyed hatchling
 
   var PIGLET = { of: 'cerda', scale: 0.55, headScale: 1.45, eyeScale: 1.7 };   // AS-0232: ~55% size, bigger head, much bigger eyes
@@ -341,6 +375,11 @@
     { id: 'patito', name: { es: 'patito', en: 'duckling', gender: 'm' }, icon: '🐥', biome: 'bosque', story: true, voice: 'phrase:pio',
       baby: DUCKLING, traits: { size: 'pequeño', color: 'amarillo', movement: 'nada', diet: 'omnívoro', legs: 2 },
       parts: babyParts(duckParts(), DUCKLING), easterEgg: false },
+    // The puppy (AS-0318, mission 3: stranded on a river rock): a story animal, so it is not in the world until a mission places it.
+    { id: 'perrito', name: { es: 'perrito', en: 'puppy', gender: 'm' }, icon: '🐶', biome: 'bosque', story: true, voice: 'phrase:guau',
+      traits: { size: 'pequeño', color: 'marrón', movement: 'corre', diet: 'omnívoro', legs: 4 },
+      wag: { part: 'cola', angle: 0.6, hz: 4 }, sounds: { sad: 'whine' },
+      parts: puppyParts(), easterEgg: false },
     // Easter egg #1 (original design): a blocky yellow mouse. Hidden until the player has 10 stars AND has tapped the
     // same tree of the forest 5 times. The condition is plain data (see game/unlocks.js).
     { id: 'raton', name: { es: 'ratón chispa', en: 'spark mouse', gender: 'm' }, icon: '🐭', biome: 'bosque',

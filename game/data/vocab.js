@@ -58,11 +58,16 @@
     ['oso', 'el oso'], ['llama', 'la llama'], ['condor', 'el cóndor'],
     ['ciervo', 'el ciervo'], ['ardilla', 'la ardilla'], ['jaguar', 'el jaguar'], ['perezoso', 'el perezoso'],
     ['cabra', 'la cabra'], ['aguila', 'el águila'], ['raton', 'el ratón chispa'],
-    ['cerda', 'la cerda'], ['cerdito', 'el cerdito'], ['patito', 'el patito']].forEach(function (a) { add('animal', a[0], a[1]); });
+    ['cerda', 'la cerda'], ['cerdito', 'el cerdito'], ['patito', 'el patito'], ['perrito', 'el perrito']].forEach(function (a) { add('animal', a[0], a[1]); });
 
   // Things a mission carries or visits (AS-0313): spoken when the egg is picked up and when it rests in the nest.
   add('thing', 'huevo', 'el huevo', 'the egg');
   add('thing', 'nido', 'el nido', 'the nest');
+  // Mission 3 words (AS-0318): the river the puppy is stranded in, the log you cross it on, and the verb.
+  add('thing', 'rio', 'el río', 'the river');
+  add('thing', 'tronco', 'el tronco', 'the log');
+  add('phrase', 'cruzar', 'cruzar', 'to cross');
+  add('phrase', 'guau', '¡Guau!', 'Woof!').pitch = 1.25;   // el perrito's bark (animal.voice)
 
   add('biome', 'bosque', 'El bosque y el río');
   add('biome', 'selva', 'La selva');
@@ -90,6 +95,9 @@
       if (!seenAdj[w]) { seenAdj[w] = true; add('adj', w, w); }
     });
   });
+
+  // Wet and dry (AS-0318): the puppy is mojado until it is dried off; all four agreeing forms are speakable.
+  [['mojado', 'wet'], ['mojada'], ['mojados'], ['mojadas'], ['seco', 'dry'], ['seca'], ['secos'], ['secas']].forEach(function (w) { add('adj', w[0], w[0], w[1]); });
 
   // 0 covers a snake's legs (animal traits.legs runs 0..8); clue counts of parts start at 1.
   ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'].forEach(function (w, i) { add('number', String(i), w); });

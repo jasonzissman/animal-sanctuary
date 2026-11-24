@@ -53,6 +53,9 @@
     quack: [{ w: 'sawtooth', f: 520, f2: 330, t: 0, d: 0.14, g: 0.1, wob: 30 }, { w: 'sawtooth', f: 480, f2: 300, t: 0.18, d: 0.16, g: 0.09, wob: 30 }],
     // Soft whimper of a lost baby (AS-0233): two small falling sobs, quiet and never scary. sfx(name, volume) scales it with distance.
     whimper: [{ w: 'sine', f: 900, f2: 600, t: 0, d: 0.28, g: 0.12, wob: 16 }, { w: 'sine', f: 820, f2: 520, t: 0.34, d: 0.34, g: 0.1, wob: 16 }],
+    // Puppy whine (AS-0318): two thin "eee-ooo" glides, rising then falling; soft and never scary. Plays as animal.sounds.sad.
+    whine: [{ w: 'sine', f: 600, f2: 1000, t: 0, d: 0.22, g: 0.12, wob: 20 }, { w: 'sine', f: 1000, f2: 520, t: 0.22, d: 0.28, g: 0.12, wob: 20 },
+            { w: 'sine', f: 640, f2: 1050, t: 0.6, d: 0.2, g: 0.1, wob: 20 }, { w: 'sine', f: 1050, f2: 480, t: 0.8, d: 0.34, g: 0.1, wob: 20 }],
     // Happy squeak of a found baby (AS-0234): two quick rising squeaks. sfx(name, volume) scales it.
     squeak: [{ w: 'sine', f: 1300, f2: 1900, t: 0, d: 0.1, g: 0.2, wob: 24 }, { w: 'sine', f: 1500, f2: 2200, t: 0.13, d: 0.12, g: 0.2, wob: 24 }],
     // Soft whoosh of the proof envelope flying to the station (AS-0208): a quiet airy sweep with a faint rising glide.

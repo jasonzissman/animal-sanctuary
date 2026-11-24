@@ -90,6 +90,8 @@
         // The scientist hands over the flower crown (mission 4, AS-0326); SA.missionRuntime speaks "la corona".
         // The party photo earned the mission 4 sticker (AS-0328).
         if (SA.missionParty) SA.missionParty.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
+        // The healthy-camel photo earned the mission 5 sticker (AS-0333).
+        if (SA.missionDoctor) SA.missionDoctor.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
         rt.onGive = function (id) { if (id === 'corona' && ctl && ctl.celebrate) ctl.celebrate('👑 ¡La corona!'); };
         SA.picking.onPick(rt.onPick);
         if (SA.npc && SA.npc.onTalk) SA.npc.onTalk(function () { rt.report({ type: 'talked', who: 'scientist' }); return false; });

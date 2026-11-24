@@ -125,6 +125,7 @@
       }
       if (umbrella) {
         var u = cur.stock.shade;
+        umbrella.visible = !v.healthy;                  // folded away once the camel is well
         if (v.shade === 'given' && v.umbrella) { umbrella.position.set(v.umbrella.x, v.umbrella.y, v.umbrella.z); umbrella.rotation.set(0, 0, 0); umbrella.scale.set(1.2, 1.2, 1.2); }
         else if (v.shade === 'held' && p) carried(umbrella, 0.3);
         else { umbrella.position.set(u.x, u.y, u.z); umbrella.rotation.set(0, t * 0.8, 0); umbrella.scale.set(0.3, 0.3, 0.3); }
@@ -139,12 +140,15 @@
       t += dt || 0;
       var v = thing.view();
       var sway = Math.sin(t * 0.9);
-      animal.rotation.x = v.phase === 'given' ? 0 : DROOP + sway * 0.015;    // nose down: poorly (perks up once it has its water)
+      // Poorly = nose down with a thermometer. It perks up with its water (AS-0331) but droops again while it rests under the umbrella and
+      // waits for tomorrow (AS-0333); once healthy it stands tall and hops happily, with no thermometer.
+      var poorly = v.sick && (v.phase !== 'given' || v.rested);
+      animal.rotation.x = poorly ? DROOP + sway * 0.015 : 0;
       animal.rotation.y = animal.userData.baseRot + sway * 0.05;
       lie += ((v.rested ? 1 : 0) - lie) * Math.min(1, (dt || 0) * 2.5);   // AS-0332: under the umbrella it folds its legs and lies down to rest
-      animal.position.y = cur.animal.y - (v.phase === 'given' ? 0 : 0.06) - lie * 0.5;
+      animal.position.y = cur.animal.y - (poorly ? 0.06 : 0) - lie * 0.5 + (v.healthy ? Math.abs(Math.sin(t * 4)) * 0.12 : 0);
       animal.scale.y = 1 - lie * 0.3 + (lie > 0.9 ? Math.sin(t * 1.6) * 0.015 : 0);
-      thermo.visible = v.sick && v.phase !== 'given';
+      thermo.visible = poorly;
       thermo.position.set(cur.animal.x, cur.animal.y + headTop + 0.8 + Math.sin(t * 2.2) * 0.1, cur.animal.z);
       thermo.rotation.y = t * 0.8;
       var p = player || (opts.getPlayer && opts.getPlayer());
@@ -170,6 +174,14 @@
       animal.updateMatrixWorld(true);
       var ray = new THREE.Raycaster();
       ray.setFromCamera(new THREE.Vector2(((x - r.left) / r.width) * 2 - 1, -(((y - r.top) / r.height) * 2 - 1)), opts.camera);
+      if (thing.view().healthy) {                          // AS-0333: the healthy camel's photo (any part of it counts, never the whole scene)
+        if (!ray.intersectObject(animal, true).length || !thing.snap) return false;
+        var res = thing.snap(opts.getPlayer && opts.getPlayer());
+        if (res.status === 'nocamera' && SA.inventory && SA.inventory.equip(SA.photo ? SA.photo.CAMERA : 'camara')) {
+          try { SA.audio.say('item:camara'); } catch (e) { /* sound is best effort */ }       // la cámara is now in hand: tap again
+        }
+        return res.status === 'complete' || res.status === 'step';
+      }
       var hit = ray.intersectObjects([pick], false)[0];
       if (!hit) return false;
       thing.touch(opts.getPlayer && opts.getPlayer(), hit.object.userData.part);

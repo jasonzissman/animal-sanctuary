@@ -20,14 +20,19 @@
  *   AS-0332 (slice 2): after the water the same steps go on in strict order (game/data/missions.js): carry the medicine from the station
  *   bench, deliver it to the animal, carry the umbrella from the bench, deliver it: it stands beside the animal (la sombra), the animal
  *   lies down and rests and says one line (`say.rest`, '¡Mañana estaré mejor!'). The scene lingers ~9 s after the mission ends.
- *   SA.missionDoctor.locate(id)    -> { x, z, r } | null   the animal (for the 'deliver' step) or the loose bucket
+ *   AS-0333 (slice 3): after the umbrella the mission sits on a 'recover' step (SA.missions parks it in the save, see game/missions.js `settle`):
+ *   the camel stays poorly (droop, thermometer) while it rests, and is healthy on the next session load or once another mission is finished.
+ *   Then the 'photo' step: SA.missionDoctor.snap(player?) (a tap on the healthy camel with la cámara, render/mission-doctor.js) takes the
+ *   picture -> album, completes the mission and logs one rescue row { kind: 'doctor' } for the sticker (badge 'camello-sano'); onSticker hook.
+ *   view() also carries `healthy`. `say.healthy` is the camel's line when it is well ('¡Estoy sano!').
+ *   SA.missionDoctor.locate(id)  -> { x, z, r } | null   the animal (for the 'deliver' step) or the loose bucket
  *   SA.missionDoctor.target(step)  -> { x, z, role, id } | null   compass: the animal (touch / deliver), the bucket (carry), the pool (fill)
  *   SA.missionDoctor.current() / onChange(fn) / setSolids(listOrFn) / create({ missions?, carry?, audio?, report?, track?, solids? })
  */
 (function (root) {
   'use strict';
   var SA = root.SA;
-  var PICK_REACH = 2.0, FILL_REACH = 2.0, TOUCH_REACH = 4.2, GIVE_REACH = 3.4, ANIMAL_RING_MIN = 11, ANIMAL_RING_MAX = 17, EDGE = 4, TRIES = 500;
+  var SNAP_REACH = 14, PICK_REACH = 2.0, FILL_REACH = 2.0, TOUCH_REACH = 4.2, GIVE_REACH = 3.4, ANIMAL_RING_MIN = 11, ANIMAL_RING_MAX = 17, EDGE = 4, TRIES = 500;
   var BENCH_TOP = 0.55, SHADE_SIDE = 1.5, LINGER_MS = 9000;    // the bench top height, umbrella offset, how long the resting camel stays after the mission ends
 
   function oasisOf() {
@@ -113,7 +118,20 @@
       if (!s) return -1;
       if (sp.medicine && s.item === sp.medicine) return s.kind === 'deliver' ? 5 : 4;
       if (sp.shade && s.item === sp.shade) return s.kind === 'deliver' ? 7 : 6;
+      if (s.kind === 'recover') return 8;                  // AS-0333: resting, waiting for tomorrow
+      if (s.kind === 'photo') return 9;                    // ... and healthy again: the photo
       return 0;
+    }
+
+    // The camel got well (the 'recover' step is over): it stands up, the umbrella and the thermometer go, it says it is fine.
+    function recovered() {
+      if (cur.healthy) return;
+      cur.healthy = true;
+      cur.rested = false;
+      cur.umbrella = null;
+      say(sayOf('healthy'));
+      track('doctor.recovered', { animal: cur.animal.id });
+      emit();
     }
 
     function speak(words) {
@@ -152,7 +170,7 @@
       if ((cur && cur.key) === key) return cur;
       if (cur && !carry().holds(cur.spec.item) && cur.phase === 'full') given();   // delivered on the very step that ended the mission
       if (cur) Object.keys(cur.stock).forEach(function (r) { if (cur.stock[r].phase === 'held' && !carry().holds(cur.stock[r].id)) handed(r); });
-      if (cur && cur.rested && !spec) {                    // the camel keeps resting under its umbrella a while after the mission ended
+      if (cur && (cur.rested || cur.healthy) && !spec) {   // the camel keeps resting (or smiling, well again) a while after the mission ended
         if (!cur.until) cur.until = now() + LINGER_MS;
         if (now() < cur.until) return cur;
       }
@@ -160,7 +178,7 @@
       var src = (o && o.solids) || solidsSrc;
       var spots = spec ? place(spec, a.seed, { solids: typeof src === 'function' ? src() : src || [] }) : null;
       cur = spots ? { key: key, spec: spec, animal: spots.animal, bucket: spots.bucket, pool: spots.pool, phase: 'ground', checked: false,
-        stock: stockOf(spec, spots.shelf), umbrella: null, rested: false } : null;
+        stock: stockOf(spec, spots.shelf), umbrella: null, rested: false, healthy: false } : null;
       emit();
       return cur;
     }
@@ -174,6 +192,7 @@
     }
 
     function update(player, o) {
+      try { var m = missions(); if (m.settle) m.settle(); } catch (e) { /* a waiting mission is settled on the next frame */ }   // AS-0333: recover on a new session
       sync(o);
       if (player) last = { x: player.x, z: player.z };
       if (!cur) return null;
@@ -191,6 +210,12 @@
           if (c.pickUp(it.id, {})) { it.phase = 'held'; emit(); say('thing:' + it.id); track('doctor.pickup', { item: it.id }); }
         }
       });
+      if (rk >= 8 && !cur.rested && !cur.healthy) {         // a reload while it rests: it lies under its umbrella again
+        cur.rested = true;
+        cur.umbrella = shadeSpot(cur.animal);
+        if (stk.shade) stk.shade.phase = 'given';
+      }
+      if (rk >= 9) recovered();
       if (cur.phase === 'ground' && s && (s.kind === 'fill' || s.kind === 'deliver') && s.item === item) {
         // Resumed (a reload) after the bucket was picked up: the hand is not saved, so it is back in hand at once (never stuck, AS-0238).
         if (c.pickUp(item, {})) { hold(s.kind === 'deliver' ? 'full' : 'held'); track('doctor.resume', { item: item }); }
@@ -227,10 +252,35 @@
 
     // med / shade: 'shelf' (on the station bench) | 'held' | 'given' (the umbrella then stands at `umbrella`), '' when the mission has none
     function view() {
-      if (!cur) return { sick: false, checked: false, phase: 'none', med: '', shade: '', rested: false, umbrella: null };
+      if (!cur) return { sick: false, healthy: false, checked: false, phase: 'none', med: '', shade: '', rested: false, umbrella: null };
       var st = cur.stock;
-      return { sick: true, checked: cur.checked, phase: cur.phase, med: st.medicine ? st.medicine.phase : '', shade: st.shade ? st.shade.phase : '',
-        rested: cur.rested, umbrella: cur.umbrella };
+      return { sick: !cur.healthy, healthy: cur.healthy, checked: cur.checked, phase: cur.phase, med: st.medicine ? st.medicine.phase : '',
+        shade: st.shade ? st.shade.phase : '', rested: cur.rested, umbrella: cur.umbrella };
+    }
+
+    // The photo of the healthy camel (AS-0333): a tap on it with la cámara in hand while the 'photo' step is current. It goes into the album,
+    // completes the mission (stars) and logs one rescue row { kind: 'doctor' } for the sticker (badge 'camello-sano', once).
+    function snap(player) {
+      sync();
+      var s = stepOf();
+      if (!cur || !cur.healthy || !s || s.kind !== 'photo' || (s.target && s.target !== cur.animal.id) || cur.snapped) return { status: 'none' };
+      var inv = opts.inventory || SA.inventory;
+      if (!inv || inv.equipped() !== 'camara') return { status: 'nocamera' };
+      var p = player || last;
+      if (p && Math.hypot(p.x - cur.animal.x, p.z - cur.animal.z) > SNAP_REACH) return { status: 'far' };
+      try { var au = audio(); if (au && au.sfx) au.sfx('shutter'); } catch (e) { /* sound is best effort */ }
+      var a = null;
+      try { a = missions().active(); } catch (e) { a = null; }
+      var r = report({ type: 'photo', target: cur.animal.id });
+      if (!r || (r.status !== 'complete' && r.status !== 'step')) return r || { status: 'none' };
+      cur.snapped = true;
+      track('doctor.photo', { animal: cur.animal.id });
+      try { (opts.photo || SA.photo).record(cur.animal.id); } catch (e) { /* the album never blocks play */ }
+      var rec = { earned: [] };
+      try { rec = (opts.rescueLog || SA.rescueLog).record({ kind: 'doctor', mission: a ? a.id : '', animal: cur.animal.id, key: a ? a.id : '' }) || rec; } catch (e) { /* the log never blocks play */ }
+      say(sayOf('healthy'));
+      if (api.onSticker) { try { api.onSticker({ mission: a ? a.id : '', badges: rec.earned || [] }); } catch (e) { /* the view never breaks play */ } }
+      return r;
     }
 
     function locate(id) {
@@ -242,7 +292,8 @@
 
     function target(step) {
       if (!cur || !step) return null;
-      if ((step.kind === 'touch' && step.animal === cur.animal.id) || (step.kind === 'deliver' && step.to === cur.animal.id)) return { x: cur.animal.x, z: cur.animal.z, role: 'animal', id: cur.animal.id };
+      if ((step.kind === 'touch' && step.animal === cur.animal.id) || (step.kind === 'deliver' && step.to === cur.animal.id) ||
+          (step.kind === 'photo' && step.target === cur.animal.id)) return { x: cur.animal.x, z: cur.animal.z, role: 'animal', id: cur.animal.id };
       if (step.kind === 'carry' && step.item === cur.spec.item && cur.phase === 'ground') return { x: cur.bucket.x, z: cur.bucket.z, role: 'item', id: cur.spec.item };
       if (step.kind === 'carry') {                            // the medicine / umbrella on the station bench
         var it = (cur.stock.medicine && cur.stock.medicine.id === step.item && cur.stock.medicine) || (cur.stock.shade && cur.stock.shade.id === step.item && cur.stock.shade);
@@ -252,10 +303,11 @@
       return null;
     }
 
-    return { sync: sync, update: update, touch: touch, view: view, locate: locate, target: target, current: function () { return cur; },
+    var api = { sync: sync, update: update, touch: touch, snap: snap, view: view, locate: locate, target: target, onSticker: null, current: function () { return cur; },
       setSolids: function (s) { solidsSrc = s; },
       onChange: function (fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; },
       create: create, PICK_REACH: PICK_REACH, TOUCH_REACH: TOUCH_REACH };
+    return api;
   }
 
   var api = create();

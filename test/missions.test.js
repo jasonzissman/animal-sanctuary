@@ -112,7 +112,7 @@ test('completed progress survives a save round trip through migrate()', () => {
   m.start('m1'); m.advance(); m.advance();
   const saved = JSON.parse(JSON.stringify(SA.save.get()));
   const back = SA.save.migrate(saved);
-  assert.deepEqual(plain(back.missions), { done: ['m1'], active: null });
+  assert.deepEqual(plain(back.missions), { done: ['m1'], active: null, completions: 1 });
 });
 
 test('abandon() returns the mission to available (or done) without completing it', () => {

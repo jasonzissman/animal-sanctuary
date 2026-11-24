@@ -4,7 +4,9 @@
  *          settings: {muted, english, scaffold}, stats, inventory }.
  *          introSeen: retired (AS-0202 added it, AS-0213 replaced the first-run intro with a hello on every load). New saves do not
  *          have it; a save that already has it keeps it unchanged (a harmless boolean nothing reads).
- *          missions = { done: [id], active: null | { id, step, seed, replay }, celebrated?: [id] } (AS-0177, SA.missions; AS-0198 celebrated; absent until used).
+ *          missions = { done: [id], active: null | { id, step, seed, replay, wait? }, celebrated?: [id], waiting?, completions? } (AS-0177, SA.missions;
+ *          AS-0198 celebrated; absent until used). AS-0333: `wait` = { session, mark } stamps a mission sitting on a 'recover' step (it recovers on
+ *          a new session or after `completions` passes `mark`); `waiting` is the same shape parked while another mission runs; optional, no version bump.
  *          rescues = [{ kind, mission, animal?, key?, animalId?, need?, biome?, night?, date? }] one row per finished rescue (AS-0235, AS-0167;
  *          SA.rescueLog), badges = [id] earned badge ids (SA.badges). Both optional: absent until the first rescue / badge.
  *          proofs = [{ id, kind: 'rescue'|'mission', animalId?, missionId?, date?, celebrated }] (v6, AS-0206, SA.proofs): proof photos sent to
@@ -235,10 +237,17 @@
       if (typeof id === 'string' && ok.test(id) && cel.indexOf(id) < 0) cel.push(id);
     });
     if (cel.length) out.celebrated = cel;   // AS-0198: finished missions the scientist already celebrated (once each)
-    var a = m.active;
-    if (isObj(a) && typeof a.id === 'string' && ok.test(a.id)) {
-      out.active = { id: a.id, step: count(a.step, 0), seed: count(a.seed, 0), replay: a.replay === true };
+    function mission(a) {
+      var o = { id: a.id, step: count(a.step, 0), seed: count(a.seed, 0), replay: a.replay === true };
+      var w = a.wait;     // AS-0333: a mission waiting on a 'recover' step remembers which session and how many finished missions it saw
+      if (isObj(w) && typeof w.session === 'string' && w.session) o.wait = { session: w.session, mark: count(w.mark, 0) };
+      return o;
     }
+    var a = m.active;
+    if (isObj(a) && typeof a.id === 'string' && ok.test(a.id)) out.active = mission(a);
+    var w = m.waiting;   // AS-0333: a waiting mission parked while another one runs
+    if (isObj(w) && typeof w.id === 'string' && ok.test(w.id)) out.waiting = mission(w);
+    if (count(m.completions, 0) > 0) out.completions = count(m.completions, 0);   // finished missions this save has seen (replays count)
     return out;
   }
 

@@ -341,7 +341,11 @@ current; when your change sets or changes something future tickets must follow, 
   a replay's list differs from the last one), `photo(animalId)` (main.js wires la cámara picks) records the album photo and ticks:
   chime + the trait word spoken (`color:gris`, `movement:nada`), a gentle boing (no fit) or pop (already counted); the full list
   reports `censused`, which completes the mission, and logs `{ kind: 'census' }` for the sticker `censo-completo`. `view()` feeds the
-  list card (next slice).
+  pill.
+  **Census checklist in the pill (AS-0342, slice 3):** while the step runs, `SA.missionPill` (`game/mission-pill.js`) polls
+  `SA.missionCensus.view()` and the pill shows one chip per entry in place of the step text: `🩶 0/3`, and `🩶 3/3 ✓` (green) when complete
+  (`SA.missionPill.checklistRows` is the pure formatter; `view.showChecklist(rows, bounced)` in `game/ui/prompt.js` draws it, bouncing
+  the chips whose count just went up). Icons and numbers only, no extra words.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

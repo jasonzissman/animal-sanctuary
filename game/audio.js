@@ -184,8 +184,25 @@
     }
   }
 
+  // Plays a list of tone voices { w, f, t, d, g } (seconds from now), e.g. a tune (game/party-melody.js). False (silent) when locked or muted.
+  function melody(list, volume) {
+    if (!ctx || !master || !Array.isArray(list) || isMuted()) return false;
+    var vol = typeof volume === 'number' && volume >= 0 && volume <= 1 ? volume : 1;
+    try {
+      if (ctx.state === 'suspended' && typeof ctx.resume === 'function') ctx.resume();
+      var now = ctx.currentTime;
+      list.forEach(function (v) {
+        if (v && typeof v.f === 'number' && v.d > 0) voice({ w: v.w || 'sine', f: v.f, t: v.t || 0, d: v.d, g: v.g || 0.2 }, now, vol, 1);
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   SA.audio = {
     NAMES: NAMES,
+    melody: melody,
     RECIPES: RECIPES,
     sfx: sfx,
     unlock: unlock,

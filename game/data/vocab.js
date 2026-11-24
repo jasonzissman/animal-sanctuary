@@ -75,6 +75,7 @@
   add('thing', 'fiesta', 'la fiesta', 'the party');
   add('thing', 'corona', 'la corona', 'the crown');
   add('phrase', 'cruzar', 'cruzar', 'to cross');
+  add('phrase', 'felizcumple', '¡Feliz cumpleaños!', 'Happy birthday!');   // the party at the monkey's tree (AS-0328)
   add('phrase', 'guau', '¡Guau!', 'Woof!').pitch = 1.25;   // el perrito's bark (animal.voice)
 
   add('biome', 'bosque', 'El bosque y el río');

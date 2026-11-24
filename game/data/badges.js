@@ -60,6 +60,7 @@
     { id: 'reune-familias', es: 'Reúne familias', en: 'Reunite families', icon: '👨‍👩‍👧', rule: { kind: 'reunion', count: 1 } },
     { id: 'patito-nuevo', es: 'Patito nuevo', en: 'New duckling', icon: '🐥', rule: { kind: 'hatch', count: 1 } },   // the mission 2 sticker (AS-0315)
     { id: 'perrito-feliz', es: 'Perrito feliz', en: 'Happy puppy', icon: '🐶', rule: { kind: 'river', count: 1 } },   // the mission 3 sticker (AS-0321)
+    { id: 'fiesta-feliz', es: 'Fiesta feliz', en: 'Happy party', icon: '🎉', rule: { kind: 'party', count: 1 } },   // the mission 4 sticker (AS-0328)
     { id: 'doctora-de-patitas', es: 'Doctora de patitas', en: 'Paw doctor', icon: '🩹', rule: { need: 'thorn', count: 5 } },
     { id: 'heroe-del-barro', es: 'Héroe del barro', en: 'Mud hero', icon: '🛁', rule: { need: 'mud', count: 5 } },
     { id: 'chef-del-santuario', es: 'Chef del santuario', en: 'Sanctuary chef', icon: '🍓', rule: { need: 'hungry', count: 5 } },

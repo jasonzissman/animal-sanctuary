@@ -26,6 +26,8 @@
  *           tree (default 'selva') and of the friends (default 'bosque'), and `say`: vocab keys spoken one per invite ('thing:fiesta').
  *           game/mission-friends.js places them while the mission runs; invited friends follow you, and the goTo to the tree only counts
  *           with them all there.
+ *   party   optional { say, seconds? } (AS-0328): the party at the tree once the 'party' step starts (game/mission-party.js): confetti,
+ *           balloons, dancing, the tune (SA.partyMelody) and the vocab key `say` spoken; `seconds` overrides the tune's length.
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -100,6 +102,13 @@
       ['monkey', 'biome', 'friendBiome'].forEach(function (k) { if (fr[k] !== undefined && (typeof fr[k] !== 'string' || !idRe.test(fr[k]))) fail('friends.' + k, 'must be a lowercase id string'); });
       if (fr.say !== undefined && (!Array.isArray(fr.say) || fr.say.some(function (k) { return typeof k !== 'string' || !k; }))) fail('friends.say', 'must be a list of vocab keys');
     }
+    if (m.party !== undefined) {
+      var py = m.party;
+      if (!py || typeof py !== 'object' || Array.isArray(py)) fail('party', 'must be { say, seconds? }');
+      if (typeof py.say !== 'string' || !py.say) fail('party.say', 'must be a vocab key');
+      if (py.seconds !== undefined && (typeof py.seconds !== 'number' || !(py.seconds >= 2 && py.seconds <= 30))) fail('party.seconds', 'must be a number from 2 to 30');
+      if (!m.friends) fail('party', 'needs the mission to declare friends (the tree and the monkey)');
+    }
     m.steps.forEach(function (s, i) {
       if (s.gives !== undefined && (typeof s.gives !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.gives))) fail('steps[' + i + '].gives', 'must be a lowercase vocab id string');
     });
@@ -153,7 +162,11 @@
         // AS-0327 (slice 2): walk up to two friends (each then follows you), then take them both to the monkey's tree.
         { kind: 'invite', animal: 'conejo', line: { es: 'Invita al conejo', icon: '🐰', en: 'Invite the rabbit' } },
         { kind: 'invite', animal: 'ciervo', line: { es: 'Invita al ciervo', icon: '🦌', en: 'Invite the deer' } },
-        { kind: 'goTo', place: 'arbol-mono', line: { es: 'Al árbol del mono', icon: '🌳', en: "To the monkey's tree" } }],
+        { kind: 'goTo', place: 'arbol-mono', line: { es: 'Al árbol del mono', icon: '🌳', en: "To the monkey's tree" } },
+        // AS-0328 (slice 3): the party plays by itself (confetti, balloons, dancing, the tune), then a photo of it ends the mission.
+        { kind: 'party', place: 'arbol-mono', line: { es: '¡A bailar!', icon: '🎉', en: 'Dance!' } },
+        { kind: 'photo', target: 'mono', line: { es: 'Foto de la fiesta', icon: '📷', en: 'Party photo' } }],
+      party: { say: 'phrase:felizcumple' },
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

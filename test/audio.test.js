@@ -220,6 +220,21 @@ test('the first gesture unlocks audio exactly once and removes the hooks', () =>
   assert.equal(SA.audio.sfx('sparkle'), true);
 });
 
+test('melody (AS-0328): plays a list of notes once unlocked, and stays silent when locked, muted or given nonsense', () => {
+  const { SA, stats } = setup();
+  const tune = [{ w: 'triangle', f: 392, t: 0, d: 0.3, g: 0.2 }, { f: 440, t: 0.3, d: 0.3 }, { f: 'x', t: 0, d: 1 }, null];
+  assert.equal(SA.audio.melody(tune), false, 'locked until the first gesture');
+  SA.audio.unlock();
+  const before = stats.started;
+  assert.equal(SA.audio.melody('nope'), false);
+  assert.equal(SA.audio.melody(tune, 0.5), true);
+  assert.equal(stats.started - before, 2, 'only the two real notes start');
+  SA.audio.setMuted(true);
+  const muted = stats.started;
+  assert.equal(SA.audio.melody(tune), false);
+  assert.equal(stats.started, muted, 'silent when muted');
+});
+
 test('hookGestures ignores targets without addEventListener', () => {
   const { SA } = setup();
   assert.doesNotThrow(() => SA.audioUI.hookGestures(null));

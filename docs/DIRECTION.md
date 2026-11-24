@@ -428,8 +428,19 @@ current; when your change sets or changes something future tickets must follow, 
   on its own breadcrumbs (they keep apart; each waits at the water and follows again when you come back). "Invited" is derived from the saved
   step index, so a reload keeps them at your side. `locate('arbol-mono')` answers only while every friend is invited and within 6.5 of the tree,
   so arriving alone does nothing. The compass shows the next friend, then the tree (`SA.missionFriends` joins the runtime's `thing()` list).
-  `render/mission-friends.js` draws the tree, the monkey and the friends. Later slices add the party and photo steps (the mission currently
-  completes on reaching the tree).
+  `render/mission-friends.js` draws the tree, the monkey and the friends.
+  **The party and its photo (AS-0328, slice 3):** the row now ends `goTo` → `{ kind: 'party', place: 'arbol-mono' }` ('¡A bailar!', new step
+  kind, event `partied`) → `{ kind: 'photo', target: 'mono' }` ('Foto de la fiesta'), plus `party: { say: 'phrase:felizcumple', seconds? }`.
+  `SA.missionParty` (`mission-party.js`, pure; `tick(dt)` is called by the renderer) starts the party when the party step begins: the tune
+  `SA.partyMelody` (`party-melody.js`: an original 3/4 arrangement of the traditional Cumpleaños feliz, ~10 s, as note data) goes through the new
+  `SA.audio.melody(notes)` (silent when locked or muted), `¡Feliz cumpleaños!` is spoken, and when the tune has played out it reports `partied` and
+  the photo step begins (never timed against the player; the party goes on quietly until the picture). `SA.missionFriends.step` makes the invited
+  friends stop following, gather in a ring round the tree facing it and report `dancing` (the renderer bobs and swings them and the monkey).
+  `render/mission-party.js` draws balloons (primitives) and falling confetti only while `SA.missionParty.view()` exists, and a tap on the monkey or a
+  friend with la cámara (equipped on the first tap, within 14 of the tree) calls `SA.missionParty.snap()`: the photo completes the mission (stars,
+  replayable on the board), goes into the album (`SA.photo.record`) and logs one rescue row `{ kind: 'party', key: <mission id> }` → the sticker
+  `fiesta-feliz` (once; `onSticker` in main.js shows it). A reload on the photo step resumes the party quietly. The tree, monkey and friends
+  disappear when the mission ends (as for every mission piece).
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

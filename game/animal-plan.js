@@ -142,21 +142,59 @@
 
   var MIN_CENTRE = 4.5;       // preferred centre distance between two animals, on top of the hard body gap
 
+  var QUAD_EDGE = 3, QUAD_Z_EDGE = 4;   // margin kept inside a quadrant (strip borders and the map edge)
+  var QUAD_ORDER = [[-1, -1], [1, 1], [1, -1], [-1, 1]];   // [x half, z half]: a biome's 2nd animal lands diagonally from its 1st
+  var DEFAULT_RADIUS = 3;     // wander radius of an animal that only covers its own spot
+
+  /** The four quadrants of a biome strip (west/east halves by x, south/north halves by z, split at z = 0), in the order
+   *  the animals of a biome take them: [{ id: 'sw'|'ne'|'se'|'nw', x0, x1, z0, z1, cx, cz }]. [] for an unknown biome. */
+  function quadrants(biome) {
+    var M = SA.map, strip = M.biomeRange(biome), B = M.BOUNDS;
+    if (!strip) return [];
+    return QUAD_ORDER.map(function (q) {
+      var x0 = q[0] < 0 ? strip.lo : strip.centerX, x1 = q[0] < 0 ? strip.centerX : strip.hi;
+      var z0 = q[1] < 0 ? B.minZ : 0, z1 = q[1] < 0 ? 0 : B.maxZ;
+      return { id: (q[1] < 0 ? 's' : 'n') + (q[0] < 0 ? 'w' : 'e'), x0: x0, x1: x1, z0: z0, z1: z1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2 };
+    });
+  }
+
+  /** Empty quadrants (a biome with fewer animals than quadrants): a ground animal of that biome (perchers hop between
+   *  trees instead) takes each as wander area, so its `radius` grows to reach the quadrant's centre. */
+  function coverEmptyQuadrants(animals, result) {
+    var byBiome = {};
+    animals.forEach(function (a) { (byBiome[a.biome] = byBiome[a.biome] || []).push(a); });
+    Object.keys(byBiome).forEach(function (biome) {
+      var list = byBiome[biome], walkers = list.filter(function (a) { return a.perch !== 'tree'; }), pool = walkers.length ? walkers : list;
+      quadrants(biome).slice(list.length).forEach(function (q, k) {
+        var r = result[pool[k % pool.length].id];
+        r.radius = Math.max(r.radius, Math.ceil(Math.hypot(r.x - q.cx, r.z - q.cz)) + 1);
+      });
+    });
+  }
+
   /** Spots keep SA.spacing.GAP between body radii AND stay clear of each other's pick volumes (centre distance >=
-   *  the sum of the pick radii), so a tap never lands on two animals. Herds (several animals per species and biome)
-   *  go through the same rule. If a crowded biome has no free spot the one with the most clearance is used. */
+   *  the sum of the pick radii), so a tap never lands on two animals. The animals of one biome take its quadrants one
+   *  by one (AS-0249: the map is 2x, so they spread over the whole strip, not the middle); empty quadrants become a
+   *  ground animal's wander area (coverEmptyQuadrants). If a crowded quadrant has no free spot the one with the most
+   *  clearance is used. Row: { x, z, y, rotY, quad, radius }. */
   function placements(animals, opts) {
-    var M = SA.map, avoid = (opts && opts.avoid) || [];
+    var M = SA.map, avoid = (opts && opts.avoid) || [], B = M.BOUNDS;
     var rand = M.rng(7);
-    var spots = [], result = {};
+    var spots = [], result = {}, taken = {};
     animals.forEach(function (a) {
-      var best = null, bestRoom = -Infinity, strip = M.biomeRange(a.biome) || { centerX: 0 };
+      var best = null, bestRoom = -Infinity, quads = quadrants(a.biome);
+      var qi = taken[a.biome] || 0, q = quads.length ? quads[qi % quads.length] : { id: 'c', x0: -14, x1: 14, z0: -18, z1: 18, cx: 0, cz: 4 };
+      taken[a.biome] = qi + 1;
       var me = { r: SA.spacing ? SA.spacing.bodyRadius(a) : 0, pick: pickRadius(a) };
       var gap = SA.spacing ? SA.spacing.GAP : 0;
-      var half = strip.hi === undefined ? 14 : (strip.hi - strip.lo) / 2 - 3;   // the whole strip (the map is 2x since AS-0129), minus a margin
+      var zLo = Math.max(q.z0, B.minZ + QUAD_Z_EDGE), zHi = Math.min(q.z1, B.maxZ - QUAD_Z_EDGE);
       for (var t = 0; t < 800; t++) {
-        var x = strip.centerX + (rand() * 2 - 1) * half, z = -18 + rand() * 36;
+        var x = q.x0 + QUAD_EDGE + rand() * (q.x1 - q.x0 - 2 * QUAD_EDGE), z = zLo + rand() * (zHi - zLo);
         if (M.biomeAt(x) !== a.biome || M.groundHeight(x, z) < M.WATER_LEVEL + 0.45) continue;
+        if (t < 600) {   // flat enough to stand on (no step over 0.6 within 1 unit); the last tries give in so a steep quadrant still gets an animal
+          var h = M.groundHeight(x, z);
+          if (Math.abs(M.groundHeight(x + 1, z) - h) > 0.6 || Math.abs(M.groundHeight(x, z + 1) - h) > 0.6) continue;
+        }
         if (SA.station && SA.station.inFootprint(x, z, 1.5)) continue;   // keep the research station's footprint clear too
         if (SA.player && SA.player.inSpawnZone(x, z, 1)) continue;       // never start next to the spawn (clear radius + 1)
         var room = Infinity, near = Infinity, i, d;   // room: worst clearance beyond the required distance; near: nearest centre
@@ -171,12 +209,13 @@
         var score = (clear ? 0 : -1000) + Math.min(room, near - MIN_CENTRE);
         if (score > bestRoom) { best = [x, z]; bestRoom = score; }
       }
-      best = best || [strip.centerX, 4];
+      best = best || [q.cx, q.cz];
       spots.push([best[0], best[1], me.r, me.pick]);
-      result[a.id] = { x: best[0], z: best[1], y: M.groundHeight(best[0], best[1]), rotY: (rand() - 0.5) * 1.2 };
+      result[a.id] = { x: best[0], z: best[1], y: M.groundHeight(best[0], best[1]), rotY: (rand() - 0.5) * 1.2, quad: q.id, radius: DEFAULT_RADIUS };
     });
+    coverEmptyQuadrants(animals, result);
     return result;
   }
 
-  SA.animalPlan = { PICK_SCALE: PICK_SCALE, BIG_PICK_SCALE: BIG_PICK_SCALE, plan: plan, choosePick: choosePick, pickRadius: pickRadius, placements: placements };
+  SA.animalPlan = { PICK_SCALE: PICK_SCALE, BIG_PICK_SCALE: BIG_PICK_SCALE, DEFAULT_RADIUS: DEFAULT_RADIUS, plan: plan, choosePick: choosePick, pickRadius: pickRadius, quadrants: quadrants, placements: placements };
 })(typeof window !== 'undefined' ? window : globalThis);

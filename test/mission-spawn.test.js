@@ -125,6 +125,6 @@ test('mission data: spawn and `at` are validated', () => {
   assert.throws(() => SA.data.register('missions', [row({ spawn: { baby: 'a', mama: 'b' } }, { at: 'dad' })]), /\.at/);
   assert.throws(() => SA.data.register('missions', [row({}, { at: 'baby' })]), /declare a spawn/);
   const m1 = SA.data.get('missions', 'mama');
-  assert.deepEqual(JSON.parse(JSON.stringify(m1.spawn)), SPEC);
+  assert.deepEqual(JSON.parse(JSON.stringify(m1.spawn)), { ...SPEC, minApart: 24 });   // 2x map (AS-0249): a longer walk to mamá
   assert.deepEqual(Array.from(m1.steps, (s) => s.at), ['baby', 'mama', 'mama']);
 });

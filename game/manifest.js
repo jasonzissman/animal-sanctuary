@@ -209,6 +209,7 @@ globalThis.SA_MANIFEST = {
     'game/render/fallen-logs.js',
     'game/render/desert-landmarks.js',
     'game/render/mountain-boulders.js',
+    'game/render/waterfall.js',
     'game/render/bridges.js',
     'game/render/lookouts.js',
     'game/render/scene.js',

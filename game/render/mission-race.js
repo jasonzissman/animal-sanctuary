@@ -4,6 +4,7 @@
  * walk round it or past it (shortcuts are allowed), only the goal circle matters.
  * On the 'talk' step a tap on the rabbit calls thing.talk(player); on the 'photo' step a tap on the big tree calls thing.snap(player) (la cámara is put in hand
  * on a first tap, like the other photo missions).
+ * AS-0356: once the race is won (view().medal) a low-poly gold medal on a ribbon pops in above the player and turns until the mission ends (the finish photo shows it).
  * AS-0355: during the race (view().race) the rabbit runs the flag path with long hops, puts its head down at its carrot (an orange cone that shrinks while it
  * is eaten) and waits at the line before "ya"; flags go back to white when the race restarts. Only the course's own meshes are raycast, never the whole scene. Nothing is drawn unless the mission runs.
  *   update(dt)   once per frame; returns the group it manages
@@ -14,7 +15,7 @@
   var SA = root.SA;
   SA.render = SA.render || {};
 
-  var POLE = 0xf4efe6, FLAGS = [0xff5d5d, 0x4da3ff], PASSED = 0xffd23f, TRUNK = 0x7a5230, LEAF = [0x2f8f4e, 0x3aa35c, 0x49b868], GLOW = 0xffe08a, LINE = 0xffffff;
+  var POLE = 0xf4efe6, FLAGS = [0xff5d5d, 0x4da3ff], PASSED = 0xffd23f, TRUNK = 0x7a5230, LEAF = [0x2f8f4e, 0x3aa35c, 0x49b868], GLOW = 0xffe08a, LINE = 0xffffff, MEDAL = 0xffc928, MEDAL_IN = 0xfff0a0;
 
   function lam(THREE, c) { return new THREE.MeshLambertMaterial({ color: c }); }
 
@@ -77,17 +78,34 @@
     return g;
   }
 
+  // The winner's medal (AS-0356): a gold disc with a lighter inner disc and a five-sided star, on a red and blue ribbon V. Group-local, centred on its own origin.
+  function buildMedal(THREE) {
+    var g = new THREE.Group();
+    [[0.42, 0.1, MEDAL, 14], [0.27, 0.14, MEDAL_IN, 14], [0.16, 0.18, MEDAL, 5]].forEach(function (d) {
+      var m = new THREE.Mesh(new THREE.CylinderGeometry(d[0], d[0], d[1], d[3]), lam(THREE, d[2]));
+      m.rotation.x = Math.PI / 2;
+      g.add(m);
+    });
+    [[-1, 0xff5d5d], [1, 0x4da3ff]].forEach(function (r) {
+      var rib = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.62, 0.05), lam(THREE, r[1]));
+      rib.position.set(r[0] * 0.17, 0.6, 0);
+      rib.rotation.z = -r[0] * 0.38;
+      g.add(rib);
+    });
+    return g;
+  }
+
   SA.render.createMissionRace = function (THREE, opts) {
     var thing = opts.thing || SA.missionRace;
     var build = SA.render.animalBuilder(THREE);
     var group = new THREE.Group();
     group.name = 'missionRace';
     opts.scene.add(group);
-    var key = null, flags = [], ring = null, bigTree = null, rabbit = null, carrot = null, t = 0, shown = {}, popAt = {};
+    var key = null, flags = [], ring = null, bigTree = null, rabbit = null, carrot = null, medal = null, medalAt = 0, t = 0, shown = {}, popAt = {};
 
     function rebuild(cur) {
       while (group.children.length) group.remove(group.children[0]);
-      flags = []; ring = null; bigTree = null; rabbit = null; carrot = null; shown = {}; popAt = {};
+      flags = []; ring = null; bigTree = null; rabbit = null; carrot = null; medal = null; shown = {}; popAt = {};
       if (!cur) return;
       var st = buildStart(THREE, cur.start.r);
       st.position.set(cur.start.x, cur.start.y, cur.start.z);
@@ -152,6 +170,18 @@
         carrot.visible = !(rc && rc.ate);
         var cs = 1.4 * (rc && rc.eat ? Math.max(0.25, 1 - rc.eat * 0.75) : 1);
         carrot.scale.set(cs, cs, cs);
+      }
+      // The medal moment (AS-0356): once the race is won a medal pops in over the player's head and turns gently until the mission ends (so the finish photo shows it).
+      var pl = v && v.medal && opts.getPlayer ? opts.getPlayer() : null;
+      if (pl && !medal) { medal = buildMedal(THREE); medalAt = t; group.add(medal); }
+      if (medal) {
+        medal.visible = !!pl;
+        if (pl) {
+          var ms = 1.5 * Math.max(0.01, ease(Math.min(1, (t - medalAt) / 0.6)));
+          medal.position.set(pl.x, (pl.y || 0) + 3.0 + Math.sin(t * 3) * 0.12, pl.z);
+          medal.rotation.y = t * 1.6;
+          medal.scale.set(ms, ms, ms);
+        }
       }
       return group;
     }

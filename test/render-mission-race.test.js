@@ -111,3 +111,28 @@ test('the race (AS-0355): the rabbit follows the pace pose (hops while it runs, 
   r.update(0.1);
   assert.equal(carrot.visible, true, 'a fresh carrot for the next try');
 });
+
+test('AS-0356: once the race is won a gold medal pops in over the player, follows them and goes when the mission ends', () => {
+  const { SA, THREE } = world();
+  let cur = state(), view = { talk: false, photo: false, medal: false, passed: [] };
+  let pl = { x: 10, y: 2, z: 20 };
+  const r = SA.render.createMissionRace(THREE, { scene: new THREE.Scene(), thing: { current: () => cur, view: () => view }, getPlayer: () => pl });
+  r.update(0.1);
+  const n = r.group.children.length;
+  view = { talk: false, photo: true, medal: true, passed: [] };
+  r.update(0.1);
+  assert.equal(r.group.children.length, n + 1, 'the medal is added');
+  const medal = r.group.children[n];
+  r.update(0.8);
+  assert.equal(medal.visible, true);
+  assert.ok(medal.position.y > 4.5 && medal.position.y < 5.5, 'it hovers above the head');
+  assert.ok(Math.abs(medal.scale.x - 1.5) < 0.2, 'it has popped to full size');
+  assert.equal(medal.children.filter((c) => c.geometry && c.geometry.type === 'CylinderGeometry').length, 3, 'a disc, an inner disc and a star');
+  pl = { x: 30, y: 0, z: 5 };
+  r.update(0.1);
+  assert.equal(medal.position.x, 30, 'it follows the player');
+  cur = null;
+  view = null;
+  r.update(0.1);
+  assert.equal(r.group.children.length, 0, 'gone with the course');
+});

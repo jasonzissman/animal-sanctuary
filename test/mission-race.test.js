@@ -348,3 +348,47 @@ test('after the rabbit wins, standing at the tree wins nothing: the countdown wa
   assert.deepEqual(json(ctx.rt.target()), { x: s.x, z: s.z, role: 'place', id: 'arbol-grande' });
   assert.equal(race.locate('arbol-grande'), null, 'the tree is not a finish while the race is not won');
 });
+
+// AS-0356: the medal moment on winning.
+test('winning plays the medal moment (fanfare, "¡Ganaste!", onMedal once), moves to the photo step, and the medal photo completes the mission with the sticker', () => {
+  const ctx = startCarrera(setup());
+  const { race, said, SA, missions } = ctx, c = race.current(), g = c.goal;
+  const medals = [];
+  race.onMedal = (e) => medals.push(e);
+  race.talk({ x: c.rabbit.x, z: c.rabbit.z });
+  startRace(ctx);
+  assert.equal(race.view().medal, false, 'no medal before the win');
+  assert.equal(said.includes('sfx:fanfare'), false);
+  frame(ctx, { x: g.x, z: g.z, y: g.y });
+  assert.equal(step(ctx).kind, 'photo', 'the win moves the mission to the photo step');
+  assert.deepEqual(json(medals), [{ losses: 0 }], 'the medal event is emitted once');
+  assert.ok(said.includes('sfx:fanfare') && said.includes('phrase:ganaste'));
+  assert.equal(ctx.tracked.filter(([n]) => n === 'race.medal').length, 1);
+  wait(ctx, { x: g.x, z: g.z, y: g.y }, 1);
+  assert.equal(medals.length, 1, 'standing at the tree does not repeat it');
+  assert.equal(race.view().medal, true, 'the medal stays on through the photo step');
+  assert.equal(race.view().photo, true);
+  assert.equal(SA.inventory.equip('camara'), true);
+  assert.equal(race.snap({ x: g.x, z: g.z + 3 }).status, 'complete');
+  assert.equal(missions.status('carrera'), 'done');
+  assert.equal(ctx.sticker.badges[ctx.sticker.badges.length - 1].id, 'buen-corredor');
+  race.sync();
+  assert.equal(race.view(), null, 'the medal goes with the course when the mission ends');
+});
+
+test('a broken onMedal hook never breaks the win, and a lost race (rabbit first) gives no medal', () => {
+  const ctx = startCarrera(setup());
+  const { race, said } = ctx, c = race.current(), g = c.goal, s = c.start;
+  race.onMedal = () => { throw new Error('boom'); };
+  race.talk({ x: c.rabbit.x, z: c.rabbit.z });
+  startRace(ctx);
+  const near = { x: s.x + 6, z: s.z, y: 0 };
+  let guard = 0;
+  while (race.view().race.losses === 0 && guard++ < 400) wait(ctx, near, 0.5);
+  assert.equal(race.view().medal, false, 'the rabbit won: no medal');
+  assert.equal(said.includes('sfx:fanfare'), false);
+  wait(ctx, { x: s.x, z: s.z, y: s.y }, 4);
+  frame(ctx, { x: g.x, z: g.z, y: g.y });
+  assert.equal(step(ctx).kind, 'photo');
+  assert.equal(race.view().medal, true);
+});

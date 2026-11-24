@@ -4,7 +4,7 @@ import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/map.js', 'game/save.js', 'game/picking.js', 'game/data/props.js', 'game/habitat.js',
-  'game/prop-avoid.js', 'game/animal-plan.js', 'game/wander.js', 'game/gait.js', 'game/render/ambient.js'];
+  'game/prop-avoid.js', 'game/animal-plan.js', 'game/wander.js', 'game/gait.js', 'game/render/instances.js', 'game/render/ambient.js'];
 const HOME = { x: -9, z: 14 };   // bosque
 
 function setup() {

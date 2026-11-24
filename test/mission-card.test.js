@@ -5,7 +5,7 @@ import { loadGame } from './helpers/vm.js';
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/round.js', 'game/data/foods.js',
   'game/data/items.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js', 'game/scaffold.js', 'game/mission.js',
-  'game/mission-card.js', 'game/animal-plan.js', 'game/wander.js', 'game/map.js', 'game/gait.js', 'game/render/ambient.js'];
+  'game/mission-card.js', 'game/animal-plan.js', 'game/wander.js', 'game/map.js', 'game/gait.js', 'game/render/instances.js', 'game/render/ambient.js'];
 
 function setup() {
   const SA = loadGame(FILES);

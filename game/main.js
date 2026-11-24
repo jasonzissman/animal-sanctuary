@@ -42,8 +42,10 @@
       ctl = SA.prompt.start({ doc: root.document, fx: stage.fx, careFx: stage.careFx, pin: stage.ambient, biomeFx: stage.biomeGlow,
         onProgress: function () { if (unlocks) unlocks.check(); }, mission: game,
         // Small tasks appear only near their animal (AS-0225): the gate reads where the player and the visible animals are.
-        nearby: { player: function () { return stage.rig.getPlayer(); }, animals: function () {
-          return stage.animals.children.filter(function (g) { return g.visible; }).map(function (g) { return { id: g.name, x: g.position.x, z: g.position.z }; });
+        // AS-0255: every herd instance is listed under its species id; SA.render.instances.get resolves that id to the nearest one,
+        // so the glow ring, need icon and care task land on the instance the player is walking up to.
+        nearby: { player: function () { var p = stage.rig.getPlayer(); if (p && SA.render.instances) SA.render.instances.setNear(p.x, p.z); return p; }, animals: function () {
+          return stage.animals.children.filter(function (g) { return g.visible; }).map(function (g) { return { id: g.userData.animalId, x: g.position.x, z: g.position.z }; });
         } } });
       if (ctl.taskShown) stage.getTask = ctl.taskShown;      // the glow ring round the current small-task animal (AS-0226)
       if (ctl.encounterNeeds) stage.getNeeds = ctl.encounterNeeds;      // floating need icons over animals that ask for help (AS-0245)

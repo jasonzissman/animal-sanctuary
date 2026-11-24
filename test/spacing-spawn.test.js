@@ -5,7 +5,7 @@ import { loadGame } from './helpers/vm.js';
 // AS-0162: spawn placement, herds and tree perches respect SA.spacing.GAP (real animal + biome data).
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/map.js', 'game/station.js', 'game/player.js', 'game/spacing.js', 'game/reach.js', 'game/animal-plan.js', 'game/wander.js',
-  'game/perch.js', 'game/gait.js', 'game/render/ambient.js'];
+  'game/perch.js', 'game/gait.js', 'game/render/instances.js', 'game/render/ambient.js'];
 const TREES = [
   { x: 8, z: 0, y: 0, scale: 1, kind: 'jungle' }, { x: 12, z: 3, y: 0, scale: 1.2, kind: 'jungle' },
   { x: 16, z: -2, y: 0, scale: 1, kind: 'jungle' }, { x: -10, z: 4, y: 0, scale: 1, kind: 'pine' },

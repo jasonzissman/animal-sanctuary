@@ -1,6 +1,7 @@
 /* SA.render.buildAnimals(THREE, opts): one THREE.Group per animal, assembled purely from data via
  * SA.animalPlan (no animal-specific code). Returns a Group named 'animals' whose children are the animal groups
- * (userData { animalId }), each holding visible part meshes and invisible pick volumes.
+ * (userData { animalId, instanceId }; name = instanceId such as 'conejo#2': a species has `herd` instances, AS-0255), each holding
+ * visible part meshes and invisible pick volumes. SA.render.instances finds a group by species or instance.
  *
  * Every part mesh AND its pick volume carry userData { animalId, part, side?, index }; pick volumes also have
  * pick: true, pickVolume (box volume) and are ~1.6x the part, or 1.0x for big masses (visible=false, but THREE's
@@ -26,7 +27,7 @@
   }
 
   function tag(mesh, spec) {
-    mesh.userData = { animalId: spec.animalId, part: spec.part, index: spec.index };
+    mesh.userData = { animalId: spec.animalId, instanceId: spec.instanceId, part: spec.part, index: spec.index };
     if (spec.side) mesh.userData.side = spec.side;
     if (spec.extra) mesh.userData.extra = true;   // a neck segment / knee / foot: rides with its parent part when limbs animate
   }
@@ -39,8 +40,9 @@
     var pickMat = new THREE.MeshBasicMaterial({ visible: false });
     return function build(animal, s) {
       var g = new THREE.Group();
-      g.name = animal.id;
-      g.userData = { animalId: animal.id, pickVolumes: [] };
+      var instanceId = (s && s.instanceId) || animal.id;   // 'conejo#2' for a herd instance; a story animal keeps its animal id
+      g.name = instanceId;
+      g.userData = { animalId: animal.id, instanceId: instanceId, pickVolumes: [] };
       if (s && s.radius) g.userData.wanderRadius = s.radius;   // AS-0249: how far it roams from home (reaches empty quadrants)
       SA.animalPlan.plan(animal).forEach(function (spec) {
         var geo = geos[spec.builder] || (geos[spec.builder] = unitGeometry(THREE, spec.builder));
@@ -49,6 +51,7 @@
         mesh.scale.set(spec.size[0], spec.size[1], spec.size[2]);
         mesh.position.set(spec.position[0], spec.position[1], spec.position[2]);
         mesh.rotation.set(spec.rotation[0], spec.rotation[1], spec.rotation[2]);
+        spec.instanceId = instanceId;
         tag(mesh, spec);
         if (spec.pupil) {
           // A child of the part mesh (unit-sphere space, so it follows the part's scale and reactions); never a pick target.
@@ -84,7 +87,10 @@
     group.name = 'animals';
     var animals = SA.data.all('animals').filter(function (a) { return !a.story; });   // story animals (pigs) are placed by their mission
     var spots = SA.animalPlan.placements(animals, opts);
-    animals.forEach(function (animal) { group.add(build(animal, spots[animal.id])); });
+    // AS-0255: one group per herd instance (animal.herd of them), all through the same builder so geometry and materials are shared.
+    var byId = {};
+    animals.forEach(function (a) { byId[a.id] = a; });
+    SA.animalPlan.herdPlacements(animals, opts).forEach(function (spot) { group.add(build(byId[spot.animalId], spot)); });
     return group;
   };
 })(typeof window !== 'undefined' ? window : globalThis);

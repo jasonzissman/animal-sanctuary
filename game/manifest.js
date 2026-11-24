@@ -63,6 +63,7 @@ globalThis.SA_MANIFEST = {
     'game/render/scientist-tap.js',
     'game/animal-plan.js',
     'game/render/zigzag.js',
+    'game/render/instances.js',
     'game/render/animals.js',
     'game/treetop-tell.js',
     'game/render/treetop-tell.js',

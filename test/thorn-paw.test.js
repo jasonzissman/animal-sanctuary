@@ -9,7 +9,7 @@ import { loadGame } from './helpers/vm.js';
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/foods.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/audio.js', 'game/picking.js',
   'game/data/items.js', 'game/inventory.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js', 'game/ui/care-flow.js',
-  'game/map.js', 'game/animal-plan.js', 'game/wander.js', 'game/gait.js', 'game/render/ambient.js'];
+  'game/map.js', 'game/animal-plan.js', 'game/wander.js', 'game/gait.js', 'game/render/instances.js', 'game/render/ambient.js'];
 
 function setup() {
   const SA = loadGame(FILES);
@@ -144,7 +144,7 @@ test('care fx: a limp task puts thorn bits on ONE paw and sets the limp cue; fre
   ctx.window = ctx;
   ctx.self = ctx;
   for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
+    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;
@@ -154,7 +154,7 @@ test('care fx: a limp task puts thorn bits on ONE paw and sets the limp cue; fre
     setCue: (id, cue) => calls.push(['cue', id, cue]), flyLoop: (id) => calls.push(['loop', id]) };
   const fx = SA.render.createCareFx(THREE, { animals, ambient });
   const id = animals.children.map((g) => g.userData.animalId).find((a) => SA.data.get('animals', a).parts.some((p) => p.part === 'patas') && !SA.data.get('animals', a).easterEgg);
-  const group = animals.getObjectByName(id);
+  const group = animals.getObjectByName(id + '#0');
   const before = group.children.length;
   assert.equal(fx.show({ animalId: id, part: 'patas', spots: 2, kind: 'espina', cue: 'limp' }), true);
   assert.equal(group.children.length, before + 2);
@@ -163,10 +163,10 @@ test('care fx: a limp task puts thorn bits on ONE paw and sets the limp cue; fre
   const legs = group.children.filter((m) => !m.userData.pick && m.userData.part === 'patas');
   const nearest = (b) => legs.map((w) => w.position.distanceTo(b.position)).indexOf(Math.min(...legs.map((w) => w.position.distanceTo(b.position))));
   assert.equal(new Set(thorns.map(nearest)).size, 1, 'all the thorn bits are on the same paw');
-  assert.deepEqual(calls.filter((c) => c[0] === 'cue'), [['cue', id, 'limp']]);
+  assert.deepEqual(calls.filter((c) => c[0] === 'cue'), [['cue', id + '#0', 'limp']]);
   fx.scrub(0);
   fx.free(id, 'limp');
-  assert.deepEqual(calls.slice(-1)[0], ['cue', id, null]);
+  assert.deepEqual(calls.slice(-1)[0], ['cue', id + '#0', null]);
   assert.ok(!calls.some((c) => c[0] === 'loop'));
   fx.hide();
   assert.equal(group.children.length, before);

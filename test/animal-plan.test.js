@@ -178,13 +178,23 @@ test('buildAnimals: groups per animal; every part mesh and pick volume carries u
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
   ctx.self = ctx;
-  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/animals.js']) {
+  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;
   const group = SA.render.buildAnimals(THREE);
-  assert.equal(group.children.length, 11);
-  assert.equal(group.children.filter((g) => !g.visible).map((g) => g.name).join(), 'raton', 'the easter egg is built but hidden');
+  const species = SA.data.all('animals').filter((a) => !a.story);
+  assert.equal(group.children.length, species.reduce((n, a) => n + (a.herd || 1), 0), 'one group per herd instance (AS-0255)');
+  for (const a of species) {
+    const mine = SA.render.instances.of(group, a.id);
+    assert.equal(mine.length, a.herd || 1, `${a.id} appears herd-count times`);
+    mine.forEach((g, n) => {
+      assert.equal(g.name, `${a.id}#${n}`, 'the group name is the instanceId');
+      assert.equal(g.userData.instanceId, g.name);
+      assert.ok(g.children.every((m) => m.userData.instanceId === g.name && m.userData.animalId === a.id), 'parts and pick volumes name their instance');
+    });
+  }
+  assert.equal(group.children.filter((g) => !g.visible).map((g) => g.name).join(), 'raton#0', 'the easter egg is built but hidden');
   for (const g of group.children) {
     const animal = SA.data.get('animals', g.userData.animalId);
     const parts = g.children.filter((m) => !m.userData.pick);
@@ -204,7 +214,7 @@ function pickerFor(animalId) {
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
   ctx.self = ctx;
-  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/animals.js']) {
+  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;
@@ -280,7 +290,7 @@ test('pupils: the plan carries the data pupil colour; the renderer adds it as a 
   const ctx = vm.createContext({ console });
   ctx.window = ctx;
   ctx.self = ctx;
-  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/animals.js']) {
+  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;

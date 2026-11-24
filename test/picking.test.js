@@ -103,7 +103,7 @@ function makeEl() {
 
 function stage(english, noTask) {
   const files = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js',
-    'game/data/biomes.js', 'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js',
+    'game/data/biomes.js', 'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js',
     'game/picking.js', 'game/aim.js', 'game/render/picking.js'];
   const ctx = vm.createContext({ console });
   ctx.window = ctx; ctx.self = ctx;
@@ -129,7 +129,7 @@ function stage(english, noTask) {
   camera.lookAt(target);
   camera.updateMatrixWorld(true);
   // AS-0128: parts are only aimable while a care/help task is active on that animal (the default here); noTask = a free animal.
-  if (!noTask) SA.picking.setActiveTask({ animalId: g.name, done: false });
+  if (!noTask) SA.picking.setActiveTask({ animalId: g.userData.animalId, done: false });
   return { SA, THREE, handlers, picking, animals, g, vol, ctx, camera };
 }
 
@@ -203,7 +203,7 @@ test('forgiving aim: the pointer a few pixels off the part still highlights it, 
   const part = s.picking.target();
   assert.equal(part.part, hit.part);
   // Nudge the mouse a few pixels: the same part stays highlighted (sticky).
-  s.handlers.pointermove(ev(400 + 5, 300 + 3, { pointerType: 'mouse' }));
+  s.handlers.pointermove(ev(400 + 2, 300 + 1, { pointerType: 'mouse' }));
   s.picking.update(0.016);
   assert.equal(s.picking.target().part, hit.part);
   s.SA.inventory = { equipped: () => 'venda' };
@@ -238,7 +238,7 @@ test('a tap that misses every pick volume still picks the nearest in-reach part 
 
 test('a hidden easter egg cannot be picked, and can once it is shown', () => {
   const s = stage(false);
-  const egg = s.animals.getObjectByName('raton');
+  const egg = s.animals.getObjectByName('raton#0');
   assert.equal(egg.visible, false);
   const vol = egg.userData.pickVolumes.find((v) => v.userData.part === 'cuerpo');
   const target = new s.THREE.Vector3(); vol.getWorldPosition(target);
@@ -338,14 +338,15 @@ test('no task: the animal is one target (no part glow, chip or speech); Use/tap 
 
 test('a task on one animal leaves the others whole; its own parts glow, chip and speak', () => {
   const s = stage(false, true);
-  const other = s.animals.children.find((a) => a !== s.g && !a.userData.avatar);
-  s.SA.picking.setActiveTask({ animalId: other.name, done: false });   // a task, but on a different animal
+  const other = s.animals.children.find((a) => a.userData.animalId !== s.g.userData.animalId && !a.userData.avatar);
+  s.SA.picking.setActiveTask({ animalId: other.userData.animalId, done: false });   // a task, but on a different animal
   const said = [];
   s.SA.audio = { say: (k) => said.push(k) };
   const hit = s.picking.pickAt(400, 300);
-  assert.equal(hit.animalId, s.g.name);
+  assert.equal(hit.animalId, s.g.userData.animalId);
+  assert.equal(hit.instanceId, s.g.name, 'the hit names the tapped herd instance');
   assert.equal(hit.part, null, 'the animal without a task stays whole');
-  s.SA.picking.setActiveTask({ animalId: s.g.name, done: false });
+  s.SA.picking.setActiveTask({ animalId: s.g.userData.animalId, done: false });
   const part = s.picking.pickAt(400, 300);
   assert.ok(part.part, 'now its parts are individually pickable');
   s.handlers.pointerdown(ev(400, 300));

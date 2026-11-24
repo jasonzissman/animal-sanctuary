@@ -59,28 +59,31 @@
       var hit = SA.animalPlan.choosePick(raycaster.intersectObjects(volumes(), false));
       if (!hit) return null;
       var u = hit.object.userData;
-      if (!partsOn(u.animalId)) return wholeHit(u.animalId);
-      return { animalId: u.animalId, part: u.part, index: u.index, side: u.side || null, mesh: visibleMesh(u) };
+      if (!partsOn(u.animalId)) return wholeHit(u.animalId, u.instanceId);
+      return { animalId: u.animalId, instanceId: u.instanceId || u.animalId, part: u.part, index: u.index, side: u.side || null, mesh: visibleMesh(u) };
     }
+
+    // The group of a hit: its own herd instance (AS-0255), so reactions, reach and the chip use the one that was tapped.
+    function groupOf(hit) { return SA.render.instances.get(animals, hit.instanceId || hit.animalId); }
 
     // AS-0128: parts are individually pickable only while a care/help task is active on that animal; otherwise it is ONE target.
     function partsOn(animalId) { return !!SA.picking.partsActive && SA.picking.partsActive(animalId); }
 
     // The whole animal as a target: no part (so no glow, chip or part speech); `mesh` (its body, for reach and aim position) and
     // `node` (the animal group, what the Space outline wraps) are only for the renderer.
-    function wholeHit(animalId) {
-      var g = animals.getObjectByName(animalId), body = null;
+    function wholeHit(animalId, instanceId) {
+      var g = SA.render.instances.get(animals, instanceId || animalId), body = null;
       if (!g) return null;
       g.children.forEach(function (m) {
         var u = m.userData || {};
         if (u.pick || !u.part || m.geometry === undefined) return;
         if (!body || u.part === 'cuerpo') body = m;
       });
-      return body ? { animalId: animalId, part: null, index: 0, side: null, mesh: body, node: g } : null;
+      return body ? { animalId: animalId, instanceId: g.name, part: null, index: 0, side: null, mesh: body, node: g } : null;
     }
 
     function visibleMesh(u) {
-      var g = animals.getObjectByName(u.animalId), found = null;
+      var g = SA.render.instances.get(animals, u.instanceId || u.animalId), found = null;
       if (g) g.children.forEach(function (m) {
         if (!m.userData.pick && m.userData.part === u.part && m.userData.index === u.index) found = m;
       });
@@ -129,7 +132,7 @@
 
     // The bubble's gate (SA.picking.labelVisible): a real, visible animal within reach; the avatar is never in `animals`.
     function chipCtx(hit) {
-      var g = animals.getObjectByName(hit.animalId), u = g && g.userData || {};
+      var g = groupOf(hit), u = g && g.userData || {};
       var walking = !opts.getPlayer || !!opts.getPlayer();   // a walking game with no player yet has nothing in reach
       return { exists: !!g, visible: !g || g.visible !== false, avatar: !!u.avatar, inReach: walking && !!hit.mesh && inReach(hit) };
     }
@@ -202,7 +205,7 @@
     var wp = new THREE.Vector3();
     function inReach(hit) {
       var player = opts.getPlayer && opts.getPlayer();
-      var g = animals.getObjectByName(hit.animalId);
+      var g = groupOf(hit);
       if (!player || !g || !SA.reach) return true;   // no walking player (or no rule): behave as before
       hit.mesh.getWorldPosition(wp);
       return SA.reach.canReach({ x: player.x, y: player.y || 0, z: player.z }, { x: g.position.x, y: g.position.y, z: g.position.z }, { y: wp.y },
@@ -239,16 +242,16 @@
       camera.updateMatrixWorld();
       animals.children.forEach(function (g) {
         if (g.visible === false) return;
-        var gid = g.name || (g.userData && g.userData.animalId);
-        if (!partsOn(gid)) {            // no task here: the whole animal is ONE candidate (AS-0128)
-          var whole = wholeHit(gid);
+        var gid = g.name, aid = (g.userData && g.userData.animalId) || gid;   // gid = this herd instance, aid = its species
+        if (!partsOn(aid)) {            // no task here: the whole animal is ONE candidate (AS-0128)
+          var whole = wholeHit(aid, gid);
           if (whole && inReach(whole)) {
             whole.mesh.getWorldPosition(pv);
             var wd = camera.position.distanceTo(pv);
             pv.project(camera);
             if (pv.z <= 1 && pv.z >= -1) out.push({
               id: gid + ':*', hit: whole, x: r.left + (pv.x * 0.5 + 0.5) * r.width, y: r.top + (-pv.y * 0.5 + 0.5) * r.height,
-              r: partRadiusPx(whole.mesh, wd, r.height), direct: !!(direct && direct.animalId === gid),
+              r: partRadiusPx(whole.mesh, wd, r.height), direct: !!(direct && direct.instanceId === gid),
             });
           }
           return;
@@ -256,17 +259,17 @@
         g.children.forEach(function (m) {
           var u = m.userData;
           if (!u || u.pick || !u.part || m.visible === false) return;
-          var hit = { animalId: g.name || u.animalId, part: u.part, index: u.index, side: u.side || null, mesh: m };
+          var hit = { animalId: aid, instanceId: gid, part: u.part, index: u.index, side: u.side || null, mesh: m };
           if (!inReach(hit)) return;
           m.getWorldPosition(pv);
           var depth = camera.position.distanceTo(pv);
           pv.project(camera);
           if (pv.z > 1 || pv.z < -1) return;
           out.push({
-            id: hit.animalId + ':' + hit.part + ':' + hit.index, hit: hit,
+            id: gid + ':' + hit.part + ':' + hit.index, hit: hit,
             x: r.left + (pv.x * 0.5 + 0.5) * r.width, y: r.top + (-pv.y * 0.5 + 0.5) * r.height,
             r: partRadiusPx(m, depth, r.height),
-            direct: !!(direct && direct.animalId === hit.animalId && direct.part === hit.part && direct.index === hit.index),
+            direct: !!(direct && direct.instanceId === gid && direct.part === hit.part && direct.index === hit.index),
           });
         });
       });
@@ -306,6 +309,8 @@
     function select(hit) {
       if (!hit || !hit.mesh) return;
       if (!inReach(hit)) { nudgeCloser(hit); return; }
+      // The tapped herd instance: reactions that only know the species (round-fx, care-fx, ambient pin) now land on THIS one (AS-0255).
+      if (hit.instanceId) SA.render.instances.tapped(hit.animalId, hit.instanceId);
       var heldItem = SA.inventory && SA.inventory.equipped ? SA.inventory.equipped() : null;
       if (!hit.part) {   // the whole animal: no glow, chip or part name; the loops get { animalId, item? }
         SA.picking.emit({ animalId: hit.animalId, item: heldItem || undefined });
@@ -334,6 +339,7 @@
       if (rubDist >= RUB_PX) {
         rubDist = 0;
         if (hit.mesh) setGlow(hit.mesh, 1);
+        if (hit.instanceId) SA.render.instances.tapped(hit.animalId, hit.instanceId);
         var held = SA.inventory && SA.inventory.equipped ? SA.inventory.equipped() : null;
         SA.picking.emit({ animalId: hit.animalId, part: hit.part, item: held || undefined });   // rubbing counts with the tool in hand
       }

@@ -226,7 +226,7 @@ test('care fx: mud spots appear on the target part, wash away with sparkles, and
   ctx.window = ctx;
   ctx.self = ctx;
   for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
+    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;
@@ -235,17 +235,18 @@ test('care fx: mud spots appear on the target part, wash away with sparkles, and
   // The camera is never touched during care: any rig call would be recorded here.
   const rig = new Proxy({}, { get: (_, name) => (...a) => rigCalls.push([name, ...a]) });
   const fx = SA.render.createCareFx(THREE, { animals, rig });
-  const group = animals.getObjectByName('tortuga');
+  const group = animals.getObjectByName('tortuga#0');
+  const herd = animals.children.length;
   const before = group.children.length;
   assert.equal(fx.show({ animalId: 'tortuga', part: 'patas', spots: 6 }), true);
   assert.equal(fx.spotCount(), 6);
   assert.equal(group.children.length, before + 6);
   fx.scrub(4);
   assert.equal(fx.spotCount(), 4);
-  assert.equal(animals.children.length, 11 + 12);        // 2 spots washed away burst into 6 sparkles each
+  assert.equal(animals.children.length, herd + 12);        // 2 spots washed away burst into 6 sparkles each
   fx.update(0.3);
   fx.update(1);                                           // sparkles expire
-  assert.equal(animals.children.length, 11);
+  assert.equal(animals.children.length, herd);
   fx.scrub(0);
   fx.hide();
   assert.equal(group.children.length, before);
@@ -260,7 +261,7 @@ test('care fx: a tangled wing shows leaf bits on ONE wing, tells ambient the bir
   ctx.window = ctx;
   ctx.self = ctx;
   for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
+    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;
@@ -270,7 +271,7 @@ test('care fx: a tangled wing shows leaf bits on ONE wing, tells ambient the bir
     setTangled: (id, on) => calls.push(['tangled', id, on]), flyLoop: (id) => calls.push(['loop', id]) };
   const fx = SA.render.createCareFx(THREE, { animals, ambient });
   const id = animals.children.map((g) => g.userData.animalId).find((a) => SA.data.get('animals', a).parts.some((p) => p.part === 'alas'));
-  const group = animals.getObjectByName(id);
+  const group = animals.getObjectByName(id + '#0');
   const before = group.children.length;
   assert.equal(fx.show({ animalId: id, part: 'alas', spots: 3, kind: 'desenredar', tangled: true }), true);
   assert.equal(fx.spotCount(), 3);
@@ -279,11 +280,11 @@ test('care fx: a tangled wing shows leaf bits on ONE wing, tells ambient the bir
   const leaves = group.children.filter((m) => m.userData.mud);
   const nearest = (leaf) => wings.map((w) => w.position.distanceTo(leaf.position)).indexOf(Math.min(...wings.map((w) => w.position.distanceTo(leaf.position))));
   assert.equal(new Set(leaves.map(nearest)).size, 1, 'all the leaf bits are on the same wing');
-  assert.deepEqual(calls.filter((c) => c[0] === 'tangled'), [['tangled', id, true]]);
+  assert.deepEqual(calls.filter((c) => c[0] === 'tangled'), [['tangled', id + '#0', true]]);   // ambient is keyed by the instance the task is on (AS-0255)
   fx.scrub(0);
   fx.fly(id);
-  assert.deepEqual(calls.slice(-2), [['tangled', id, false], ['loop', id]]);
+  assert.deepEqual(calls.slice(-2), [['tangled', id + '#0', false], ['loop', id + '#0']]);
   fx.hide();
   assert.equal(group.children.length, before);
-  assert.deepEqual(calls.slice(-1)[0], ['release', id]);
+  assert.deepEqual(calls.slice(-1)[0], ['release', id + '#0']);
 });

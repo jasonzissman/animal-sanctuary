@@ -9,7 +9,7 @@ import { loadGame } from './helpers/vm.js';
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/foods.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/audio.js', 'game/picking.js',
   'game/data/items.js', 'game/inventory.js', 'game/data/actions.js', 'game/data/care.js', 'game/care.js', 'game/ui/care-flow.js',
-  'game/map.js', 'game/animal-plan.js', 'game/wander.js', 'game/gait.js', 'game/render/ambient.js'];
+  'game/map.js', 'game/animal-plan.js', 'game/wander.js', 'game/gait.js', 'game/render/instances.js', 'game/render/ambient.js'];
 
 function setup() {
   const SA = loadGame(FILES);
@@ -127,7 +127,7 @@ test('care fx: a sunk task draws a flat mud puddle that follows the depth; tugs 
   ctx.window = ctx;
   ctx.self = ctx;
   for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
+    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;
@@ -137,8 +137,8 @@ test('care fx: a sunk task draws a flat mud puddle that follows the depth; tugs 
   const ambient = { rigs, hold: () => {}, release: () => {}, setCue: (id, cue) => calls.push(['cue', id, cue]), flyLoop: () => calls.push(['loop']) };
   const fx = SA.render.createCareFx(THREE, { animals, ambient });
   const id = animals.children.map((g) => g.userData.animalId).find((a) => SA.data.get('animals', a).parts.some((p) => p.part === 'patas') && !SA.data.get('animals', a).easterEgg);
-  rigs[id] = { sunkBy: 0.2 };
-  const group = animals.getObjectByName(id);
+  rigs[id + '#0'] = { sunkBy: 0.2 };   // ambient rigs are per herd instance (AS-0255)
+  const group = animals.getObjectByName(id + '#0');
   const before = group.children.length;
   assert.equal(fx.show({ animalId: id, part: 'patas', spots: 3, kind: 'barro', cue: 'sunk' }), true);
   assert.equal(group.children.length, before + 1, 'one puddle group');
@@ -150,15 +150,15 @@ test('care fx: a sunk task draws a flat mud puddle that follows the depth; tugs 
   assert.equal(disc.material.color.getHex(), 0x6b4423, 'brown');
   assert.equal(fx.spotCount(), 3);
   assert.ok(Math.abs(puddle.position.y - (0.2 / group.scale.y + 0.01)) < 1e-9, 'sits on the ground, not sunk with the animal');
-  rigs[id].sunkBy = 0.26;
+  rigs[id + '#0'].sunkBy = 0.26;
   fx.update(0.016);
   assert.ok(Math.abs(puddle.position.y - (0.26 / group.scale.y + 0.01)) < 1e-9, 'follows the animal while it sinks');
-  assert.deepEqual(calls.filter((c) => c[0] === 'cue'), [['cue', id, 'sunk']]);
+  assert.deepEqual(calls.filter((c) => c[0] === 'cue'), [['cue', id + '#0', 'sunk']]);
   fx.scrub(2);
   assert.equal(fx.spotCount(), 2);
   fx.scrub(0);
   fx.free(id, 'sunk');
-  assert.deepEqual(calls.slice(-1)[0], ['cue', id, null]);
+  assert.deepEqual(calls.slice(-1)[0], ['cue', id + '#0', null]);
   assert.ok(!calls.some((c) => c[0] === 'loop'), 'no happy flight');
   assert.ok(group.children.includes(puddle), 'still there for a moment, shrinking');
   for (let i = 0; i < 60; i++) fx.update(0.05);

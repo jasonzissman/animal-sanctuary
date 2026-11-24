@@ -36,7 +36,7 @@
     }
 
     function reveal(animal) {
-      var g = o.group && o.group.getObjectByName(animal.id);
+      var g = o.group && (SA.render && SA.render.instances ? SA.render.instances.get(o.group, animal.id) : o.group.getObjectByName(animal.id));
       if (!g) return false;
       g.visible = true;
       faceTo(g);

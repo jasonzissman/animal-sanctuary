@@ -65,17 +65,17 @@
 
     // Tree dwellers (animal data perch: "tree") sit on canopy branches and hop between the trees of their biome
     // (SA.perch) instead of wandering on the ground. Adapts the hopper to the SA.wander shape update() expects.
-    function perchWalker(a, g, i) {
+    function perchWalker(a, g, i, key) {
       var h = SA.perch.create({
         biome: a.biome, trees: opts.trees, seed: 100 + i, home: { x: g.position.x, z: g.position.z },
         bodyRadius: SA.spacing ? SA.spacing.bodyRadius(a) : 0,
         others: function () {   // the other perchers' claimed spots (sitting + flying to), so no two share or land too close
           var pts = [];
-          Object.keys(hoppers).forEach(function (k) { if (k !== a.id) pts = pts.concat(hoppers[k].claims()); });
+          Object.keys(hoppers).forEach(function (k) { if (k !== key) pts = pts.concat(hoppers[k].claims()); });
           return pts;
         },
       });
-      hoppers[a.id] = h;
+      hoppers[key] = h;
       return {
         update: function (dt) { var p = h.update(dt); return { x: p.x, z: p.z, y: p.y, heading: p.heading, moving: p.hopping, perched: true }; },
         hold: h.hold, release: h.release, setAvoid: function () {},
@@ -85,15 +85,16 @@
     group.children.forEach(function (g, i) {
       var a = data[g.userData.animalId];
       if (!a) return;
+      var key = g.name;   // rigs are per herd INSTANCE (AS-0255): every one wanders on its own from its own home and radius
       var parts = function (name) { return g.children.filter(function (m) { return !m.userData.pick && m.userData.part === name; }).map(base); };
-      rigs[a.id] = {
+      rigs[key] = {
         g: g, phase: i * 1.7, ears: parts('orejas'), tail: parts('cola'), eyes: parts('ojos'), cheeks: parts('mejillas'),
         gait: SA.gait.kind(a.traits.movement), amp: 0, wings: parts('alas'), legs: attachExtras(parts('patas')),
         sx: g.scale.x, sy: g.scale.y, sz: g.scale.z,
         wx: g.position.x, wz: g.position.z, r: SA.spacing ? SA.spacing.bodyRadius(a) : 0, perched: a.perch === 'tree' && !!SA.perch,
-        w: a.perch === 'tree' && SA.perch ? perchWalker(a, g, i) : SA.wander.create({
+        w: a.perch === 'tree' && SA.perch ? perchWalker(a, g, i, key) : SA.wander.create({
           movement: a.traits.movement, biome: a.biome, home: { x: g.position.x, z: g.position.z },
-          seed: 100 + i, radius: g.userData.wanderRadius, avoid: opts.avoid, others: othersOf(a.id), bodyRadius: SA.spacing ? SA.spacing.bodyRadius(a) : 0,
+          seed: 100 + i, radius: g.userData.wanderRadius, avoid: opts.avoid, others: othersOf(key), bodyRadius: SA.spacing ? SA.spacing.bodyRadius(a) : 0,
         }),
       };
       if (a.perch === 'tree' && SA.perch) g.userData.perched = true;   // up in a canopy: never blocks the walking player
@@ -163,20 +164,29 @@
       });
     }
 
-    function hold(id, seconds) { if (rigs[id]) rigs[id].w.hold(seconds); }
+    // Every control takes an instanceId ('conejo#2') or a species id (AS-0255: the tapped / nearest instance, SA.render.instances.get).
+    // A species id is resolved once and remembered while the animal is pinned, so unpin() frees the SAME instance.
+    var pinnedKey = {};
+    function rigFor(id) {
+      if (rigs[id]) return rigs[id];
+      var g = SA.render.instances.get(group, id);
+      return g ? rigs[g.name] : undefined;
+    }
+    function hold(id, seconds) { var r = rigFor(id); if (r) r.w.hold(seconds); }
     // A pinned animal (its rescue mission is running) never wanders: release() (care finishing, tap holds ending) is ignored
     // until unpin(), so it stays exactly where it was found, from the find until the photo.
-    function release(id) { if (rigs[id] && !rigs[id].pinned) rigs[id].w.release(); }
-    function pin(id) { if (rigs[id]) { rigs[id].pinned = true; rigs[id].w.hold(); } }
-    function unpin(id) { if (rigs[id]) { rigs[id].pinned = false; rigs[id].w.release(); } }
+    function release(id) { var r = rigFor(id); if (r && !r.pinned) r.w.release(); }
+    function pin(id) { var r = rigFor(id); if (r) { r.pinned = true; r.w.hold(); pinnedKey[id] = r; } }
+    function unpin(id) { var r = pinnedKey[id] || rigFor(id); delete pinnedKey[id]; if (r) { r.pinned = false; r.w.release(); } }
     // Visible cue of a care task (action.cue, picked by value, never by animal id): 'tangled' = hops with drooping wings instead
     // of flying; 'limp' = uneven walk (SA.gait.limp, the first paw hardly swings); null = normal again.
-    function setCue(id, cue) { if (rigs[id]) rigs[id].cue = cue || null; }
+    function setCue(id, cue) { var r = rigFor(id); if (r) r.cue = cue || null; }
     // The old alias: setTangled(id, false) only clears a tangled cue, never someone else's limp.
-    function setTangled(id, on) { if (on) setCue(id, 'tangled'); else if (rigs[id] && rigs[id].cue === 'tangled') setCue(id, null); }
+    function setTangled(id, on) { var r = rigFor(id); if (on) setCue(id, 'tangled'); else if (r && r.cue === 'tangled') setCue(id, null); }
     // Freed: one happy spinning circle in the air with wide wing beats (LOOP_SECONDS), then back to normal.
-    function flyLoop(id) { if (rigs[id]) { rigs[id].cue = null; rigs[id].loop = { t: 0 }; } }
+    function flyLoop(id) { var r = rigFor(id); if (r) { r.cue = null; r.loop = { t: 0 }; } }
 
+    // The pick hook runs after the renderer noted the tapped instance (instances.tapped), so the species id resolves to that one.
     if (SA.picking && SA.picking.onPick) SA.picking.onPick(function (pick) { if (pick && pick.animalId) hold(pick.animalId, PART_HOLD); });
 
     function setAvoid(points) { Object.keys(rigs).forEach(function (id) { rigs[id].w.setAvoid(points); }); }

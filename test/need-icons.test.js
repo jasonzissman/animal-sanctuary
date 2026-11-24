@@ -16,7 +16,7 @@ function stubThree() {
 const doc = { createElement: () => ({ getContext: () => new Proxy({}, { get: () => () => {}, set: () => true }) }) };
 
 function setup(d = doc) {
-  const SA = loadGame(['game/sa.js', 'game/render/need-icons.js']);
+  const SA = loadGame(['game/sa.js', 'game/render/instances.js', 'game/render/need-icons.js']);
   const { THREE, made } = stubThree();
   const scene = new THREE.Group(), animals = new THREE.Group();
   scene.add(animals);

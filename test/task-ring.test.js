@@ -22,7 +22,7 @@ function stubThree() {
 }
 
 function setup() {
-  const SA = loadGame(['game/sa.js', 'game/render/task-ring.js']);
+  const SA = loadGame(['game/sa.js', 'game/render/instances.js', 'game/render/task-ring.js']);
   const { THREE, made } = stubThree();
   const scene = new THREE.Group();
   const animals = new THREE.Group();

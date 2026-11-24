@@ -4,8 +4,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './helpers/vm.js';
 
-const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/plants.js', 'game/data/animals.js',
-  'game/data/vocab.js', 'game/data/foods.js', 'game/data/items.js', 'game/save.js', 'game/map.js', 'game/peaks.js', 'game/station.js', 'game/player.js',
+const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/plants.js','game/data/animals.js',
+  'game/data/vocab.js', 'game/data/props.js','game/data/foods.js', 'game/data/items.js', 'game/save.js', 'game/map.js', 'game/peaks.js', 'game/station.js', 'game/player.js',
   'game/jump.js', 'game/npc.js', 'game/inventory.js', 'game/photo.js', 'game/desert-plan.js', 'game/data/step-kinds.js', 'game/mission-run.js',
   'game/data/missions.js', 'game/missions.js', 'game/focus.js', 'game/mission-pill.js', 'game/carry.js', 'game/mission-doctor.js', 'game/mission-runtime.js',
   'game/scientist-talk.js'];
@@ -13,13 +13,14 @@ const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'gam
 function setup() {
   const SA = loadGame(FILES);
   SA.save.reset();
-  const said = [], tracked = [], cheers = [];
+  const said = [], tracked = [], cheers = [], clock = { t: 1000 }, queued = [];
   const missions = SA.missions.create({ track: (t, f) => tracked.push([t, f]) });
   let rt = null;
-  const doctor = SA.missionDoctor.create({ missions, audio: { say: (k) => said.push(k) }, track: (t, f) => tracked.push([t, f]), report: (e) => rt.report(e) });
+  const doctor = SA.missionDoctor.create({ missions, audio: { say: (k) => said.push(k) }, track: (t, f) => tracked.push([t, f]), report: (e) => rt.report(e),
+    now: () => clock.t, later: (fn, ms) => queued.push([fn, ms]) });
   rt = SA.missionRuntime.create({ missions, thing: doctor, spawn: null, celebrate: (r) => cheers.push(r), track: (t, f) => tracked.push([t, f]) });
   SA.audio = { say: (k) => said.push(k) };
-  return { SA, missions, doctor, rt, said, tracked, cheers };
+  return { SA, missions, doctor, rt, said, tracked, cheers, clock, queued };
 }
 
 function startDoctor(ctx) {
@@ -32,14 +33,18 @@ function startDoctor(ctx) {
 const at = (o) => ({ x: o.x, z: o.z, y: o.y, heading: 0 });
 const step = (ctx) => ctx.missions.active().stepData.kind;
 
-test('data: mission 5 follows mission 4, a one-line intro of <= 4 words, steps touch, pick up, fill, deliver; it validates', () => {
+test('data: mission 5 follows mission 4, a one-line intro of <= 4 words, steps in order: check, water, medicine, shade; it validates', () => {
   const { SA } = setup();
   const m = SA.data.all('missions')[4];
   assert.equal(m.n, 5);
   assert.equal(m.id, 'doctor');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
   assert.equal(m.intro.es, '¡El camello está enfermo!');
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['touch', 'carry', 'fill', 'deliver']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind + ':' + (s.item || s.part))),
+    ['touch:frente', 'carry:cubo', 'fill:cubo', 'deliver:cubo', 'carry:medicina', 'deliver:medicina', 'carry:sombrilla', 'deliver:sombrilla']);
+  assert.equal(SA.data.get('props', m.doctor.shade).builder, 'umbrella');   // the umbrella is a registered prop row
+  for (const k of ['thing:medicina', 'thing:sombra', 'thing:sombrilla', 'phrase:mananamejor']) assert.ok(SA.vocab.get(k), k);
+  assert.match(SA.vocab.get('phrase:mananamejor').es, /Mañana/);
   assert.deepEqual([m.steps[0].animal, m.steps[0].part, m.doctor.part, m.doctor.item], ['camello', 'frente', 'frente', 'cubo']);
   m.steps.forEach((s) => assert.ok(s.line.es.split(/\s+/).length <= 4));
   SA.missionRun.validate(m.steps);
@@ -123,13 +128,143 @@ test('the whole mission in order: touch la frente (tiene fiebre) -> bucket -> fi
   rt.update({ x: cur.animal.x + 20, z: cur.animal.z });
   assert.equal(step(ctx), 'deliver');
   const res = rt.update(at(cur.animal));
-  assert.equal(res.status, 'complete');
+  assert.equal(res.status, 'step', 'the water is not the end any more: the medicine comes next');
   assert.equal(SA.carry.holds('cubo'), false);
+  assert.equal(ctx.cheers.length, 0);
+  assert.equal(step(ctx), 'carry');
+  doctor.update(at(cur.animal));
+  assert.equal(cur.phase, 'given');
+  assert.ok(said.filter((k) => k === 'thing:agua').length >= 2, 'the give speech fires');
+});
+
+// Walk the bucket part (touch, pick up, fill, deliver) so the mission stands on the medicine step.
+function giveWater(ctx) {
+  const { doctor, rt } = ctx, cur = doctor.current();
+  doctor.touch(at(cur.animal), 'frente');
+  rt.update(at(cur.bucket));
+  rt.update({ x: cur.pool.x + cur.pool.r + 1, z: cur.pool.z });
+  rt.update(at(cur.animal));
+  doctor.update(at(cur.animal));
+  return cur;
+}
+
+test('order: the medicine cannot be taken before the water, the umbrella not before the medicine', () => {
+  const ctx = startDoctor(setup());
+  const { doctor, rt, SA } = ctx, cur = doctor.current();
+  const med = cur.stock.medicine, shade = cur.stock.shade;
+  // On the touch step standing at the bench picks up nothing.
+  rt.update(at(med));
+  rt.update(at(shade));
+  assert.equal(med.phase, 'shelf');
+  assert.equal(shade.phase, 'shelf');
+  assert.equal(SA.carry.holds('medicina'), false);
+  // Events for later steps are ignored while an earlier step is current.
+  for (const ev of [{ type: 'carried', item: 'medicina' }, { type: 'delivered', item: 'medicina', to: 'camello' }, { type: 'carried', item: 'sombrilla' },
+    { type: 'delivered', item: 'sombrilla', to: 'camello' }]) { assert.equal(rt.report(ev).status, 'ignored'); assert.equal(step(ctx), 'touch'); }
+  doctor.touch(at(cur.animal), 'frente');
+  rt.update(at(med));                          // on the bucket steps the bench still gives nothing
+  assert.equal(med.phase, 'shelf');
+  rt.update(at(cur.bucket));
+  assert.equal(step(ctx), 'fill');
+  rt.update(at(med));
+  assert.equal(med.phase, 'shelf');
+  rt.update({ x: cur.pool.x + cur.pool.r + 1, z: cur.pool.z });
+  rt.update(at(med));                          // water not yet given
+  assert.equal(med.phase, 'shelf');
+  assert.equal(step(ctx), 'deliver');
+  rt.update(at(cur.animal));                   // water given
+  assert.equal(step(ctx), 'carry');
+  // Medicine step: the umbrella still stays on the bench.
+  rt.update(at(shade));
+  assert.equal(shade.phase, 'shelf');
+  assert.equal(SA.carry.holds('sombrilla'), false);
+  assert.equal(rt.report({ type: 'carried', item: 'sombrilla' }).status, 'ignored');
+  rt.update(at(med));
+  assert.equal(med.phase, 'held');
+  assert.equal(step(ctx), 'deliver');
+  rt.update(at(shade));                        // holding the medicine: the umbrella is not picked up on a deliver step
+  assert.equal(shade.phase, 'shelf');
+  assert.equal(rt.report({ type: 'delivered', item: 'sombrilla', to: 'camello' }).status, 'ignored');
+  assert.equal(step(ctx), 'deliver');
+});
+
+test('medicine: taken from the station bench, spoken (la medicina), given to the camel; the compass leads there', () => {
+  const ctx = startDoctor(setup());
+  const { doctor, rt, said, SA } = ctx, cur = giveWater(ctx);
+  const L = SA.station.layout();
+  assert.ok(Math.abs(cur.stock.medicine.z - L.bench.z) < 0.01, 'the medicine lies on the bench');
+  assert.deepEqual([rt.target().role, rt.target().id], ['item', 'medicina']);
+  assert.equal(Math.round(rt.target().x * 100), Math.round(cur.stock.medicine.x * 100));
+  rt.update(at(cur.animal));                   // far from the bench
+  assert.equal(step(ctx), 'carry');
+  rt.update(at(cur.stock.medicine));
+  assert.ok(said.includes('thing:medicina'), 'la medicina is spoken when taken');
+  assert.equal(SA.carry.holds('medicina'), true);
+  assert.equal(step(ctx), 'deliver');
+  assert.equal(rt.target().id, 'camello');
+  rt.update({ x: cur.animal.x + 20, z: cur.animal.z });
+  assert.equal(step(ctx), 'deliver');
+  const n = said.filter((k) => k === 'thing:medicina').length;
+  assert.equal(rt.update(at(cur.animal)).status, 'step');
+  doctor.update(at(cur.animal));
+  assert.equal(doctor.view().med, 'given');
+  assert.equal(said.filter((k) => k === 'thing:medicina').length, n + 1, 'la medicina is spoken again when given');
+  assert.equal(doctor.view().rested, false, 'no rest before the shade');
+  assert.equal(step(ctx), 'carry');
+  assert.deepEqual([rt.target().role, rt.target().id], ['item', 'sombrilla']);
+});
+
+test('shade: the umbrella goes up beside the camel (la sombra), it lies down and says it will be better mañana; the scene lingers then clears', () => {
+  const ctx = startDoctor(setup());
+  const { doctor, rt, said, SA, clock, queued } = ctx, cur = giveWater(ctx);
+  rt.update(at(cur.stock.medicine));
+  rt.update(at(cur.animal));
+  doctor.update(at(cur.animal));
+  rt.update(at(cur.stock.shade));
+  assert.ok(said.includes('thing:sombrilla'));
+  assert.equal(step(ctx), 'deliver');
+  assert.equal(doctor.view().rested, false);
+  assert.equal(said.includes('thing:sombra'), false);
+  const res = rt.update(at(cur.animal));
+  assert.equal(res.status, 'complete', 'the umbrella is the last step');
   assert.equal(ctx.cheers.length, 1);
-  assert.equal(SA.save.get().missions.done.includes('doctor') || JSON.stringify(SA.save.get().missions).includes('doctor'), true);
-  doctor.sync();                              // the next frame: the delivery is spoken, then everything is gone
-  assert.ok(said.filter((k) => k === 'thing:agua').length >= 2, 'the give speech fires once the mission ends');
+  assert.equal(JSON.stringify(SA.save.get().missions).includes('doctor'), true);
+  doctor.update(at(cur.animal));               // the next frame
+  const v = doctor.view();
+  assert.equal(v.rested, true);
+  assert.equal(v.shade, 'given');
+  assert.ok(Math.hypot(v.umbrella.x - cur.animal.x, v.umbrella.z - cur.animal.z) < 2.5, 'the umbrella stands next to the camel');
+  assert.ok(Math.hypot(v.umbrella.x - cur.animal.x, v.umbrella.z - cur.animal.z) > 0.5);
+  assert.ok(said.includes('thing:sombra'), 'la sombra is spoken');
+  assert.equal(said.includes('phrase:mananamejor'), false, 'the line follows la sombra');
+  queued.forEach(([fn]) => fn());
+  assert.deepEqual(said.slice(-2), ['thing:sombra', 'phrase:mananamejor']);
+  assert.ok(SA.vocab.get('phrase:mananamejor').es.includes('Mañana'));
+  assert.equal(SA.carry.holds('sombrilla'), false);
+  assert.ok(doctor.current(), 'the resting camel stays a while after the mission ended');
+  clock.t += 5000;
+  doctor.sync();
+  assert.ok(doctor.current());
+  clock.t += 6000;
+  doctor.sync();
   assert.equal(doctor.current(), null);
+  assert.equal(doctor.view().rested, false);
+});
+
+test('a reload on the medicine or umbrella delivery step puts the item back in hand; past the water the bucket is not left at the pool', () => {
+  const ctx = startDoctor(setup());
+  const { doctor, missions, SA } = ctx;
+  for (let i = 0; i < 5; i++) missions.advance();       // now on 'deliver medicina'
+  assert.equal(step(ctx), 'deliver');
+  doctor.update(at(doctor.current().animal));
+  assert.equal(doctor.view().med, 'held');
+  assert.equal(SA.carry.holds('medicina'), true);
+  assert.equal(doctor.view().phase, 'given', 'the bucket rests by the camel');
+  missions.advance(); missions.advance();               // 'deliver sombrilla'
+  SA.carry.drop();
+  doctor.update(at(doctor.current().animal));
+  assert.equal(SA.carry.holds('sombrilla'), true);
+  assert.equal(doctor.view().med, 'given');
 });
 
 test('a reload on the fill or deliver step puts the bucket back in hand (never stuck)', () => {

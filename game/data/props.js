@@ -49,6 +49,7 @@
     prop('roca', '🪨', 'la roca', 'rock', 1, 'rock', ['bosque', 'selva', 'desierto', 'montana'], 'land', 1.5, true),
     prop('arbol', '🌳', 'el árbol', 'tree', 2, 'tree', both, 'land', 1.5, true),
     prop('charca', '💧', 'la charca', 'pond', 3, 'pond', both, 'land', 2.4, true),
+    prop('sombrilla', '⛱️', 'la sombrilla', 'umbrella', 2, 'umbrella', ['desierto'], 'land', 0.9, true),   // AS-0332: also the shade Mission 5 puts by the camel
     prop('puente', '🌉', 'el puente', 'bridge', 3, 'bridge', ['bosque'], 'shore', 2.2, false)   // walkable (SA.surfaces, AS-0158): never a solid blocker
   ];
 

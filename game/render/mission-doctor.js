@@ -47,6 +47,22 @@
     return g;
   }
 
+  // The medicine (AS-0332): a small glass bottle with a red cross, lying on the station bench until it is picked up.
+  function medicineModel(THREE) {
+    var g = new THREE.Group();
+    var body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.5, 8), flat(THREE, GLASS));
+    body.position.y = 0.25;
+    var cap = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.12, 8), flat(THREE, MERCURY));
+    cap.position.y = 0.56;
+    var bar = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.07, 0.04), new THREE.MeshBasicMaterial({ color: MERCURY }));
+    bar.position.set(0, 0.25, 0.2);
+    var bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.26, 0.04), new THREE.MeshBasicMaterial({ color: MERCURY }));
+    bar2.position.set(0, 0.25, 0.2);
+    g.add(body, cap, bar, bar2);
+    g.scale.set(1.5, 1.5, 1.5);
+    return g;
+  }
+
   SA.render.createMissionDoctor = function (THREE, opts) {
     var thing = opts.thing || SA.missionDoctor;
     if (opts.solids && thing.setSolids) thing.setSolids(opts.solids);
@@ -55,6 +71,7 @@
     group.name = 'missionDoctor';
     opts.scene.add(group);
     var key = null, animal = null, bucket = null, thermo = null, pick = null, headTop = 3, t = 0;
+    var medicine = null, umbrella = null, lie = 0;
 
     function headOf(node) {
       var found = null;
@@ -65,7 +82,8 @@
 
     function rebuild(cur) {
       while (group.children.length) group.remove(group.children[0]);
-      animal = bucket = thermo = pick = null;
+      animal = bucket = thermo = pick = medicine = umbrella = null;
+      lie = 0;
       if (!cur) return;
       animal = build(SA.data.get('animals', cur.animal.id), cur.animal);
       animal.rotation.order = 'YXZ';       // droop about the animal's own side axis, whatever way it faces
@@ -88,6 +106,29 @@
       thermo = thermometerModel(THREE);
       bucket = bucketModel(THREE);
       group.add(animal, thermo, bucket);
+      var shape = SA.render.propBuilders && SA.render.propMaterials ? SA.render.propBuilders.umbrella : null;   // the umbrella is the sandbox prop (data row 'sombrilla')
+      if (cur.stock && cur.stock.medicine) { medicine = medicineModel(THREE); group.add(medicine); }
+      if (cur.stock && cur.stock.shade && shape) { umbrella = shape(THREE, SA.render.propMaterials(THREE)); group.add(umbrella); }
+    }
+
+    // The medicine and the umbrella: on the station bench, in front of the kid while held, then (the umbrella) standing beside the animal.
+    function placeStock(cur, v, p) {
+      function carried(o, s) {
+        o.position.set(p.x + Math.sin(p.heading || 0) * HELD_FRONT, (p.y || 0) + (p.lift || 0) + HELD_UP + Math.sin(t * 5) * 0.03, p.z + Math.cos(p.heading || 0) * HELD_FRONT);
+        o.rotation.set(0, 0, 0); o.scale.set(s, s, s);
+      }
+      if (medicine) {
+        var m = cur.stock.medicine;
+        medicine.visible = v.med !== 'given';          // once given it is used up
+        if (v.med === 'held' && p) carried(medicine, 1.1);
+        else { medicine.position.set(m.x, m.y + Math.abs(Math.sin(t * 2)) * 0.03, m.z); medicine.rotation.set(0, t * 0.8, 0); medicine.scale.set(1.5, 1.5, 1.5); }
+      }
+      if (umbrella) {
+        var u = cur.stock.shade;
+        if (v.shade === 'given' && v.umbrella) { umbrella.position.set(v.umbrella.x, v.umbrella.y, v.umbrella.z); umbrella.rotation.set(0, 0, 0); umbrella.scale.set(1.2, 1.2, 1.2); }
+        else if (v.shade === 'held' && p) carried(umbrella, 0.3);
+        else { umbrella.position.set(u.x, u.y, u.z); umbrella.rotation.set(0, t * 0.8, 0); umbrella.scale.set(0.3, 0.3, 0.3); }
+      }
     }
 
     function update(dt, player) {
@@ -100,7 +141,9 @@
       var sway = Math.sin(t * 0.9);
       animal.rotation.x = v.phase === 'given' ? 0 : DROOP + sway * 0.015;    // nose down: poorly (perks up once it has its water)
       animal.rotation.y = animal.userData.baseRot + sway * 0.05;
-      animal.position.y = cur.animal.y - (v.phase === 'given' ? 0 : 0.06);
+      lie += ((v.rested ? 1 : 0) - lie) * Math.min(1, (dt || 0) * 2.5);   // AS-0332: under the umbrella it folds its legs and lies down to rest
+      animal.position.y = cur.animal.y - (v.phase === 'given' ? 0 : 0.06) - lie * 0.5;
+      animal.scale.y = 1 - lie * 0.3 + (lie > 0.9 ? Math.sin(t * 1.6) * 0.015 : 0);
       thermo.visible = v.sick && v.phase !== 'given';
       thermo.position.set(cur.animal.x, cur.animal.y + headTop + 0.8 + Math.sin(t * 2.2) * 0.1, cur.animal.z);
       thermo.rotation.y = t * 0.8;
@@ -115,6 +158,7 @@
         bucket.position.set(cur.bucket.x, cur.bucket.y + 0.05 + Math.abs(Math.sin(t * 2)) * 0.04, cur.bucket.z);
         bucket.rotation.set(0, t * 0.8, 0);
       }
+      placeStock(cur, v, p);
       return group;
     }
 

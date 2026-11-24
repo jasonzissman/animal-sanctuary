@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
-  'game/animal-plan.js', 'game/render/animals.js', 'game/render/mission-doctor.js'];
+  'game/data/vocab.js', 'game/data/props.js', 'game/render/props.js', 'game/animal-plan.js', 'game/render/animals.js', 'game/render/mission-doctor.js'];
 
 function world() {
   const ctx = vm.createContext({ console });
@@ -80,4 +80,27 @@ test('the forehead pick volume is an enlarged raycastable part pick: userData { 
   assert.equal(r2.tapAt(50, 50), true);
   assert.deepEqual(thing.touched, ['frente']);
   assert.equal(r2.tapAt(2, 2), false, 'a tap elsewhere touches nothing');
+});
+
+test('AS-0332: the medicine and umbrella sit on the bench, ride in hand, the umbrella stands beside the camel and the camel lies down', () => {
+  const { SA, THREE } = world();
+  const cur = { ...spot(), stock: { medicine: { id: 'medicina', x: 2, y: 0.5, z: 3 }, shade: { id: 'sombrilla', x: 3, y: 0.5, z: 3 } } };
+  const view = { sick: true, checked: true, phase: 'given', med: 'shelf', shade: 'shelf', rested: false, umbrella: null };
+  const thing = { current: () => cur, view: () => view, touch() {} };
+  const r = SA.render.createMissionDoctor(THREE, { scene: new THREE.Scene(), thing });
+  r.update(0.1);
+  assert.equal(r.group.children.length, 5, 'camel, thermometer, bucket, medicine, umbrella');
+  const [, , , med, umb] = r.group.children;
+  assert.deepEqual([med.position.x, med.position.z, umb.position.x, umb.position.z], [2, 3, 3, 3]);
+  const kid = { x: 8, z: 8, y: 1, heading: 0 };
+  view.med = 'held'; view.shade = 'held';
+  r.update(0.1, kid);
+  assert.ok(Math.abs(med.position.z - 8) < 1 && Math.abs(umb.position.x - 8) < 1, 'both ride in front of the kid');
+  view.med = 'given'; view.shade = 'given'; view.rested = true; view.umbrella = { x: 11, y: 1, z: 4 };
+  const y0 = r.animalNode().position.y;
+  for (let i = 0; i < 60; i++) r.update(0.1, kid);
+  assert.equal(med.visible, false, 'the medicine is used up');
+  assert.deepEqual([umb.position.x, umb.position.z], [11, 4]);
+  assert.ok(r.animalNode().position.y < y0 - 0.3 && r.animalNode().scale.y < 0.8, 'the camel lies down');
+  assert.equal(SA.render.propBuilders.umbrella(THREE, SA.render.propMaterials(THREE)).children.length >= 2, true);
 });

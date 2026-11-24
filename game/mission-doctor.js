@@ -15,7 +15,11 @@
  *                                  A reload resumes with the bucket in hand on the 'fill' / 'deliver' steps (the hand is not saved).
  *   SA.missionDoctor.touch(player, part?) a tap on the sick animal's pick volume (render/mission-doctor.js): on the 'touch' step and close
  *                                  enough it reports { type: 'touched', animal, part } and says `say.touch` -> { ok, reason? }
- *   SA.missionDoctor.view()        -> { sick, checked, phase } what the renderer shows (droopy pose, thermometer, water in the bucket)
+ *   SA.missionDoctor.view()        -> { sick, checked, phase, med, shade, rested, umbrella } what the renderer shows (droopy pose, thermometer,
+ *                                  water in the bucket, the medicine / umbrella on the station bench, the camel resting under the umbrella)
+ *   AS-0332 (slice 2): after the water the same steps go on in strict order (game/data/missions.js): carry the medicine from the station
+ *   bench, deliver it to the animal, carry the umbrella from the bench, deliver it: it stands beside the animal (la sombra), the animal
+ *   lies down and rests and says one line (`say.rest`, '¡Mañana estaré mejor!'). The scene lingers ~9 s after the mission ends.
  *   SA.missionDoctor.locate(id)    -> { x, z, r } | null   the animal (for the 'deliver' step) or the loose bucket
  *   SA.missionDoctor.target(step)  -> { x, z, role, id } | null   compass: the animal (touch / deliver), the bucket (carry), the pool (fill)
  *   SA.missionDoctor.current() / onChange(fn) / setSolids(listOrFn) / create({ missions?, carry?, audio?, report?, track?, solids? })
@@ -24,6 +28,7 @@
   'use strict';
   var SA = root.SA;
   var PICK_REACH = 2.0, FILL_REACH = 2.0, TOUCH_REACH = 4.2, GIVE_REACH = 3.4, ANIMAL_RING_MIN = 11, ANIMAL_RING_MAX = 17, EDGE = 4, TRIES = 500;
+  var BENCH_TOP = 0.55, SHADE_SIDE = 1.5, LINGER_MS = 9000;    // the bench top height, umbrella offset, how long the resting camel stays after the mission ends
 
   function oasisOf() {
     var o = SA.desertPlan && SA.desertPlan.get ? SA.desertPlan.get().oasis : null;
@@ -42,6 +47,22 @@
     return true;
   }
 
+  // The medicine and the umbrella lie on the station's bench (AS-0332): two spots side by side, on the bench top.
+  function shelfOf(spec) {
+    var L = SA.station && SA.station.layout ? SA.station.layout() : null, out = {};
+    if (!L || !L.bench) return out;
+    [spec.medicine, spec.shade].forEach(function (id, i) {
+      if (id) out[id] = { id: id, x: L.bench.x + (i ? 0.45 : -0.45) * (L.bench.w / 1.7), z: L.bench.z, y: L.floorY + BENCH_TOP };
+    });
+    return out;
+  }
+
+  // Where the umbrella stands: just beside the animal (to its side, whichever way it faces).
+  function shadeSpot(animal) {
+    var r = animal.rotY || 0, x = animal.x + Math.cos(r) * SHADE_SIDE, z = animal.z - Math.sin(r) * SHADE_SIDE;
+    return { x: x, z: z, y: SA.map ? SA.map.groundHeight(x, z) : animal.y };
+  }
+
   function place(spec, seed, opts) {
     var M = SA.map, pool = spec && M ? oasisOf() : null, sick = spec && SA.data.get('animals', spec.animal);
     if (!pool || !sick) return null;
@@ -58,7 +79,7 @@
       var ang = rand() * Math.PI * 2, rr = ANIMAL_RING_MIN + rand() * (ANIMAL_RING_MAX - ANIMAL_RING_MIN);
       var x = pool.x + Math.cos(ang) * rr, z = pool.z + Math.sin(ang) * rr;
       if (!dryOk(x, z, sick.biome, solids)) continue;
-      return { animal: at(sick.id, x, z, rand() * Math.PI * 2), bucket: bucket, pool: pool };
+      return { animal: at(sick.id, x, z, rand() * Math.PI * 2), bucket: bucket, pool: pool, shelf: shelfOf(spec) };
     }
     return null;
   }
@@ -77,6 +98,8 @@
     function report(ev) { return opts.report ? opts.report(ev) : (SA.missionRuntime ? SA.missionRuntime.report(ev) : { status: 'none' }); }
     function stepOf() { var a = null; try { a = missions().active(); } catch (e) { a = null; } return a && a.stepData; }
     function sayOf(k) { return cur && cur.spec.say ? cur.spec.say[k] : null; }
+    function now() { return opts.now ? opts.now() : Date.now(); }
+    function later(fn, ms) { return opts.later ? opts.later(fn, ms) : root.setTimeout(fn, ms); }
     function hold(phase) { cur.phase = phase; emit(); }
     function given() {
       cur.phase = 'given';
@@ -84,19 +107,70 @@
       track('doctor.give', { animal: cur.animal.id });
     }
 
+    // Step order of the whole mission: touch 0, bucket 1-3, medicine 4-5 (carry, deliver), umbrella 6-7. Used to settle a reload.
+    function rank(s) {
+      var sp = cur.spec;
+      if (!s) return -1;
+      if (sp.medicine && s.item === sp.medicine) return s.kind === 'deliver' ? 5 : 4;
+      if (sp.shade && s.item === sp.shade) return s.kind === 'deliver' ? 7 : 6;
+      return 0;
+    }
+
+    function speak(words) {
+      var seq = opts.wordSeq || SA.wordSeq, a = audio();
+      words = words.filter(Boolean);
+      try {
+        if (seq && seq.play && a && a.say) seq.play(words, { say: function (k, done) { return a.say(k, done); }, later: later });
+        else words.forEach(function (k, i) { if (i) later(function () { say(k); }, i * 1400); else say(k); });
+      } catch (e) { /* sound is best effort */ }
+    }
+
+    // The medicine or the umbrella was dropped at the animal. The medicine is just spoken; the umbrella goes up beside the animal (la sombra),
+    // the animal lies down and rests, and says in one short line that it will be better mañana.
+    function handed(role) {
+      var it = cur.stock[role];
+      it.phase = 'given';
+      if (role === 'medicine') {
+        say(sayOf('med'));
+        track('doctor.medicine', { animal: cur.animal.id });
+      } else {
+        cur.umbrella = shadeSpot(cur.animal);
+        cur.rested = true;
+        speak([sayOf('shade'), sayOf('rest')]);
+        track('doctor.rest', { animal: cur.animal.id });
+      }
+      emit();
+    }
+
+    function stockHeld() { return cur && Object.keys(cur.stock).some(function (r) { return cur.stock[r].phase === 'held'; }); }
+
     function sync(o) {
       var a = null;
       try { a = missions().active(); } catch (e) { a = null; }
       var spec = a && a.mission && a.mission.doctor;
       var key = spec ? a.id + ':' + a.seed : null;
       if ((cur && cur.key) === key) return cur;
-      if (cur && cur.phase === 'full' && !carry().holds(cur.spec.item)) given();   // delivered on the very step that ended the mission
-      else if (cur && (cur.phase === 'held' || cur.phase === 'full')) { try { carry().drop(); } catch (e) { /* nothing to drop */ } }
+      if (cur && !carry().holds(cur.spec.item) && cur.phase === 'full') given();   // delivered on the very step that ended the mission
+      if (cur) Object.keys(cur.stock).forEach(function (r) { if (cur.stock[r].phase === 'held' && !carry().holds(cur.stock[r].id)) handed(r); });
+      if (cur && cur.rested && !spec) {                    // the camel keeps resting under its umbrella a while after the mission ended
+        if (!cur.until) cur.until = now() + LINGER_MS;
+        if (now() < cur.until) return cur;
+      }
+      if (cur && (cur.phase === 'held' || cur.phase === 'full' || stockHeld())) { try { carry().drop(); } catch (e) { /* nothing to drop */ } }
       var src = (o && o.solids) || solidsSrc;
       var spots = spec ? place(spec, a.seed, { solids: typeof src === 'function' ? src() : src || [] }) : null;
-      cur = spots ? { key: key, spec: spec, animal: spots.animal, bucket: spots.bucket, pool: spots.pool, phase: 'ground', checked: false } : null;
+      cur = spots ? { key: key, spec: spec, animal: spots.animal, bucket: spots.bucket, pool: spots.pool, phase: 'ground', checked: false,
+        stock: stockOf(spec, spots.shelf), umbrella: null, rested: false } : null;
       emit();
       return cur;
+    }
+
+    function stockOf(spec, shelf) {
+      var out = {};
+      [['medicine', spec.medicine], ['shade', spec.shade]].forEach(function (p) {
+        if (p[1] && shelf && shelf[p[1]]) out[p[0]] = { id: p[1], x: shelf[p[1]].x, z: shelf[p[1]].z, y: shelf[p[1]].y, phase: 'shelf' };
+      });
+      return out;
     }
 
     function update(player, o) {
@@ -105,6 +179,18 @@
       if (!cur) return null;
       var s = stepOf(), item = cur.spec.item, c = carry();
       if (s && s.kind !== 'touch') cur.checked = true;      // the fever was found (a reload past the touch step keeps the thermometer up)
+      var rk = rank(s), stk = cur.stock;
+      if (cur.phase === 'ground' && rk >= 4) cur.phase = 'given';                       // a reload past the water: the bucket rests by the animal
+      if (stk.medicine && stk.medicine.phase === 'shelf' && rk >= 6) stk.medicine.phase = 'given';
+      Object.keys(stk).forEach(function (role) {            // the medicine and the umbrella on the station bench
+        var it = stk[role], c = carry();
+        if (it.phase === 'held' && !c.holds(it.id)) handed(role);
+        else if (it.phase === 'shelf' && s && s.item === it.id && s.kind === 'deliver') {
+          if (c.pickUp(it.id, {})) { it.phase = 'held'; emit(); track('doctor.resume', { item: it.id }); }   // resumed: back in hand (AS-0238)
+        } else if (it.phase === 'shelf' && player && s && s.item === it.id && s.kind === 'carry' && Math.hypot(player.x - it.x, player.z - it.z) <= PICK_REACH) {
+          if (c.pickUp(it.id, {})) { it.phase = 'held'; emit(); say('thing:' + it.id); track('doctor.pickup', { item: it.id }); }
+        }
+      });
       if (cur.phase === 'ground' && s && (s.kind === 'fill' || s.kind === 'deliver') && s.item === item) {
         // Resumed (a reload) after the bucket was picked up: the hand is not saved, so it is back in hand at once (never stuck, AS-0238).
         if (c.pickUp(item, {})) { hold(s.kind === 'deliver' ? 'full' : 'held'); track('doctor.resume', { item: item }); }
@@ -139,7 +225,13 @@
       return { ok: true };
     }
 
-    function view() { return cur ? { sick: true, checked: cur.checked, phase: cur.phase } : { sick: false, checked: false, phase: 'none' }; }
+    // med / shade: 'shelf' (on the station bench) | 'held' | 'given' (the umbrella then stands at `umbrella`), '' when the mission has none
+    function view() {
+      if (!cur) return { sick: false, checked: false, phase: 'none', med: '', shade: '', rested: false, umbrella: null };
+      var st = cur.stock;
+      return { sick: true, checked: cur.checked, phase: cur.phase, med: st.medicine ? st.medicine.phase : '', shade: st.shade ? st.shade.phase : '',
+        rested: cur.rested, umbrella: cur.umbrella };
+    }
 
     function locate(id) {
       if (!cur) return null;
@@ -152,6 +244,10 @@
       if (!cur || !step) return null;
       if ((step.kind === 'touch' && step.animal === cur.animal.id) || (step.kind === 'deliver' && step.to === cur.animal.id)) return { x: cur.animal.x, z: cur.animal.z, role: 'animal', id: cur.animal.id };
       if (step.kind === 'carry' && step.item === cur.spec.item && cur.phase === 'ground') return { x: cur.bucket.x, z: cur.bucket.z, role: 'item', id: cur.spec.item };
+      if (step.kind === 'carry') {                            // the medicine / umbrella on the station bench
+        var it = (cur.stock.medicine && cur.stock.medicine.id === step.item && cur.stock.medicine) || (cur.stock.shade && cur.stock.shade.id === step.item && cur.stock.shade);
+        if (it && it.phase === 'shelf') return { x: it.x, z: it.z, role: 'item', id: it.id };
+      }
       if (step.kind === 'fill' && step.item === cur.spec.item) return { x: cur.pool.x, z: cur.pool.z, role: 'water', id: 'pool' };
       return null;
     }

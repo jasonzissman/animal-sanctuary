@@ -54,6 +54,13 @@
       g.add(mesh(THREE, new THREE.CylinderGeometry(1.35, 1.35, 0.14, 8), m.water, 0, 0.09, 0));
       return g;
     },
+    umbrella: function (THREE, m) {      // AS-0332: a pole and a striped cone canopy (Mission 5's shade for the camel)
+      var g = new THREE.Group();
+      g.add(mesh(THREE, new THREE.CylinderGeometry(0.05, 0.05, 2.2, 5), m.wood, 0, 1.1, 0));
+      g.add(mesh(THREE, new THREE.ConeGeometry(1.7, 0.6, 8), m.bloom[0], 0, 2.35, 0));
+      g.add(mesh(THREE, new THREE.CylinderGeometry(1.72, 1.72, 0.08, 8), m.bloom[2], 0, 2.07, 0));   // a pale rim under the canopy
+      return g;
+    },
     bridge: function (THREE, m) {
       var g = new THREE.Group();
       // Deck top 0.27 and half-size 1.925 x 1.3 match SA.surfaces.propDeck (the avatar walks on it, the rails block).

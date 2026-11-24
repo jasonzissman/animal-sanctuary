@@ -450,7 +450,13 @@ current; when your change sets or changes something future tickets must follow, 
   the baby's tap) calls `SA.missionDoctor.touch`, which needs the kid within 4.2 (else "¡Acércate!") and speaks `say.touch`
   ('tiene fiebre'). Walking up picks the bucket up (SA.carry slot), walking to the pool holding it fills it (`say.fill` 'el agua'), and
   `SA.carry.deliver` drops it at the camel. A reload on fill / deliver puts the bucket back in hand. The renderer shows the droopy
-  nose-down pose, a bobbing thermometer and blue water in the held bucket. Later slices add the care steps and the recovery.
+  nose-down pose, a bobbing thermometer and blue water in the held bucket.
+  **Slice 2 (AS-0332):** after the water, strictly in order (`SA.missionRun` is sequential; `SA.missionDoctor` also only picks an item up
+  on its own carry step): `carry` 'medicina' (on the station bench, spoken 'la medicina') → `deliver` to the camel → `carry` 'sombrilla'
+  (also on the bench) → `deliver` it. `doctor.medicine` / `doctor.shade` name the two items, `say.med` / `say.shade` / `say.rest` their
+  vocab. Delivering the umbrella stands it beside the camel (the sandbox prop row `sombrilla`, builder `umbrella`, shown by the doctor
+  renderer), the camel lies down, 'la sombra' then '¡Mañana estaré mejor!' are spoken in sequence (`SA.wordSeq`), and the resting scene
+  lingers ~9 s after the mission completes (the umbrella is the last step for now; slice 3 adds the finale).
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

@@ -175,7 +175,9 @@ test('talking to the scientist gives the crown (spoken + cheered) and completes 
   assert.equal(ctx.rt.report({ type: 'talked', who: 'scientist' }).status, 'step');
   assert.equal(ctx.rt.report({ type: 'invited', animal: 'conejo' }).status, 'step');
   assert.equal(ctx.rt.report({ type: 'invited', animal: 'ciervo' }).status, 'step');
-  const r = ctx.rt.report({ type: 'arrived', place: 'arbol-mono' });
+  assert.equal(ctx.rt.report({ type: 'arrived', place: 'arbol-mono' }).status, 'step');
+  assert.equal(ctx.rt.report({ type: 'partied', place: 'arbol-mono' }).status, 'step');
+  const r = ctx.rt.report({ type: 'photo', target: 'mono' });
   assert.equal(r.status, 'complete');
   assert.equal(r.id, 'fiesta');
   assert.equal(r.firstTime, true);
@@ -194,6 +196,7 @@ test('a replay scatters fresh bananas and gives no second reward', () => {
   for (let i = 0; i < 3; i++) ctx.rt.report({ type: 'collected', item: 'platano' });
   ctx.rt.report({ type: 'talked', who: 'scientist' });
   ctx.rt.report({ type: 'invited', animal: 'conejo' }); ctx.rt.report({ type: 'invited', animal: 'ciervo' }); ctx.rt.report({ type: 'arrived', place: 'arbol-mono' });
+  ctx.rt.report({ type: 'partied', place: 'arbol-mono' }); ctx.rt.report({ type: 'photo', target: 'mono' });
   const r = ctx.missions.start('fiesta');
   assert.equal(r.replay, true);
   ctx.bananas.sync();
@@ -201,7 +204,8 @@ test('a replay scatters fresh bananas and gives no second reward', () => {
   for (let i = 0; i < 3; i++) ctx.rt.report({ type: 'collected', item: 'platano' });
   ctx.rt.report({ type: 'talked', who: 'scientist' });
   ctx.rt.report({ type: 'invited', animal: 'conejo' }); ctx.rt.report({ type: 'invited', animal: 'ciervo' });
-  const done = ctx.rt.report({ type: 'arrived', place: 'arbol-mono' });
+  ctx.rt.report({ type: 'arrived', place: 'arbol-mono' }); ctx.rt.report({ type: 'partied', place: 'arbol-mono' });
+  const done = ctx.rt.report({ type: 'photo', target: 'mono' });
   assert.equal(done.status, 'complete');
   assert.equal(done.firstTime, false);
   assert.equal(done.reward, null);

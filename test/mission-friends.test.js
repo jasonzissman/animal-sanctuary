@@ -47,7 +47,7 @@ function walkTo(ctx, player, x, z, speed = 4) {
 test('data: the mission goes crown -> invite two friends -> goTo the monkey tree, one short line each, valid step kinds', () => {
   const { SA } = setup();
   const m = SA.data.all('missions')[3];
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['collect', 'talk', 'invite', 'invite', 'goTo']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['collect', 'talk', 'invite', 'invite', 'goTo', 'party', 'photo']);
   assert.deepEqual(Array.from(m.steps.slice(2, 4).map((s) => s.animal)), Array.from(m.friends.animals));
   assert.equal(m.steps[4].place, m.friends.tree);
   m.steps.forEach((s) => assert.ok(s.line.es.split(/\s+/).length <= 4, s.line.es));
@@ -183,7 +183,7 @@ test('arriving at the monkey tree: advances only with both friends there; alone 
   let res = null;
   for (let i = 0; i < 300 && (!res || res.status === 'none'); i++) { ctx.friends.step(DT, p, []); res = ctx.rt.update(p); }
   assert.ok(res && (res.status === 'complete' || res.status === 'step'), JSON.stringify(res));
-  assert.equal(ctx.missions.status('fiesta'), 'done');
+  assert.equal(ctx.missions.active().stepData.kind, 'party');       // the party (AS-0328) comes next; test/mission-party.test.js
 });
 
 test('a reload on the goTo step keeps both friends invited and the mission clears them when it ends', () => {
@@ -198,6 +198,26 @@ test('a reload on the goTo step keeps both friends invited and the mission clear
   ctx.missions.complete();
   assert.equal(ctx.friends.sync(), null);
   assert.equal(ctx.friends.step(DT, { x: 0, z: 0 }, []), null);
+});
+
+test('the party (AS-0328): from the party step the friends stop following, gather round the tree facing it and dance', () => {
+  const ctx = startAtInvites(setup());
+  const cur = ctx.friends.current(), [a, b] = cur.friends, tree = cur.tree;
+  ctx.friends.update(at(a)); ctx.friends.update(at(b));
+  const p = { x: b.x, z: b.z, heading: 0, lift: 0 };
+  walkTo(ctx, p, tree.x - 1.5, tree.z - 1.5);
+  for (let i = 0; i < 300 && ctx.missions.active().stepData.kind === 'goTo'; i++) { ctx.friends.step(DT, p, []); ctx.rt.update(p); }
+  assert.equal(ctx.missions.active().stepData.kind, 'party');
+  let views = null;
+  const far = { x: tree.x - 30, z: tree.z, heading: 0, lift: 0 };            // the player wanders off: they stay at the party
+  for (let i = 0; i < 150; i++) views = ctx.friends.step(DT, far, []);
+  views.forEach((v) => {
+    assert.equal(v.dancing, true);
+    assert.ok(Math.abs(Math.hypot(v.x - tree.x, v.z - tree.z) - 2.7) < 0.2, 'in a ring round the tree');
+    const face = Math.atan2(tree.x - v.x, tree.z - v.z);
+    assert.ok(Math.abs(Math.atan2(Math.sin(v.heading - face), Math.cos(v.heading - face))) < 0.01, 'facing the tree');
+  });
+  assert.ok(Math.hypot(views[0].x - views[1].x, views[0].z - views[1].z) > 2, 'not on top of each other');
 });
 
 test('SA.follow.stepGroup: every follower trails the player and they keep apart', () => {

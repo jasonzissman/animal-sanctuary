@@ -11,8 +11,9 @@
  *   SA.missionFriends.sync(opts?)      the current { key, spec, friends, tree } | null; places on a new mission/seed, clears when none runs
  *   SA.missionFriends.update(player)   polled each frame (SA.missionRuntime calls it): walking up to the friend of the current 'invite'
  *                                      step reports { type: 'invited', animal }; the friend's word is spoken (one `say` key per invite)
- *   SA.missionFriends.step(dt, player, solids?) -> [{ id, x, z, heading, lift, moving, following, pop }] | null   moves the invited friends
- *                                      (the renderer draws these); the others stand where they were placed
+ *   SA.missionFriends.step(dt, player, solids?) -> [{ id, x, z, heading, lift, moving, following, pop, dancing }] | null   moves the invited
+ *                                      friends (the renderer draws these); the others stand where they were placed. While a 'party' or 'photo' step is
+ *                                      current (AS-0328, SA.missionParty) they stop following, gather round the tree facing it and `dancing` is true
  *   SA.missionFriends.locate(id)       -> { x, z, r } | null   the tree, but only while every friend is invited and near it
  *   SA.missionFriends.target(step, from?) -> { x, z, role, id } | null   compass: the friend of an 'invite' step, then the tree
  *   SA.missionFriends.invited(id)      true once that friend follows;  current() the state;  onChange(fn) -> unsubscribe
@@ -21,6 +22,7 @@
 (function (root) {
   'use strict';
   var SA = root.SA;
+  var PARTY_RING = 2.7, PARTY_ANGLE = 2.2, PARTY_STEP = 2.0;   // where the friends dance round the tree (AS-0328)
   var INVITE_REACH = 2.8, TREE_REACH = 3, GATHER = 6.5, APART = 8, EDGE = 4, TRIES = 800, MIN_FROM_START = 8, MAX_FROM_START = 55, SAY_DELAY_MS = 1700;
 
   function startPoint() {
@@ -102,6 +104,8 @@
     }
     function isInvited(a, fr) { var i = a ? inviteIndex(a, fr.id) : -1; return i >= 0 && i < a.step; }
     function pos(fr) { return fr.f || fr; }
+    // From the 'party' step on (AS-0328) the invited friends stay at the tree and dance instead of following.
+    function partying(a) { var s = a && a.stepData; return !!s && (s.kind === 'party' || s.kind === 'photo'); }
 
     function say(a, id) {
       var words = (cur && cur.spec.say) || [];
@@ -129,16 +133,23 @@
       sync();
       var a = active();
       if (!cur) return (last = null);
-      var group = [];
-      cur.friends.forEach(function (fr) {
+      var group = [], party = partying(a), t = cur.tree;
+      cur.friends.forEach(function (fr, i) {
         if (!fr.f && isInvited(a, fr)) fr.f = follower().create({ x: fr.x, z: fr.z, heading: fr.rotY });
-        if (fr.f && isInvited(a, fr)) group.push(fr.f);
+        if (fr.f && isInvited(a, fr) && !party) group.push(fr.f);
+        if (fr.f && party) {          // the party (AS-0328): they stop following, gather in a ring round the tree and face it
+          var ang = PARTY_ANGLE + i * PARTY_STEP, sx = t.x + Math.sin(ang) * PARTY_RING, sz = t.z + Math.cos(ang) * PARTY_RING, k = Math.min(1, (dt || 0) * 2.5);
+          var dx = sx - fr.f.x, dz = sz - fr.f.z;
+          fr.f.moving = Math.hypot(dx, dz) > 0.15;
+          fr.f.x += dx * k; fr.f.z += dz * k;
+          fr.f.heading = Math.atan2(t.x - fr.f.x, t.z - fr.f.z);
+        }
       });
       if (group.length && player) follower().stepGroup(group, player, typeof solids === 'function' ? solids() : solids || [], dt || 0);
       last = cur.friends.map(function (fr) {
         var p = pos(fr);
         return { id: fr.id, x: p.x, z: p.z, heading: fr.f ? fr.f.heading : fr.rotY, lift: fr.f ? fr.f.lift || 0 : 0, moving: !!(fr.f && fr.f.moving),
-          following: !!fr.f && isInvited(a, fr), pop: fr.f && fr.f.pop || null };
+          following: !!fr.f && isInvited(a, fr), pop: fr.f && fr.f.pop || null, dancing: party && !!fr.f };
       });
       return last;
     }

@@ -11,6 +11,10 @@
 
   var TRUNK = 0x7a5230, LEAF = 0x3f9b4a, LEAF2 = 0x55b85a, HOP = 0.12;
 
+  // The party dance (AS-0328): a happy bounce and a swinging half-turn, a little out of step for each animal.
+  function danceBob(t, i) { return Math.abs(Math.sin(t * 5 + i * 1.3)) * 0.45; }
+  function danceSpin(t, i) { return Math.sin(t * 2.4 + i) * 1.1; }
+
   function flat(THREE, c) { return new THREE.MeshPhongMaterial({ color: c, flatShading: true, shininess: 0 }); }
 
   function treeModel(THREE) {
@@ -33,11 +37,12 @@
     var group = new THREE.Group();
     group.name = 'missionFriends';
     opts.scene.add(group);
-    var key = null, nodes = {}, t = 0;
+    var key = null, nodes = {}, t = 0, monkey = null, monkeyBase = null;
 
     function rebuild(cur) {
       while (group.children.length) group.remove(group.children[0]);
       nodes = {};
+      monkey = null;
       if (!cur) return;
       var tree = treeModel(THREE);
       tree.position.set(cur.tree.x, cur.tree.y, cur.tree.z);
@@ -45,6 +50,8 @@
       if (cur.tree.monkey && SA.data.get('animals', cur.tree.monkey)) {
         var m = build(SA.data.get('animals', cur.tree.monkey), { id: cur.tree.monkey, x: cur.tree.x + 1.6, y: cur.tree.y, z: cur.tree.z + 0.4, rotY: Math.PI * 0.8 });
         group.add(m);
+        monkey = m;
+        monkeyBase = { x: m.position.x, y: m.position.y, z: m.position.z, rotY: m.rotation.y };
       }
       cur.friends.forEach(function (fr) {
         var n = build(SA.data.get('animals', fr.id), fr);
@@ -65,13 +72,23 @@
         if (!n) return;
         var y = SA.map ? SA.map.groundHeight(v.x, v.z) : 0;
         var bob = v.following ? (v.moving ? Math.abs(Math.sin(t * 12 + i)) * HOP : 0) + (v.lift || 0) : 0;
+        if (v.dancing) bob = danceBob(t, i);
         n.position.set(v.x, y + bob, v.z);
-        n.rotation.y = v.following ? v.heading : v.heading + Math.sin(t * 1.3 + i * 2) * 0.35;   // a waiting friend looks around for you
+        n.rotation.y = v.dancing ? v.heading + danceSpin(t, i) : v.following ? v.heading : v.heading + Math.sin(t * 1.3 + i * 2) * 0.35;   // a waiting friend looks around for you
+        n.scale.y = v.dancing ? 1 + Math.sin(t * 9 + i) * 0.05 : 1;
         if (v.pop && SA.audio) { try { SA.audio.sfx('sparkle'); } catch (e) { /* sound is best effort */ } }
       });
+      if (monkey) {                                   // the birthday monkey dances too while the party goes on (AS-0328)
+        var dancing = views.length > 0 && views.some(function (v) { return v.dancing; });
+        monkey.position.y = monkeyBase.y + (dancing ? danceBob(t, 5) * 1.2 : 0);
+        monkey.rotation.y = monkeyBase.rotY + (dancing ? danceSpin(t, 5) * 1.5 : 0);
+      }
       return group;
     }
 
-    return { group: group, update: update };
+    // The animals that a tap can photograph at the party: the monkey and the friends (their pick volumes).
+    function partyNodes() { return (monkey ? [monkey] : []).concat(Object.keys(nodes).map(function (k) { return nodes[k]; })); }
+
+    return { group: group, update: update, partyNodes: partyNodes };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

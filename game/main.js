@@ -97,6 +97,8 @@
         // The family photo at the hollow tree earned the mission 8 sticker (AS-0346).
         // The family photo at the build spot earned the mission 9 sticker (AS-0350).
         if (SA.missionHome) SA.missionHome.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
+        // The photo of the big tree at the end of the race earned the mission 10 sticker (AS-0354).
+        if (SA.missionRace) SA.missionRace.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
         if (SA.missionPantry) SA.missionPantry.onSticker =function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
         // Mission 7 census (AS-0341): a la cámara shot of an animal ticks the list (the trait word is spoken by SA.missionCensus); the finished list earns the sticker.
         if (SA.missionCensus) {

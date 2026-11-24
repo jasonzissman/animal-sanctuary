@@ -28,7 +28,7 @@
   'use strict';
   var SA = root.SA;
   var PICK_REACH = 1.6, APART = 9, EDGE = 4, TRIES = 400, MIN_FROM_START = 10, MAX_FROM_START = 42;
-  var RING_MIN = 8, RING_MAX = 16, RING_APART = 4, AVOID_GAP = 3.2;
+  var RING_MIN = 8, RING_MAX = 16, RING_APART = 4, AVOID_GAP = 3.2, RING_WIDEN = 16;
 
   function startPoint() {
     try { if (SA.station && SA.station.spawn) return SA.station.spawn(); } catch (e) { /* fall through */ }
@@ -55,10 +55,12 @@
     var solids = (opts && opts.solids) || [], S = startPoint(), anchor = opts && opts.anchor;
     var rand = M.rng(((typeof seed === 'number' ? seed : 1) >>> 0) + 7121 + (anchor ? itemSalt(spec.item) : 0));
     var out = [], apart = anchor ? RING_APART : APART;
-    for (var t = 0; t < TRIES && out.length < spec.n; t++) {
+    var tries = anchor ? TRIES * 3 : TRIES;
+    for (var t = 0; t < tries && out.length < spec.n; t++) {
       var x, z;
       if (anchor) {            // AS-0351: in a ring around the build spot (outside the family's corner, within a short walk)
-        var ang = rand() * Math.PI * 2, rad = RING_MIN + rand() * (RING_MAX - RING_MIN);
+        // A spot beside the river or a biome edge may have too few dry places in 8..16 m: the ring slowly widens (up to RING_WIDEN m) so no seed ever fails.
+        var ang = rand() * Math.PI * 2, rad = RING_MIN + rand() * (RING_MAX - RING_MIN + (t > TRIES / 2 ? RING_WIDEN * (t / tries) : 0));
         x = anchor.x + Math.cos(ang) * rad; z = anchor.z + Math.sin(ang) * rad;
         if (!dryOk(x, z, solids, range)) continue;
         if ((anchor.avoid || []).some(function (o) { return Math.hypot(o.x - x, o.z - z) < AVOID_GAP; })) continue;   // another kind's spot: no auto pick-up on the step change

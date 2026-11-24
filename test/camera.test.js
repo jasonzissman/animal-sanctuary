@@ -168,7 +168,7 @@ test('map: four biome strips, dry dunes and snowy peaks, river and pond are wate
     }
   }
   assert.ok(peak > 4, 'montaña has tall peaks');
-  assert.ok(dune > 1.2 && dune < 3.2, 'desierto has gentle dunes');
+  assert.ok(dune > 3 && dune < 5.5, 'desierto has big rolling dunes (AS-0307), well below the peaks');
   // river in the bosque, pond in the selva, ford across the river at the south end: biomeAt and isWater agree
   assert.equal(M.biomeAt(M.RIVER.centerX), 'bosque');
   assert.equal(M.biomeAt(M.POND.x), 'selva');

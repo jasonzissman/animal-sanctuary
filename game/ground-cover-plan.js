@@ -7,7 +7,7 @@
  *   SA.groundCoverPlan.plan(opts?)          -> [{ kind: 'grass'|'plant', plant?: plant id, biome, x, z, y, scale, rot, tone, rank }]  (opts.seed, default 7)
  *       Grass is placed first, so adding or editing plant data never moves a tuft.
  *       A jittered grid over each biome strip, so cover is even and identical on every load. Nothing lands in water, on the spawn
- *       clearing, on the station footprint or on a peak. `tone` 0..1 picks a colour across the palette, `rank` 0..1 is the entry's
+ *       clearing, on the station footprint, on a peak or on a forest dirt path (SA.forestPaths). `tone` 0..1 picks a colour across the palette, `rank` 0..1 is the entry's
  *       stable thinning key: it is kept while the player is closer than radius * (1 - rank), so density falls off with distance.
  *   SA.groundCoverPlan.makeGrid(entries)    -> grid (a coarse cell index over the entries, built once)
  *   SA.groundCoverPlan.select(grid, px, pz, radius, out) -> count; writes the entry indices to keep into the Int32Array `out`
@@ -56,11 +56,12 @@
     return { grass: [toHex(scaleBy(base, 0.72)), toHex(base), toHex(mix(scaleBy(base, 1.12), [255, 255, 255], 0.12))] };
   }
 
-  function usable(x, z) {
+  function usable(x, z, pad) {
     var M = SA.map;
     if (M.groundHeight(x, z) < M.WATER_LEVEL + DRY) return false;
     if (SA.player && SA.player.inSpawnZone(x, z)) return false;
     if (SA.station && SA.station.inFootprint(x, z, 1)) return false;
+    if (SA.forestPaths && SA.forestPaths.onPath(x, z, pad)) return false;   // bare dirt on the forest paths (AS-0300)
     if (SA.peaks) {
       for (var i = 0; i < SA.peaks.LIST.length; i++) {
         var p = SA.peaks.LIST[i];
@@ -85,7 +86,7 @@
     function put(kind, plant, biome, range) {
       return function (x, z) {
         var scale = range[0] + rand() * (range[1] - range[0]), rot = rand() * Math.PI * 2, tone = rand(), rank = rand();
-        if (!usable(x, z)) return;
+        if (!usable(x, z, plant ? 0.8 : 0.2)) return;
         var e = { kind: kind, biome: biome, x: x, z: z, y: M.groundHeight(x, z), scale: scale, rot: rot, tone: tone, rank: rank };
         if (plant) e.plant = plant;
         out.push(e);

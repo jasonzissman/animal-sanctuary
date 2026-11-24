@@ -82,6 +82,9 @@
     mix(o, SNOW, snow);
   }
 
+  // Forest path dirt (AS-0300): light tan in two tones blended by noise, lighter than the grass around it.
+  var FOREST_LO = -56, FOREST_HI = 0, DIRT_A = hex('#e2c797'), DIRT_B = hex('#d0b080');
+
   var STYLES = { bosque: forest, selva: jungle, desierto: desert, montana: mountain };
   var scratch = { r: 0, g: 0, b: 0 };
 
@@ -106,6 +109,15 @@
     if (!done) {
       for (i = 0; i < last; i++) if (x < strips[i].hi) break;
       paint(strips[i].id, x, z, height, seed, o);
+    }
+    if (SA.forestPaths && x < FOREST_HI + 3 && x > FOREST_LO - 3) {   // AS-0300: lighter dirt along the forest paths
+      var dirt = SA.forestPaths.strength(x, z);
+      if (dirt > 0) {
+        var dn = noise(x * 0.8, z * 0.8, (seed | 0) + 41), k = dirt * 0.95;
+        o.r += (DIRT_A[0] + (DIRT_B[0] - DIRT_A[0]) * dn - o.r) * k;
+        o.g += (DIRT_A[1] + (DIRT_B[1] - DIRT_A[1]) * dn - o.g) * k;
+        o.b += (DIRT_A[2] + (DIRT_B[2] - DIRT_A[2]) * dn - o.b) * k;
+      }
     }
     var shade = 1 + Math.max(-0.08, Math.min(0.1, height * 0.05));   // a touch lighter uphill, darker in dips
     o.r = clamp01(o.r * shade); o.g = clamp01(o.g * shade); o.b = clamp01(o.b * shade);

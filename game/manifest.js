@@ -44,6 +44,7 @@ globalThis.SA_MANIFEST = {
     'game/station-board.js',
     'game/npc.js',
     'game/player.js',
+    'game/forest-paths.js',
     'game/decor-plan.js',
     'game/ground-cover-plan.js',
     'game/water-banks-plan.js',

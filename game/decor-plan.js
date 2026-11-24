@@ -5,7 +5,7 @@
  *   SA.decorPlan.plan(opts?)      -> [{ decor, biome, x, z, y, size, rot, tint }]   (opts.seed, default 42; tint 0..1 = leaf colour variation)
  *       Fills every biome strip across its whole width and the whole z range of SA.map.BOUNDS. Each rule's items are dealt
  *       round-robin into the four quadrants of the strip (west/east half x north/south half), so no corner stays empty.
- *       Nothing lands in water, on the spawn clearing, on the station footprint, or within `gap` of an earlier item.
+ *       Nothing lands in water, on the spawn clearing, on a forest dirt path (SA.forestPaths), on the station footprint, or within `gap` of an earlier item.
  *       `size` is a ready scale for the builder (null for items with a fixed shape); `rot` is a yaw in radians.
  *   SA.decorPlan.quadrant(biomeId, x, z) -> 0..3 (bit 0 = east half, bit 1 = south half)
  * game/render/decor.js turns each entry into a mesh; the peaks (SA.peaks) are placed there but reserve space here.
@@ -51,6 +51,7 @@
     if (M.groundHeight(x, z) < M.WATER_LEVEL + DRY) return false;
     if (SA.player && SA.player.inSpawnZone(x, z)) return false;       // the spawn stays clear (AS-0105)
     if (SA.station && SA.station.inFootprint(x, z, 1)) return false;  // and so does the research station's footprint
+    if (SA.forestPaths && SA.forestPaths.onPath(x, z, 1)) return false;   // and the forest dirt paths (AS-0300; a trunk is up to ~1 m wide)
     return true;
   }
 

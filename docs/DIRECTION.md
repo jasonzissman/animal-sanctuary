@@ -229,6 +229,10 @@ current; when your change sets or changes something future tickets must follow, 
   `render/ground-cover.js` draws one `InstancedMesh` per biome/kind from a fixed pool refilled every metre walked (`select()`: full
   density near, thinning to a 30 m radius). Sway is a vertex-shader bend on one `uTime` uniform, no per-frame allocation. It is
   never added to obstacle/decor lists, so the player walks through it. More vegetation (bushes, ferns, tree kinds) should reuse this pattern.
+- **Forest dirt paths (AS-0300).** `SA.forestPaths` (pure, seeded; `layout/paths/distance/onPath/strength`) routes 3 winding polylines through
+  the dry parts of the bosque (A* over a 2 m grid, then corner-cut). `terrain-color.js` tints the ground a light tan by `strength()` (no extra
+  mesh); `decor-plan.js` and `ground-cover-plan.js` skip anything on or beside a path. Paths are walkable ground, never obstacles. New scenery
+  planners should call `SA.forestPaths.onPath(x, z, pad)` in their `usable()` check.
 - **Water moves and has edges (AS-0298).** The river and pond (`render/world.js`, geometry baked in world coordinates) move with a
   two-sine vertex-shader wave on one `uTime` uniform (`SA.render.applyWaterWave`; `world.userData.update(dt)` advances the clock, no
   allocation; constants in `SA.waterBanks.WAVE`, kept to a few cm so wading is unchanged). `SA.waterBanks` (pure, `game/water-banks-plan.js`)

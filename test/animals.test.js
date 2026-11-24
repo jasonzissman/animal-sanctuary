@@ -11,14 +11,14 @@ const good = () => ({
   parts: [part()], easterEgg: false,
 });
 
-test('4 biomes, 20 real animals and 1 easter egg are registered, all in known biomes', () => {
+test('4 biomes, 22 real animals and 1 easter egg are registered, all in known biomes', () => {
   const SA = loadGame(FILES);
   assert.deepEqual(Array.from(SA.data.all('biomes'), (b) => b.id), ['bosque', 'selva', 'desierto', 'montana']);
   const everything = SA.data.all('animals');
   assert.deepEqual(Array.from(everything.filter((a) => a.story), (a) => a.id), ['cerda', 'cerdito', 'patito', 'perrito', 'ratoncampo', 'ratoncito', 'conejito']);   // AS-0232 / AS-0315 / AS-0318 / AS-0346 / AS-0350: not in the world population
   const all = everything.filter((a) => !a.story);
   assert.deepEqual(Array.from(all, (a) => a.id),
-    ['conejo', 'pato', 'tortuga', 'mono', 'tucan', 'rana', 'camello', 'serpiente', 'cabra', 'aguila', 'raton', 'zorrodesierto', 'lagartija', 'correcaminos', 'oso', 'llama', 'condor', 'ciervo', 'ardilla', 'jaguar', 'perezoso']);
+    ['conejo', 'pato', 'tortuga', 'mono', 'tucan', 'rana', 'camello', 'serpiente', 'cabra', 'aguila', 'raton', 'zorrodesierto', 'lagartija', 'correcaminos', 'oso', 'llama', 'condor', 'ciervo', 'ardilla', 'jaguar', 'perezoso', 'buho', 'murcielago']);
   assert.deepEqual(Array.from(all.filter((a) => a.easterEgg), (a) => a.id), ['raton']);
   const animals = all.filter((a) => !a.easterEgg);
   for (const a of all) {
@@ -28,8 +28,8 @@ test('4 biomes, 20 real animals and 1 easter egg are registered, all in known bi
     for (const p of a.parts) assert.ok(SA.data.get('parts', p.part), `${a.id}/${p.part}`);
   }
   const byBiome = (b) => Array.from(animals.filter((a) => a.biome === b), (a) => a.id);
-  assert.deepEqual(byBiome('bosque'), ['conejo', 'pato', 'tortuga', 'ciervo', 'ardilla']);
-  assert.deepEqual(byBiome('selva'), ['mono', 'tucan', 'rana', 'jaguar', 'perezoso']);
+  assert.deepEqual(byBiome('bosque'), ['conejo', 'pato', 'tortuga', 'ciervo', 'ardilla', 'buho']);
+  assert.deepEqual(byBiome('selva'), ['mono', 'tucan', 'rana', 'jaguar', 'perezoso', 'murcielago']);
   assert.deepEqual(byBiome('desierto'), ['camello', 'serpiente', 'zorrodesierto', 'lagartija', 'correcaminos']);
   assert.deepEqual(byBiome('montana'), ['cabra', 'aguila', 'oso', 'llama', 'condor']);
   // AS-0269: the mountain trio are regular herd species with correct Spanish gender.

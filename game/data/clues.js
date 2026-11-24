@@ -92,7 +92,7 @@
 
   var templates = [
     { id: 'part-length', type: 'partAdjective', lead: lead.withPart, adjectives: lengthAdjectives,
-      parts: ['orejas', 'cola', 'pico', 'patas', 'alas', 'cuernos', 'ojos', 'cuello'] },
+      parts: ['orejas', 'cola', 'pico', 'patas', 'alas', 'cuernos', 'ojos', 'cuello', 'nariz'] },
     // "ojos grandes": a distinguishing feature (the frog's big eyes) that no other animal's eyes reach.
     { id: 'part-size', type: 'partAdjective', lead: lead.withPart, parts: ['ojos'],
       adjectives: [{ id: 'grande', min: 0.2, forms: { m: { sg: 'grande', pl: 'grandes' }, f: { sg: 'grande', pl: 'grandes' } } }] },

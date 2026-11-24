@@ -59,7 +59,8 @@
     ['ciervo', 'el ciervo'], ['ardilla', 'la ardilla'], ['jaguar', 'el jaguar'], ['perezoso', 'el perezoso'],
     ['cabra', 'la cabra'], ['aguila', 'el águila'], ['raton', 'el ratón chispa'],
     ['cerda', 'la cerda'], ['cerdito', 'el cerdito'], ['patito', 'el patito'], ['perrito', 'el perrito'],
-    ['ratoncampo', 'el ratón de campo'], ['ratoncito', 'el ratoncito'], ['conejito', 'el conejito']].forEach(function (a) { add('animal', a[0], a[1]); });
+    ['ratoncampo', 'el ratón de campo'], ['ratoncito', 'el ratoncito'], ['conejito', 'el conejito'],
+    ['buho', 'el búho'], ['murcielago', 'el murciélago']].forEach(function (a) { add('animal', a[0], a[1]); });
 
   // Things a mission carries or visits (AS-0313): spoken when the egg is picked up and when it rests in the nest.
   add('thing', 'huevo', 'el huevo', 'the egg');
@@ -67,6 +68,7 @@
   // Day and night (AS-0170): the greetings at each change of the sky and the words that go with them.
   add('phrase', 'buenasnoches', '¡Buenas noches!', 'Good night!');
   add('phrase', 'buenosdias', '¡Buenos días!', 'Good morning!');
+  add('phrase', 'shh', '¡Shh! Está durmiendo', 'Shh! It is sleeping');   // AS-0171: using an animal that is asleep
   add('thing', 'noche', 'la noche', 'the night');
   add('thing', 'luna', 'la luna', 'the moon');
   add('thing', 'cielo', 'el cielo', 'the sky');   // AS-0371: Mission 12 (Noche de estrellas)

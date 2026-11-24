@@ -19,7 +19,7 @@ const run = (h, secs, dt = 1 / 30) => { const o = []; for (let t = 0; t < secs; 
 test('animal data accepts perch "tree", rejects unknown values, and mono/tucan perch', () => {
   const SA = loadGame(FILES);
   const perchers = Array.from(SA.data.all('animals').filter((a) => a.perch), (a) => a.id);
-  assert.deepEqual(perchers, ['mono', 'tucan', 'perezoso']);
+  assert.deepEqual(perchers, ['mono', 'tucan', 'perezoso', 'buho', 'murcielago']);
   SA.data.register('animals', [{ ...GOOD(), perch: 'tree' }]);
   assert.throws(() => SA.data.register('animals', [{ ...GOOD(), id: 'lorob', perch: 'cave' }]), /perch/);
   assert.throws(() => SA.data.register('animals', [{ ...GOOD(), id: 'loroc', perch: true }]), /perch/);

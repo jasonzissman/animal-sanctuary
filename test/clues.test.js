@@ -152,10 +152,10 @@ test('selection is seeded and deterministic', () => {
   for (let i = 0; i < 100; i++) { const v = r(); assert.ok(v >= 0 && v < 1); }
 });
 
-test('with all 20 animals every clue has one answer; the new animals get clues (joroba, repta, cuernos, desert, mountain, forest and jungle newcomers)', () => {
+test('with all 22 animals every clue has one answer; the new animals get clues (joroba, repta, cuernos, desert, mountain, forest and jungle newcomers)', () => {
   const SA = load();
   const ids = SA.data.all('animals').filter((a) => !a.easterEgg && !a.story).map((a) => a.id);   // the hidden egg and story animals are not in play
-  assert.equal(ids.length, 20);
+  assert.equal(ids.length, 22);
   const clues = SA.clues.candidates(ids, null);
   const byText = Object.fromEntries(clues.map((c) => [c.text, c.answer.animalId]));
   assert.equal(byText['Toca la joroba'], 'camello');
@@ -171,7 +171,7 @@ test('with all 20 animals every clue has one answer; the new animals get clues (
   assert.equal(byText['Busca el animal con cuello largo'], 'llama');
   assert.equal(byText['Busca el animal con pelo largo'], 'oso');
   assert.equal(byText['Busca el animal con alas grandes'], 'condor');
-  assert.equal(byText['Toca el cuello'], 'llama');
+  assert.equal(byText['Toca el cuello'], undefined, 'the búho has a feather collar (cuello) too, so touching a neck is no longer one animal');   // AS-0171
   assert.equal(byText['Toca las plumas'], 'condor');
   // AS-0270: each forest/jungle newcomer is the one answer of a clue (cuernos masculine, manchas and garras feminine; rojo for the squirrel).
   assert.equal(byText['Busca el animal con cuernos largos'], 'ciervo');

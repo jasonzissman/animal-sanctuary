@@ -177,7 +177,8 @@
     return list;
   }
 
-  function generate(rngOrSeed, opts) { return build(SA.data.all('animals'), rngOrSeed, opts); }
+  // AS-0171: only animals that are awake right now can be photographed, so only they can be on the list.
+  function generate(rngOrSeed, opts) { var all = SA.data.all('animals'); return build(SA.sleep ? SA.sleep.awakeOr(all) : all, rngOrSeed, opts); }
 
   function newState(list) {
     return { list: list, ticked: list.entries.map(function () { return []; }) };

@@ -82,6 +82,26 @@
       };
     }
 
+    // How tall the animal's visible parts stand (a hanging bat is lifted by this; the Zzz float above it).
+    function topOf(g) {
+      var h = 0;
+      g.children.forEach(function (m) { if (!m.userData.pick && m.position && m.scale) h = Math.max(h, m.position.y + m.scale.y / 2); });
+      return Math.max(0.5, h);
+    }
+
+    // Bedtime (AS-0171): a day animal dozes at dusk and through the night, a night animal by day (SA.sleep). Sleepers stop wandering
+    // (hold until they wake), lie down, close their eyes and breathe slowly; SA.sleep.set tells picking, so using one only says "Shh".
+    // A pinned animal (its mission is running) or one in a care cue never goes to bed.
+    function bedtime(key, r, dt) {
+      var want = !r.pinned && !r.cue && !r.loop && !!(SA.sleep && SA.sleep.isAsleep(r.animal));
+      if (want !== r.sleeping) {
+        r.sleeping = want;
+        if (want) r.w.hold(); else if (!r.pinned) r.w.release();
+        if (SA.sleep) SA.sleep.set(key, want);
+      }
+      if (SA.sleep) r.sleepAmt = SA.sleep.ease(r.sleepAmt, want, dt);
+    }
+
     group.children.forEach(function (g, i) {
       var a = data[g.userData.animalId];
       if (!a) return;
@@ -90,7 +110,7 @@
       rigs[key] = {
         g: g, phase: i * 1.7, ears: parts('orejas'), tail: parts('cola'), eyes: parts('ojos'), cheeks: parts('mejillas'),
         gait: SA.gait.kind(a.traits.movement), amp: 0, wings: parts('alas'), legs: attachExtras(parts('patas')),
-        sx: g.scale.x, sy: g.scale.y, sz: g.scale.z,
+        sx: g.scale.x, sy: g.scale.y, sz: g.scale.z, animal: a, sleepAmt: 0, sleeping: false, top: topOf(g),
         wx: g.position.x, wz: g.position.z, r: SA.spacing ? SA.spacing.bodyRadius(a) : 0, perched: a.perch === 'tree' && !!SA.perch,
         w: a.perch === 'tree' && SA.perch ? perchWalker(a, g, i, key) : SA.wander.create({
           movement: a.traits.movement, biome: a.biome, home: { x: g.position.x, z: g.position.z },
@@ -126,13 +146,15 @@
     function update(dt) {
       t += Math.min(dt, 0.1);
       Object.keys(rigs).forEach(function (id) {
-        var r = rigs[id], g = r.g, p = r.w.update(dt), idle = SA.wander.idle(t, r.phase);
+        var r = rigs[id], g = r.g;
+        bedtime(id, r, dt);
+        var p = r.w.update(dt), idle = SA.wander.idle(t, r.phase), z = r.sleepAmt;
         var spin = 0, loopLift = 0, moving = p.moving;
         r.wx = p.x; r.wz = p.z;
         g.position.x = p.x;
         g.position.z = p.z;
         // Tangled wing: the bird hops on the ground instead of hovering. Freed: it circles once, spinning, up in the air.
-        var lift = r.cue === 'tangled' ? Math.abs(Math.sin(t * HOP_RATE + r.phase)) * HOP_HEIGHT : p.perched || r.cue === 'limp' || r.cue === 'sunk' ? 0 : p.lift;
+        var lift = r.sleeping && r.cue !== 'tangled' ? 0 : r.cue === 'tangled' ? Math.abs(Math.sin(t * HOP_RATE + r.phase)) * HOP_HEIGHT : p.perched || r.cue === 'limp' || r.cue === 'sunk' ? 0 : p.lift;
         // Limp: the body sinks and leans on every other step; it walks on the ground (flyers too) and steps in place when held.
         var limp = r.cue === 'limp' ? SA.gait.limp(t, r.phase) : null;
         // Sunk in mud: sits lower and sinks a little more every second (capped); once freed it rises back smoothly.
@@ -154,11 +176,19 @@
         }
         g.position.y = (p.perched ? p.y : SA.player && SA.player.heightAt ? SA.player.heightAt(p.x, p.z) : SA.map.groundHeight(p.x, p.z)) + lift + loopLift - (limp ? limp.dip : 0) - (r.sunkBy || 0);
         g.rotation.y = p.heading + spin;
-        g.scale.set(r.sx / Math.sqrt(idle.breath), r.sy * idle.breath, r.sz / Math.sqrt(idle.breath));
-        r.ears.forEach(function (e) { e.m.rotation.z = e.rz + idle.wiggle * 0.25 * (e.m.userData.side === 'right' ? -1 : 1); });
-        r.tail.forEach(function (e) { e.m.rotation.y = e.ry + idle.wiggle * 0.5; });
-        r.eyes.forEach(function (e) { e.m.scale.y = e.sy * (1 - 0.9 * idle.blink); });
-        animateLimbs(r, r.cue === 'limp' || (r.cue !== 'sunk' && moving && !(r.cue === 'tangled' && !r.loop)), dt);
+        // Asleep (z 0..1): a slow deep breath, a lower rounder body (lying down / tucked in), still ears and tail, eyes shut. A bat
+        // (sleepPose 'hang') turns upside down about its feet and is lifted by its height so it hangs where it perched.
+        var breath = idle.breath, squash = 1;
+        if (z > 0) {
+          breath = idle.breath * (1 - z) + (1 + 0.05 * Math.sin(t * 1.3 + r.phase)) * z;
+          squash = 1 - 0.3 * z;
+          if (r.animal.sleepPose === 'hang') { g.rotation.z = Math.PI * z; g.position.y += r.top * z; r.hung = true; squash = 1; }
+        } else if (r.hung) { g.rotation.z = 0; r.hung = false; }
+        g.scale.set(r.sx / Math.sqrt(breath) * (1 + 0.12 * (1 - squash)), r.sy * breath * squash, r.sz / Math.sqrt(breath) * (1 + 0.12 * (1 - squash)));
+        r.ears.forEach(function (e) { e.m.rotation.z = e.rz + idle.wiggle * (1 - z) * 0.25 * (e.m.userData.side === 'right' ? -1 : 1); });
+        r.tail.forEach(function (e) { e.m.rotation.y = e.ry + idle.wiggle * (1 - z) * 0.5; });
+        r.eyes.forEach(function (e) { e.m.scale.y = e.sy * (1 - 0.9 * Math.max(idle.blink, z)); });
+        animateLimbs(r, !r.sleeping && (r.cue === 'limp' || (r.cue !== 'sunk' && moving && !(r.cue === 'tangled' && !r.loop))), dt);
         // Rosy cheeks sparkle: a quick shimmering pulse (phase-shifted per cheek).
         r.cheeks.forEach(function (e, k) { e.m.scale.y = e.sy * (1 + 0.3 * Math.abs(Math.sin(t * 5 + r.phase + k * 1.3))); });
       });

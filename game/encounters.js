@@ -77,6 +77,7 @@
       input = input || {};
       var list = (input.animals || []).map(function (a) { return typeof a === 'string' ? SA.data.get('animals', a) : a; })
         .filter(function (a) { return a && typeof a.id === 'string'; });
+      if (SA.sleep) list = SA.sleep.awake(list);   // AS-0171: a sleeping animal has no needs (a need on it is dropped below, like one that left play)
       var skip = {};
       (input.excludeIds || []).forEach(function (id) { skip[id] = true; });
       var inPlay = {};

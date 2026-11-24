@@ -80,17 +80,22 @@ test('wag: angle swings with the declared hz and angle; apply() moves only tail 
   assert.ok(Math.abs(SA.wag.angle('perrito', 3 / 16) + 0.6) < 1e-9);
   assert.equal(SA.wag.angle('conejo', 0.1), 0);                        // no wag declared
   assert.equal(SA.wag.angle('perrito', NaN), 0);
-  const mesh = (part, extra = {}) => ({ rotation: { y: 0.25 }, userData: { animalId: 'perrito', part, ...extra } });
+  const mesh = (part, extra = {}) => ({
+    position: { x: 0, y: 1, z: -1, set(x, y, z) { this.x = x; this.y = y; this.z = z; } },
+    quaternion: { x: 0, y: 0, z: 0, w: 1, set(x, y, z, w) { this.x = x; this.y = y; this.z = z; this.w = w; } },
+    scale: { x: 1, y: 2, z: 1 }, userData: { animalId: 'perrito', part, ...extra } });
   const tail = mesh('cola'), ear = mesh('orejas'), pick = mesh('cola', { pick: true });
   const group = { userData: { animalId: 'perrito' }, children: [tail, ear, pick] };
   assert.equal(SA.wag.apply(group, 1 / 16), true);
-  assert.ok(Math.abs(tail.rotation.y - 0.85) < 1e-9);
-  assert.equal(ear.rotation.y, 0.25);
-  assert.equal(pick.rotation.y, 0.25);
+  // upright tail of length 2 centred at (0,1,-1): its base (the pivot) is (0,0,-1), so the centre stays on that vertical axis
+  // here; give it a tilt-free check on the quaternion (a +0.6 turn about Y) and that the height is unchanged.
+  assert.ok(Math.abs(tail.quaternion.y - Math.sin(0.3)) < 1e-9 && Math.abs(tail.quaternion.w - Math.cos(0.3)) < 1e-9);
+  assert.ok(Math.abs(tail.position.y - 1) < 1e-9);
+  for (const m of [ear, pick]) assert.equal(m.quaternion.w, 1, 'only the tail meshes move');
   SA.wag.apply(group, 3 / 16);
-  assert.ok(Math.abs(tail.rotation.y - (0.25 - 0.6)) < 1e-9, 'swings around its own rest rotation, not cumulatively');
+  assert.ok(Math.abs(tail.quaternion.y + Math.sin(0.3)) < 1e-9, 'swings the other way, not cumulatively');
   SA.wag.rest(group);
-  assert.equal(tail.rotation.y, 0.25);
+  assert.ok(Math.abs(tail.position.z + 1) < 1e-9 && tail.quaternion.w === 1 && tail.quaternion.y === 0);
   assert.equal(SA.wag.apply({ userData: { animalId: 'conejo' }, children: [mesh('cola')] }, 0.1), false);
   assert.equal(SA.wag.apply(null, 0.1), false);
 });
@@ -119,9 +124,15 @@ test('render: the puppy builds from primitives; every mesh and pick volume carri
   assert.ok(g.userData.pickVolumes.length >= parts.length);
   assert.ok(g.userData.pickVolumes.every((v) => v.userData.animalId === 'perrito' && v.userData.part));
   const tail = g.children.find((m) => m.userData.part === 'cola' && !m.userData.pick);
-  const y0 = tail.rotation.y;
+  const end = (y) => { tail.updateMatrix(); return new THREE.Vector3(0, y, 0).applyMatrix4(tail.matrix); };   // +0.5 = tip, -0.5 = base
+  const tip0 = end(0.5), base0 = end(-0.5);
   assert.equal(SA.wag.apply(g, 1 / 16), true);
-  assert.notEqual(tail.rotation.y, y0);
+  const tipR = end(0.5), baseR = end(-0.5);
+  SA.wag.apply(g, 3 / 16);
+  const tipL = end(0.5);
+  assert.ok(Math.abs(tipR.x - tipL.x) > 0.2, 'the tail tip sweeps clearly from side to side (' + tipR.x + ' vs ' + tipL.x + ')');
+  assert.ok(Math.abs(tipR.y - tip0.y) < 1e-6, 'at the same height');
+  assert.ok(baseR.distanceTo(base0) < 1e-6, 'the base stays attached to the body');
   SA.wag.rest(g);
-  assert.equal(tail.rotation.y, y0);
+  assert.ok(end(0.5).distanceTo(tip0) < 1e-6);
 });

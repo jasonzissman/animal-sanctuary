@@ -18,6 +18,7 @@
  *                                         (and again after a reload, never stuck); on the 'give' step the letter goes into the mailbox when the kid is on top
  *                                         and near it ("la carta")
  *   SA.missionLetter.locate(id)           -> { x, z, r } | null   a leg waypoint, or the tower once you are on top of it
+ *   SA.missionLetter.hintTarget(step)     -> { x, z, role, id } | null   a listen-only step's waypoint (or the tower), for the faint pointer (AS-0365)
  *   SA.missionLetter.snap(player?)        the tower-top photo (a tap on the mailbox with la cámara): { status: 'none' | 'nocamera' | 'far' | 'complete' | 'step' }.
  *                                         It completes the mission and logs one rescue row { kind: 'letter' } -> the sticker 'cartero-valiente' (onSticker hook)
  *   SA.missionLetter.view()               -> { box: {x,y,z}, give, photo, given } | null   what the renderer draws (the mailbox + its glow on the platform)
@@ -181,6 +182,15 @@
       return null;
     }
 
+    // AS-0365: the world point of a listen-only step (a leg's waypoint, or the tower) for the faint pointer after repeated 🔊 taps.
+    function hintTarget(s) {
+      sync();
+      if (!cur || !s || s.kind !== 'goTo') return null;
+      if (s.place === cur.spec.place) return { x: cur.tower.x, z: cur.tower.z, role: 'hint', id: s.place };
+      for (var i = 0; i < cur.legs.length; i++) if (cur.legs[i].place === s.place) return { x: cur.legs[i].x, z: cur.legs[i].z, role: 'hint', id: s.place };
+      return null;
+    }
+
     function snap(player) {
       sync();
       var s = stepOf();
@@ -208,7 +218,7 @@
       return { box: { x: cur.box.x, y: cur.box.y, z: cur.box.z }, give: isGive(s), photo: isPhoto(s), given: cur.given };
     }
 
-    var api = { sync: sync, update: update, locate: locate, snap: snap, view: view, onSticker: null, current: function () { return cur; }, create: create,
+    var api = { sync: sync, update: update, locate: locate, hintTarget: hintTarget, snap: snap, view: view, onSticker: null, current: function () { return cur; }, create: create,
       GIVE_REACH: GIVE_REACH, PHOTO_REACH: PHOTO_REACH, LEG_R: LEG_R };
     return api;
   }

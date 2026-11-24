@@ -410,6 +410,11 @@ current; when your change sets or changes something future tickets must follow, 
   climb use it. The tower step only counts when you stand on the platform (`SA.missionLetter.onTop`); then the `give` step hands the letter over
   automatically near the mailbox (`game/render/mission-letter.js` draws it with a glow ring) and a tap on the mailbox with la cámara is the photo that completes
   the mission and logs `{ kind: 'letter' }` -> sticker `cartero-valiente`. Later slices add the other direction words and the harder legs.
+  **Faint hint pointer (AS-0365, slice 2 of AS-0190):** `SA.missionDirections` (`game/mission-directions.js`, pure, node:vm-tested) counts the kid's 🔊 taps on the
+  current `noArrow` step (`SA.missionPill.replay()` calls `repeat()`); `hint()` is true from the 2nd repeat (`hintAfter` on the step, default 2) and falls back to
+  false, with the count back to 0, the moment the next step starts. Then a second `SA.compassView` (`faint: true`, opacity 0.35, same placement/maths) points at
+  `SA.missionRuntime.hintTarget()` (a world piece's `hintTarget(step)`, here `SA.missionLetter`: the leg waypoint or the tower). No timers, never a failure; the
+  normal compass stays hidden on those steps. Telemetry: `directions.hint { repeats }` once per step.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

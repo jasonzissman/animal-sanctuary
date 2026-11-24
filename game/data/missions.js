@@ -74,6 +74,7 @@
            (SA.surfaces.bridges), otherwise { place, at?: 0..1 of the way from the last leg to the tower, turn?: 'left' | 'right' (which hand the tower is on
            as you walk on from the last leg) }. game/mission-letter.js places the waypoints (never drawn, never an arrow). `say.give` / `say.photo` are vocab keys spoken once.
            A step may carry `noArrow: true` (AS-0364): the mission compass is hidden while that step is current (a listen-and-find step).
+           AS-0365: such a step may add `hintAfter: n` (whole number >= 1, default 2): after n taps on 🔊 a faint pointer toward its target appears (game/mission-directions.js).
   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -266,6 +267,7 @@
     }
     m.steps.forEach(function (s, i) {
       if (s.noArrow !== undefined && typeof s.noArrow !== 'boolean') fail('steps[' + i + '].noArrow', 'must be true or false (true hides the mission compass on that step)');
+      if (s.hintAfter !== undefined && (!Number.isInteger(s.hintAfter) || s.hintAfter < 1 || !s.noArrow)) fail('steps[' + i + '].hintAfter', 'must be a whole number >= 1 on a noArrow step (🔊 repeats before the faint pointer shows)');
       if (s.kind !== 'place') return;
       var pf = 'steps[' + i + ']';
       if (['abajo', 'encima', 'dentro'].indexOf(s.layer) < 0) fail(pf + '.layer', 'must be "abajo", "encima" or "dentro"');

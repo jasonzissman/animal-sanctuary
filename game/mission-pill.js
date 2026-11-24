@@ -6,7 +6,7 @@
  *       update()  polled once per frame (main.js, after SA.focus.update()). On a mission it calls view.showStep({ text, icon, en })
  *                 and speaks the line through audio.say each time the step changes; when the mission is over it forgets the
  *                 step (the free-roam text comes back through the prompt controller's begin(), called by the focus rule).
- *       replay()  speaks the current step line again; returns true when the pill is showing a step (so the caller skips its own replay)
+ *       replay()  speaks the current step line again (and counts it for SA.missionDirections, AS-0365: faint pointer after 2 repeats); returns true when the pill is showing a step (so the caller skips its own replay)
  *       showing() true while the pill shows a mission step
  *
  * Census checklist (AS-0342, slice 3 of AS-0186): while the step is 'census' (SA.missionCensus.view() has a list) the pill also shows one
@@ -79,6 +79,7 @@
     function replay() {
       if (!shown || !line) return false;
       say(line.es);
+      try { var d = o.directions || SA.missionDirections; if (d && d.repeat) d.repeat(); } catch (e) { /* the counter never breaks play */ }
       return true;
     }
 

@@ -47,10 +47,10 @@ test('every giant has a tall trunk, a wide canopy and seeded hanging vines under
 });
 
 test('trunks block the player, and decor and plants keep off them', () => {
-  assert.equal(JP.solids().length, giants.length);
-  for (const [x, z, r, h] of JP.solids()) assert.ok(r >= 2 && h > 10, 'a tall solid, never jumped');
+  assert.equal(JP.solids().length, giants.length + JP.get().waterfall.cliffSolids.length);   // + the waterfall cliff (AS-0389)
+  for (const [x, z, r, h] of JP.solids().slice(0, giants.length)) assert.ok(r >= 2 && h > 10, 'a tall solid, never jumped');
   for (const g of giants) assert.ok(JP.near(g.x, g.z) && JP.near(g.x + g.solidR + 0.5, g.z, 1) && !JP.near(g.x + g.solidR + 3, g.z, 1));
-  assert.ok(JP.avoidPoints().length === giants.length);
+  assert.ok(JP.avoidPoints().length === giants.length + 1, 'the trunks plus the waterfall');
   for (const d of SA.decorPlan.plan()) assert.ok(!JP.near(d.x, d.z), `decor on a trunk at ${d.x},${d.z}`);
 });
 
@@ -130,4 +130,100 @@ test('the renderer builds shared InstancedMeshes (stub THREE) and allocates noth
   assert.ok(st.vineSegments >= st.giants * 8);
   assert.ok(calls.inst.includes(st.vineSegments), 'one instanced mesh holds every vine segment');
   assert.equal(view.update, undefined, 'static: no per-frame work');
+});
+
+// ---- AS-0389: the waterfall into the pond ----
+
+const W = JP.get().waterfall;
+const worldOf = (l) => ({ x: W.x + l.x * Math.cos(W.yaw) + l.z * Math.sin(W.yaw), z: W.z - l.x * Math.sin(W.yaw) + l.z * Math.cos(W.yaw) });
+
+test('waterfall: a seeded site on the pond shore, the same for the same seed, a different one for another', () => {
+  assert.ok(W, 'a site was found');
+  assert.deepEqual(JP.layout().waterfall, W);
+  const other = JP.layout(7).waterfall;
+  assert.ok(!other || other.ang !== W.ang, 'another seed moves it');
+  const P = M.POND, d = Math.hypot(W.x - P.x, W.z - P.z);
+  assert.ok(d < P.radius + 0.6 && d > P.radius - 1, 'the sheet falls onto the pond water: ' + d);
+  assert.equal(W.poolR, undefined, 'no pool of its own: the pond is the pool');
+  assert.equal(W.poolY, M.WATER_LEVEL);
+  assert.ok(W.topY - W.poolY >= 4, 'a real drop');
+  assert.equal(M.biomeAt(W.cx), 'selva');
+  // The local +x axis (after the group's yaw) points from the cliff across the pond, toward its centre.
+  const toward = worldOf({ x: 1, z: 0 });
+  assert.ok((toward.x - W.x) * (P.x - W.x) + (toward.z - W.z) * (P.z - W.z) > 0);
+  assert.equal(W.cliff.length, 3);
+  assert.ok(W.cliff[1].h < W.cliff[0].h && W.cliff[1].h < W.cliff[2].h, 'the middle block is the notch the water runs through');
+});
+
+test('waterfall: clear of the giants, spawn, station, lookouts and bridges (checked all round its footprint)', () => {
+  for (let i = 0; i < 16; i++) {
+    const a = i * Math.PI / 8;
+    for (const rr of [0, W.r * 0.5, W.r]) {
+      const x = W.cx + Math.cos(a) * rr, z = W.cz + Math.sin(a) * rr;
+      assert.ok(!SA.player.inSpawnZone(x, z), 'spawn');
+      assert.ok(!SA.station.inFootprint(x, z, 0), 'station');
+      assert.ok(!SA.lookouts.near(x, z, 0) && !SA.surfaces.near(x, z, 0), 'lookout/bridge');
+      for (const g of giants) assert.ok(Math.hypot(x - g.x, z - g.z) > g.solidR + 1, `${g.id} trunk`);
+    }
+  }
+  for (const g of giants) assert.ok(Math.hypot(W.cx - g.x, W.cz - g.z) >= g.canopyR + W.r, `${g.id} canopy`);
+});
+
+test('waterfall: the cliff blocks the player (never jumped) and scenery, animals and pickups keep out; no solid out over the pond', () => {
+  const sol = JP.solids();
+  assert.equal(sol.length, giants.length + W.cliffSolids.length);
+  W.cliffSolids.forEach((s, i) => {
+    assert.ok(s[3] > 10 && s[2] >= 1);
+    const w = worldOf({ x: W.cliff[i].x, z: W.cliff[i].z });
+    assert.ok(Math.hypot(s[0] - w.x, s[1] - w.z) < 0.5, 'the solid sits under its cliff block');
+    assert.ok(sol.includes(s));
+  });
+  assert.ok(JP.near(W.cx, W.cz) && !JP.near(W.cx + W.r + 2, W.cz + W.r + 2, 0));
+  assert.ok(JP.avoidPoints().some(([x, z]) => x === W.cx && z === W.cz));
+  for (const d of SA.decorPlan.plan()) assert.ok(Math.hypot(d.x - W.cx, d.z - W.cz) > W.r, `decor in the waterfall at ${d.x},${d.z}`);
+  const P = M.POND;
+  for (const [x, z, r] of sol.slice(giants.length)) assert.ok(Math.hypot(x - P.x, z - P.z) - r > 0.8, 'the water in front of the sheet is open');
+});
+
+function stubTHREE() {
+  const log = { meshes: [], inst: [], allocs: 0 };
+  const V = class { set() { return this; } setScalar() { return this; } };
+  class Obj { constructor() { log.allocs++; this.position = new V(); this.rotation = { x: 0, y: 0, z: 0 }; this.scale = new V(); this.matrix = {}; } updateMatrix() {} }
+  class Group extends Obj { constructor() { super(); this.children = []; } add(...c) { this.children.push(...c); } }
+  class Mesh extends Obj { constructor(g, m) { super(); this.geometry = g; this.material = m; log.meshes.push(this); } }
+  class Inst extends Obj { constructor(g, m, n) { super(); Object.assign(this, { count: n, instanceMatrix: { needsUpdate: false } }); log.inst.push(this); } setMatrixAt() {} }
+  const Geo = class {}, Mat = class { constructor(o) { Object.assign(this, o); } };
+  return { log, T: { Group, Object3D: Obj, Mesh, InstancedMesh: Inst, BoxGeometry: Geo, CylinderGeometry: Geo, RingGeometry: Geo, CircleGeometry: Geo, PlaneGeometry: Geo,
+    SphereGeometry: Geo, MeshPhongMaterial: Mat, MeshBasicMaterial: Mat, DoubleSide: 2 } };
+}
+
+test('waterfall render: mossy cliff, scrolling sheet and ONE instanced spray at the site; no pool; update() allocates nothing', () => {
+  const R = loadGame([...BASE, 'game/rocks.js', 'game/mountain-plan.js', 'game/render/waterfall.js']);
+  const { T, log } = stubTHREE(), added = [];
+  const f = R.render.createJungleWaterfall(T, { scene: { add: (g) => added.push(g) } });
+  assert.deepEqual(added, [f.group]);
+  assert.equal(f.group.name, 'waterfall-selva');
+  assert.ok(Math.abs(f.group.rotation.y - W.yaw) < 1e-12, 'turned to face the pond');
+  const names = log.meshes.map((m) => m.name);
+  assert.ok(names.includes('waterfall-sheet') && names.includes('waterfall-moss-cap-0') && !names.includes('waterfall-pool') && !names.includes('waterfall-rim'));
+  assert.equal(log.inst.length, 1, 'spray is instanced');
+  assert.equal(f.group.children.length, f.stats().drawCalls);
+  const allocs = log.allocs, before = f.uScroll.value;
+  for (let i = 0; i < 120; i++) f.update(1 / 60);
+  assert.equal(log.allocs, allocs, 'nothing allocated per frame');
+  assert.ok(f.uScroll.value > before + 2 && log.inst[0].instanceMatrix.needsUpdate);
+  // The montaña's waterfall is still built (with its pool) by the same builder.
+  const s2 = stubTHREE();
+  const mt = R.render.createWaterfall(s2.T, { scene: { add() {} } });
+  assert.equal(mt.group.name, 'waterfall');
+  assert.ok(s2.log.meshes.some((m) => m.name === 'waterfall-pool'));
+  R.junglePlan.get().waterfall = null;
+  assert.equal(R.render.createJungleWaterfall(s2.T, {}), null);
+});
+
+test('waterfall is wired into the scene after the plan and the builder load', () => {
+  const scene = fs.readFileSync('game/render/scene.js', 'utf8');
+  assert.ok(scene.includes('createJungleWaterfall') && scene.includes('jungleFall.update(dt)'));
+  const html = fs.readFileSync('index.html', 'utf8');
+  assert.ok(html.indexOf('game/jungle-plan.js') < html.indexOf('game/render/waterfall.js') && html.indexOf('game/render/waterfall.js') < html.indexOf('game/render/scene.js'));
 });

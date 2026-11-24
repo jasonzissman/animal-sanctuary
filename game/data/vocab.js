@@ -69,6 +69,8 @@
   add('phrase', 'buenasnoches', '¡Buenas noches!', 'Good night!');
   add('phrase', 'buenosdias', '¡Buenos días!', 'Good morning!');
   add('phrase', 'shh', '¡Shh! Está durmiendo', 'Shh! It is sleeping');   // AS-0171: using an animal that is asleep
+  add('phrase', 'amigoacompanar', 'Uno de tus amigos quiere acompañarte.', 'One of your friends wants to come along.');   // AS-0175: the animal friend
+  add('phrase', 'poraqui', '¡Por aquí!', 'This way!');
   add('thing', 'noche', 'la noche', 'the night');
   add('thing', 'luna', 'la luna', 'the moon');
   add('thing', 'cielo', 'el cielo', 'the sky');   // AS-0371: Mission 12 (Noche de estrellas)

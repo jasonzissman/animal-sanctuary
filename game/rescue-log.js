@@ -62,6 +62,7 @@
       // The default log tells the sticker book (AS-0168), so every newly earned badge pops up once, wherever the rescue came from.
       var tell = opts.onEarned || (opts.save ? null : function (r2) { if (SA.stickers) SA.stickers.notify(r2); });
       if (tell && got.length) { try { tell(got); } catch (e) { /* the celebration never breaks play */ } }
+      if (!opts.save && SA.friend && SA.friend.celebrate) { try { SA.friend.celebrate(); } catch (e) { /* your animal friend cheers along (AS-0175) */ } }
       return { added: true, earned: got };
     }
 

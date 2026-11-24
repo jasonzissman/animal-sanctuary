@@ -79,6 +79,9 @@
         card.appendChild(row);
       });
       var btns = el('div', 'display:flex;flex-wrap:wrap;gap:12px;justify-content:center;');
+      if (SA.friendCard && SA.friendCard.open && talk.lines.some(function (l) { return l.role === 'friend'; })) {   // AS-0175: pick your animal friend
+        btns.appendChild(button('🐾', 'Elegir amigo', function () { close(); SA.friendCard.open(); }));
+      }
       btns.appendChild(button('🔊', 'Otra vez', speak));
       btns.appendChild(button('✕', 'Cerrar', close));
       card.appendChild(btns);

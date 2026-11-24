@@ -84,7 +84,7 @@
     if (typeof id !== 'string' || !ID.test(id) || !SA.save || !SA.data.get('names', nameId)) return false;
     if (adjId && !SA.data.get('nameAdjectives', adjId)) return false;
     var row = { animalId: animalOf(id), name: nameId };
-    if (adjId) row.adj = adjId;
+    row.adj = adjId || '';     // '' clears an older adjective when an animal is renamed with a name alone (the save drops the empty value)
     var patch = { names: {} };
     patch.names[id] = row;
     SA.save.update(patch);

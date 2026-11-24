@@ -45,7 +45,7 @@
     doc.body.appendChild(wrap);
     ['pointerdown', 'mousedown', 'touchstart'].forEach(function (ev) { wrap.addEventListener(ev, function (e) { if (e && e.stopPropagation) e.stopPropagation(); }); });
 
-    var session = null, opened = false, busy = false;
+    var session = null, opened = false, busy = false, onDone = null;
 
     function setOpen(on) {
       if (on === opened) return;
@@ -89,7 +89,11 @@
       } else { busy = false; shut(); }
     }
 
-    function shut() { session = null; setOpen(false); }
+    function shut() {
+      var r = session && session.result, cb = onDone;
+      session = null; onDone = null; setOpen(false);
+      if (cb) { try { cb(r); } catch (e) { /* a caller never breaks the card */ } }
+    }
 
     function skip() {
       if (!session || busy) return;
@@ -100,10 +104,14 @@
     speaker.addEventListener('click', function (e) { if (e && e.stopPropagation) e.stopPropagation(); say('¿Cómo se llama?'); });
     close.addEventListener('click', function (e) { if (e && e.stopPropagation) e.stopPropagation(); skip(); });
 
-    function offer(animalId) {
+    // opts (AS-0175, the animal friend): { exact: animalId IS the individual id (no resolve), force: rename an animal that already has a name,
+    // done(result): runs when the card closes (result = the saved name or null) }.
+    function offer(animalId, opts) {
       if (opened || typeof animalId !== 'string') return false;
-      var id = o.resolve ? o.resolve(animalId) : animalId;
-      if (!id || SA.names.has(id)) return false;
+      opts = opts || {};
+      var id = o.resolve && !opts.exact ? o.resolve(animalId) : animalId;
+      if (!id || (SA.names.has(id) && !opts.force)) return false;
+      onDone = typeof opts.done === 'function' ? opts.done : null;
       session = SA.names.session(id);
       busy = false;
       title.textContent = '🐾 ¿Cómo se llama?';

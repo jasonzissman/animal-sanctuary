@@ -37,7 +37,7 @@ const at = (p, dx = 0, dz = 0) => ({ x: p.x + dx, z: p.z + dz, heading: 0, y: 0 
 test('data: mission 2 follows mission 1, has a one-line intro of <= 4 words, and its steps are carry, deliver, hatch, photo', () => {
   const { SA } = setup();
   const rows = SA.data.all('missions');
-  assert.deepEqual(Array.from(rows.map((m) => m.n)), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.deepEqual(Array.from(rows.map((m) => m.n)), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   const m = rows[1];
   assert.equal(m.id, 'huevo');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);

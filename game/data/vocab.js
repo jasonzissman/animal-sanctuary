@@ -107,6 +107,10 @@
   add('phrase', 'encima', 'encima', 'on top');
   add('phrase', 'construir', 'construir', 'to build');
   add('phrase', 'dentro', 'dentro', 'inside');   // AS-0352: the soft grass goes inside the home
+  // Mission 10 words (AS-0354): the race to the big tree.
+  add('thing', 'carrera', 'la carrera', 'the race');
+  add('thing', 'bandera', 'la bandera', 'the flag');
+  add('thing', 'arbol', 'el árbol', 'the tree');
   add('phrase', 'pasotoca', '¡Toca!', 'Touch it!');
   add('phrase', 'pasollena', '¡Llena!', 'Fill it!');
   add('phrase', 'cruzar', 'cruzar', 'to cross');

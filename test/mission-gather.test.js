@@ -103,7 +103,7 @@ test('mission-only: they lie in a ring around the build spot on dry ground, dete
     assert.equal(c.items.length, c.spec.n);
     for (const it of c.items) {
       const d = Math.hypot(it.x - s.x, it.z - s.z);
-      assert.ok(d >= 7.9 && d <= 16.1, 'near the spot but clear of the family: ' + d);
+      assert.ok(d >= 7.9 && d <= 32.1, 'near the spot (a cramped seed widens the ring) but clear of the family: ' + d);
       assert.equal(SA.map.isWater(it.x, it.z), false);
       assert.equal(SA.map.biomeAt(it.x), 'bosque');
     }
@@ -170,6 +170,22 @@ test('never punishing and never stuck: a wrong spot or a far walk loses nothing,
   rt.update({ x: 0, z: 0 });
   assert.equal(gather.visible().length, 0);
   assert.equal(missions.active().id, 'hogar');
+});
+
+test('mission-only: whatever the run seed, every kind finds its dry spots around the build spot (no flaky null)', () => {
+  const { SA } = setup();
+  const m = SA.data.get('missions', 'hogar'), bad = [];
+  for (let s = 1; s <= 400; s++) {
+    const seed = s * 5347, h = SA.missionHome.place(m.home, seed);
+    if (!h) { bad.push([seed, 'home']); continue; }
+    let avoid = [];
+    for (const g of m.home.gather) {
+      const items = SA.missionBananas.place({ item: g.item, n: g.n, biome: m.home.biome || 'bosque' }, seed, { anchor: { x: h.spot.x, z: h.spot.z, avoid } });
+      if (!items) { bad.push([seed, g.item]); break; }
+      avoid = avoid.concat(items);
+    }
+  }
+  assert.deepEqual(bad.slice(0, 5), []);
 });
 
 test('a replay draws fresh pickups on the first collect step again', () => {

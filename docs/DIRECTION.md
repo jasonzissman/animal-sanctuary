@@ -386,6 +386,15 @@ current; when your change sets or changes something future tickets must follow, 
   item in hand is taken from the bag (`n` of it; a bag that came up short still counts, never stuck) and the next layer pops in; any other item or empty
   hands only wobbles the home with a `boing` (`view().wobbles`), nothing lost. Layers on = place steps already passed (`view().layers`, reload-safe).
   The last layer sparkles and speaks `home.say.built` (`thing:casa`); `view().built` makes the family walk to its `inside` slots; then the photo step.
+  **Mission 10 core (AS-0354, slice 1 of AS-0189):** `carrera` (n 10, "¡Una carrera!" 🏁, unlocked by `hogar`) declares
+  `race: { place, rabbit, biome?, flags?, say? }` (validated in `game/data/missions.js`). Steps: `talk` `{ who: <rabbit id> }` (a tap on the rabbit),
+  `goTo` the big tree (`place: 'arbol-grande'`), `photo` of it (`target: 'arbol-grande'`, a place, so a wild rabbit photo never completes it).
+  `SA.missionRace` (`game/mission-race.js`, pure, same shape as `SA.missionHome`) picks a dry flat start in the bosque, a big-tree goal 42-56 m away over
+  dry, walkable ground and `flags` (3..10, default 6) small flags evenly along the line; the rabbit waits beside the start facing the tree. They exist ONLY
+  while this mission runs (`game/render/mission-race.js` draws start line, flags, tree + glow ring, rabbit). The goal check is the pure
+  `SA.missionRace.reached(goal, player)`; the flags are a guide, not a rail (shortcuts, rock jumps, any route count) and passed flags turn gold
+  (`view().passed`). The photo (`SA.missionRace.snap`) goes into the album, completes the mission and logs `{ kind: 'race' }` -> sticker `buen-corredor`.
+  No race opponent yet (later slices of AS-0189).
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

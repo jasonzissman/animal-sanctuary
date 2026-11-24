@@ -65,7 +65,9 @@
  *   race    optional { place, rabbit, biome?, flags?, say?: { talk?, flag?, arrive?, photo? } } (AS-0354): Mission 10's race course (game/mission-race.js): a
            start line with the `rabbit` (animal id) beside it in `biome` (default 'bosque'), a path of `flags` small flags (3..10, default 6) and the big tree
            (the id a 'goTo' step { place } names; a 'photo' step { target: place } photographs it). A 'talk' step { who: rabbit } is a tap on the rabbit.
-           `say.*` are vocab keys spoken once (talk, first flag passed, arrival, photo). Nothing exists unless this mission runs; no opponent yet.
+           `say.*` are vocab keys spoken once (talk, first flag passed, arrival, photo). Nothing exists unless this mission runs.
+           AS-0355: the goTo step is a race against the rabbit (game/mission-race-pace.js): `pace` { speed?, stopAt?, stopFor?, beat?, wait? } tunes it
+           (rabbit m/s, where on the path it stops for its carrot 0.1..0.9, how long it eats in s, seconds per countdown word, start-line radius).
   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -226,6 +228,13 @@
       ['place', 'rabbit'].forEach(function (k) { if (typeof ra[k] !== 'string' || !rid.test(ra[k])) fail('race.' + k, 'must be a lowercase id string'); });
       if (ra.biome !== undefined && (typeof ra.biome !== 'string' || !ra.biome)) fail('race.biome', 'must be a biome id string');
       if (ra.flags !== undefined && (!Number.isInteger(ra.flags) || ra.flags < 3 || ra.flags > 10)) fail('race.flags', 'must be a whole number from 3 to 10');
+      if (ra.pace !== undefined) {      // AS-0355: how the rabbit runs (game/mission-race-pace.js)
+        var pc = ra.pace, lim = { speed: [1, 14], stopAt: [0.1, 0.9], stopFor: [0, 40], beat: [0.3, 3], wait: [2, 30] };
+        if (!pc || typeof pc !== 'object' || Array.isArray(pc)) fail('race.pace', 'must be { speed?, stopAt?, stopFor?, beat?, wait? }');
+        Object.keys(pc).forEach(function (k) {
+          if (!lim[k] || typeof pc[k] !== 'number' || !isFinite(pc[k]) || pc[k] < lim[k][0] || pc[k] > lim[k][1]) fail('race.pace.' + k, 'must be a number from ' + (lim[k] ? lim[k][0] + ' to ' + lim[k][1] : '(unknown key)'));
+        });
+      }
       if (ra.say !== undefined) {
         if (!ra.say || typeof ra.say !== 'object' || Array.isArray(ra.say)) fail('race.say', 'must be { talk?, flag?, arrive?, photo? } vocab keys');
         Object.keys(ra.say).forEach(function (k) { if (['talk', 'flag', 'arrive', 'photo'].indexOf(k) < 0 || typeof ra.say[k] !== 'string' || !ra.say[k]) fail('race.say.' + k, 'must be a vocab key for talk, flag, arrive, photo'); });
@@ -381,10 +390,10 @@
     // Mission 10 (AS-0354, slice 1 of AS-0189): the race. A rabbit waits at a start line in the bosque; a path of small flags leads about 50 m to the
     // big tree (game/mission-race.js places them only while this mission runs). Talk to the rabbit, run to the tree (goTo: the flags are a guide, any
     // shortcut counts, so jumping rocks is fine), then a photo of the tree (target = the place) ends the mission and earns the sticker 'buen-corredor'.
-    // No opponent yet.
+    // AS-0355: the goTo step is a race (spoken countdown, a fast rabbit that stops for a carrot halfway; if it wins: "¡Otra vez!" and the countdown restarts).
     { id: 'carrera', n: 10, es: 'La carrera', en: 'The race', icon: '🏁',
       intro: { es: '¡Una carrera!', en: 'A race!', icon: '🏁' },
-      race: { place: 'arbol-grande', rabbit: 'conejo', biome: 'bosque', flags: 6, say: { talk: 'thing:carrera', flag: 'thing:bandera', arrive: 'thing:arbol', photo: 'thing:carrera' } },
+      race: { place: 'arbol-grande', rabbit: 'conejo', biome: 'bosque', flags: 6, pace: { speed: 8, stopAt: 0.5, stopFor: 12 }, say: { talk: 'thing:carrera', flag: 'thing:bandera', arrive: 'thing:arbol', photo: 'thing:carrera' } },
       steps: [{ kind: 'talk', who: 'conejo', line: { es: 'Habla con el conejo', icon: '🐰', en: 'Talk to the rabbit' } },
         { kind: 'goTo', place: 'arbol-grande', line: { es: 'Sigue las banderas', icon: '🚩', en: 'Follow the flags' } },
         { kind: 'photo', target: 'arbol-grande', line: { es: 'Foto del árbol', icon: '📷', en: 'Photo of the tree' } }],

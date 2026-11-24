@@ -79,3 +79,35 @@ test('a tap on the rabbit talks on the talk step; a tap on the big tree photogra
   assert.equal(r.tapAt(100, 100), false, 'not a tap step');
   assert.equal(calls.length, 2);
 });
+
+test('the race (AS-0355): the rabbit follows the pace pose (hops while it runs, head down at its carrot), the carrot shrinks and vanishes once eaten, flags reset on a retry', () => {
+  const { SA, THREE } = world();
+  const cur = { ...state(), carrot: { x: 1.2, z: 25 } };
+  let view = { talk: false, photo: false, passed: [1], race: { state: 'countdown', waiting: false, mode: 'wait', eat: 0, ate: false, x: 2.4, y: 1, z: 0, rotY: 0, carrot: cur.carrot } };
+  const r = SA.render.createMissionRace(THREE, { scene: new THREE.Scene(), thing: { current: () => cur, view: () => view } });
+  r.update(0.1);
+  assert.equal(r.group.children.length, 1 + 4 + 1 + 1 + 1, 'start line, flags, tree, rabbit and the carrot');
+  const rabbit = r.group.children[6], carrot = r.group.children[7];
+  assert.deepEqual([carrot.position.x, carrot.position.z, carrot.visible], [1.2, 25, true]);
+  assert.deepEqual([rabbit.position.x, rabbit.position.z, rabbit.position.y], [2.4, 0, 1], 'waiting at the line');
+  const pennant = r.group.children[2].children[1];
+  assert.equal(pennant.material.color.getHex(), 0xffd23f);
+  view = { ...view, passed: [], race: { ...view.race, state: 'running', mode: 'run', x: 2.4, z: 12, rotY: Math.PI / 2 } };
+  let high = 0;
+  for (let i = 0; i < 20; i++) { r.update(0.05); high = Math.max(high, rabbit.position.y - 1); }
+  assert.equal(rabbit.position.z, 12, 'it runs along the path');
+  assert.equal(rabbit.rotation.y, Math.PI / 2, 'facing where it runs');
+  assert.ok(high > 0.2, 'long hops while it runs: ' + high);
+  assert.notEqual(pennant.material.color.getHex(), 0xffd23f, 'the flags are fresh again after a retry');
+  view = { ...view, race: { ...view.race, mode: 'eat', eat: 0.8, z: 25 } };
+  r.update(0.1);
+  assert.ok(rabbit.rotation.x > 0, 'head down at the carrot');
+  assert.ok(carrot.scale.x < 1.4 && carrot.scale.x > 0, 'the carrot is nibbled smaller');
+  view = { ...view, race: { ...view.race, mode: 'run', eat: 0, ate: true } };
+  r.update(0.1);
+  assert.equal(carrot.visible, false, 'the carrot is gone once eaten');
+  assert.equal(rabbit.rotation.x, 0);
+  view = { ...view, race: { ...view.race, state: 'countdown', mode: 'wait', ate: false, z: 0 } };
+  r.update(0.1);
+  assert.equal(carrot.visible, true, 'a fresh carrot for the next try');
+});

@@ -8,7 +8,7 @@ const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'gam
   'game/data/vocab.js', 'game/data/props.js', 'game/data/foods.js', 'game/data/items.js', 'game/data/hand-models.js', 'game/save.js', 'game/mountain-trail.js', 'game/map.js', 'game/peaks.js',
   'game/station.js', 'game/player.js', 'game/npc.js', 'game/inventory.js', 'game/photo.js', 'game/data/step-kinds.js', 'game/mission-run.js',
   'game/data/missions.js', 'game/missions.js', 'game/focus.js', 'game/mission-pill.js', 'game/data/badges.js', 'game/album.js', 'game/badges.js',
-  'game/rescue-log.js', 'game/mission-race.js', 'game/mission-runtime.js'];
+  'game/rescue-log.js', 'game/mission-race-pace.js', 'game/mission-race.js', 'game/mission-runtime.js'];
 
 function setup() {
   const SA = loadGame(FILES);
@@ -17,11 +17,12 @@ function setup() {
   const missions = SA.missions.create({ track: (t, f) => tracked.push([t, f]) });
   let rt = null;
   const log = SA.rescueLog.create({});
-  const race = SA.missionRace.create({ missions, audio: { say: (k) => said.push(k), sfx: (n) => said.push('sfx:' + n) }, track: (t, f) => tracked.push([t, f]),
+  const clock = { ms: 1000 };
+  const race = SA.missionRace.create({ now: () => clock.ms, missions, audio: { say: (k) => said.push(k), sfx: (n) => said.push('sfx:' + n) }, track: (t, f) => tracked.push([t, f]),
     report: (e) => rt.report(e), photo: { record: (id) => photos.push(id) }, rescueLog: log });
   rt = SA.missionRuntime.create({ missions, thing: race, spawn: null, celebrate: (r) => cheers.push(r), track: (t, f) => tracked.push([t, f]) });
   SA.audio = { say: (k) => said.push(k) };
-  const out = { SA, missions, race, rt, said, tracked, cheers, photos, log };
+  const out = { SA, missions, race, rt, said, tracked, cheers, photos, log, clock };
   race.onSticker = (e) => (out.sticker = e);
   return out;
 }
@@ -36,6 +37,10 @@ function startCarrera(ctx) {
 const step = (ctx) => ctx.missions.active().stepData;
 const frame = (ctx, p) => { ctx.race.update(p); return ctx.rt.update(p); };
 const json = (v) => JSON.parse(JSON.stringify(v));
+// Let `sec` seconds pass (in 0.1 s frames) with the player standing at p.
+const wait = (ctx, p, sec) => { for (let i = 0; i < Math.round(sec * 10); i++) { ctx.clock.ms += 100; frame(ctx, p); } };
+// Stand at the start line until the countdown is over and the race runs.
+const startRace = (ctx) => { const s = ctx.race.current().start; wait(ctx, { x: s.x, z: s.z, y: s.y }, 4); assert.equal(ctx.race.view().race.state, 'running'); };
 
 test('data: mission 10 follows mission 9, one intro line of <= 4 words, steps talk -> goTo -> photo; it validates', () => {
   const { SA } = setup();
@@ -73,6 +78,11 @@ test('data: the race field is validated with clear errors', () => {
   assert.throws(() => SA.data.register('missions', [row({ ...good, flags: 11 })]), /race\.flags/);
   assert.throws(() => SA.data.register('missions', [row({ ...good, flags: 4.5 })]), /race\.flags/);
   assert.throws(() => SA.data.register('missions', [row({ ...good, say: { bad: 'x' } })]), /race\.say/);
+  assert.doesNotThrow(() => SA.data.register('missions', [row({ ...good, pace: { speed: 9, stopAt: 0.4, stopFor: 10, beat: 1, wait: 6 } })]));
+  assert.throws(() => SA.data.register('missions', [row({ ...good, pace: { speed: 99 } })]), /race\.pace\.speed/);
+  assert.throws(() => SA.data.register('missions', [row({ ...good, pace: { stopAt: 1 } })]), /race\.pace\.stopAt/);
+  assert.throws(() => SA.data.register('missions', [row({ ...good, pace: { colour: 1 } })]), /race\.pace\.colour/);
+  assert.throws(() => SA.data.register('missions', [row({ ...good, pace: [1] })]), /race\.pace/);
   assert.throws(() => SA.data.register('missions', [row({ ...good, say: 'x' })]), /race\.say/);
   assert.throws(() => SA.data.register('missions', [row('x')]), /race/);
 });
@@ -167,6 +177,10 @@ test('the whole mission: talk to the rabbit, run to the big tree (goTo, shortcut
   assert.deepEqual(json(ctx.rt.target()), { x: g.x, z: g.z, role: 'place', id: 'arbol-grande' }, 'the compass points at the big tree');
   frame(ctx, { x: g.x + 30, z: g.z, y: 0 });
   assert.equal(step(ctx).kind, 'goTo', 'far away does nothing');
+  assert.deepEqual(json(ctx.rt.target()), { x: c.start.x, z: c.start.z, role: 'place', id: 'arbol-grande' }, 'away from the start line the compass points back to it');
+  frame(ctx, { x: g.x, z: g.z, y: g.y });
+  assert.equal(step(ctx).kind, 'goTo', 'standing at the tree before the countdown never wins');
+  startRace(ctx);
   const f0 = c.flags[2];
   frame(ctx, { x: f0.x, z: f0.z, y: f0.y });
   assert.deepEqual(Array.from(race.view().passed), [2], 'a flag you run past lights up');
@@ -206,6 +220,7 @@ test('talking to some other rabbit or photographing a wild rabbit never advances
   assert.equal(ctx.rt.report({ type: 'talked', who: 'scientist' }).status, 'ignored');
   assert.equal(ctx.rt.report({ type: 'talked', who: 'conejo' }).status, 'step');
   const g = ctx.race.current().goal;
+  startRace(ctx);
   frame(ctx, { x: g.x, z: g.z, y: g.y });
   assert.equal(step(ctx).kind, 'photo');
   assert.equal(ctx.rt.report({ type: 'photo', target: 'conejo' }).status, 'ignored');
@@ -217,6 +232,7 @@ test('a replay is a fresh run, pays no second sticker or stars', () => {
   const { SA, race, missions } = ctx;
   let g = race.current().goal;
   race.talk({ x: race.current().rabbit.x, z: race.current().rabbit.z });
+  startRace(ctx);
   frame(ctx, { x: g.x, z: g.z, y: g.y });
   SA.inventory.equip('camara');
   assert.equal(race.snap({ x: g.x, z: g.z }).status, 'complete');
@@ -226,6 +242,7 @@ test('a replay is a fresh run, pays no second sticker or stars', () => {
   assert.equal(step(ctx).kind, 'talk', 'starts again at the rabbit');
   g = race.current().goal;
   race.talk({ x: race.current().rabbit.x, z: race.current().rabbit.z });
+  startRace(ctx);
   frame(ctx, { x: g.x, z: g.z, y: g.y });
   assert.equal(race.snap({ x: g.x, z: g.z }).status, 'complete');
   assert.equal(SA.save.get().stars || 0, stars, 'no stars twice');
@@ -251,4 +268,83 @@ test('place: every seed gives a course (a start, a long dry run to the tree, fla
     for (const f of p.flags) { if (SA.map.isWater(f.x, f.z)) bad.push([s, 'flag in water']); const d = Math.hypot(f.x - prev.x, f.z - prev.z); if (!(d > 3 && d < 14)) bad.push([s, 'flag', d]); prev = f; }
   }
   assert.deepEqual(bad.slice(0, 5), []);
+});
+
+// AS-0355: the race itself (the pure pacing is in test/mission-race-pace.test.js).
+const COUNT = /^(number:|phrase:ya)/;
+
+test('the race: "¡Tres, dos, uno, ya!" is spoken, the tree cannot be won before "ya", and a player who walks wins and hears "¡Ganaste!"', () => {
+  const ctx = startCarrera(setup());
+  const { race, said } = ctx, c = race.current(), g = c.goal, s = c.start;
+  race.talk({ x: c.rabbit.x, z: c.rabbit.z });
+  assert.equal(race.view().race.state, 'countdown');
+  frame(ctx, { x: g.x, z: g.z, y: g.y });
+  assert.equal(step(ctx).kind, 'goTo', 'at the tree before the race starts: nothing');
+  wait(ctx, { x: g.x, z: g.z, y: g.y }, 10);
+  assert.equal(race.view().race.waiting, true, 'the countdown waits for the start line');
+  assert.equal(said.includes('number:3'), false);
+  wait(ctx, { x: s.x, z: s.z, y: s.y }, 1.3);
+  assert.deepEqual(said.filter((k) => COUNT.test(k)), ['number:3', 'number:2'], 'spoken one by one');
+  wait(ctx, { x: g.x, z: g.z, y: g.y }, 0.5);       // a sneaky early arrival at "uno" still wins nothing
+  assert.equal(step(ctx).kind, 'goTo');
+  assert.equal(said.includes('phrase:ya'), false);
+  wait(ctx, { x: s.x, z: s.z, y: s.y }, 1);
+  assert.deepEqual(said.filter((k) => COUNT.test(k)), ['number:3', 'number:2', 'number:1', 'phrase:ya']);
+  assert.equal(race.view().race.state, 'running');
+  assert.equal(race.view().race.mode, 'run');
+  const len = Math.hypot(g.x - s.x, g.z - s.z), speed = ctx.SA.player.SPEED;       // walk the straight line at the player's normal speed
+  let sawEat = false;
+  for (let t = 0; t < len / speed + 1 && step(ctx).kind === 'goTo'; t += 0.1) {
+    const f = Math.min(1, (t * speed) / len);
+    wait(ctx, { x: s.x + (g.x - s.x) * f, z: s.z + (g.z - s.z) * f, y: 0 }, 0.1);
+    const v = race.view();
+    if (v && v.race && v.race.mode === 'eat') sawEat = true;
+  }
+  assert.equal(step(ctx).kind, 'photo', 'walking wins');
+  assert.equal(sawEat, true, 'the rabbit was busy with its carrot on the way');
+  assert.ok(said.includes('phrase:lento') && said.includes('phrase:ganaste'));
+  assert.equal(said.includes('phrase:otravez'), false, 'the rabbit never won');
+  assert.equal(ctx.tracked.some(([n]) => n === 'race.won'), true);
+});
+
+test('when the rabbit wins it says "¡Otra vez!" and the race is back at the countdown at once; no failure, nothing lost', () => {
+  const ctx = startCarrera(setup());
+  const { race, said, missions } = ctx, c = race.current(), g = c.goal, s = c.start, at = { x: s.x, z: s.z, y: s.y };
+  race.talk({ x: c.rabbit.x, z: c.rabbit.z });
+  startRace(ctx);
+  frame(ctx, { x: c.flags[0].x, z: c.flags[0].z, y: 0 });
+  assert.deepEqual(Array.from(race.view().passed), [0]);
+  const near = { x: s.x + 6, z: s.z, y: 0 };       // dawdling by the start line while the rabbit runs
+  let guard = 0;
+  while (race.view().race.losses === 0 && guard++ < 400) wait(ctx, near, 0.5);
+  assert.equal(race.view().race.losses, 1);
+  assert.equal(said.filter((k) => k === 'phrase:otravez').length, 1, '¡Otra vez! is spoken once');
+  assert.ok(said.includes('phrase:rapido'), 'rápido when it dashes off after the carrot');
+  const v = race.view();
+  assert.equal(v.race.state, 'countdown', 'back at the countdown immediately');
+  assert.deepEqual(Array.from(v.passed), [], 'the flags are fresh again');
+  assert.ok(Math.hypot(v.race.x - c.rabbit.x, v.race.z - c.rabbit.z) < 1e-9, 'the rabbit is back at the start');
+  assert.equal(step(ctx).kind, 'goTo');
+  assert.equal(missions.active().id, 'carrera', 'the mission goes on: no lives, no failure screen');
+  assert.equal(said.filter((k) => k === 'number:3').length, 2, 'the player is still by the line, so "tres" is spoken again right away');
+  wait(ctx, at, 3);
+  assert.equal(race.view().race.state, 'running');
+  frame(ctx, { x: g.x, z: g.z, y: g.y });
+  assert.equal(step(ctx).kind, 'photo', 'the second try can be won');
+});
+
+test('after the rabbit wins, standing at the tree wins nothing: the countdown waits for the player at the start line (the compass points there)', () => {
+  const ctx = startCarrera(setup());
+  const { race } = ctx, c = race.current(), g = c.goal, s = c.start, atTree = { x: g.x, z: g.z + g.r * 0.5, y: 0 };
+  race.talk({ x: c.rabbit.x, z: c.rabbit.z });
+  startRace(ctx);
+  let guard = 0;
+  const mid = { x: (s.x + g.x) / 2, z: (s.z + g.z) / 2, y: 0 };
+  while (race.view().race.losses === 0 && guard++ < 400) wait(ctx, mid, 0.5);       // the player dawdles halfway; the rabbit wins
+  wait(ctx, atTree, 12);       // ...then the player wanders to the tree: no win, the countdown does not even start
+  assert.equal(race.view().race.state, 'countdown');
+  assert.equal(race.view().race.waiting, true);
+  assert.equal(step(ctx).kind, 'goTo');
+  assert.deepEqual(json(ctx.rt.target()), { x: s.x, z: s.z, role: 'place', id: 'arbol-grande' });
+  assert.equal(race.locate('arbol-grande'), null, 'the tree is not a finish while the race is not won');
 });

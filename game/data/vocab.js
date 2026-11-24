@@ -111,6 +111,11 @@
   add('thing', 'carrera', 'la carrera', 'the race');
   add('thing', 'bandera', 'la bandera', 'the flag');
   add('thing', 'arbol', 'el árbol', 'the tree');
+  // AS-0355: the spoken countdown "¡Tres, dos, uno, ya!" (tres / dos / uno are the number words), the rabbit's carrot stop and the win.
+  add('phrase', 'ya', '¡Ya!', 'Go!');
+  add('phrase', 'rapido', 'rápido', 'fast');
+  add('phrase', 'lento', 'lento', 'slow');
+  add('phrase', 'ganaste', '¡Ganaste!', 'You won!');   // "ganar", to win
   add('phrase', 'pasotoca', '¡Toca!', 'Touch it!');
   add('phrase', 'pasollena', '¡Llena!', 'Fill it!');
   add('phrase', 'cruzar', 'cruzar', 'to cross');

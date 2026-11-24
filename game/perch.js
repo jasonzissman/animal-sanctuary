@@ -22,7 +22,14 @@
   'use strict';
   var SA = root.SA;
 
-  var KINDS = { jungle: { height: 5.2, radius: 0.9 }, pine: { height: 3.2, radius: 0.55 } };
+  // Canopy standing height + branch ring radius per tree kind (game/render/trees.js builds each; AS-0296 added the kinds after pine/jungle).
+  var KINDS = {
+    jungle: { height: 5.2, radius: 0.9 }, pine: { height: 3.2, radius: 0.55 },
+    oak: { height: 4.2, radius: 0.8 }, birch: { height: 3.8, radius: 0.6 },
+    palm: { height: 5.0, radius: 0.55 }, kapok: { height: 5.8, radius: 1.0 },
+    acacia: { height: 3.1, radius: 0.9 }, yucca: { height: 2.6, radius: 0.5 },
+    snowpine: { height: 3.2, radius: 0.55 }, fir: { height: 4.6, radius: 0.5 },
+  };
   var DEFAULT_KIND = 'jungle';
   var PER_TREE = 3;            // branch spots per tree
   var HOP_RANGE = 7;

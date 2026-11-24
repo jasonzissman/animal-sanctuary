@@ -55,8 +55,10 @@
     // animals are soft (SA.blocking reads that from data), so the player walks straight through them.
     var streamStones = SA.forestStreams ? SA.forestStreams.stoneSolids() : [];   // low solids [x, z, r, h] (AS-0301), static
     var logSolids = SA.fallenLogs ? SA.fallenLogs.solids() : [];   // low solids [x, z, r, h] along each fallen log (AS-0302), static
+    var towerSolids = SA.lookouts ? SA.lookouts.solids() : [];   // the lookout towers' legs and sides on the ground (AS-0160), static
+    var lookoutsView = null;   // the towers' merged mesh, built with the other static scenery below
     function obstacles() {
-      return stationWalls.concat(streamStones, logSolids, SA.surfaces ? SA.surfaces.solids() : [], SA.blocking.obstacles({
+      return stationWalls.concat(streamStones, logSolids, towerSolids, SA.surfaces ? SA.surfaces.solids() : [], SA.blocking.obstacles({
         decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor, scale: o.scale ? o.scale.x : 1 }; }),
         propPoints: solidPropPoints,
         animals: animals.children.map(function (g) {
@@ -111,7 +113,7 @@
     // One combined climb-target list (AS-0193): the trees plus the data-driven peaks (SA.peaks.targets()). The camera rig, the
     // Space/E chooser, the outline and the auto-climb ring all read this same list, so a peak climbs exactly like a tree.
     // The station building (AS-0194) is a third kind of data target in the same list.
-    var climbables = trees.concat(SA.peaks ? SA.peaks.targets() : [], SA.station && SA.station.climbTarget ? [SA.station.climbTarget()] : []);
+    var climbables = trees.concat(SA.peaks ? SA.peaks.targets() : [], SA.station && SA.station.climbTarget ? [SA.station.climbTarget()] : [], SA.lookouts ? SA.lookouts.targets() : []);   // + the lookout-tower ladders (AS-0160)
     // Collectable finds (SA.pickups): fruit up in the canopies, rocks/flowers/leaves on the ground, fish on the banks.
     var pickups = SA.render.createPickups && SA.pickups ? SA.render.createPickups(THREE, { getPlayer: rig.getPlayer, trees: trees, avoid: avoid, seed: 80, container: container }) : null;
     if (pickups) scene.add(pickups.group);
@@ -160,6 +162,7 @@
         if (i >= 0) return treeNodes[i];
         var found = null;   // any data target (peak, building): the node carrying its id as userData.climbId
         if (ref && ref.id) decor.children.concat(station ? [station] : []).forEach(function (o) { if (o.userData && o.userData.climbId === ref.id) found = o; });
+        if (!found && ref && ref.kind === 'ladder' && lookoutsView) found = lookoutsView.nodeFor(ref.id);   // a lookout tower glows whole
         return found;
       }
       if (kind === 'npc' && ref && ref.id === 'baby') return missionAnimals ? missionAnimals.babyNode() : null;   // the lost baby (AS-0234)
@@ -219,6 +222,9 @@
     // The fallen logs (AS-0302): one merged bark mesh; their footprint is in the obstacles above (hop over, stand on top).
     if (SA.render.createBridges && SA.surfaces) {   // the two river bridges (AS-0158)
       try { SA.render.createBridges(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('bridges.create', e); }
+    }
+    if (SA.render.createLookouts && SA.lookouts) {   // the lookout towers with ladders (AS-0160)
+      try { lookoutsView = SA.render.createLookouts(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('lookouts.create', e); }
     }
     if (SA.render.createFallenLogs && SA.fallenLogs) {
       try { SA.render.createFallenLogs(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('fallenLogs.create', e); }

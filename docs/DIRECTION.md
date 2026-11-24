@@ -286,6 +286,11 @@ current; when your change sets or changes something future tickets must follow, 
   height, so a hop never clears them) are added to the player's obstacles in `scene.js`. Two seeded river bridges
   (`render/bridges.js`) plus every placed `puente` prop (`setPlaced`; the prop is no longer a solid blocker). A new walkable thing
   (rope bridge, tower deck) = one more deck record; use `SA.player.inWater` (not `SA.map.isWater`) for wading sounds.
+  Lookout towers (AS-0160): `SA.lookouts` (pure, `game/lookouts.js`, mesh `render/lookouts.js`): one seeded wooden tower in the forest and one in
+  the desert, each with a ladder on one side. `SA.lookouts.targets()` are plain climb targets of kind `'ladder'` in the same `climbables` list as
+  trees, peaks and the station; climb kinds are data in `SA.climb.KINDS` (`tree|peak|building|ladder`: mode on top, climb path, arrival spot), so the
+  C / E / Space and 0.6 s push-to-climb flow is unchanged. Only the ladder side starts a climb (`noClimb` zones); `top.solids` is a gapless railing, so you
+  cannot fall off; `solids()` are the legs on the ground. The station's own ladder was dropped: its walls are climbable (AS-0165).
   Rocks (AS-0299): `SA.rocks` (pure, `game/rocks.js`) gives a seeded spec per rock (boulder / flat / stack / jagged, trim, yaw, tilt, a
   per-biome colour: red-orange desert, grey mountain, mossy bosque/selva); `game/render/rocks.js` builds shared flat-shaded geometry.
   Every kind is normalised to about the data `height` of `roca`/`rocaarena`, and each rock is a Group at the placed scale, so collision and shadows work as before.

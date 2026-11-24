@@ -18,7 +18,8 @@
  *   SA.missionRuntime.create({ missions?, run?, spawn?, locate?, grant?, celebrate?, track?, proofs? })   a separate instance (tests).
  *       proofs   a SA.proofs instance: a mission finished by a 'photo' event is recorded as a proof sent to the station (AS-0206)
  *       thing    a SA.missionCarry instance (AS-0313): update(player) picks the carried thing up when close; its locate / target
- *                answer for carry / deliver steps after the spawned animals do
+ *                answer for carry / deliver steps after the spawned animals do. Without it, SA.missionCarry and SA.missionLog
+ *                (the river rock and log, AS-0319) are both asked in turn
  *       locate(id) -> { x, z, r? } | null   where a place / find target is (default: none; mission content registers them)
  *       grant(reward)       the reward of the FIRST completion (stars; default adds to save.stars); never called on a replay
  *       celebrate(result)   the finish cheer (default: the fanfare, then the instance's `celebrateHook(result)`, which main.js sets to
@@ -125,7 +126,18 @@
     // Where the current step points in the world (AS-0233): { x, z, role, id } or null. The compass (AS-0228) points at it.
     // `at: 'baby'` is the spawned baby (find), `at: 'mama'` is mamá (follow); a step with no `at` has no target here.
     // The carried thing and its drop-off (SA.missionCarry, AS-0313) answer for carry / deliver steps; spawned animals for the rest.
-    function thing() { return opts.thing || SA.missionCarry || null; }
+    // The river log and rock (SA.missionLog, AS-0319) answer the same way: the first world piece that knows the id / step wins.
+    function thing() {
+      if (opts.thing) return opts.thing;
+      var list = [SA.missionCarry, SA.missionLog].filter(Boolean);
+      if (!list.length) return null;
+      function first(fn, arg) {
+        for (var i = 0; i < list.length; i++) { var r = list[i][fn] ? list[i][fn](arg) : null; if (r) return r; }
+        return null;
+      }
+      return { update: function (p) { list.forEach(function (t) { if (t.update) t.update(p); }); }, locate: function (id) { return first('locate', id); },
+        target: function (s) { return first('target', s); } };
+    }
 
     function target() {
       var sp = spawner(), th = thing(), a;

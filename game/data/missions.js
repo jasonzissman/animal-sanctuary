@@ -16,6 +16,8 @@
  *   carry   optional { item, to, near? } (AS-0313): the thing a 'carry' / 'deliver' step moves and its drop-off ids; game/mission-carry.js
  *           places both on dry ground near `near` ('pond', the default) when the mission starts. `hatch: { baby, mama, seconds? }`
  *           (AS-0315, optional): the egg placed in the nest hatches `baby` next to `mama` after `seconds` (default 5, 1..30)
+ *   river   optional { animal, rock, log } (AS-0319): the stranded animal's id and the ids of the river rock and the fallen log; game/mission-log.js
+ *           places them in the river and slides the log across ('push' step: item = the log id; 'goTo' step: place = the rock id)
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -68,6 +70,11 @@
         if (h.seconds !== undefined && (typeof h.seconds !== 'number' || !(h.seconds >= 1 && h.seconds <= 30))) fail('carry.hatch.seconds', 'must be a number from 1 to 30');
       }
     }
+    if (m.river !== undefined) {
+      var rv = m.river;
+      if (!rv || typeof rv !== 'object' || Array.isArray(rv)) fail('river', 'must be { animal, rock, log }');
+      ['animal', 'rock', 'log'].forEach(function (k) { if (typeof rv[k] !== 'string' || !/^[a-z][a-z0-9-]*$/.test(rv[k])) fail('river.' + k, 'must be a lowercase id string'); });
+    }
     var r = m.reward;
     if (!r || typeof r !== 'object' || typeof r.stars !== 'number' || r.stars < 0 || r.stars !== Math.floor(r.stars)) fail('reward', 'must be { stars: whole number >= 0 }');
   }
@@ -92,6 +99,14 @@
         { kind: 'deliver', item: 'huevo', to: 'nido', line: { es: 'Llévalo al nido', icon: '🪺', en: 'Take it to the nest' } },
         { kind: 'hatch', item: 'huevo', line: { es: 'Espera un poquito', icon: '⏳', en: 'Wait a little' } },
         { kind: 'photo', target: 'patito', line: { es: 'Foto de la familia', icon: '📷', en: 'Family photo' } }],
+      reward: { stars: 2 } },
+    // Mission 3 (AS-0319, slice 2 of AS-0182): a puppy is stranded on a rock in the river. Push the fallen log across the water so it
+    // locks as a bridge, then walk over it to the rock. game/mission-log.js places the rock, puppy and log from `river`.
+    { id: 'rio', n: 3, es: 'Rescate en el río', en: 'River rescue', icon: '🐶',
+      intro: { es: '¡Salva al perrito!', en: 'Save the puppy!', icon: '🐶' },
+      river: { animal: 'perrito', rock: 'roca', log: 'tronco' },
+      steps: [{ kind: 'push', item: 'tronco', line: { es: 'Empuja el tronco', icon: '🪵', en: 'Push the log' } },
+        { kind: 'goTo', place: 'roca', line: { es: 'Cruza el río', icon: '🌊', en: 'Cross the river' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

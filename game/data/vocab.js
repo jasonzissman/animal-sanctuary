@@ -66,6 +66,7 @@
   // Mission 3 words (AS-0318): the river the puppy is stranded in, the log you cross it on, and the verb.
   add('thing', 'rio', 'el río', 'the river');
   add('thing', 'tronco', 'el tronco', 'the log');
+  add('thing', 'roca', 'la roca', 'the rock');   // AS-0319: the rock the puppy waits on
   add('phrase', 'cruzar', 'cruzar', 'to cross');
   add('phrase', 'guau', '¡Guau!', 'Woof!').pitch = 1.25;   // el perrito's bark (animal.voice)
 

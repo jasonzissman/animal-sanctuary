@@ -185,6 +185,12 @@
     ropeRails = null;
   }
 
+  /** Unregisters decks added with addFixed (a mission's log bridge is removed when its mission is replayed, AS-0319). */
+  function removeFixed(list) {
+    fixed = fixed.filter(function (d) { return (list || []).indexOf(d) < 0; });
+    ropeRails = null;
+  }
+
   /** The rail circles of every rope deck (cached); a player on a rope deck is blocked by these and nothing else. */
   function ropeSolidsAt(x, z, y) {
     var any = false, i;
@@ -220,6 +226,6 @@
     return next;
   }
 
-  SA.surfaces = { ROPE_REACH: ROPE_REACH, addFixed: addFixed, confine: confine, ropeSolidsAt: ropeSolidsAt, exitTo: exitTo, topAt: topAt, SEED: SEED, HALF_WID: HALF_WID, RAMP: RAMP, layout: layout, bridges: bridges, propDeck: propDeck, setPlaced: setPlaced, decks: decks,
+  SA.surfaces = { ROPE_REACH: ROPE_REACH, addFixed: addFixed, removeFixed: removeFixed, confine: confine, ropeSolidsAt: ropeSolidsAt, exitTo: exitTo, topAt: topAt, SEED: SEED, HALF_WID: HALF_WID, RAMP: RAMP, layout: layout, bridges: bridges, propDeck: propDeck, setPlaced: setPlaced, decks: decks,
     deckHeight: deckHeight, railCircles: railCircles, heightAt: heightAt, onDeck: onDeck, walkable: walkable, near: near, solids: solids };
 })(typeof window !== 'undefined' ? window : globalThis);

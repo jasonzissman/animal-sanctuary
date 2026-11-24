@@ -195,6 +195,7 @@
         var x = q.x0 + QUAD_EDGE + rand() * (q.x1 - q.x0 - 2 * QUAD_EDGE), z = zLo + rand() * (zHi - zLo);
         if (M.biomeAt(x) !== a.biome || M.groundHeight(x, z) < M.WATER_LEVEL + 0.45) continue;
         if (SA.forestStreams && SA.forestStreams.inWater(x, z, 0.8)) continue;   // never start in a forest stream (AS-0301)
+        if (SA.fallenLogs && SA.fallenLogs.near(x, z, 1)) continue;   // nor on a fallen log (AS-0302)
         if (t < 600) {   // flat enough to stand on (no step over 0.6 within 1 unit); the last tries give in so a steep quadrant still gets an animal
           var h = M.groundHeight(x, z);
           if (Math.abs(M.groundHeight(x + 1, z) - h) > 0.6 || Math.abs(M.groundHeight(x, z + 1) - h) > 0.6) continue;
@@ -253,6 +254,7 @@
           var x = c.x0 + rand() * (c.x1 - c.x0), z = c.z0 + rand() * (c.z1 - c.z0), h = M.groundHeight(x, z), i, d;
           if (M.biomeAt(x) !== a.biome || h < M.WATER_LEVEL + 0.45) continue;
           if (SA.forestStreams && SA.forestStreams.inWater(x, z, 0.8)) continue;   // never start in a forest stream (AS-0301)
+          if (SA.fallenLogs && SA.fallenLogs.near(x, z, 1)) continue;   // nor on a fallen log (AS-0302)
           if (t < 450 && (Math.abs(M.groundHeight(x + 1, z) - h) > 0.6 || Math.abs(M.groundHeight(x, z + 1) - h) > 0.6)) continue;
           if (SA.station && SA.station.inFootprint(x, z, 1.5)) continue;
           if (SA.player && SA.player.inSpawnZone(x, z, 1)) continue;

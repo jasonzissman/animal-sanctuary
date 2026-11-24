@@ -379,6 +379,13 @@ current; when your change sets or changes something future tickets must follow, 
   gained optional `specOf`/`anchor`/`spec.say`/`spec.reach`): the pickups lie 8-16 m around the build spot, different kinds 3.2 m apart, exist only
   while Mission 9 runs and only while their own collect step is current, go into the bag and speak `item:<id>` (el palo / la hoja / la hierba).
   `hoja` is no longer a retired item id in `save.js`. `game/render/mission-bananas.js` has `createMissionGather` (one view per instance).
+  **Mission 9 building (AS-0352, slice 3):** new generic step kind `place` `{ item, n?, layer: 'abajo'|'encima'|'dentro', place, line }` (event
+  `placed`, `place` must be the mission's `home.place`). The Mission 9 row has three after the goTo: sticks `abajo`, leaves `encima`, grass `dentro`
+  (`phrase:dentro` is new). When one becomes current `SA.missionHome.update` puts its item in hand and speaks `construir` (first layer only) then the layer
+  word. `SA.missionHome.put(player?)` is a tap on the spot (`render/mission-home.js` raycasts the invisible pick volume of `render/home-build.js`): the
+  item in hand is taken from the bag (`n` of it; a bag that came up short still counts, never stuck) and the next layer pops in; any other item or empty
+  hands only wobbles the home with a `boing` (`view().wobbles`), nothing lost. Layers on = place steps already passed (`view().layers`, reload-safe).
+  The last layer sparkles and speaks `home.say.built` (`thing:casa`); `view().built` makes the family walk to its `inside` slots; then the photo step.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

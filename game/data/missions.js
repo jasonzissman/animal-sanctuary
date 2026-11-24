@@ -60,6 +60,8 @@
  *           AS-0351: `home.gather` (optional, 1..4 of { item, n, say? }) are the mission-only pickups lying 8-16 m around the spot (item ids from
  *           items.js, `say` a vocab key, default 'item:<id>'); each needs its own 'collect' step { item, n } and goes into the inventory.
  *           game/mission-gather.js owns them; they exist only while this mission runs and only while their collect step is current.
+ *           AS-0352: 'place' steps { item, n?, layer: 'abajo'|'encima'|'dentro', place } (place = home.place) put the gathered item on the build spot
+ *           (a tap with it in hand, game/mission-home.js put()); `home.say.built` is spoken when the last layer is on and the family moves in.
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -200,8 +202,8 @@
       ['adult', 'baby'].forEach(function (k) { if (typeof hf[k] !== 'string' || !hid.test(hf[k])) fail('home.family.' + k, 'must be an animal id string'); });
       if (!Number.isInteger(hf.babies) || hf.babies < 1 || hf.babies > 5) fail('home.family.babies', 'must be a whole number from 1 to 5');
       if (ho.say !== undefined) {
-        if (!ho.say || typeof ho.say !== 'object' || Array.isArray(ho.say)) fail('home.say', 'must be { arrive?, photo? } vocab keys');
-        Object.keys(ho.say).forEach(function (k) { if (['arrive', 'photo'].indexOf(k) < 0 || typeof ho.say[k] !== 'string' || !ho.say[k]) fail('home.say.' + k, 'must be a vocab key for arrive, photo'); });
+        if (!ho.say || typeof ho.say !== 'object' || Array.isArray(ho.say)) fail('home.say', 'must be { arrive?, built?, photo? } vocab keys');
+        Object.keys(ho.say).forEach(function (k) { if (['arrive', 'built', 'photo'].indexOf(k) < 0 || typeof ho.say[k] !== 'string' || !ho.say[k]) fail('home.say.' + k, 'must be a vocab key for arrive, built, photo'); });
       }
       if (ho.gather !== undefined) {
         if (!Array.isArray(ho.gather) || ho.gather.length < 1 || ho.gather.length > 4) fail('home.gather', 'must be 1 to 4 { item, n } entries');
@@ -214,6 +216,13 @@
         });
       }
     }
+    m.steps.forEach(function (s, i) {
+      if (s.kind !== 'place') return;
+      var pf = 'steps[' + i + ']';
+      if (['abajo', 'encima', 'dentro'].indexOf(s.layer) < 0) fail(pf + '.layer', 'must be "abajo", "encima" or "dentro"');
+      if (!m.home || m.home.place !== s.place) fail(pf + '.place', 'must name the mission\'s home.place (the build spot)');
+      if (s.n !== undefined && (!Number.isInteger(s.n) || s.n < 1 || s.n > 6)) fail(pf + '.n', 'must be a whole number from 1 to 6');
+    });
     m.steps.forEach(function (s, i) {
       if (s.gives !== undefined && (typeof s.gives !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.gives))) fail('steps[' + i + '].gives', 'must be a lowercase vocab id string');
     });
@@ -341,12 +350,17 @@
       intro: { es: 'Construye una casa', en: 'Build a house', icon: '🏡' },
       // AS-0351 (slice 2): before walking to the spot, gather sticks, leaves and soft grass lying around it (`home.gather`, game/mission-gather.js):
       // each kind has its own 'collect' step, its pickups stand only while that step is current, and each goes into the bag and speaks its word.
-      home: { place: 'hogar', biome: 'bosque', family: { adult: 'conejo', baby: 'conejito', babies: 3 }, say: { arrive: 'thing:casa', photo: 'thing:familia' },
+      home: { place: 'hogar', biome: 'bosque', family: { adult: 'conejo', baby: 'conejito', babies: 3 }, say: { arrive: 'thing:casa', built: 'thing:casa', photo: 'thing:familia' },
         gather: [{ item: 'palo', n: 3 }, { item: 'hoja', n: 3 }, { item: 'hierba', n: 1 }] },
       steps: [{ kind: 'collect', item: 'palo', n: 3, line: { es: 'Recoge 3 palos', icon: '🪵', en: 'Pick up 3 sticks' } },
         { kind: 'collect', item: 'hoja', n: 3, line: { es: 'Recoge 3 hojas', icon: '🍃', en: 'Pick up 3 leaves' } },
         { kind: 'collect', item: 'hierba', n: 1, line: { es: 'Recoge la hierba', icon: '🌾', en: 'Pick up the soft grass' } },
         { kind: 'goTo', place: 'hogar', line: { es: 'Ve al lugar', icon: '📍', en: 'Go to the spot' } },
+        // AS-0352 (slice 3): tap the build spot with the right item in hand (it is put in hand for you), one layer of the home per step:
+        // sticks below, leaves on top, soft grass inside. The family then moves in and the photo ends the mission.
+        { kind: 'place', item: 'palo', n: 3, layer: 'abajo', place: 'hogar', line: { es: 'Pon los palos abajo', icon: '🪵', en: 'Put the sticks below' } },
+        { kind: 'place', item: 'hoja', n: 3, layer: 'encima', place: 'hogar', line: { es: 'Pon las hojas encima', icon: '🍃', en: 'Put the leaves on top' } },
+        { kind: 'place', item: 'hierba', n: 1, layer: 'dentro', place: 'hogar', line: { es: 'Pon la hierba dentro', icon: '🌾', en: 'Put the grass inside' } },
         { kind: 'photo', target: 'hogar', line: { es: 'Foto de la familia', icon: '📷', en: 'Family photo' } }],
       reward: { stars: 2 } }
   ]);

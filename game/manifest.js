@@ -229,6 +229,7 @@ globalThis.SA_MANIFEST = {
     'game/render/mission-doctor.js',
     'game/render/mission-nest.js',
     'game/render/mission-pantry.js',
+    'game/render/home-build.js',
     'game/render/mission-home.js',
     'game/render/mission-trail.js',
     'game/render/mission-friends.js',

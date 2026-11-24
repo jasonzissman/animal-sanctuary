@@ -16,7 +16,14 @@
  *   SA.missionHome.snap(player?)   a tap on the family with la cámara on the 'photo' step (render/mission-home.js), from near the spot:
  *                                  { status: 'none' | 'nocamera' | 'far' | 'complete' | 'step' }. It goes into the album (SA.photo.record), completes the
  *                                  mission (stars) and logs one rescue row { kind: 'home' } -> the sticker 'hogar-nuevo' (onSticker hook for main.js)
- *   SA.missionHome.view()          -> { photo, arrived } | null     current() / onChange(fn) / setSolids(listOrFn)
+ *   AS-0352 (slice 3): 'place' steps { item, n?, layer: 'abajo'|'encima'|'dentro', place } (after the goTo). When one becomes current update() puts its
+ *   item in hand and speaks the direction ('construir' first, then the layer word: abajo / encima / dentro). SA.missionHome.put(player?) is a tap on the
+ *   build spot (render/mission-home.js): with the right item in hand it takes `n` of it out of the bag and reports { type: 'placed' } (the render adds the next
+ *   layer of the home); the last one speaks `say.built`. The wrong item (or empty hands) only wobbles the home with a boing and loses nothing. A bag that came up
+ *   short still counts, so nobody is ever stuck. Once every layer is on, view().built is true and the family walks into the home (each family entry has
+ *   an `inside` slot).
+ *   SA.missionHome.put(player?)    -> { ok, layer? } | { ok: false, reason: 'step' | 'far' | 'wrong' }
+ *   SA.missionHome.view()          -> { photo, arrived, place, placed, total, layers: [layer ids on], built, wobbles } | null     current() / onChange(fn) / setSolids(listOrFn)
  *   SA.missionHome.create({ missions?, audio?, report?, track?, solids?, photo?, rescueLog?, inventory? })   a separate instance (tests)
  */
 (function (root) {
@@ -26,6 +33,9 @@
   // Where the family waits, in the spot's own frame (x = right, z = out toward the way you come from): the adult beside the spot, the kits around her.
   var SLOTS = { adult: [3.9, 0.4], baby: [[3.0, 1.9], [4.9, 1.7], [2.9, -1.1], [5.0, -0.6], [3.9, 2.8]] };
   var SCALE = { adult: 0.8, baby: 0.8 };      // the kits are already small (babyParts)
+  // Where each one settles once the home is built (AS-0352), same frame, round the spot's centre inside the walls (open toward `face`, so the camera sees them).
+  var INSIDE = { adult: [0, -0.1], baby: [[-0.6, 0.55], [0.6, 0.55], [0, -0.75], [-0.75, -0.2], [0.75, -0.2]] };
+  var PUT_REACH = 7, LAYER_SAY = { abajo: 'phrase:abajo', encima: 'phrase:encima', dentro: 'phrase:dentro' };
 
   function startPoint() {
     try { if (SA.station && SA.station.spawn) return SA.station.spawn(); } catch (e) { /* fall through */ }
@@ -69,12 +79,13 @@
       if (d < MIN_FROM_START || (t < TRIES / 2 && d > MAX_FROM_START) || !spotOk(x, z, biome, solids)) continue;
       var spot = { x: x, y: M.groundHeight(x, z), z: z, r: SPOT_R, face: Math.atan2(S.x - x, S.z - z) };
       var f = spec.family, family = [];
-      var add = function (role, animal, slot) {
-        var w = toWorld(spot, slot[0], slot[1]);
-        family.push({ role: role, animal: animal, x: w.x, y: M.groundHeight(w.x, w.z), z: w.z, rotY: Math.atan2(spot.x - w.x, spot.z - w.z), scale: SCALE[role] });
+      var add = function (role, animal, slot, inside) {
+        var w = toWorld(spot, slot[0], slot[1]), n = toWorld(spot, inside[0], inside[1]);
+        family.push({ role: role, animal: animal, x: w.x, y: M.groundHeight(w.x, w.z), z: w.z, rotY: Math.atan2(spot.x - w.x, spot.z - w.z), scale: SCALE[role],
+          inside: { x: n.x, y: spot.y, z: n.z, rotY: spot.face } });
       };
-      add('adult', f.adult, SLOTS.adult);
-      for (var b = 0; b < f.babies; b++) add('baby', f.baby, SLOTS.baby[b]);
+      add('adult', f.adult, SLOTS.adult, INSIDE.adult);
+      for (var b = 0; b < f.babies; b++) add('baby', f.baby, SLOTS.baby[b], INSIDE.baby[b]);
       return { spot: spot, family: family };
     }
     return null;
@@ -86,7 +97,12 @@
     function missions() { return opts.missions || SA.missions; }
     function audio() { return opts.audio || SA.audio; }
     function emit() { listeners.slice().forEach(function (f) { try { f(cur); } catch (e) { /* a view never breaks the loop */ } }); }
-    function say(key) { try { var a = audio(); if (key && a && a.say) a.say(key); } catch (e) { /* sound is best effort */ } }
+    function say(keys) {
+      [].concat(keys || []).forEach(function (k, i) {
+        try { var a = audio(); if (k && a && a.say) { if (i && root.setTimeout && !opts.audio) root.setTimeout(function () { a.say(k); }, i * 1200); else a.say(k); } } catch (e) { /* sound is best effort */ }
+      });
+    }
+    function sfx(n) { try { var a = audio(); if (a && a.sfx) a.sfx(n); } catch (e) { /* sound is best effort */ } }
     function track(type, f) {
       try { if (opts.track) opts.track(type, f); else if (root.SAT && root.SAT.track) root.SAT.track(type, f); } catch (e) { /* telemetry never breaks play */ }
     }
@@ -96,6 +112,14 @@
     function sayOf(k) { return cur && cur.spec.say ? cur.spec.say[k] : null; }
     function isGoTo(s) { return !!(cur && s && s.kind === 'goTo' && s.place === cur.spec.place); }
     function isPhoto(s) { return !!(cur && s && s.kind === 'photo' && s.target === cur.spec.place); }
+    function isPlace(s) { return !!(cur && s && s.kind === 'place' && s.place === cur.spec.place); }
+    // The home's layers from the mission's own steps (so a reload mid-build restores them): [{ layer, index }] and how many are already on.
+    function layers() {
+      var a = active(), out = [], on = [];
+      if (!cur || !a || !a.mission) return { all: out, on: on };
+      a.mission.steps.forEach(function (s, i) { if (isPlace(s)) { out.push(s.layer); if (i < a.step) on.push(s.layer); } });
+      return { all: out, on: on };
+    }
 
     function sync(o) {
       var a = active();
@@ -104,7 +128,7 @@
       if ((cur && cur.key) === key) return cur;
       var src = (o && o.solids) || solidsSrc;
       var p = spec ? place(spec, a.seed, { solids: typeof src === 'function' ? src() : src || [] }) : null;
-      cur = p ? { key: key, spec: spec, spot: p.spot, family: p.family, said: {}, snapped: false } : null;
+      cur = p ? { key: key, spec: spec, spot: p.spot, family: p.family, said: {}, snapped: false, wobbles: 0, told: {} } : null;
       emit();
       return cur;
     }
@@ -118,14 +142,51 @@
         say(sayOf('arrive'));
         track('home.arrived', { place: cur.spec.place });
       }
+      var s = stepOf(), a = active();
+      if (isPlace(s) && !cur.told[a.step]) {      // a new layer step: the item is put in hand and the direction is spoken (construir first, then abajo / encima / dentro)
+        cur.told[a.step] = true;
+        try { var inv = opts.inventory || SA.inventory; if (inv && inv.has(s.item)) inv.equip(s.item); } catch (e) { /* the bag never breaks the loop */ }
+        say((layers().on.length ? [] : ['phrase:construir']).concat(LAYER_SAY[s.layer] || []));
+      }
       return cur;
     }
 
     function locate(id) { return cur && id === cur.spec.place ? { x: cur.spot.x, z: cur.spot.z, r: cur.spot.r } : null; }
 
     function target(step) {
-      if (!cur || !step || !(isGoTo(step) || isPhoto(step))) return null;
+      if (!cur || !step || !(isGoTo(step) || isPhoto(step) || isPlace(step))) return null;
       return { x: cur.spot.x, z: cur.spot.z, role: 'place', id: cur.spec.place };
+    }
+
+    // Building (AS-0352): a tap on the build spot on a 'place' step, from near it. The right item in hand goes from the bag onto the home (the next layer); anything
+    // else gets a gentle boing and a wobble of the home, keeps everything and leaves the step current. Never stuck: an item that is gone from the bag still counts.
+    function put(player) {
+      sync();
+      var s = stepOf(), p = player || last;
+      if (!isPlace(s)) return { ok: false, reason: 'step' };
+      if (p && Math.hypot(p.x - cur.spot.x, p.z - cur.spot.z) > PUT_REACH) { say('phrase:acercate'); return { ok: false, reason: 'far' }; }
+      var iv = opts.inventory || SA.inventory, held = null, have = 0;
+      try { held = iv.equipped(); have = iv.count(s.item); } catch (e) { /* an unreadable bag still lets the step go on */ }
+      if (have > 0 && held !== s.item) {
+        cur.wobbles++;
+        sfx('boing');
+        track('home.wrong', { layer: s.layer, item: held || '' });
+        emit();
+        return { ok: false, reason: 'wrong' };
+      }
+      var n = typeof s.n === 'number' && s.n >= 1 ? Math.floor(s.n) : 1;
+      try { if (have > 0) iv.remove(s.item, Math.min(have, n)); } catch (e) { /* the bag never breaks the loop */ }
+      sfx('pop');
+      track('home.placed', { layer: s.layer, item: s.item });
+      var r = report({ type: 'placed', item: s.item, place: s.place });
+      var ly = layers();
+      if (ly.all.length && ly.on.length >= ly.all.length) {     // the last layer: the home is finished and the family moves in
+        sfx('sparkle');
+        say(sayOf('built'));
+        track('home.built', { place: cur.spec.place });
+      }
+      emit();
+      return { ok: !!r && r.status !== 'none', layer: s.layer };
     }
 
     // The family photo (a tap on the rabbits with la cámara in hand, from near the spot). Never punishing: a far or camera-less tap just returns a status.
@@ -153,10 +214,12 @@
 
     function view() {
       if (!cur) return null;
-      return { photo: isPhoto(stepOf()), arrived: !!cur.said.arrive };
+      var ly = layers();
+      return { photo: isPhoto(stepOf()), arrived: !!cur.said.arrive, place: isPlace(stepOf()), placed: ly.on.length, total: ly.all.length, layers: ly.on,
+        built: ly.all.length > 0 && ly.on.length >= ly.all.length, wobbles: cur.wobbles };
     }
 
-    var api = { sync: sync, update: update, locate: locate, target: target, snap: snap, view: view, onSticker: null, current: function () { return cur; },
+    var api = { sync: sync, update: update, locate: locate, target: target, snap: snap, put: put, view: view, onSticker: null, current: function () { return cur; },
       setSolids: function (s) { solidsSrc = s; },
       onChange: function (fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; },
       create: create, SPOT_R: SPOT_R, PHOTO_REACH: PHOTO_REACH };

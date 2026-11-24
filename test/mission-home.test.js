@@ -37,10 +37,12 @@ function startHogar(ctx) {
   return ctx;
 }
 const step = (ctx) => ctx.missions.active().stepData;
+// AS-0352: the three place steps come between the goTo and the photo (tested in mission-home-build.test.js); pass them here.
+const buildAll = (ctx) => { while (step(ctx).kind === 'place') ctx.rt.report({ type: 'placed', item: step(ctx).item, place: step(ctx).place }); };
 const frame = (ctx, p) => { ctx.home.update(p); return ctx.rt.update(p); };
 const json = (v) => JSON.parse(JSON.stringify(v));
 
-test('data: mission 9 follows mission 8, one intro line of <= 4 words, steps collect x3 -> goTo -> photo; it validates', () => {
+test('data: mission 9 follows mission 8, one intro line of <= 4 words, steps collect x3 -> goTo -> place x3 -> photo; it validates', () => {
   const { SA } = setup();
   const m = SA.data.all('missions')[8];
   assert.equal(m.n, 9);
@@ -48,9 +50,9 @@ test('data: mission 9 follows mission 8, one intro line of <= 4 words, steps col
   assert.equal(typeof m.intro, 'object');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
   assert.equal(m.intro.es, 'Construye una casa');
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['collect', 'collect', 'collect', 'goTo', 'photo']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['collect', 'collect', 'collect', 'goTo', 'place', 'place', 'place', 'photo']);
   assert.equal(m.steps[3].place, m.home.place);
-  assert.equal(m.steps[4].target, m.home.place, 'a place, so a photo of some wild rabbit never completes it');
+  assert.equal(m.steps[7].target, m.home.place, 'a place, so a photo of some wild rabbit never completes it');
   m.steps.forEach((s) => assert.ok(s.line.es.split(/\s+/).length <= 4 && s.line.icon));
   SA.missionRun.validate(m.steps);
   const f = m.home.family;
@@ -149,8 +151,11 @@ test('the whole mission: walk to the spot (goTo), then photograph the family wit
   assert.equal(home.snap({ x: s.x, z: s.z }).status, 'none', 'too early for the photo');
   assert.equal(home.view().photo, false);
   frame(ctx, { x: s.x + 1, z: s.z + 1, y: s.y });
-  assert.equal(step(ctx).kind, 'photo', 'reaching the spot completes the goTo step');
+  assert.equal(step(ctx).kind, 'place', 'reaching the spot completes the goTo step');
   assert.ok(said.includes('thing:casa'), 'la casa is spoken at the spot');
+  assert.equal(home.view().photo, false);
+  buildAll(ctx);
+  assert.equal(step(ctx).kind, 'photo');
   assert.equal(home.view().photo, true);
   assert.deepEqual(json(ctx.rt.target()), { x: s.x, z: s.z, role: 'place', id: 'hogar' }, 'the compass keeps pointing at the family');
   assert.equal(home.snap({ x: s.x, z: s.z }).status, 'nocamera');
@@ -182,6 +187,7 @@ test('a photo of some wild rabbit (or any animal) never finishes the photo step;
   const ctx = startHogar(setup());
   const s = ctx.home.current().spot;
   frame(ctx, { x: s.x, z: s.z, y: s.y });
+  buildAll(ctx);
   assert.equal(step(ctx).kind, 'photo');
   assert.equal(ctx.rt.report({ type: 'photo', target: 'conejo' }).status, 'ignored');
   assert.equal(ctx.rt.report({ type: 'photo', target: 'conejito' }).status, 'ignored');
@@ -193,6 +199,7 @@ test('a replay is a fresh run, pays no second sticker or stars', () => {
   const { SA, home, missions } = ctx;
   const s = home.current().spot;
   frame(ctx, { x: s.x, z: s.z, y: s.y });
+  buildAll(ctx);
   SA.inventory.equip('camara');
   assert.equal(home.snap({ x: s.x, z: s.z }).status, 'complete');
   const stars = SA.save.get().stars || 0;
@@ -202,6 +209,7 @@ test('a replay is a fresh run, pays no second sticker or stars', () => {
   const s2 = home.current().spot;
   assert.equal(s2.r > 0, true);
   frame(ctx, { x: s2.x, z: s2.z, y: s2.y });
+  buildAll(ctx);
   SA.inventory.equip('camara');
   const r = home.snap({ x: s2.x, z: s2.z });
   assert.equal(r.status, 'complete');

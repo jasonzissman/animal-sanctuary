@@ -42,7 +42,7 @@ test('data: Mission 9 starts with three collect steps (palos, hojas, hierba) bef
   const m = SA.data.all('missions')[8];
   assert.equal(m.id, 'hogar');
   const kinds = Array.from(m.steps.map((s) => s.kind));
-  assert.deepEqual(kinds, ['collect', 'collect', 'collect', 'goTo', 'photo'], 'the collects come before the goTo; the photo still ends it');
+  assert.deepEqual(kinds, ['collect', 'collect', 'collect', 'goTo', 'place', 'place', 'place', 'photo'], 'the collects come before the goTo; the photo still ends it');
   assert.deepEqual(plain(m.steps.slice(0, 3).map((s) => [s.item, s.n, s.line.es, s.line.icon])),
     [['palo', 3, 'Recoge 3 palos', '🪵'], ['hoja', 3, 'Recoge 3 hojas', '🍃'], ['hierba', 1, 'Recoge la hierba', '🌾']]);
   m.steps.forEach((s) => assert.ok(s.line.es.split(/\s+/).length <= 4 && s.line.icon));
@@ -152,7 +152,7 @@ test('the flow: each kind appears only on its own step; picking up counts, goes 
   const s = ctx.home.current().spot;
   assert.deepEqual(JSON.parse(JSON.stringify(rt.target())), { x: s.x, z: s.z, role: 'place', id: 'hogar' });
   rt.update({ x: s.x, z: s.z, y: s.y });
-  assert.equal(step(ctx).kind, 'photo', 'then the photo, as before');
+  assert.equal(step(ctx).kind, 'place', 'then the home is built (AS-0352) before the photo');
   assert.ok(ctx.tracked.some(([n, f]) => n === 'collect.pickup' && f.item === 'hierba'));
 });
 

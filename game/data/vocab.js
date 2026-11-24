@@ -106,6 +106,7 @@
   add('phrase', 'abajo', 'abajo', 'below');
   add('phrase', 'encima', 'encima', 'on top');
   add('phrase', 'construir', 'construir', 'to build');
+  add('phrase', 'dentro', 'dentro', 'inside');   // AS-0352: the soft grass goes inside the home
   add('phrase', 'pasotoca', '¡Toca!', 'Touch it!');
   add('phrase', 'pasollena', '¡Llena!', 'Fill it!');
   add('phrase', 'cruzar', 'cruzar', 'to cross');

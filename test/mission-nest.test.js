@@ -285,15 +285,13 @@ test('photo (AS-0338): needs la cámara, the summit or nest peak and the photo s
 test('replay: Mission 6 is done and replayable on the board, the next mission unlocks, a replay starts clean and never pays the sticker or stars twice', () => {
   const ctx = startAguila(setup(() => 1000));
   const { SA, nest, missions } = ctx;
-  SA.data.register('missions', [{ id: 'siguiente7', n: 7, es: 'Siguiente', en: 'Next', icon: '🦅', intro: { es: 'Hola', icon: '🦅' },
-    steps: [{ kind: 'photo', line: { es: 'Foto', icon: '📷' } }], reward: { stars: 1 } }]);
-  assert.equal(missions.status('siguiente7'), 'locked');
+  assert.equal(missions.status('censo'), 'locked');   // Mission 7 (AS-0341) is the next one
   const first = nest.current();
   const top = toPhoto(ctx);
   SA.inventory.equip('camara');
   assert.equal(nest.snap(top).status, 'complete');
   assert.equal(missions.status('aguila'), 'done');
-  assert.equal(missions.status('siguiente7'), 'available', 'the next mission unlocks');
+  assert.equal(missions.status('censo'), 'available', 'the next mission unlocks');
   const stars = SA.save.get().stars || 0;
   const re = missions.start('aguila');
   assert.deepEqual([re.ok, re.replay], [true, true]);

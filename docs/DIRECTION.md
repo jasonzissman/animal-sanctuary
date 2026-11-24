@@ -336,6 +336,12 @@ current; when your change sets or changes something future tickets must follow, 
   ("tres animales grises, dos que nadan y uno que salta"): 2-3 entries `{ trait, value, n, es, icon }` over colour / movement / size
   / diet, only where at least n distinct non-story, non-egg species fit, from a seed or rng (`opts.avoid` rerolls a replay).
   `matches(animal, entry)`, `tick(state, animal)` (an animal ticks every unfinished entry it fits, once each) and `isDone(state)`.
+  **Mission 7 census step (AS-0341, slice 2):** `censo` (n 7, unlocked by `aguila`) has one step `{ kind: 'census' }` (event `censused`).
+  `SA.missionCensus` (`game/mission-census.js`) generates a list when the step starts (`sync()`, via the runtime's per-frame `update`;
+  a replay's list differs from the last one), `photo(animalId)` (main.js wires la cámara picks) records the album photo and ticks:
+  chime + the trait word spoken (`color:gris`, `movement:nada`), a gentle boing (no fit) or pop (already counted); the full list
+  reports `censused`, which completes the mission, and logs `{ kind: 'census' }` for the sticker `censo-completo`. `view()` feeds the
+  list card (next slice).
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

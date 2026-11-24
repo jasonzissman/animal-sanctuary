@@ -2,7 +2,7 @@
  * Load after game/map.js, game/peaks.js, game/station.js and game/player.js (the last three are optional).
  *
  *   SA.decorPlan.RULES            data rows { decor, biome, count, gap, size, inset? } (decor = an id from game/data/decor.js)
- *   SA.decorPlan.plan(opts?)      -> [{ decor, biome, x, z, y, size, rot }]   (opts.seed, default 42)
+ *   SA.decorPlan.plan(opts?)      -> [{ decor, biome, x, z, y, size, rot, tint }]   (opts.seed, default 42; tint 0..1 = leaf colour variation)
  *       Fills every biome strip across its whole width and the whole z range of SA.map.BOUNDS. Each rule's items are dealt
  *       round-robin into the four quadrants of the strip (west/east half x north/south half), so no corner stays empty.
  *       Nothing lands in water, on the spawn clearing, on the station footprint, or within `gap` of an earlier item.
@@ -19,15 +19,26 @@
 
   // Counts are roughly double the old 160 x 50 map's, matching the ~2x area (AS-0247). size: 'tree' 0.8..1.4, 'rock' 0.8..1.8, null = fixed.
   var RULES = [
-    { decor: 'pino', biome: 'bosque', count: 56, gap: 3, size: 'tree' },
+    // AS-0296: each biome has 2-3 tree kinds (pino/roble/abedul, jungle/palmera/ceiba, acacia/yuca + cactus, pinonieve/abeto); totals match the old counts.
+    { decor: 'pino', biome: 'bosque', count: 22, gap: 3, size: 'tree' },
+    { decor: 'roble', biome: 'bosque', count: 20, gap: 3.2, size: 'tree' },
+    { decor: 'abedul', biome: 'bosque', count: 14, gap: 3, size: 'tree' },
     { decor: 'roca', biome: 'bosque', count: 20, gap: 2, size: 'rock' },
-    { decor: 'jungle', biome: 'selva', count: 64, gap: 3.2, size: 'tree' },
+    { decor: 'jungle', biome: 'selva', count: 26, gap: 3.2, size: 'tree' },
+    { decor: 'palmera', biome: 'selva', count: 20, gap: 3, size: 'tree' },
+    { decor: 'ceiba', biome: 'selva', count: 18, gap: 3.6, size: 'tree' },
     { decor: 'roca', biome: 'selva', count: 16, gap: 2, size: 'rock' },
     { decor: 'flor', biome: 'selva', count: 32, gap: 1.5, size: null },
-    { decor: 'cactus', biome: 'desierto', count: 44, gap: 3, size: 'tree' },
+    { decor: 'cactus', biome: 'desierto', count: 20, gap: 3, size: 'tree' },
+    { decor: 'acacia', biome: 'desierto', count: 14, gap: 3.4, size: 'tree' },
+    { decor: 'yuca', biome: 'desierto', count: 10, gap: 3, size: 'tree' },
     { decor: 'rocaarena', biome: 'desierto', count: 20, gap: 2, size: 'rock' },
-    { decor: 'pinonieve', biome: 'montana', count: 48, gap: 3, size: 'tree', hiInset: 4 },
+    { decor: 'pinonieve', biome: 'montana', count: 26, gap: 3, size: 'tree', hiInset: 4 },
+    { decor: 'abeto', biome: 'montana', count: 22, gap: 3, size: 'tree', hiInset: 4 },
   ];
+
+  /** A seeded 0..1 colour tint from where the item stands (a hash, so it never shifts the placement random stream). */
+  function tintAt(x, z) { var h = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453; return h - Math.floor(h); }
 
   function quadrant(biomeId, x, z) {
     var r = SA.map.biomeRange(biomeId);
@@ -67,7 +78,7 @@
           if (!ok) continue;
           taken.push([x, z]);
           var size = rule.size === 'tree' ? 0.8 + rand() * 0.6 : rule.size === 'rock' ? 0.8 + rand() : null;
-          out.push({ decor: rule.decor, biome: rule.biome, x: x, z: z, y: M.groundHeight(x, z), size: size, rot: rand() * Math.PI * 2 });
+          out.push({ decor: rule.decor, biome: rule.biome, x: x, z: z, y: M.groundHeight(x, z), size: size, rot: rand() * Math.PI * 2, tint: tintAt(x, z) });
           break;
         }
       }
@@ -75,5 +86,5 @@
     return out;
   }
 
-  SA.decorPlan = { RULES: RULES, plan: plan, quadrant: quadrant };
+  SA.decorPlan = { RULES: RULES, plan: plan, quadrant: quadrant, tintAt: tintAt };
 })(typeof window !== 'undefined' ? window : globalThis);

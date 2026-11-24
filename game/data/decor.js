@@ -8,6 +8,7 @@
  *   height  optional, solid only (AS-0176): top of the item at scale 1 (world units, 0 < h <= 3); the placed scale multiplies it.
  *           A low item (rocks) only blocks a player whose jump lift is below it; no height = always blocks (trees, cacti, peaks)
  *   prick   optional, solid only (AS-0156): true = touching it bounces the player back with an 'ouch' (SA.prick; the cactus)
+ *   kind    optional, solid only (AS-0296): marks a climbable tree; the key into SA.perch.KINDS (canopy height) and game/render/trees.js
  */
 (function (root) {
   'use strict';
@@ -25,16 +26,25 @@
       fail('height', 'only a solid item may have a height, a number in (0, 3]');
     }
     if (d.prick !== undefined && (d.prick !== true || !d.solid)) fail('prick', 'only a solid item may be prickly (true)');
+    if (d.kind !== undefined && (!d.solid || !/^[a-z]+$/.test(d.kind))) fail('kind', 'only a solid item may be a tree, kind = a lowercase SA.perch.KINDS key');
   }
 
   SA.data.defineKind('decor', validateDecor);
   SA.data.register('decor', [
-    { id: 'pino', solid: true, radius: 1 },
-    { id: 'jungle', solid: true, radius: 1 },
+    // Trees (AS-0296) carry `kind` = their SA.perch.KINDS entry (canopy height) and the builder in game/render/trees.js.
+    { id: 'pino', solid: true, radius: 1, kind: 'pine' },
+    { id: 'roble', solid: true, radius: 1, kind: 'oak' },
+    { id: 'abedul', solid: true, radius: 0.8, kind: 'birch' },
+    { id: 'jungle', solid: true, radius: 1, kind: 'jungle' },
+    { id: 'palmera', solid: true, radius: 0.8, kind: 'palm' },
+    { id: 'ceiba', solid: true, radius: 1.1, kind: 'kapok' },
+    { id: 'acacia', solid: true, radius: 0.9, kind: 'acacia' },
+    { id: 'yuca', solid: true, radius: 0.8, kind: 'yucca' },
+    { id: 'pinonieve', solid: true, radius: 1, kind: 'snowpine' },
+    { id: 'abeto', solid: true, radius: 0.9, kind: 'fir' },
     { id: 'roca', solid: true, radius: 1, height: 0.8 },
     { id: 'flor', solid: false },
     { id: 'cactus', solid: true, radius: 0.8, prick: true },
-    { id: 'pinonieve', solid: true, radius: 1 },
     { id: 'rocaarena', solid: true, radius: 1, height: 0.75 },
     { id: 'pico', solid: true, radius: 2.5 }
   ]);

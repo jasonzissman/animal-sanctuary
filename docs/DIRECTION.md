@@ -217,6 +217,13 @@ current; when your change sets or changes something future tickets must follow, 
   2048 PCFSoft map whose ±32 window follows the player (texel-snapped, no per-frame allocation). Animals (re-marked when the herd
   group changes), the avatar, trees, rocks and peaks cast; the vertex-coloured ground receives. New world solids that should
   shadow must be under `decor`/`animals`, or be passed to `sunShadow.mark(node)`; flowers and invisible pick volumes never cast.
+- **2-3 tree kinds per biome (AS-0296).** bosque pine/oak/birch, selva jungle/palm/kapok, desierto acacia/yucca (+ the prickly cactus, not a tree),
+  montaña snowpine/fir. A tree is a decor data row with `kind` (game/data/decor.js: `roble`→`oak`, `ceiba`→`kapok`…); `kind` is its `SA.perch.KINDS`
+  key (canopy height) and its builder in `game/render/trees.js`. **A new tree = a perch KINDS entry + a builder + a decor row (with `kind`) + a
+  `SA.decorPlan.RULES` row**; the builder gives the group `userData.tree`/`userData.kind` and a flat canopy pad at the perch height, so climbing, perch,
+  tree-tap, treetop tells and pickups work unchanged, and the solid decor radius keeps the trunk blocking. Plan entries carry `tint` (0..1, hashed from x,z so
+  placement is unchanged) → one of 5 shared leaf materials per kind; the foliage group sways about the trunk top via `decor.userData.update(dt)`
+  (preallocated list, no per-frame allocation).
 - **Ground cover is soft, instanced and recycled around the player (AS-0294).** `SA.groundCoverPlan` (pure, seeded jittered grid per
   biome strip; tints from the biome data; keeps off water, spawn, station and peaks) plans grass tufts and tiny plants;
   `render/ground-cover.js` draws one `InstancedMesh` per biome/kind from a fixed pool refilled every metre walked (`select()`: full

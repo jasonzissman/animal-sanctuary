@@ -19,7 +19,7 @@ test('no render module passes flatShading to MeshLambertMaterial (r128 warns)', 
 });
 
 test('flatShading materials use MeshPhongMaterial', () => {
-  for (const f of ['animals.js', 'decor.js', 'decor-dry.js', 'world.js']) {
+  for (const f of ['animals.js', 'decor.js', 'decor-dry.js', 'trees.js', 'world.js']) {
     const src = readFileSync(join(dir, f), 'utf8');
     assert.match(src, /MeshPhongMaterial\([^)]*flatShading: true/, f);
   }

@@ -1,7 +1,8 @@
 /* SA.render.dryDecor: procedural low-poly builders for the desierto (cacti, sandstone) and the montaña (snowy
  * pines, snow-capped peaks), plus their placement counts. Used by game/render/decor.js. Only touches THREE.
+ * (The trees, snow pine included, live in game/render/trees.js since AS-0296.)
  *   SA.render.dryDecor.materials(THREE) -> shared flat materials
- *   SA.render.dryDecor.builders        { cactus, snowPine, peak, sandRock }  each (THREE, mats, size) -> Object3D (peak takes SA.peaks.shape(peak) instead of a size)
+ *   SA.render.dryDecor.builders        { cactus, peak, sandRock }  each (THREE, mats, size) -> Object3D (peak takes SA.peaks.shape(peak) instead of a size)
  */
 (function (root) {
   'use strict';
@@ -37,22 +38,6 @@
     return g;
   }
 
-  /** Pine with a snow cap on each tier. */
-  function snowPine(THREE, m, s) {
-    var g = new THREE.Group();
-    var trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 1.2, 6), m.trunk);
-    trunk.position.y = 0.6;
-    var low = new THREE.Mesh(new THREE.ConeGeometry(1.3, 2.2, 7), m.snowPine);
-    low.position.y = 2.1;
-    var high = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 7), m.snowPine);
-    high.position.y = 3.3;
-    var cap = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.9, 7), m.snow);
-    cap.position.y = 4.0;
-    g.add(trunk, low, high, cap);
-    g.scale.setScalar(s);
-    return g;
-  }
-
   /** Grey rocky peak with a flat white summit: a cone frustum that hides the terrain mound SA.peaks raises (AS-0193).
    *  `p` = SA.peaks.shape(peak); the group sits at the mound's base height, y 0 = foot, y = topY - baseY = the flat top. */
   function peak(THREE, m, p) {
@@ -77,6 +62,6 @@
 
   SA.render.dryDecor = {
     materials: materials,
-    builders: { cactus: cactus, snowPine: snowPine, peak: peak, sandRock: sandRock },
+    builders: { cactus: cactus, peak: peak, sandRock: sandRock },
   };
 })(typeof window !== 'undefined' ? window : globalThis);

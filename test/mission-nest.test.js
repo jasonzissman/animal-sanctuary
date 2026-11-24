@@ -8,15 +8,15 @@ const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'gam
   'game/data/vocab.js', 'game/data/props.js', 'game/data/foods.js', 'game/data/items.js', 'game/save.js', 'game/mountain-trail.js', 'game/map.js', 'game/peaks.js',
   'game/station.js', 'game/player.js', 'game/jump.js', 'game/perch.js', 'game/reach.js', 'game/climb.js', 'game/surfaces.js', 'game/rope-bridge.js', 'game/npc.js',
   'game/inventory.js', 'game/photo.js', 'game/data/step-kinds.js', 'game/mission-run.js', 'game/data/missions.js', 'game/missions.js', 'game/focus.js',
-  'game/mission-pill.js', 'game/carry.js', 'game/mission-nest.js', 'game/mission-runtime.js'];
+  'game/mission-pill.js', 'game/carry.js', 'game/flight.js', 'game/mission-nest.js', 'game/mission-runtime.js'];
 
-function setup() {
+function setup(now) {
   const SA = loadGame(FILES);
   SA.save.reset();
   const said = [], tracked = [], cheers = [];
   const missions = SA.missions.create({ track: (t, f) => tracked.push([t, f]) });
   let rt = null;
-  const nest = SA.missionNest.create({ missions, audio: { say: (k) => said.push(k) }, track: (t, f) => tracked.push([t, f]), report: (e) => rt.report(e) });
+  const nest = SA.missionNest.create({ missions, audio: { say: (k) => said.push(k) }, track: (t, f) => tracked.push([t, f]), report: (e) => rt.report(e), now });
   rt = SA.missionRuntime.create({ missions, thing: nest, spawn: null, celebrate: (r) => cheers.push(r), track: (t, f) => tracked.push([t, f]) });
   SA.audio = { say: (k) => said.push(k) };
   return { SA, missions, nest, rt, said, tracked, cheers };
@@ -41,7 +41,7 @@ test('data: mission 6 follows mission 5, a one-line intro of <= 4 words, steps f
   assert.equal(m.intro.es, '¡Busca la pluma!');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
   assert.equal(typeof m.intro, 'object');
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind + ':' + (s.item || s.place))), ['collect:pluma', 'goTo:cima', 'goTo:nido-aguila']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind + ':' + (s.item || s.place))), ['collect:pluma', 'goTo:cima', 'goTo:nido-aguila', 'give:pluma', 'photo:undefined']);
   m.steps.forEach((s) => assert.ok(s.line.es.split(/\s+/).length <= 4));
   SA.missionRun.validate(m.steps);
   assert.ok(SA.peaks.LIST.some((p) => p.id === m.nest.summit) && SA.peaks.LIST.some((p) => p.id === m.nest.peak));
@@ -133,8 +133,8 @@ test('the whole mission in order: pick up la pluma -> arriba on the summit -> cr
   assert.equal(said.at(-1), 'thing:puente', 'el puente is spoken');
   assert.deepEqual(JSON.parse(JSON.stringify(nest.target(kind(ctx)))), { x: cur.nest.x, z: cur.nest.z, role: 'place', id: 'nido-aguila' });
   frame(ctx, { x: cur.nest.x, z: cur.nest.z, y: cur.nest.y });
-  assert.equal(cheers.length, 1, 'the last step completes the mission');
-  assert.equal(ctx.missions.active(), null);
+  assert.equal(cheers.length, 0, 'the nest is not the last step any more: the feather goes to the chick next');
+  assert.equal(kind(ctx).kind, 'give');
   assert.equal(said.at(-1), 'thing:nido');
   assert.ok(ctx.tracked.some((t) => t[0] === 'nest.feather') && ctx.tracked.some((t) => t[0] === 'nest.bridge'));
 });
@@ -145,8 +145,93 @@ test('a reload past the feather leaves none lying; small tasks pause while the m
   ctx.nest.sync();
   ctx.nest.update({ x: 0, z: 0, y: 0 });
   assert.equal(ctx.nest.view().feather, null);
-  assert.equal(ctx.nest.target({ kind: 'photo' }), null);
+  assert.equal(ctx.nest.target({ kind: 'find', target: 'x' }), null);
   const focus = ctx.SA.focus.create({ missions: ctx.missions });
   assert.equal(focus.active(), 'mission');
   assert.equal(focus.allowsSmall(), false);
+});
+
+// Plays the mission up to the give step (feather in the bag, standing on the nest peak).
+function toGive(ctx) {
+  const cur = ctx.nest.current();
+  frame(ctx, { x: cur.feather.x, z: cur.feather.z, y: cur.feather.y });
+  frame(ctx, { x: cur.summit.x, z: cur.summit.z, y: cur.summit.y });
+  frame(ctx, { x: cur.bridge.x, z: cur.bridge.z, y: cur.bridge.y });
+  const at = { x: cur.nest.x, z: cur.nest.z, y: cur.nest.y };
+  frame(ctx, at);
+  assert.equal(kind(ctx).kind, 'give');
+  return at;
+}
+
+test('give: the feather leaves the bag, the chick flies (volar is spoken in the air) and the step moves on to the photo', () => {
+  let clock = 1000;
+  const ctx = startAguila(setup(() => clock));
+  const { nest, said, SA, tracked } = ctx;
+  const at = toGive(ctx);
+  assert.deepEqual(JSON.parse(JSON.stringify(nest.target(kind(ctx)))), { x: nest.spots().chick.x, z: nest.spots().chick.z, role: 'animal', id: 'aguila' });
+  assert.deepEqual([nest.view().flight, nest.view().flown], [null, false]);
+  assert.equal(SA.inventory.has('pluma'), true);
+  const r = nest.give(at);
+  assert.deepEqual(JSON.parse(JSON.stringify(r)), { ok: true });
+  assert.equal(SA.inventory.has('pluma'), false, 'removed from the inventory');
+  assert.equal(kind(ctx).kind, 'photo', 'the step advanced to the summit photo');
+  assert.ok(said.includes('item:pluma'));
+  assert.equal(said.includes('phrase:volar'), false, 'not yet: the chick is still flapping on the spot');
+  assert.ok(tracked.some((t) => t[0] === 'nest.give'));
+  clock += 500;
+  assert.equal(nest.view().flight, 0.5);
+  assert.equal(nest.give(at).reason, 'busy', 'a second tap during the flight does nothing');
+  clock += 1200;                                   // 1.7 s in: past the flap phase, the loop begins
+  nest.update(at);
+  assert.equal(said.filter((k) => k === 'phrase:volar').length, 1, 'volar is spoken as it flies');
+  assert.equal(SA.vocab.get('phrase:volar').es, 'volar');
+  nest.update(at);
+  assert.equal(said.filter((k) => k === 'phrase:volar').length, 1, 'only once');
+  assert.ok(nest.view().flight > 1.4);
+  clock += SA.flight.DURATION * 1000;
+  assert.equal(nest.view().flight, null, 'landed again');
+  assert.equal(nest.view().flown, true);
+  assert.equal(nest.give(at).reason, 'step', 'nothing left to give');
+});
+
+test('give: early, far or empty-handed taps are gentle: the chick wobbles, a cue is spoken, nothing is lost', () => {
+  let clock = 1000;
+  const ctx = startAguila(setup(() => clock));
+  const { nest, said, SA } = ctx, cur = nest.current();
+  frame(ctx, { x: cur.feather.x, z: cur.feather.z, y: cur.feather.y });
+  assert.equal(nest.give({ x: cur.nest.x, z: cur.nest.z, y: cur.nest.y }).reason, 'step', 'too early: still climbing');
+  assert.ok(nest.view().nudge !== null, 'it wobbles');
+  assert.equal(SA.inventory.has('pluma'), true, 'the feather stays in the bag');
+  assert.equal(kind(ctx).place, 'cima');
+  clock += 800;
+  assert.equal(nest.view().nudge, null, 'the wobble ends');
+  frame(ctx, { x: cur.summit.x, z: cur.summit.z, y: cur.summit.y });
+  frame(ctx, { x: cur.bridge.x, z: cur.bridge.z, y: cur.bridge.y });
+  frame(ctx, { x: cur.nest.x, z: cur.nest.z, y: cur.nest.y });
+  assert.equal(nest.give({ x: cur.nest.x - 30, z: cur.nest.z, y: 0 }).reason, 'far');
+  assert.equal(said.at(-1), 'phrase:acercate');
+  assert.equal(kind(ctx).kind, 'give');
+  SA.inventory.remove('pluma');                    // empty-handed: it looks for la pluma
+  assert.equal(nest.give({ x: cur.nest.x, z: cur.nest.z, y: cur.nest.y }).reason, 'noitem');
+  assert.equal(said.at(-1), 'item:pluma');
+  assert.equal(kind(ctx).kind, 'give', 'still waiting, nobody is punished');
+  assert.equal(nest.view().flight, null);
+});
+
+test('give: the photo after the flight completes the mission; with no mission there is nothing to give', () => {
+  const ctx = startAguila(setup(() => 1000));
+  const at = toGive(ctx);
+  ctx.nest.give(at);
+  assert.equal(ctx.rt.report({ type: 'photo', target: 'cualquiera' }).status, 'complete');
+  assert.equal(ctx.cheers.length, 1);
+  assert.equal(ctx.missions.active(), null);
+  assert.equal(setup().nest.give({ x: 0, z: 0 }).reason, 'none');
+  assert.equal(setup().nest.spots(), null);
+});
+
+test('spots: mamá and the chick sit in the bowl beside the nest peak top', () => {
+  const ctx = startAguila(setup());
+  const sp = ctx.nest.spots(), cur = ctx.nest.current();
+  assert.ok(Math.hypot(sp.chick.x - cur.nest.x, sp.chick.z - cur.nest.z) < 2 && Math.hypot(sp.mama.x - sp.chick.x, sp.mama.z - sp.chick.z) > 0.2);
+  assert.ok(Math.abs(sp.chick.y - cur.nest.y) < 0.5);
 });

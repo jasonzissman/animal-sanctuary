@@ -477,7 +477,14 @@ current; when your change sets or changes something future tickets must follow, 
   and well above the ground under it), so climbing straight up the far peak does not skip the bridge. The compass points at the feather,
   the summit, the bridge (until crossed) and then the nest. `say` keys speak at each moment (la pluma; arriba + la montaña; el puente; el nido).
   The nest (twig ring) with a small chick and mamá (built from the animal ids in the data through `SA.render.animalBuilder`) exists only
-  while the mission runs. Giving the feather to the chick and the photo/sticker are the next slices.
+  while the mission runs. **Give + first flight (AS-0337, slice 2):** new generic step kind `give` { item, to } (event `gave`, in
+  `data/step-kinds.js`). Tapping the chick (an invisible enlarged pick volume, own raycast like the sick camel's forehead) calls
+  `SA.missionNest.give(player)`: on the give step, within ~4.5 of the chick and with la pluma in the bag it removes it, says `say.give`, reports
+  `gave` (the step moves on to a plain `photo` step) and starts the flight. `SA.flight` (`flight.js`, pure) is the path / timing math:
+  `sample(spec, t)` -> flap on the spot (1.4 s), one ~1.7-radius loop round mamá (3.8 s), land (0.9 s); it starts and ends exactly at the
+  nest. The renderer only places the chick at `sample` and beats its alas (`SA.gait.flap`); `say.fly` ('volar') is spoken as the loop begins.
+  Early / far / empty-handed taps never fail: the chick wobbles (`view().nudge`) and '¡Acércate!' or la pluma is spoken. The summit photo
+  tap on the nest and the sticker are the next slice.
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

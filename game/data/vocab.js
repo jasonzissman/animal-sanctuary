@@ -90,6 +90,7 @@
   // Mission 6 words (AS-0336): the eagle's nest up the mountain (la pluma is the item word, la montaña the biome word).
   add('thing', 'puente', 'el puente', 'the bridge');
   add('phrase', 'arriba', '¡Arriba!', 'Up!');
+  add('phrase', 'volar', 'volar', 'to fly');   // the eagle chick's first flight (AS-0337)
   add('phrase', 'pasotoca', '¡Toca!', 'Touch it!');
   add('phrase', 'pasollena', '¡Llena!', 'Fill it!');
   add('phrase', 'cruzar', 'cruzar', 'to cross');

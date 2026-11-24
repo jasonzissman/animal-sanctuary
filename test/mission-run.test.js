@@ -14,6 +14,8 @@ const CASES = [
   ['carry', { kind: 'carry', item: 'huevo', fragile: true }, { type: 'carried', item: 'huevo' }, [{ type: 'carried', item: 'pluma' }, { type: 'delivered', item: 'huevo', to: 'nido' }]],
   ['deliver', { kind: 'deliver', item: 'huevo', to: 'nido' }, { type: 'delivered', item: 'huevo', to: 'nido' },
     [{ type: 'delivered', item: 'huevo', to: 'rio' }, { type: 'delivered', item: 'pluma', to: 'nido' }]],
+  ['give', { kind: 'give', item: 'pluma', to: 'aguila' }, { type: 'gave', item: 'pluma', to: 'aguila' },
+    [{ type: 'gave', item: 'huevo', to: 'aguila' }, { type: 'gave', item: 'pluma', to: 'gato' }, { type: 'delivered', item: 'pluma', to: 'aguila' }]],
   ['hatch', { kind: 'hatch', item: 'huevo' }, { type: 'hatched', item: 'huevo' }, [{ type: 'hatched', item: 'pluma' }, { type: 'delivered', item: 'huevo', to: 'nido' }]],
   ['goTo', { kind: 'goTo', place: 'roca' }, { type: 'arrived', place: 'roca' }, [{ type: 'arrived', place: 'rio' }, { type: 'talked', who: 'roca' }]],
   ['talk', { kind: 'talk', who: 'cientifica' }, { type: 'talked', who: 'cientifica' }, [{ type: 'talked', who: 'otro' }, { type: 'arrived', place: 'cientifica' }]]
@@ -119,7 +121,7 @@ test('validation: unknown kind, missing and mistyped params fail with a clear er
 
 test('every kind in the registry has a unit case or is photo, and the kinds list is complete', () => {
   const SA = load();
-  assert.deepEqual([...SA.missionRun.kinds()].sort(), ['carry', 'collect', 'deliver', 'dry', 'fill', 'find', 'follow', 'goTo', 'hatch', 'help', 'invite', 'party', 'photo', 'push', 'recover', 'talk', 'touch']);
+  assert.deepEqual([...SA.missionRun.kinds()].sort(), ['carry', 'collect', 'deliver', 'dry', 'fill', 'find', 'follow', 'give', 'goTo', 'hatch', 'help', 'invite', 'party', 'photo', 'push', 'recover', 'talk', 'touch']);
 });
 
 test('step-kind rows are validated at load; a new kind is just a new row', () => {

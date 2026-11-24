@@ -58,6 +58,7 @@
     { id: 'give', event: 'gave', required: { item: 'string', to: 'string' }, optional: { n: 'number' }, match: { item: 'item', to: 'to' } },   // AS-0337: hand the held item to an animal (the eagle chick's feather); AS-0348: optional n = how many (3 strawberries)
     { id: 'census', event: 'censused', required: {}, match: {} },   // AS-0341: the whole census list is photographed (SA.missionCensus reports it)
     { id: 'trail', event: 'trailed', required: { trail: 'string' }, match: { trail: 'trail' } },   // AS-0347: follow the footprints to the hollow tree (SA.missionTrail reports it)
+    { id: 'place', event: 'placed', required: { item: 'string', layer: 'string', place: 'string' }, optional: { n: 'number' }, match: { item: 'item', place: 'place' } },   // AS-0352: put the gathered materials on the build spot, one layer of the home per step (SA.missionHome.put)
     { id: 'collect', event: 'collected', required: { item: 'string', n: 'number' }, match: { item: 'item' }, progress: { total: 'n' } },
     { id: 'goTo', event: 'arrived', required: { place: 'string' }, match: { place: 'place' } },
     { id: 'talk', event: 'talked', required: { who: 'string' }, match: { who: 'who' } },

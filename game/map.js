@@ -46,10 +46,24 @@
     return ramp * (1 + 4.5 * bump * bump);
   }
 
-  /** Sand dunes: soft ridges that fade in from just inside the desierto border (DUNE_EDGE). Lifts the ground 0.8 to 1.7 so it is dry. */
+  // Seeded dune phases (AS-0307): fixed for every load, so the dunes are the same each time and tests can pin them.
+  var DUNE_SEED = 307, DUNE_RAMP = 14;
+  var DUNE_PHASE = (function () { var r = rng(DUNE_SEED), p = []; for (var i = 0; i < 6; i++) p.push(r() * 6.2832); return p; })();
+  /** The steepest the ground may rise per metre run (rise/run) anywhere a player walks; the dunes are tuned (and tested) well below it. */
+  var MAX_WALK_SLOPE = 0.7;
+
+  /** Sand dunes (AS-0307): big rolling dunes of varied height with fine wind ripples on top. They fade in smoothly from just inside the
+   *  desierto border (DUNE_EDGE) over DUNE_RAMP metres and always lift the ground at least 0.9 (dry). Crests reach about 4.4 where the
+   *  height envelope is high and stay near 1.5 where it is low; slopes stay far below MAX_WALK_SLOPE so the player can always walk out. */
   function duneHeight(x, z) {
-    var ramp = smooth((x - DUNE_EDGE) / 6);
-    return ramp <= 0 ? 0 : ramp * (0.8 + 0.9 * (0.5 + 0.5 * Math.sin(x * 0.23 + Math.sin(z * 0.11) * 2 + z * 0.08)));
+    var ramp = smooth((x - DUNE_EDGE) / DUNE_RAMP);
+    if (ramp <= 0) return 0;
+    var P = DUNE_PHASE;
+    var big = 0.5 + 0.5 * Math.sin(x * 0.17 + Math.sin(z * 0.09 + P[0]) * 1.2 + z * 0.05 + P[1]);       // wavy crest lines
+    var mid = 0.5 + 0.5 * Math.sin(x * 0.1 - z * 0.07 + P[2] + Math.sin(x * 0.05 + P[3]) * 1.5);        // a second, slower set
+    var env = 0.55 + 0.45 * Math.sin(z * 0.07 + x * 0.03 + P[4]);                                          // some dunes tall, some low
+    var ripple = 0.07 * Math.sin(x * 1.9 + Math.sin(z * 0.6 + P[5]) * 1.4 + z * 0.4);                      // wind ripples
+    return ramp * (0.9 + env * 2.6 * big + 0.9 * mid + ripple);
   }
 
   function riverX(z) { return RIVER.centerX + RIVER.wiggle * Math.sin(z * RIVER.freq); }
@@ -111,7 +125,7 @@
   }
 
   SA.map = {
-    BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND, FORD: FORD, MOUNTAIN_EDGE: MOUNTAIN_EDGE, DUNE_EDGE: DUNE_EDGE,
+    BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND, FORD: FORD, MOUNTAIN_EDGE: MOUNTAIN_EDGE, DUNE_EDGE: DUNE_EDGE, MAX_WALK_SLOPE: MAX_WALK_SLOPE, duneHeight: duneHeight,
     clamp: clamp, biomeAt: biomeAt, riverX: riverX, baseHeight: baseHeight, groundHeight: groundHeight, followHeight: followHeight, cameraHeight: cameraHeight, isWater: isWater, nearWater: nearWater, rng: rng,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

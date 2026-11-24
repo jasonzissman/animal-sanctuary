@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/decor.js',
   'game/map.js', 'game/peaks.js', 'game/terrain-color.js', 'game/camera.js', 'game/player.js', 'game/station.js', 'game/perch.js', 'game/blocking.js', 'game/climb.js',
-  'game/decor-plan.js', 'game/render/decor-dry.js', 'game/render/trees.js', 'game/render/decor.js'];
+  'game/decor-plan.js', 'game/rocks.js', 'game/render/rocks.js', 'game/render/decor-dry.js', 'game/render/trees.js', 'game/render/decor.js'];
 const ctx = vm.createContext({ console });
 ctx.window = ctx; ctx.self = ctx;
 for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });

@@ -263,6 +263,9 @@ current; when your change sets or changes something future tickets must follow, 
   variety with discretion: fun, never cluttered, ~60 fps (instancing, auto quality).
   Things to climb and cross (AS-0158 to AS-0160): river bridges, a rope bridge between mountain peaks, ladders up the
   station and lookout towers. Walkable surfaces and climb targets are generic data, so more can be added freely.
+  Rocks (AS-0299): `SA.rocks` (pure, `game/rocks.js`) gives a seeded spec per rock (boulder / flat / stack / jagged, trim, yaw, tilt, a
+  per-biome colour: red-orange desert, grey mountain, mossy bosque/selva); `game/render/rocks.js` builds shared flat-shaded geometry.
+  Every kind is normalised to about the data `height` of `roca`/`rocaarena`, and each rock is a Group at the placed scale, so collision and shadows work as before.
 - **Animals keep an arm's length apart (AS-0153).** Never bunched: at least ~1.5 units of gap between any two animals'
   bodies at all times (hard rule, not a soft preference), so tapping one never hits another. Implemented for wandering
   ground animals by `SA.spacing` (GAP, `bodyRadius` from the size trait) and checked on every step in `SA.wander`

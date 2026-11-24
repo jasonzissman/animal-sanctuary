@@ -57,6 +57,8 @@ globalThis.SA_MANIFEST = {
     'game/click-outcome.js',
     'game/render/click-fx.js',
     'game/render/world.js',
+    'game/rocks.js',
+    'game/render/rocks.js',
     'game/render/decor-dry.js',
     'game/render/trees.js',
     'game/render/decor.js',

@@ -17,6 +17,7 @@
  *   SA.missionCarry.current()     the state without re-reading the mission;  onChange(fn) -> unsubscribe
  *   SA.missionCarry.setSolids(listOrFn)  the walk list kept clear when placing (scene.js sets it; the default is none)
  *   SA.missionCarry.create({ missions?, carry?, audio?, track?, solids? })   a separate instance (tests)
+ * A mission with `carry.hatch` continues after the delivery with a 'hatch' and a 'photo' step (SA.missionHatch, game/mission-hatch.js).
  * After the last step the egg stays in the nest (phase 'placed') until another mission with a carry spec starts.
  */
 (function (root) {
@@ -106,6 +107,8 @@
       if (cur.phase === 'ground' && s && s.kind === 'deliver' && s.item === cur.spec.item) {
         // Resumed (a reload) on the deliver step: the hand is not saved, so the egg is back in hand at once (never stuck, AS-0238).
         if (carry().pickUp(cur.spec.item, {})) { setPhase('held'); track('carry.resume', { item: cur.spec.item }); }
+      } else if (cur.phase === 'ground' && s && cur.spec.hatch && (s.kind === 'hatch' || s.kind === 'photo')) {
+        setPhase('placed');   // resumed (a reload) after the delivery: the egg is already in its nest (AS-0315)
       } else if (cur.phase === 'ground' && player && s && s.kind === 'carry' && s.item === cur.spec.item &&
           Math.hypot(player.x - cur.item.x, player.z - cur.item.z) <= PICK_REACH) {
         if (carry().pickUp(cur.spec.item, { fragile: !!s.fragile })) {
@@ -130,6 +133,7 @@
       if (!cur || !step) return null;
       if (step.kind === 'carry' && step.item === cur.item.id && cur.phase === 'ground') return { x: cur.item.x, z: cur.item.z, role: 'item', id: cur.item.id };
       if (step.kind === 'deliver' && step.to === cur.to.id) return { x: cur.to.x, z: cur.to.z, role: 'to', id: cur.to.id };
+      if (cur.spec.hatch && (step.kind === 'hatch' || step.kind === 'photo')) return { x: cur.to.x, z: cur.to.z, role: 'to', id: cur.to.id };   // the family at the nest
       return null;
     }
 

@@ -58,7 +58,7 @@
     ['oso', 'el oso'], ['llama', 'la llama'], ['condor', 'el cóndor'],
     ['ciervo', 'el ciervo'], ['ardilla', 'la ardilla'], ['jaguar', 'el jaguar'], ['perezoso', 'el perezoso'],
     ['cabra', 'la cabra'], ['aguila', 'el águila'], ['raton', 'el ratón chispa'],
-    ['cerda', 'la cerda'], ['cerdito', 'el cerdito']].forEach(function (a) { add('animal', a[0], a[1]); });
+    ['cerda', 'la cerda'], ['cerdito', 'el cerdito'], ['patito', 'el patito']].forEach(function (a) { add('animal', a[0], a[1]); });
 
   // Things a mission carries or visits (AS-0313): spoken when the egg is picked up and when it rests in the nest.
   add('thing', 'huevo', 'el huevo', 'the egg');
@@ -138,6 +138,7 @@
   add('phrase', 'pasove', '¡Ve allí!', 'Go there!');
   // The pig's voice (animal.voice): the sow grunts, the piglet squeaks at a higher pitch (speech.js uses entry.pitch).
   add('phrase', 'oinc', 'Oinc, oinc', 'Oink oink');
+  add('phrase', 'pio', '¡Pío pío!', 'Cheep cheep!').pitch = BABY_PITCH;   // el patito's call when it hatches (AS-0315)
   add('phrase', 'oincbebe', 'Oinc, oinc', 'Oink oink').pitch = BABY_PITCH;
   // The family words of the reunion (SA.missionReunion, AS-0235), spoken in this order.
   add('phrase', 'mama', 'la mamá', 'the mama');

@@ -377,7 +377,15 @@ current; when your change sets or changes something future tickets must follow, 
   `SA.missionRuntime` asks it (`opts.thing`) for `update`, `locate` and `target` (the compass) after the spawned animals. The egg stays
   in the nest after the mission (in memory only: after a reload the egg and nest are gone until the mission is replayed). The hand is not
   saved, so a reload on the `deliver` step puts the egg straight back in hand (never stuck, AS-0238). `render/mission-carry.js` draws the egg and nest from primitives; the steps are the generic carry / deliver
-  kinds, so new carry missions are data rows. Mission 2 ends on the placement for now (a photo step can follow in a later slice).
+  kinds, so new carry missions are data rows.
+  **Hatch and family photo (AS-0315, slice 3):** `carry.hatch: { baby, mama, seconds? }` adds the generic step kind `hatch` (event `hatched`) and a
+  `photo` step with `target: <baby>`. `SA.missionHatch` (`game/mission-hatch.js`, pure) runs the timer once the egg rests in the nest (phases none →
+  waiting → cracking (last 1.6 s) → hatched → done), reports `hatched`, speaks `animal:<baby>` then the baby's `phrase:pio`, and `snap()` takes the
+  family photo (tap on mamá or the baby with la cámara in hand, within 9 of the nest; a missing camera is put in hand with "la cámara"). Finishing
+  logs one rescue row `{ kind: 'hatch', key: <mission id> }` (the badge/sticker `patito-nuevo`, once, never again on a replay) and the mission
+  is replayable from the board. `SA.missionHatch.trail()` (pure) is the line of tracks and feathers from the nest to the egg
+  (`render/mission-hatch.js` draws it, mamá pato, the cracking egg, the two shells and the duckling; `el patito` is a `story` baby of `pato`).
+  Reload on the photo step brings the family back with no show. Story animals are excluded from clue/round pools (`!a.story`).
   **Fragile carry (AS-0314, slice 2):** a `carry` step with `fragile: true` (data, never an id check) makes running or jumping wobble the
   held thing (`SA.carry`) and `SA.missionFragile` (`game/mission-fragile.js`, pure) fires "¡Despacio!" (toast, voice `phrase:despacio`, a
   worried `quack` SFX), at most once per 4 s. It is only a reaction: nothing breaks, drops or resets.

@@ -6,7 +6,7 @@ const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'gam
   'game/data/vocab.js', 'game/data/clues.js', 'game/clues.js', 'game/data/clue-levels.js', 'game/clue-levels.js',
   'game/save.js', 'game/round.js'];
 const load = () => loadGame(FILES);
-const real = (SA) => Array.from(SA.data.all('animals')).filter((a) => !a.easterEgg);   // test-realm array (vm arrays differ)
+const real = (SA) => Array.from(SA.data.all('animals')).filter((a) => !a.easterEgg && !a.story);   // test-realm array (vm arrays differ)
 const clueByKey = (SA, animals, key, types = null) => SA.clues.candidates(animals, types).find((c) => c.key === key);
 
 // Synthetic animal with the given [part, scale, count] entries and trait overrides.

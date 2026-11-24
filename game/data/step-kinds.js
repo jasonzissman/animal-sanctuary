@@ -47,6 +47,7 @@
     { id: 'follow', event: 'followed', required: { animal: 'string' }, match: { animal: 'animal' } },
     { id: 'carry', event: 'carried', required: { item: 'string' }, optional: { fragile: 'boolean' }, match: { item: 'item' } },
     { id: 'deliver', event: 'delivered', required: { item: 'string', to: 'string' }, match: { item: 'item', to: 'to' } },
+    { id: 'hatch', event: 'hatched', required: { item: 'string' }, match: { item: 'item' } },   // AS-0315: the placed egg hatches after a short wait
     { id: 'collect', event: 'collected', required: { item: 'string', n: 'number' }, match: { item: 'item' }, progress: { total: 'n' } },
     { id: 'goTo', event: 'arrived', required: { place: 'string' }, match: { place: 'place' } },
     { id: 'talk', event: 'talked', required: { who: 'string' }, match: { who: 'who' } },

@@ -19,7 +19,11 @@
  *   { type: 'gave', item, to } (the step moves on to the photo) and starts the chick's first flight (SA.flight, pure path / timing math):
  *   flap, one small loop beside mamá, land back in the nest. `say.fly` ('volar') is spoken when the loop begins. Early, far or empty-handed taps
  *   never fail: the chick just wobbles (view().nudge) and a short cue is spoken ('¡Acércate!', or la pluma when you hold none) -> { ok, reason? }.
- *   SA.missionNest.spots()   -> { bowl, chick, mama, face } | null   where the nest, the chick and mamá sit (render and reach share it)
+ *   AS-0338 (slice 3): SA.missionNest.snap(player?) is a tap on the eagles (render/mission-nest.js) with la cámara in hand on the 'photo' step
+ *   (target 'nido-aguila'), from the summit peak or the nest peak (never from the ground): { status: 'none' | 'nocamera' | 'far' | 'complete' | 'step' }.
+ *   It goes into the album (SA.photo.record), completes the mission (stars) and logs one rescue row { kind: 'nest' } -> the sticker 'aguilucho-volador'
+ *   (onSticker hook for main.js). A replay is a fresh seed: sync() rebuilds the feather and chick state (and puts away a stale feather in the bag).
+ *   SA.missionNest.spots()  -> { bowl, chick, mama, face } | null   where the nest, the chick and mamá sit (render and reach share it)
  *   SA.missionNest.view()    -> { feather, crossed, flight, flown, nudge } | null   flight = seconds since the flight began (null when none), flown = the
  *                               feather was given (the chick sits in the nest again afterwards), nudge = seconds since a wobble (null when none)
  *   SA.missionNest.current() / onChange(fn) / setSolids(listOrFn) / create({ missions?, audio?, inventory?, report?, track?, solids?, now? })
@@ -28,6 +32,7 @@
   'use strict';
   var SA = root.SA;
   var PICK_REACH = 1.6, EDGE = 4, SIDE = 2.0, AT_S = [9, 12, 7, 15, 5, 18], MID_REACH = 2.5, ABOVE_GROUND = 2;
+  var PHOTO_SLACK = 3;                                                // the summit photo may be taken a little beyond a peak's flat top
   var GIVE_REACH = 4.5, BACK = 0.55, NUDGE_S = 0.7, SEAT = 0.15;      // the nest sits a little past the summit centre, away from the bridge
   var SEATS = { mama: [-0.18, 0.05], chick: [0.2, -0.05] };           // where mamá and the chick sit in the bowl (world offsets)
 
@@ -113,7 +118,9 @@
       if ((cur && cur.key) === key) return cur;
       var src = (o && o.solids) || solidsSrc;
       var p = spec ? place(spec, a.seed, { solids: typeof src === 'function' ? src() : src || [] }) : null;
-      cur = p ? { key: key, spec: spec, feather: p.feather, summit: p.summit, nest: p.nest, bridge: p.bridge, said: {}, crossed: false, flightAt: null, nudgeAt: null } : null;
+      // A fresh run (a replay, or a restart) starts clean: a feather left in the bag by an earlier, abandoned run is put away (AS-0338).
+      if (p && a.step === 0) { try { var iv0 = inv(); if (iv0 && iv0.has && iv0.has(spec.item)) iv0.remove(spec.item); } catch (e) { /* the bag never breaks the loop */ } }
+      cur = p ? { snapped: false, key: key, spec: spec, feather: p.feather, summit: p.summit, nest: p.nest, bridge: p.bridge, said: {}, crossed: false, flightAt: null, nudgeAt: null } : null;
       emit();
       return cur;
     }
@@ -204,17 +211,45 @@
       return { ok: true };
     }
 
+    // The summit photo (AS-0338): a tap on the eagles (render/mission-nest.js) with la cámara in hand, from the summit peak or the nest peak (never from
+    // the ground below). It goes into the album, completes the mission (stars) and logs one rescue row { kind: 'nest' } for the sticker (once).
+    function framed(p) {
+      return [cur.summit, cur.nest].some(function (t) { return Math.hypot(p.x - t.x, p.z - t.z) <= t.r + PHOTO_SLACK && !(isFinite(p.y) && p.y < t.y - 2.5); });
+    }
+    function snap(player) {
+      sync();
+      var s = stepOf();
+      if (!cur || !s || s.kind !== 'photo' || cur.snapped) return { status: 'none' };
+      var inv2 = inv();
+      if (!inv2 || inv2.equipped() !== 'camara') return { status: 'nocamera' };
+      var p = player || last;
+      if (p && !framed(p)) return { status: 'far' };
+      try { var au = audio(); if (au && au.sfx) au.sfx('shutter'); } catch (e) { /* sound is best effort */ }
+      var a = null;
+      try { a = missions().active(); } catch (e) { a = null; }
+      var r = report({ type: 'photo', target: s.target });
+      if (!r || (r.status !== 'complete' && r.status !== 'step')) return r || { status: 'none' };
+      cur.snapped = true;
+      track('nest.photo', { peak: cur.spec.peak });
+      try { (opts.photo || SA.photo).record(cur.spec.chick); } catch (e) { /* the album never blocks play */ }
+      var rec = { earned: [] };
+      try { rec = (opts.rescueLog || SA.rescueLog).record({ kind: 'nest', mission: a ? a.id : '', animal: cur.spec.chick, key: a ? a.id : '' }) || rec; } catch (e) { /* the log never blocks play */ }
+      if (api.onSticker) { try { api.onSticker({ mission: a ? a.id : '', badges: rec.earned || [] }); } catch (e) { /* the view never breaks play */ } }
+      return r;
+    }
+
     function view() {
       if (!cur) return null;
       var s = stepOf(), dur = SA.flight ? SA.flight.DURATION : 0, fl = secondsSince(cur.flightAt), nd = secondsSince(cur.nudgeAt);
-      return { feather: cur.feather.taken ? null : cur.feather, crossed: cur.crossed,
+      return { feather: cur.feather.taken ? null : cur.feather, crossed: cur.crossed, photo: !!(s && s.kind === 'photo'),
         flight: fl != null && fl < dur ? fl : null, flown: cur.flightAt != null || !!(s && s.kind === 'photo'), nudge: nd != null && nd < NUDGE_S ? nd : null };
     }
 
-    return { sync: sync, update: update, locate: locate, target: target, view: view, give: give, spots: function () { return spotsOf(cur); }, current: function () { return cur; },
+    var api = { sync: sync, update: update, locate: locate, target: target, view: view, give: give, snap: snap, onSticker: null, spots: function () { return spotsOf(cur); }, current: function () { return cur; },
       setSolids: function (s) { solidsSrc = s; },
       onChange: function (fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; },
       create: create, PICK_REACH: PICK_REACH };
+    return api;
   }
 
   var api = create();

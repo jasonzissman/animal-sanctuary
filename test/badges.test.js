@@ -94,7 +94,7 @@ test('progress lists every badge with have capped at need, and earned stays true
   assert.deepEqual(byId['amigo-tortuga-plata'], { id: 'amigo-tortuga-plata', have: 5, need: 5, earned: true });
   assert.deepEqual(byId['amigo-tortuga-oro'], { id: 'amigo-tortuga-oro', have: 7, need: 15, earned: false });
   assert.deepEqual(byId['super-ayudante'], { id: 'super-ayudante', have: 7, need: 25, earned: false });
-  assert.equal(badges.progress().length, 46, 'every badge row appears');
+  assert.equal(badges.progress().length, 47, 'every badge row appears');
 });
 
 test('badges and rescue rows survive a save round trip; old rows and junk are handled', () => {

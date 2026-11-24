@@ -152,7 +152,7 @@
           spin = a; loopLift = LOOP_LIFT * Math.sin(u * Math.PI); moving = true;
           if (u >= 1) r.loop = null;
         }
-        g.position.y = (p.perched ? p.y : SA.map.groundHeight(p.x, p.z)) + lift + loopLift - (limp ? limp.dip : 0) - (r.sunkBy || 0);
+        g.position.y = (p.perched ? p.y : SA.player && SA.player.heightAt ? SA.player.heightAt(p.x, p.z) : SA.map.groundHeight(p.x, p.z)) + lift + loopLift - (limp ? limp.dip : 0) - (r.sunkBy || 0);
         g.rotation.y = p.heading + spin;
         g.scale.set(r.sx / Math.sqrt(idle.breath), r.sy * idle.breath, r.sz / Math.sqrt(idle.breath));
         r.ears.forEach(function (e) { e.m.rotation.z = e.rz + idle.wiggle * 0.25 * (e.m.userData.side === 'right' ? -1 : 1); });

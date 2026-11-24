@@ -29,10 +29,10 @@ test('decor validator rejects a solid item without a radius and a soft item with
   assert.throws(() => SA.data.register('decor', [{ id: 'bad' }]), /solid/);
 });
 
-test('every prop declares solid; only flores is walk-through', () => {
+test('every prop declares solid; only flores and the walkable puente (SA.surfaces, AS-0158) are walk-through', () => {
   const props = SA.data.all('props');
   props.forEach((p) => assert.equal(typeof p.solid, 'boolean', p.id));
-  same(props.filter((p) => !p.solid).map((p) => p.id), ['flores']);
+  same(props.filter((p) => !p.solid).map((p) => p.id), ['flores', 'puente']);
 });
 
 test('animal radius comes from the size trait: small 0, medium and big push', () => {

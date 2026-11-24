@@ -80,6 +80,7 @@
       if (M.biomeAt(x - EDGE) !== biome || M.biomeAt(x + EDGE) !== biome) return false;
       if (SA.forestStreams && SA.forestStreams.inWater(x, z, STREAM_PAD)) return false;   // forest streams (AS-0301): look, don't wade
       if (SA.fallenLogs && SA.fallenLogs.near(x, z, LOG_PAD)) return false;   // fallen logs (AS-0302) are obstacles
+      if (SA.surfaces && SA.surfaces.walkable(x, z, 0.9)) return true;   // animals may cross a bridge along its middle (AS-0158)
       return M.groundHeight(x, z) >= M.WATER_LEVEL + 0.45;
     }
 

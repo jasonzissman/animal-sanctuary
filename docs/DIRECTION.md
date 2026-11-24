@@ -734,6 +734,12 @@ current; when your change sets or changes something future tickets must follow, 
 - **Progress you can see and keep.** Badges and stickers for rescues by species, predicament, biome and night (AS-0167,
   AS-0168); rescued animals get names in the "Luna la rápida" pattern, with articles and endings that agree (AS-0169); one
   rescued animal can be your named friend that follows you and helps with hints (AS-0175).
+  **Sticker book (AS-0168):** a sticker is a badge row. `SA.rescueLog.record` (default instance) hands newly earned rows to
+  `SA.stickers.notify` (`game/stickers.js`, pure; also `rows()` = earned first, then in progress, then grey, each with `label`
+  '3/5 tortugas' and `dots` '●●●○○'). `ui/sticker-pop.js` shows them one at a time (~2.4 s: flies to the centre with sparkles and a
+  jingle, speaks '¡Amigo de las tortugas!', shrinks to the top-right corner; pointer-events none, never blocks play). The album
+  (`ui/album-view.js`) has two tabs, 🐾 Animales and 🏅 Pegatinas (`ui/stickers-page.js`: gold earned stickers, grey dashed locked
+  ones with progress; a tap speaks the name and goal). The mission `onSticker` toasts are unchanged.
 - **The world has a rhythm.** Day/night cycle (AS-0170): day animals sleep at night with floating Zzz, nocturnal animals
   (búho, murciélago) wake up (AS-0171). Night stays readable for kids.
 - **Mission variety.** Lost-baby missions: the cría follows you to its mamá, and you take a family photo (AS-0172, AS-0173). Secret

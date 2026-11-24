@@ -5,6 +5,8 @@
  *   not yet photographed = a dark silhouette with "?".
  * Saved pictures (SA.albumPics.load: first + newest 3) replace the icon on a photographed card; tap one to see it bigger in an overlay with
  * a big ✕ and a 🔊. No picture / no storage keeps the icon card. A 🔊 next to the name also says it.
+ * Two tabs under the title: 🐾 Animales (the cards above) and 🏅 Pegatinas (the sticker book, SA.stickersPage; AS-0168). open('pegatinas')
+ * opens straight on the stickers; the tab resets nowhere, so the book reopens on the last tab used.
  * Tapping a card speaks the animal name; tapping a part chip speaks the part (SA.audio.say with the vocab key). A silhouette
  * only wobbles (no name: it stays a surprise). The page is rebuilt each time it opens, so new photos show up. No-op without a DOM.
  */
@@ -42,8 +44,20 @@
     close.type = 'button';
     close.setAttribute('aria-label', 'Cerrar');
     head.appendChild(title); head.appendChild(close);
+    // Two tabs (AS-0168): 🐾 Animales (the species cards) and 🏅 Pegatinas (the sticker book, ui/stickers-page.js).
+    var tabs = el('div', 'display:flex;gap:8px;margin-bottom:.5em;');
+    var tabAnimals = el('button', '', '🐾 Animales'), tabStickers = el('button', '', '🏅 Pegatinas');
+    [tabAnimals, tabStickers].forEach(function (b) { b.type = 'button'; tabs.appendChild(b); });
+    var tab = 'animales';
+    function styleTabs() {
+      [[tabAnimals, 'animales'], [tabStickers, 'pegatinas']].forEach(function (p) {
+        p[0].style.cssText = BTN + 'min-height:56px;padding:0 .8em;font-size:1.4rem;' + (tab === p[1] ? '' : 'background:#cfd8d2;opacity:.85;');
+        p[0].setAttribute('aria-pressed', tab === p[1] ? 'true' : 'false');
+      });
+    }
     var grid = el('div', 'display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;');
-    page.appendChild(head); page.appendChild(grid);
+    var stickerBox = el('div', 'display:none;');
+    page.appendChild(head); page.appendChild(tabs); page.appendChild(grid); page.appendChild(stickerBox);
     doc.body.appendChild(opener);
     doc.body.appendChild(page);
     var opened = false;
@@ -144,12 +158,24 @@
 
     function build() {
       while (grid.firstChild) grid.removeChild(grid.firstChild);
+      while (stickerBox.firstChild) stickerBox.removeChild(stickerBox.firstChild);
       var mine = ++token;
       hideBig();
-      SA.album.entries().forEach(function (e) { grid.appendChild(card(e, mine)); });
       var p = SA.album.progress();
+      styleTabs();
+      if (tab === 'pegatinas' && SA.stickersPage) {
+        grid.style.display = 'none'; stickerBox.style.display = 'block';
+        var r = SA.stickersPage.fill(doc, stickerBox, { say: say, english: !!(SA.settings && SA.settings.get && SA.settings.get().english) });
+        title.textContent = '🏅 Pegatinas ' + (r.earned || 0) + '/' + (r.total || 0);
+        return;
+      }
+      grid.style.display = 'grid'; stickerBox.style.display = 'none';
+      SA.album.entries().forEach(function (e) { grid.appendChild(card(e, mine)); });
       title.textContent = '📖 Álbum ' + p.found + '/' + p.total;
     }
+    function pick(which) { if (tab !== which) { tab = which; if (opened) build(); } }
+    tabAnimals.addEventListener('click', function () { pick('animales'); });
+    tabStickers.addEventListener('click', function () { pick('pegatinas'); });
 
     function setOpen(on) {
       if (on === opened) return;
@@ -166,7 +192,8 @@
     });
     opener.addEventListener('click', function () { setOpen(!opened); });
     close.addEventListener('click', function () { setOpen(false); });
-    return { open: function () { setOpen(true); }, close: function () { setOpen(false); },
+    return { open: function (which) { if (which === 'pegatinas' || which === 'animales') tab = which; if (opened) build(); else setOpen(true); },
+      tab: function () { return tab; }, close: function () { setOpen(false); },
       toggle: function () { setOpen(!opened); }, isOpen: function () { return opened; }, element: opener };
   }
 

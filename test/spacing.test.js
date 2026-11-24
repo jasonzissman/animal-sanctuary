@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
-  'game/map.js', 'game/animal-plan.js', 'game/spacing.js', 'game/wander.js', 'game/gait.js', 'game/render/ambient.js'];
+  'game/map.js', 'game/animal-plan.js', 'game/spacing.js', 'game/wander.js', 'game/gait.js', 'game/render/instances.js', 'game/render/ambient.js'];
 const MOVES = ['salta', 'nada', 'trepa', 'camina lento', 'corre', 'repta', 'vuela'];
 const SIZES = ['pequeño', 'mediano', 'grande'];
 const BIOME = 'desierto';   // all dry land (x 56..112), so the walkers are never squeezed by water

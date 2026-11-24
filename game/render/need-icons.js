@@ -76,7 +76,7 @@
       shown = 0;
       (needs || []).forEach(function (n) {
         if (!n || typeof n.animalId !== 'string' || !n.icon) return;
-        var g = opts.animals && opts.animals.getObjectByName ? opts.animals.getObjectByName(n.animalId) : null;
+        var g = opts.animals ? SA.render.instances.get(opts.animals, n.animalId) : null;   // AS-0255: the nearest instance of the species
         if (!g || !g.visible) return;
         var rec = spriteFor(n.animalId, n.icon, g);
         if (!rec) return;

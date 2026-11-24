@@ -1,6 +1,7 @@
 /* SA.render.createRoundFx({ animals }): whole-animal reactions for the Scout & Spot round (no THREE calls; it only
  * moves the animal groups from buildAnimals, so it is testable with plain objects).
- *   fx.play(animalId, reaction)  'wobble' (wrong pick) | 'boing' (correct): pose from SA.picking.reactionPose.
+ *   fx.play(key, reaction)       key = instanceId or species id (AS-0255: the tapped instance moves, not its herd mates)
+ * 'wobble' (wrong pick) | 'boing' (correct): pose from SA.picking.reactionPose.
  *   fx.update(dt)                call every frame; each animal returns exactly to rest when its reaction ends.
  */
 (function (root) {
@@ -20,9 +21,11 @@
       o.scale.set(b.sx, b.sy, b.sz);
     }
 
-    function play(animalId, reaction) {
-      var obj = animals.getObjectByName(animalId);
+    // `key` is an instanceId ('conejo#2', the instance you tapped) or a species id (the tapped / nearest instance, SA.render.instances.get).
+    function play(key, reaction) {
+      var obj = SA.render.instances.get(animals, key);
       if (!obj) return false;
+      var animalId = obj.name;   // one reaction per instance, so two rabbits can wobble at once
       if (playing[animalId]) restore(playing[animalId]);
       playing[animalId] = { obj: obj, reaction: reaction || 'wobble', t: 0, base: {
         py: obj.position.y, rx: obj.rotation.x, rz: obj.rotation.z,

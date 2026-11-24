@@ -59,7 +59,7 @@ function makeEl() {
 
 function stage(playerAt) {
   const files = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js', 'game/reach.js',
+    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js', 'game/reach.js',
     'game/picking.js', 'game/aim.js', 'game/click-outcome.js', 'game/render/click-fx.js', 'game/render/picking.js'];
   const ctx = vm.createContext({ console });
   ctx.window = ctx; ctx.self = ctx;

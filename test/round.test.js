@@ -4,7 +4,7 @@ import { loadGame } from './helpers/vm.js';
 
 const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
   'game/data/vocab.js', 'game/data/clues.js', 'game/clues.js', 'game/save.js', 'game/picking.js', 'game/round.js',
-  'game/render/round-fx.js', 'game/ui/prompt.js'];
+  'game/render/instances.js', 'game/render/round-fx.js', 'game/ui/prompt.js'];
 
 function setup(opts = {}) {
   const SA = loadGame(FILES);

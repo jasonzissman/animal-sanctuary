@@ -461,14 +461,14 @@ test('care fx: heal draws a scrape then a bandage; a feed task only zooms the ca
   ctx.window = ctx;
   ctx.self = ctx;
   for (const f of ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
+    'game/data/animals.js', 'game/map.js', 'game/animal-plan.js', 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js', 'game/render/care-fx.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
   }
   const { SA, THREE } = ctx;
   const animals = SA.render.buildAnimals(THREE, {});
   const calls = [];
   const fx = SA.render.createCareFx(THREE, { animals, rig: new Proxy({}, { get: (_, n) => () => calls.push(n) }) });
-  const group = animals.getObjectByName('tucan');
+  const group = animals.getObjectByName('tucan#0');
   const before = group.children.length;
   assert.equal(fx.show({ kind: 'curar', animalId: 'tucan', part: 'alas', spots: 2 }), true);
   assert.equal(fx.spotCount(), 2);

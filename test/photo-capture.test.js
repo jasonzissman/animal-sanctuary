@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './helpers/vm.js';
 
-const FILES = ['game/sa.js', 'game/album-pics.js', 'game/render/photo-capture.js'];
+const FILES = ['game/sa.js', 'game/album-pics.js', 'game/render/instances.js', 'game/render/photo-capture.js'];
 
 // A stub THREE: Box3 reads a fixed box from the object, Vector3.project maps x/y straight to NDC.
 function stubThree(ndc) {

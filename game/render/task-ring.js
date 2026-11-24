@@ -137,7 +137,7 @@
       }
       doneId = null;
       if (id !== task.animalId) {
-        var g = opts.animals && opts.animals.getObjectByName ? opts.animals.getObjectByName(task.animalId) : null;
+        var g = opts.animals ? SA.render.instances.get(opts.animals, task.animalId) : null;   // AS-0255: the nearest instance of the species
         if (!g || g.visible === false) { if (id) hide(); return; }
         show(g, task);
       } else if (target.visible === false) { hide(); return; }

@@ -18,7 +18,7 @@
 
     return function capture(animalId) {
       try {
-        var g = o.animals.getObjectByName ? o.animals.getObjectByName(animalId) : null;
+        var g = SA.render.instances.get(o.animals, animalId);   // AS-0255: the tapped / nearest instance
         if (!g || g.visible === false || !doc) return null;
         o.scene.updateMatrixWorld(true);
         o.renderer.render(o.scene, o.camera);

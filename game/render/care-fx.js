@@ -74,7 +74,7 @@
     // Keeps the puddle on the ground while the animal sits lower (group-local y = depth / the group's height scale).
     function placePuddle() {
       if (!puddle || !group) return;
-      var rig = ambient && ambient.rigs && ambient.rigs[group.userData.animalId];
+      var rig = ambient && ambient.rigs && ambient.rigs[group.name];
       puddle.position.y = ((rig && rig.sunkBy) || 0) / (group.scale.y || 1) + 0.01;
     }
 
@@ -84,7 +84,7 @@
 
     function show(task) {
       clear();
-      group = animals.getObjectByName(task.animalId);
+      group = SA.render.instances.get(animals, task.animalId);   // AS-0255: the tapped / nearest instance of the species; ambient is keyed by group.name
       if (!group) return false;
       var meshes = partMeshes(group, task.part);
       if (task.part && !meshes.length) return false;      // a feed task has no part: only the zoom below
@@ -93,8 +93,8 @@
       var palette = task.kind === 'curar' ? scrapeMats : task.kind === 'cepillar' ? tangleMats
         : cue === 'tangled' ? leafMats : cue === 'limp' ? thornMats : mats;   // sore / tangled / leaf / thorn / muddy
       var count = task.kind === 'acariciar' ? 0 : task.spots;      // petting la barriga has nothing to wash off
-      if (cue && ambient && ambient.setCue) ambient.setCue(task.animalId, cue);   // the bird hops / the animal limps
-      else if (cue === 'tangled' && ambient && ambient.setTangled) ambient.setTangled(task.animalId, true);
+      if (cue && ambient && ambient.setCue) ambient.setCue(group.name, cue);   // the bird hops / the animal limps
+      else if (cue === 'tangled' && ambient && ambient.setTangled) ambient.setTangled(group.name, true);
       if (cue === 'sunk') { addPuddle(group, count); count = 0; }      // no spots on the paws: the mud is under the animal
       for (var i = 0; task.part && i < count; i++) {
         var m = cue ? meshes[0] : meshes[i % meshes.length];      // a stuck leaf / thorn is on ONE wing / paw
@@ -114,7 +114,7 @@
         group.add(spot);
         spots.push(spot);
       }
-      if (ambient) { if (held) ambient.release(held); held = task.animalId; ambient.hold(held); }
+      if (ambient) { if (held) ambient.release(held); held = group.name; ambient.hold(held); }
       return true;
     }
 
@@ -162,8 +162,9 @@
     function free(animalId, cue) {
       if (puddle) { puddle.userData.leaving = true; if (!ambient) removePuddle(); }     // the puddle shrinks away as the animal rises
       if (!ambient) return;
-      uncue(animalId);
-      if (cue === 'tangled' && ambient.flyLoop) ambient.flyLoop(animalId);
+      var key = held || animalId;   // the instance the task is on (group.name), not just its species
+      uncue(key);
+      if (cue === 'tangled' && ambient.flyLoop) ambient.flyLoop(key);
     }
 
     // Tangled wing done: the bird flaps, spins and flies a happy loop (ambient.flyLoop); it is free to fly again.

@@ -12,7 +12,7 @@
     var current = null, shown = false;
     function targetPos() {
       var r = o.game.current();
-      var obj = r && o.animals && o.animals.getObjectByName(r.answerId);
+      var obj = r && o.animals && SA.render && SA.render.instances ? SA.render.instances.get(o.animals, r.answerId) : r && o.animals && o.animals.getObjectByName(r.answerId);
       return obj ? { x: obj.position.x, y: obj.position.y, z: obj.position.z } : null;
     }
     var arrow = SA.hintArrow.create(o.doc, function () { pointer.tap(targetPos()); });

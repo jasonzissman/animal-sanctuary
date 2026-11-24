@@ -248,7 +248,13 @@ current; when your change sets or changes something future tickets must follow, 
   (`others` = `[[x, z, r], ...]`, `bodyRadius`); overlapping spawns are pushed apart in ~1 s. Placement (AS-0162): `SA.animalPlan.placements` spawns every animal
   (herds included) over its whole biome strip with the gap AND non-overlapping pick volumes (`pickRadius`); tree
   perchers (`SA.perch.create` `others`/`bodyRadius`, `claims()`) only sit on or hop to spots that are free by the same gap.
-  Herds (AS-0254, slice 1 of AS-0130, pure only: nothing renders them yet): the animal data field `herd` (1-5, default 1; regular
+  Herds are spawned (AS-0255, slice 2 of AS-0130): `buildAnimals` builds one group per `herdPlacements` row through the same
+  builder (shared geometry/materials); the group `name` is the `instanceId` ('conejo#2') and group + part + pick meshes carry
+  `userData { animalId, instanceId }`. `SA.render.instances` (`of`, `byId`, `get`, `tapped`, `setNear`) finds a group: an
+  instanceId is exact, a species id means the instance tapped last (8 s), else the one nearest the player, else the first. Never
+  call `getObjectByName(animalId)` on the animals group. Hits carry `instanceId`, so reactions play on the tapped instance, while
+  picks/`part.tap` still report `animalId`. `SA.render.createAmbient` keys its wander rigs by instanceId (each from its own home
+  and radius); its controls (hold/pin/setCue...) accept either key. Herd placement (AS-0254): the animal data field `herd` (1-5, default 1; regular
   species declare 3-5) and `SA.animalPlan.herdPlacements(animals, opts)` give `{ instanceId: '<id>#<n>', animalId, x, z, y, rotY,
   radius }` per instance, each with its own home in a different sub-area (`subAreas`, 2 x 3) of the biome strip, same clearances.
 - **Small inventory (AS-0154, AS-0155).** Tools (cámara, cepillo, esponja, venda), la fresa as the only food, and rocks.

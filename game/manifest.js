@@ -78,6 +78,7 @@ globalThis.SA_MANIFEST = {
     'game/render/station-board-tap.js',
     'game/render/scientist-tap.js',
     'game/animal-plan.js',
+    'game/wag.js',
     'game/render/zigzag.js',
     'game/render/instances.js',
     'game/render/animals.js',

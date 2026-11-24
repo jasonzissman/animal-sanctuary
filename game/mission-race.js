@@ -6,7 +6,9 @@
  * (with the rabbit beside it), a path of flags and the big tree exist (game/render/mission-race.js draws them); nothing exists while another mission, or none, runs.
  * The steps are the generic kinds: 'talk' { who: rabbit id } (tap the rabbit), 'goTo' { place } (walk into the goal circle; the flags are a guide, not a rail:
  * any shortcut over rocks or round the pond counts) and 'photo' { target: place } (a tap on the big tree with la cámara; a place, so a wild rabbit photo never
- * completes it). No opponent yet. Nothing here knows a mission id or an animal id.
+ * completes it). AS-0355: on the goTo step it is a real race (game/mission-race-pace.js, pure): "¡Tres, dos, uno, ya!" is spoken, nobody can win before "ya", the
+ * rabbit runs the flag path fast but stops for a carrot halfway, and if it still gets to the tree first it says "¡Otra vez!" and the countdown starts again at once
+ * (nothing is lost). Reaching the tree while the race runs says "¡Ganaste!". Nothing here knows a mission id or an animal id.
  *
  *   SA.missionRace.place(spec, seed, opts?) -> { start: { x, y, z, r, face }, goal: { x, y, z, r }, flags: [{ x, y, z, rotY }], rabbit: { animal, x, y, z, rotY, scale } } | null
  *                                              PURE, deterministic from the seed; opts.solids [[x, z, r], ...] are kept clear
@@ -14,14 +16,15 @@
  *   SA.missionRace.passedFlags(flags, player, passed?) -> the (sorted) indexes of flags the player came within FLAG_R of, plus the ones already passed
  *   SA.missionRace.sync(opts?)     the current state | null; reads SA.missions.active(): places on a new mission/seed, clears when none runs
  *   SA.missionRace.update(player)  polled each frame (SA.missionRuntime calls it): lights the flags you pass, says `say.flag` / `say.arrive` once
- *   SA.missionRace.locate(id)      -> { x, z, r } | null   the big tree (the goTo place); the runtime reports 'arrived' from it
+ *   SA.missionRace.locate(id)      -> { x, z, r } | null   the big tree (the goTo place) once the race is WON (so the runtime reports 'arrived' only then)
  *   SA.missionRace.target(step)    -> { x, z, role, id } | null   compass: the rabbit on the talk step, the big tree on the goTo and photo steps
  *   SA.missionRace.talk(player?)   a tap on the rabbit on the 'talk' step, from near it: { status: 'none' | 'far' | 'step' | ... }; speaks `say.talk` (la carrera)
  *   SA.missionRace.snap(player?)   a tap on the big tree with la cámara on the 'photo' step, from near it: { status: 'none' | 'nocamera' | 'far' | 'complete' | 'step' }.
  *                                  It goes into the album (SA.photo.record), completes the mission (stars) and logs one rescue row { kind: 'race' } -> the sticker
  *                                  'buen-corredor' (onSticker hook for main.js)
- *   SA.missionRace.view()          -> { talk, photo, arrived, passed: [flag indexes] } | null     current() / onChange(fn) / setSolids(listOrFn)
- *   SA.missionRace.create({ missions?, audio?, report?, track?, solids?, photo?, rescueLog?, inventory? })   a separate instance (tests)
+ *   SA.missionRace.view()          -> { talk, photo, arrived, passed: [flag indexes], race: { state, waiting, losses, mode, eat, ate, x, y, z, rotY, carrot } | null } | null
+ *                                  current() / onChange(fn) / setSolids(listOrFn)   (race: the rabbit's pose while a goTo race is on; the renderer draws it)
+ *   SA.missionRace.create({ missions?, audio?, report?, track?, solids?, photo?, rescueLog?, inventory?, now? })   a separate instance (tests)
  */
 (function (root) {
   'use strict';
@@ -111,6 +114,7 @@
   function create(opts) {
     opts = opts || {};
     var cur = null, listeners = [], solidsSrc = opts.solids || null, last = null;
+    var clock = opts.now || function () { return Date.now(); }, lastClock = null;
     function missions() { return opts.missions || SA.missions; }
     function audio() { return opts.audio || SA.audio; }
     function emit() { listeners.slice().forEach(function (f) { try { f(cur); } catch (e) { /* a view never breaks the loop */ } }); }
@@ -134,9 +138,32 @@
       if ((cur && cur.key) === key) return cur;
       var src = (o && o.solids) || solidsSrc;
       var p = spec ? place(spec, a.seed, { solids: typeof src === 'function' ? src() : src || [] }) : null;
-      cur = p ? { key: key, spec: spec, start: p.start, goal: p.goal, flags: p.flags, rabbit: p.rabbit, said: {}, passed: [], snapped: false } : null;
+      cur = p ? { key: key, spec: spec, start: p.start, goal: p.goal, flags: p.flags, rabbit: p.rabbit, said: {}, passed: [], snapped: false, race: null } : null;
+      if (cur && SA.racePace) {       // the rabbit runs: its start spot, the flags in order, the tree
+        cur.race = SA.racePace.create({ points: [p.rabbit].concat(p.flags, [p.goal]), pace: spec.pace });
+        cur.carrot = SA.racePace.carrotAt(cur.race.path, cur.race.pace);
+      }
+      lastClock = null;
       emit();
       return cur;
+    }
+
+    // The race on the goTo step: the countdown, the rabbit's run and what is said at each moment (all through SA.audio, so every word has a voice).
+    function race(player, dt) {
+      var R = cur.race, atStart = Math.hypot(player.x - cur.start.x, player.z - cur.start.z) <= R.pace.wait;
+      R.tick(dt, { atStart: atStart, atGoal: reached(cur.goal, player) }).forEach(function (e) {
+        if (e.type === 'beat') { say(e.key); sfx('pop'); }
+        else if (e.type === 'go') sfx('chime');
+        else if (e.type === 'eat') say('phrase:lento');         // the rabbit slows right down at its carrot...
+        else if (e.type === 'dash') say('phrase:rapido');       // ...and bolts again
+        else if (e.type === 'won') { say('phrase:ganaste'); track('race.won', { losses: R.losses }); emit(); }
+        else if (e.type === 'lost') {      // the rabbit got there first: "¡Otra vez!" and the countdown starts again at once; nothing is lost
+          say('phrase:otravez');
+          cur.passed = [];
+          track('race.retry', { losses: R.losses });
+          emit();
+        }
+      });
     }
 
     function update(player, o) {
@@ -144,7 +171,10 @@
       if (player) last = { x: player.x, z: player.z };
       if (!cur || !player) return cur;
       var s = stepOf();
-      if (isGoTo(s)) {      // the flags you run past light up (any order: you may take a shortcut)
+      var tn = clock(), dt = lastClock === null ? 0 : Math.min(0.25, Math.max(0, (tn - lastClock) / 1000));
+      lastClock = tn;
+      if (isGoTo(s) && cur.race) race(player, dt);
+      if (isGoTo(s) && (!cur.race || cur.race.state !== 'countdown')) {      // the flags you run past light up (any order: you may take a shortcut)
         var now = passedFlags(cur.flags, player, cur.passed);
         if (now.length !== cur.passed.length) {
           cur.passed = now;
@@ -152,7 +182,7 @@
           sfx('pop');
           emit();
         }
-        if (reached(cur.goal, player) && !cur.said.arrive) {
+        if (reached(cur.goal, player) && !cur.said.arrive && (!cur.race || cur.race.state === 'won')) {
           cur.said.arrive = true;
           say(sayOf('arrive'));
           track('race.arrived', { place: cur.spec.place, flags: cur.passed.length });
@@ -161,11 +191,16 @@
       return cur;
     }
 
-    function locate(id) { return cur && id === cur.spec.place ? { x: cur.goal.x, z: cur.goal.z, r: cur.goal.r } : null; }
+    // The tree only counts as arrived-at once the race is won: before "ya" (or after the rabbit won and the race restarted) standing at the tree does nothing.
+    function locate(id) {
+      if (!cur || id !== cur.spec.place || (cur.race && cur.race.state !== 'won')) return null;
+      return { x: cur.goal.x, z: cur.goal.z, r: cur.goal.r };
+    }
 
     function target(step) {
       if (!cur || !step) return null;
       if (isTalk(step)) return { x: cur.rabbit.x, z: cur.rabbit.z, role: 'animal', id: cur.spec.rabbit };
+      if (isGoTo(step) && cur.race && cur.race.waiting && last && Math.hypot(last.x - cur.start.x, last.z - cur.start.z) > cur.race.pace.wait) return { x: cur.start.x, z: cur.start.z, role: 'place', id: cur.spec.place };       // back to the start line first
       if (isGoTo(step) || isPhoto(step)) return { x: cur.goal.x, z: cur.goal.z, role: 'place', id: cur.spec.place };
       return null;
     }
@@ -208,7 +243,12 @@
     function view() {
       if (!cur) return null;
       var s = stepOf();
-      return { talk: isTalk(s), photo: isPhoto(s), arrived: !!cur.said.arrive, passed: cur.passed.slice() };
+      var R = cur.race, pose = R && isGoTo(s) ? R.pose() : null, rc = null;
+      if (pose) {
+        rc = { state: R.state, waiting: R.waiting, losses: R.losses, mode: R.state === 'countdown' ? 'wait' : pose.mode, eat: R.eating(), ate: R.ate(), x: pose.x, z: pose.z, rotY: pose.rotY, carrot: cur.carrot };
+        rc.y = SA.map && SA.map.groundHeight ? SA.map.groundHeight(pose.x, pose.z) : cur.rabbit.y;
+      }
+      return { talk: isTalk(s), photo: isPhoto(s), arrived: !!cur.said.arrive, passed: cur.passed.slice(), race: rc };
     }
 
     var api = { sync: sync, update: update, locate: locate, target: target, talk: talk, snap: snap, view: view, onSticker: null, current: function () { return cur; },

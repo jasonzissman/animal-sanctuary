@@ -394,7 +394,11 @@ current; when your change sets or changes something future tickets must follow, 
   while this mission runs (`game/render/mission-race.js` draws start line, flags, tree + glow ring, rabbit). The goal check is the pure
   `SA.missionRace.reached(goal, player)`; the flags are a guide, not a rail (shortcuts, rock jumps, any route count) and passed flags turn gold
   (`view().passed`). The photo (`SA.missionRace.snap`) goes into the album, completes the mission and logs `{ kind: 'race' }` -> sticker `buen-corredor`.
-  No race opponent yet (later slices of AS-0189).
+  AS-0355: the goTo step is a real race against the rabbit (`game/mission-race-pace.js`, pure `SA.racePace`): "¡Tres, dos, uno, ya!" is spoken (the countdown
+  waits until the player is at the start line), nobody can win before "ya" (`SA.missionRace.locate` returns the tree only once the race is won), the rabbit
+  runs the flag path at 8 m/s but stops 12 s for a carrot halfway (`race.pace { speed, stopAt, stopFor, beat, wait }` in the mission row), so a walking
+  player (4 m/s) always wins with some slack (swept in `test/mission-race-pace.test.js`). If the rabbit wins it says "¡Otra vez!" and the race is back at
+  the countdown at once (no lives, no failure screen, flags reset); a win says "¡Ganaste!". `rápido` / `lento` are spoken when the rabbit bolts / stops.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

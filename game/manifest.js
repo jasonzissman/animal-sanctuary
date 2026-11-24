@@ -176,6 +176,7 @@ globalThis.SA_MANIFEST = {
     'game/mission-census.js',
     'game/mission-pantry.js',
     'game/mission-home.js',
+    'game/mission-race-pace.js',
     'game/mission-race.js',
     'game/mission-gather.js',
     'game/trail-route.js',

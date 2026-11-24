@@ -3,7 +3,9 @@
  * procedural low-poly (poles, pennant cones, a trunk and stacked cones). A flag you ran past pops a little and turns gold. The big tree is scenery: you can
  * walk round it or past it (shortcuts are allowed), only the goal circle matters.
  * On the 'talk' step a tap on the rabbit calls thing.talk(player); on the 'photo' step a tap on the big tree calls thing.snap(player) (la cámara is put in hand
- * on a first tap, like the other photo missions). Only the course's own meshes are raycast, never the whole scene. Nothing is drawn unless the mission runs.
+ * on a first tap, like the other photo missions).
+ * AS-0355: during the race (view().race) the rabbit runs the flag path with long hops, puts its head down at its carrot (an orange cone that shrinks while it
+ * is eaten) and waits at the line before "ya"; flags go back to white when the race restarts. Only the course's own meshes are raycast, never the whole scene. Nothing is drawn unless the mission runs.
  *   update(dt)   once per frame; returns the group it manages
  *   tapAt(x, y)  client coordinates -> true when the rabbit / tree was hit and the tap counted
  */
@@ -62,17 +64,30 @@
     return { group: g, tree: tree, ring: ring };
   }
 
+  // The rabbit's carrot (AS-0355): an orange cone stuck point-down in the ground with a tuft of leaves; it shrinks while the rabbit eats it.
+  function buildCarrot(THREE) {
+    var g = new THREE.Group();
+    var root = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.8, 6), lam(THREE, 0xff8a1f));
+    root.rotation.x = Math.PI;
+    root.position.y = 0.45;
+    var top = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.4, 5), lam(THREE, 0x3aa35c));
+    top.position.y = 1.05;
+    g.add(root); g.add(top);
+    g.scale.set(1.4, 1.4, 1.4);
+    return g;
+  }
+
   SA.render.createMissionRace = function (THREE, opts) {
     var thing = opts.thing || SA.missionRace;
     var build = SA.render.animalBuilder(THREE);
     var group = new THREE.Group();
     group.name = 'missionRace';
     opts.scene.add(group);
-    var key = null, flags = [], ring = null, bigTree = null, rabbit = null, t = 0, shown = {}, popAt = {};
+    var key = null, flags = [], ring = null, bigTree = null, rabbit = null, carrot = null, t = 0, shown = {}, popAt = {};
 
     function rebuild(cur) {
       while (group.children.length) group.remove(group.children[0]);
-      flags = []; ring = null; bigTree = null; rabbit = null; shown = {}; popAt = {};
+      flags = []; ring = null; bigTree = null; rabbit = null; carrot = null; shown = {}; popAt = {};
       if (!cur) return;
       var st = buildStart(THREE, cur.start.r);
       st.position.set(cur.start.x, cur.start.y, cur.start.z);
@@ -96,6 +111,11 @@
         rabbit.userData.baseY = cur.rabbit.y;
         group.add(rabbit);
       }
+      if (cur.carrot) {
+        carrot = buildCarrot(THREE);
+        carrot.position.set(cur.carrot.x, SA.map && SA.map.groundHeight ? SA.map.groundHeight(cur.carrot.x, cur.carrot.z) : cur.goal.y, cur.carrot.z);
+        group.add(carrot);
+      }
     }
 
     var ease = function (u) { var c = 1.70158; return 1 + (c + 1) * Math.pow(u - 1, 3) + c * Math.pow(u - 1, 2); };
@@ -115,11 +135,24 @@
       flags.forEach(function (f, i) {
         var on = passed.indexOf(i) >= 0;
         if (on && !shown[i]) { shown[i] = true; popAt[i] = t; f.pennant.material.color.setHex(PASSED); }
+        if (!on && shown[i]) { shown[i] = false; f.pennant.material.color.setHex(f.color); }       // the race restarted: the flags are fresh again
         f.pennant.rotation.x = Math.sin(t * 5 + f.phase) * 0.25;       // waving in the breeze
         var u = on ? Math.min(1, (t - popAt[i]) / 0.5) : 1, sc = on ? 1 + 0.35 * Math.sin(Math.PI * ease(u)) : 1;
         f.g.scale.set(sc, sc, sc);
       });
-      if (rabbit) rabbit.position.y = rabbit.userData.baseY + (v && v.talk ? Math.abs(Math.sin(t * 5)) * 0.18 : 0);     // it hops while it waits to be talked to
+      var rc = v && v.race;
+      if (rabbit && rc) {              // the race: it runs the flag path with long hops, stops to nibble its carrot, and waits at the line before "ya"
+        rabbit.position.set(rc.x, rc.y + (rc.mode === 'run' ? Math.abs(Math.sin(t * 13)) * 0.45 : rc.mode === 'eat' ? Math.abs(Math.sin(t * 9)) * 0.05 : 0), rc.z);
+        rabbit.rotation.y = rc.rotY;
+        rabbit.rotation.x = rc.mode === 'eat' ? 0.35 : 0;       // head down at the carrot
+      } else if (rabbit) {
+        rabbit.position.y = rabbit.userData.baseY + (v && v.talk ? Math.abs(Math.sin(t * 5)) * 0.18 : 0);     // it hops while it waits to be talked to
+      }
+      if (carrot) {
+        carrot.visible = !(rc && rc.ate);
+        var cs = 1.4 * (rc && rc.eat ? Math.max(0.25, 1 - rc.eat * 0.75) : 1);
+        carrot.scale.set(cs, cs, cs);
+      }
       return group;
     }
 

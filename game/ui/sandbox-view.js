@@ -39,7 +39,7 @@
     var starsEl = el('div', 'font:700 2rem system-ui,sans-serif;color:#24543a;padding:0 .3em;', '⭐ 0');
     tray.appendChild(starsEl);
     var buttons = {};
-    SA.data.all('props').forEach(function (p) {
+    SA.data.all('props').filter(function (p) { return !p.mission; }).forEach(function (p) {   // a mission prop is never for sale (AS-0346)
       var b = el('button', BTN + 'min-width:96px;height:96px;font-size:2.8rem;line-height:1.1;', p.icon);
       b.type = 'button';
       b.setAttribute('aria-label', p.name.es);

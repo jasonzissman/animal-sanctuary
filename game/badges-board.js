@@ -55,6 +55,7 @@
       var n = rule.count || 1, one = n === 1, num = n + ' ';
       if (rule.kind === 'hatch') return 'Salva ' + num + (one ? 'huevo' : 'huevos');
       if (rule.kind === 'river') return 'Salva ' + num + (one ? 'perrito' : 'perritos');
+      if (rule.kind === 'pantry') return 'Halla ' + num + (one ? 'despensa' : 'despensas');
       if (rule.kind === 'census') return 'Haz ' + num + (one ? 'censo' : 'censos');
       if (rule.kind === 'party') return 'Haz ' + num + (one ? 'fiesta' : 'fiestas');
       if (rule.kind === 'reunion') return 'Reúne ' + num + (one ? 'familia' : 'familias');

@@ -274,6 +274,21 @@
     ];
   }
 
+  /** The field mouse (el ratón de campo, mission 8): a small grey-brown mouse with round pink ears, a pink nose and a long thin tail.
+   *  The mouse babies (los ratoncitos) are babyParts of this list. Original design; flat primitives only, every piece a registered part. */
+  function fieldMouseParts() {
+    var FUR = '#b8a58c', PINK_EAR = '#e9b9b0';
+    return [
+      p('cuerpo', FUR, [0.6, 0.5, 0.85], 1, [0, 0.5, 0]), p('cabeza', '#c4b196', 0.5, 1, [0, 0.85, 0.5]),
+      p('hocico', '#e58f9a', 0.1, 1, [0, 0.8, 0.78]), p('orejas', PINK_EAR, [0.3, 0.3, 0.08], 2, [0.2, 1.12, 0.42]),
+      eyes(0.09, [0.12, 0.92, 0.72]),
+      { part: 'patas', color: '#9c8a72', builder: 'cylinder', scale: [0.11, 0.42, 0.11], count: 4, offset: [0.2, 0.21, 0], row: 0.28 },
+      { part: 'cola', color: PINK_EAR, builder: 'cylinder', scale: [0.05, 0.7, 0.05], count: 1, offset: [0, 0.58, -0.88], rot: [-1.2, 0, 0] }
+    ];
+  }
+
+  var MOUSE_BABY = { of: 'ratoncampo', scale: 0.62, headScale: 1.4, eyeScale: 1.6 };   // AS-0346: a small, big-headed, big-eyed mouse baby
+
   var DUCKLING = { of: 'pato', scale: 0.5, headScale: 1.4, eyeScale: 1.6 };   // AS-0315: a small, big-headed, big-eyed hatchling
 
   var PIGLET = { of: 'cerda', scale: 0.55, headScale: 1.45, eyeScale: 1.7 };   // AS-0232: ~55% size, bigger head, much bigger eyes
@@ -380,6 +395,14 @@
       traits: { size: 'pequeño', color: 'marrón', movement: 'corre', diet: 'omnívoro', legs: 4 },
       wag: { part: 'cola', angle: 0.6, hz: 4 }, sounds: { sad: 'whine' },
       parts: puppyParts(), easterEgg: false },
+    // The mouse family of Mission 8 (AS-0346): mamá and papá are el ratón de campo, the three babies los ratoncitos; story animals,
+    // placed by the mission in the hollow tree (game/mission-pantry.js). Not the yellow easter-egg mouse below.
+    { id: 'ratoncampo', name: { es: 'ratón de campo', en: 'field mouse', gender: 'm' }, icon: '🐭', biome: 'bosque', story: true,
+      traits: { size: 'pequeño', color: 'gris', movement: 'corre', diet: 'omnívoro', legs: 4 },
+      parts: fieldMouseParts(), easterEgg: false },
+    { id: 'ratoncito', name: { es: 'ratoncito', en: 'baby mouse', gender: 'm' }, icon: '🐭', biome: 'bosque', story: true,
+      baby: MOUSE_BABY, traits: { size: 'pequeño', color: 'gris', movement: 'camina lento', diet: 'omnívoro', legs: 4 },
+      parts: babyParts(fieldMouseParts(), MOUSE_BABY), easterEgg: false },
     // Easter egg #1 (original design): a blocky yellow mouse. Hidden until the player has 10 stars AND has tapped the
     // same tree of the forest 5 times. The condition is plain data (see game/unlocks.js).
     { id: 'raton', name: { es: 'ratón chispa', en: 'spark mouse', gender: 'm' }, icon: '🐭', biome: 'bosque',

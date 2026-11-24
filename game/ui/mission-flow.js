@@ -213,6 +213,8 @@
         // The proof is "sent to the station" (AS-0206): saved for the scientist's one cheer when the kid next walks near her.
         // Returning is never required: the next mission below still begins on its own.
         try { if (SA.proofs) SA.proofs.record({ kind: 'rescue', animalId: res.animalId || p.animalId }); } catch (e) { /* a proof never breaks play */ }
+        // AS-0169: the rescued animal can be named ('¿Cómo se llama?', skippable); main.js shows the card.
+        try { if (SA.names) SA.names.rescued(res.animalId || p.animalId); } catch (e) { /* naming never breaks play */ }
         later(function () { try { if (view.snapshotHide) view.snapshotHide(); } catch (e) { /* silent */ } begin(); }, NEXT_MS);
         return res;
       }

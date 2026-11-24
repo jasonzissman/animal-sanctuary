@@ -155,7 +155,7 @@ test('a reload on the crown step leaves no bananas standing and does not re-coun
 test('compass: the collect step points at the nearest banana, the crown step at the scientist', () => {
   const ctx = startFiesta(setup());
   const items = ctx.bananas.current().items.slice();
-  ctx.bananas.update({ x: items[1].x + 5, z: items[1].z });       // stand near item 1 (not close enough to pick it)
+  ctx.bananas.update({ x: items[1].x + 2.5, z: items[1].z });     // stand near item 1 (outside the 1.6 m pick reach, yet always nearer than the others, which are >= 9 m apart)
   const t = ctx.rt.target();
   assert.equal(t.id, items[1].id);
   assert.equal(t.role, 'item');

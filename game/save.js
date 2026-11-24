@@ -11,6 +11,8 @@
  *          SA.rescueLog), badges = [id] earned badge ids (SA.badges). Both optional: absent until the first rescue / badge.
  *          proofs = [{ id, kind: 'rescue'|'mission', animalId?, missionId?, date?, celebrated }] (v6, AS-0206, SA.proofs): proof photos sent to
  *          the station and whether the scientist already cheered each. Optional: absent until the first proof.
+ *          names = { '<individualId>': { animalId, name, adj? } } (AS-0169, SA.names): pet names of rescued animals, keyed by herd instance id
+ *          ('conejo#2'); name / adj are data ids ('luna', 'rapido'). Optional: absent until the first naming; no version bump.
  *          album = { '<animalId>': { date: 'YYYY-MM-DD', pics: [{ id, date }] } } (v5, AS-0236): the first-photo date per photographed animal
  *          plus the kept picture entries (first ever + newest 3, SA.albumPics). Ids/dates only: the JPEGs live in IndexedDB (SA.photoStore).
  *          v4 saves had { '<animalId>':'YYYY-MM-DD' }; migrations[4] and normalize() turn that into { date, pics: [] } without loss.
@@ -154,6 +156,22 @@
     if (s.rescues !== undefined) out.rescues = normalizeRescues(s.rescues);       // optional rescue log (AS-0235): absent until the first rescue
     if (s.proofs !== undefined) out.proofs = normalizeProofs(s.proofs);           // optional proof photos sent to the station (AS-0206, SA.proofs)
     if (s.badges !== undefined) out.badges = normalizeBadges(s.badges);           // optional earned badge ids (AS-0167, SA.badges)
+    if (s.names !== undefined) out.names = normalizeNames(s.names);               // optional pet names (AS-0169, SA.names)
+    return out;
+  }
+
+  // Pet names (AS-0169): { '<individualId>': { animalId, name, adj? } }. The key is an animal id with an optional '#n' herd instance
+  // ('conejo#2'); name / adj are data ids (lowercase words). Bad rows are dropped; at most 200 are kept.
+  function normalizeNames(n) {
+    var out = {}, word = /^[a-z][a-z0-9]*$/, key = /^[a-z0-9_-]+(#\d+)?$/, animal = /^[a-z0-9_-]+$/;
+    if (!isObj(n)) return out;
+    Object.keys(n).slice(0, 200).forEach(function (id) {
+      var v = n[id];
+      if (!key.test(id) || !isObj(v) || typeof v.name !== 'string' || !word.test(v.name)) return;
+      var row = { animalId: typeof v.animalId === 'string' && animal.test(v.animalId) ? v.animalId : id.split('#')[0], name: v.name };
+      if (typeof v.adj === 'string' && word.test(v.adj)) row.adj = v.adj;
+      out[id] = row;
+    });
     return out;
   }
 

@@ -236,8 +236,8 @@ test('a replay is a fresh run, pays no second sticker or stars', () => {
 test('place: every seed gives a course (a start, a long dry run to the tree, flags a short way apart), never null', () => {
   const { SA } = setup();
   const spec = SA.data.get('missions', 'carrera').race, sp = SA.station.spawn(), bad = [];
-  for (let s = 1; s <= 600; s++) {
-    const p = SA.missionRace.place(spec, s * 7919);
+  for (let s = 1; s <= 3000; s++) {   // mission seeds are random in play: sweep many, spread out
+    const p = SA.missionRace.place(spec, (s * 2654435761) % 2147483647);
     if (!p) { bad.push([s, 'null']); continue; }
     const len = Math.hypot(p.goal.x - p.start.x, p.goal.z - p.start.z);
     if (!(len >= 40 && len <= 57)) bad.push([s, 'len', len]);
@@ -248,7 +248,7 @@ test('place: every seed gives a course (a start, a long dry run to the tree, fla
     if (p.flags.some((f) => !(Math.hypot(f.x - p.goal.x, f.z - p.goal.z) < len))) bad.push([s, 'flag nearer']);
     if (Math.abs(p.rabbit.rotY - Math.atan2(p.goal.x - p.start.x, p.goal.z - p.start.z)) > 1e-9) bad.push([s, 'rot']);
     let prev = p.start;
-    for (const f of p.flags) { const d = Math.hypot(f.x - prev.x, f.z - prev.z); if (!(d > 3 && d < 14)) bad.push([s, 'flag', d]); prev = f; }
+    for (const f of p.flags) { if (SA.map.isWater(f.x, f.z)) bad.push([s, 'flag in water']); const d = Math.hypot(f.x - prev.x, f.z - prev.z); if (!(d > 3 && d < 14)) bad.push([s, 'flag', d]); prev = f; }
   }
   assert.deepEqual(bad.slice(0, 5), []);
 });

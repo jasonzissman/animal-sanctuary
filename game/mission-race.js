@@ -85,11 +85,13 @@
         var gx = x + Math.sin(ang) * len, gz = z + Math.cos(ang) * len;
         if (!groundOk(gx, gz, solids) || !lineOk({ x: x, z: z }, { x: gx, z: gz })) continue;
         var dx = gx - x, dz = gz - z, face = Math.atan2(dx, dz), px = Math.cos(face), pz = -Math.sin(face);   // (px, pz): to the runner's right
-        var flags = [];
+        var flags = [], wet = false;
         for (var i = 1; i <= n; i++) {
           var u = i / (n + 1), side = (i % 2 ? 1 : -1) * 1.1, fx = x + dx * u + px * side, fz = z + dz * u + pz * side;
+          if (M.isWater(fx, fz)) { wet = true; break; }   // a flag never stands in the water (the line is only sampled every 3 m)
           flags.push({ x: fx, y: M.groundHeight(fx, fz), z: fz, rotY: face });
         }
+        if (wet) continue;
         var rx = x + px * 2.4, rz = z + pz * 2.4;
         return { start: { x: x, y: M.groundHeight(x, z), z: z, r: START_R, face: face }, goal: { x: gx, y: M.groundHeight(gx, gz), z: gz, r: GOAL_R },
           flags: flags, rabbit: { animal: spec.rabbit, x: rx, y: M.groundHeight(rx, rz), z: rz, rotY: face, scale: 1 } };

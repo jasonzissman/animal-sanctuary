@@ -213,6 +213,10 @@ current; when your change sets or changes something future tickets must follow, 
   it every frame through `SA.map.followHeight` (eased, bounded lag; used by `SA.climb.step`), animals (`render/ambient.js`),
   pickups, decor and props all read it, and the chase camera is lifted by `SA.map.cameraHeight` so it never dips into hills.
   New things placed in the world must take their `y` from `groundHeight`, never a constant.
+- **The sun casts soft shadows (AS-0292).** `render/sun-shadow.js` makes scene.js's one DirectionalLight a shadow caster: a single
+  2048 PCFSoft map whose ±32 window follows the player (texel-snapped, no per-frame allocation). Animals (re-marked when the herd
+  group changes), the avatar, trees, rocks and peaks cast; the vertex-coloured ground receives. New world solids that should
+  shadow must be under `decor`/`animals`, or be passed to `sunShadow.mark(node)`; flowers and invisible pick volumes never cast.
 - **Water never blocks the player (AS-0109, replaces the AS-0077 soft wall).** `SA.player.step` has no shore/nearestDry
   rule any more: only obstacle circles and the map edge stop the player. `SA.player.heightAt(x, z)` is the feet-height
   helper; the avatar follows the floor (so it can sink under the surface) and `SA.map.cameraHeight` keeps the chase camera

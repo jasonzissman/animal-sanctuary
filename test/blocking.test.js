@@ -32,7 +32,7 @@ test('decor validator rejects a solid item without a radius and a soft item with
 test('every prop declares solid; only flores and the walkable puente (SA.surfaces, AS-0158) are walk-through', () => {
   const props = SA.data.all('props');
   props.forEach((p) => assert.equal(typeof p.solid, 'boolean', p.id));
-  same(props.filter((p) => !p.solid).map((p) => p.id), ['flores', 'puente']);
+  same(props.filter((p) => !p.solid).map((p) => p.id), ['flores', 'puente', 'arbolhueco']);   // AS-0346: the hollow tree is walk-in (a mission prop)
 });
 
 test('animal radius comes from the size trait: small 0, medium and big push', () => {

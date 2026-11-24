@@ -43,6 +43,10 @@
  *           key(s) spoken at each moment (a string or a list). AS-0337: a 'give' step { item, to } (tap the chick with the feather near it) takes the
  *           item out of the bag and plays the chick's first flight (game/flight.js); `say.give` is spoken at the gift, `say.fly` ('volar') during the flight.
  *           game/mission-nest.js owns it; nothing special-cases the animal id.
+ *   pantry  optional { tree, place, family: { mama, papa, baby, babies }, say?: { arrive?, photo? } } (AS-0346): the mission prop `tree` (props.js,
+ *           the hollow tree) stands hidden in the bosque with the mouse family inside (animal ids; `babies` = 1..5 of `baby`); a 'goTo' step
+ *           { place } walks up to it and a 'photo' step { target: place } photographs the family. `say.arrive` / `say.photo` are vocab keys spoken once.
+ *           game/mission-pantry.js owns it; nothing special-cases the animal id.
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -149,6 +153,19 @@
         });
       }
     }
+    if (m.pantry !== undefined) {
+      var pa = m.pantry, pid = /^[a-z][a-z0-9-]*$/;
+      if (!pa || typeof pa !== 'object' || Array.isArray(pa)) fail('pantry', 'must be { tree, place, family, say? }');
+      ['tree', 'place'].forEach(function (k) { if (typeof pa[k] !== 'string' || !pid.test(pa[k])) fail('pantry.' + k, 'must be a lowercase id string'); });
+      var pf = pa.family;
+      if (!pf || typeof pf !== 'object' || Array.isArray(pf)) fail('pantry.family', 'must be { mama, papa, baby, babies }');
+      ['mama', 'papa', 'baby'].forEach(function (k) { if (typeof pf[k] !== 'string' || !pid.test(pf[k])) fail('pantry.family.' + k, 'must be an animal id string'); });
+      if (!Number.isInteger(pf.babies) || pf.babies < 1 || pf.babies > 5) fail('pantry.family.babies', 'must be a whole number from 1 to 5');
+      if (pa.say !== undefined) {
+        if (!pa.say || typeof pa.say !== 'object' || Array.isArray(pa.say)) fail('pantry.say', 'must be { arrive?, photo? } vocab keys');
+        Object.keys(pa.say).forEach(function (k) { if (['arrive', 'photo'].indexOf(k) < 0 || typeof pa.say[k] !== 'string' || !pa.say[k]) fail('pantry.say.' + k, 'must be a vocab key for arrive, photo'); });
+      }
+    }
     m.steps.forEach(function (s, i) {
       if (s.gives !== undefined && (typeof s.gives !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.gives))) fail('steps[' + i + '].gives', 'must be a lowercase vocab id string');
     });
@@ -249,6 +266,17 @@
     { id: 'censo', n: 7, es: 'Censo de animales', en: 'Animal census', icon: '📋',
       intro: { es: '¡Cuenta los animales!', en: 'Count the animals!', icon: '📋' },
       steps: [{ kind: 'census', line: { es: 'Fotografía la lista', icon: '📷', en: 'Photograph the list' } }],
+      reward: { stars: 2 } },
+    // Mission 8 (AS-0346, slice 1 of AS-0187): the strawberry thieves. A hidden hollow tree in the bosque holds a pantry piled with strawberries
+    // and a mouse family (mamá, papá, 3 babies), placed by game/mission-pantry.js only while this mission runs. Walk up to the tree (goTo), then
+    // photograph the family with la cámara; the photo (target = the place, so a wild mouse never completes it) ends the mission and earns the
+    // sticker 'despensa-secreta'. Following the tracks to the tree comes in a later slice.
+    { id: 'ladrones', n: 8, es: 'Los ladrones de fresas', en: 'The strawberry thieves', icon: '🍓',
+      intro: { es: '¡Faltan fresas!', en: 'Strawberries are missing!', icon: '🍓' },
+      pantry: { tree: 'arbolhueco', place: 'despensa', family: { mama: 'ratoncampo', papa: 'ratoncampo', baby: 'ratoncito', babies: 3 },
+        say: { arrive: 'thing:ratones', photo: 'thing:familia' } },
+      steps: [{ kind: 'goTo', place: 'despensa', line: { es: 'Busca la despensa', icon: '🌳', en: 'Find the pantry' } },
+        { kind: 'photo', target: 'despensa', line: { es: 'Foto de la familia', icon: '📷', en: 'Family photo' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

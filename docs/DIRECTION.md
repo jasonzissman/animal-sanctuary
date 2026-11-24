@@ -346,6 +346,14 @@ current; when your change sets or changes something future tickets must follow, 
   `SA.missionCensus.view()` and the pill shows one chip per entry in place of the step text: `🩶 0/3`, and `🩶 3/3 ✓` (green) when complete
   (`SA.missionPill.checklistRows` is the pure formatter; `view.showChecklist(rows, bounced)` in `game/ui/prompt.js` draws it, bouncing
   the chips whose count just went up). Icons and numbers only, no extra words.
+  **Mission 8 core (AS-0346, slice 1 of AS-0187):** `ladrones` (n 8, unlocked by `censo`) declares `pantry: { tree, place, family, say? }`
+  and has two generic steps: `goTo` the hidden hollow tree (`place: 'despensa'`) then `photo` of the mouse family (`target: 'despensa'`, a
+  place, so a wild mouse photo never completes it). `SA.missionPantry` (`game/mission-pantry.js`, pure) places the tree in the bosque
+  (dry, flat, 22+ from the station, clear of solids, opening faces the start) with mamá, papá and 3 babies inside (story animals
+  `ratoncampo` / `ratoncito`, the baby is `babyParts` of the adult), speaks `thing:ratones` on arrival and `thing:familia` on the photo, and
+  `snap()` (a tap on a mouse with la cámara, `game/render/mission-pantry.js`) completes the mission and logs `{ kind: 'pantry' }` for the
+  sticker `despensa-secreta`. The tree is the prop row `arbolhueco` (`mission: true` = never in the sandbox tray; builder `hollowtree`
+  in `game/render/hollow-tree.js`). Later slices add the tracks that lead to the tree.
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

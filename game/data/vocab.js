@@ -58,7 +58,8 @@
     ['oso', 'el oso'], ['llama', 'la llama'], ['condor', 'el cóndor'],
     ['ciervo', 'el ciervo'], ['ardilla', 'la ardilla'], ['jaguar', 'el jaguar'], ['perezoso', 'el perezoso'],
     ['cabra', 'la cabra'], ['aguila', 'el águila'], ['raton', 'el ratón chispa'],
-    ['cerda', 'la cerda'], ['cerdito', 'el cerdito'], ['patito', 'el patito'], ['perrito', 'el perrito']].forEach(function (a) { add('animal', a[0], a[1]); });
+    ['cerda', 'la cerda'], ['cerdito', 'el cerdito'], ['patito', 'el patito'], ['perrito', 'el perrito'],
+    ['ratoncampo', 'el ratón de campo'], ['ratoncito', 'el ratoncito']].forEach(function (a) { add('animal', a[0], a[1]); });
 
   // Things a mission carries or visits (AS-0313): spoken when the egg is picked up and when it rests in the nest.
   add('thing', 'huevo', 'el huevo', 'the egg');
@@ -91,6 +92,9 @@
   add('thing', 'puente', 'el puente', 'the bridge');
   add('phrase', 'arriba', '¡Arriba!', 'Up!');
   add('phrase', 'volar', 'volar', 'to fly');   // the eagle chick's first flight (AS-0337)
+  // Mission 8 words (AS-0346): the strawberry thieves' secret pantry in the hollow tree and the mouse family.
+  add('thing', 'ratones', 'los ratones', 'the mice');
+  add('thing', 'familia', 'la familia', 'the family');
   add('phrase', 'pasotoca', '¡Toca!', 'Touch it!');
   add('phrase', 'pasollena', '¡Llena!', 'Fill it!');
   add('phrase', 'cruzar', 'cruzar', 'to cross');

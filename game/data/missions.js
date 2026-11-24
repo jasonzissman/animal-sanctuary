@@ -28,6 +28,9 @@
  *           with them all there.
  *   party   optional { say, seconds? } (AS-0328): the party at the tree once the 'party' step starts (game/mission-party.js): confetti,
  *           balloons, dancing, the tune (SA.partyMelody) and the vocab key `say` spoken; `seconds` overrides the tune's length.
+ *   doctor  optional { animal, part, item, say? } (AS-0331): the sick animal (its id), the body part a 'touch' step taps ('frente'), and the
+ *           bucket id a 'carry' / 'fill' / 'deliver' sequence moves; `say` { touch?, fill?, give? } vocab keys spoken on those steps.
+ *           game/mission-doctor.js places the animal by the oasis and the bucket at the pool's edge only while the mission runs.
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -109,6 +112,15 @@
       if (py.seconds !== undefined && (typeof py.seconds !== 'number' || !(py.seconds >= 2 && py.seconds <= 30))) fail('party.seconds', 'must be a number from 2 to 30');
       if (!m.friends) fail('party', 'needs the mission to declare friends (the tree and the monkey)');
     }
+    if (m.doctor !== undefined) {
+      var d = m.doctor, did = /^[a-z][a-z0-9-]*$/;
+      if (!d || typeof d !== 'object' || Array.isArray(d)) fail('doctor', 'must be { animal, part, item, say? }');
+      ['animal', 'part', 'item'].forEach(function (k) { if (typeof d[k] !== 'string' || !did.test(d[k])) fail('doctor.' + k, 'must be a lowercase id string'); });
+      if (d.say !== undefined) {
+        if (!d.say || typeof d.say !== 'object' || Array.isArray(d.say)) fail('doctor.say', 'must be { touch?, fill?, give? } vocab keys');
+        Object.keys(d.say).forEach(function (k) { if (['touch', 'fill', 'give'].indexOf(k) < 0 || typeof d.say[k] !== 'string' || !d.say[k]) fail('doctor.say.' + k, 'must be a vocab key for touch, fill or give'); });
+      }
+    }
     m.steps.forEach(function (s, i) {
       if (s.gives !== undefined && (typeof s.gives !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.gives))) fail('steps[' + i + '].gives', 'must be a lowercase vocab id string');
     });
@@ -167,6 +179,16 @@
         { kind: 'party', place: 'arbol-mono', line: { es: '¡A bailar!', icon: '🎉', en: 'Dance!' } },
         { kind: 'photo', target: 'mono', line: { es: 'Foto de la fiesta', icon: '📷', en: 'Party photo' } }],
       party: { say: 'phrase:felizcumple' },
+      reward: { stars: 2 } },
+    // Mission 5 (AS-0331, slice 1 of AS-0184): the camel by the oasis is sick. Touch its forehead ('tiene fiebre'), then bring it water:
+    // pick up the bucket at the pool, fill it, and take it to the camel. game/mission-doctor.js places the camel and the bucket from `doctor`.
+    { id: 'doctor', n: 5, es: 'Doctor del santuario', en: 'Sanctuary doctor', icon: '🩺',
+      intro: { es: '¡El camello está enfermo!', en: 'The camel is sick!', icon: '🤒' },
+      doctor: { animal: 'camello', part: 'frente', item: 'cubo', say: { touch: 'phrase:tienefiebre', fill: 'thing:agua', give: 'thing:agua' } },
+      steps: [{ kind: 'touch', animal: 'camello', part: 'frente', line: { es: 'Toca la frente', icon: '🤒', en: 'Touch the forehead' } },
+        { kind: 'carry', item: 'cubo', line: { es: 'Recoge el cubo', icon: '🪣', en: 'Pick up the bucket' } },
+        { kind: 'fill', item: 'cubo', line: { es: 'Llénalo de agua', icon: '💧', en: 'Fill it with water' } },
+        { kind: 'deliver', item: 'cubo', to: 'camello', line: { es: 'Dale agua al camello', icon: '🐫', en: 'Give the camel water' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

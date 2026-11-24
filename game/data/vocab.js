@@ -74,6 +74,15 @@
   add('thing', 'platanos', 'los plátanos', 'the bananas');
   add('thing', 'fiesta', 'la fiesta', 'the party');
   add('thing', 'corona', 'la corona', 'the crown');
+  // Mission 5 words (AS-0331): the sick camel by the oasis.
+  add('thing', 'cubo', 'el cubo', 'the bucket');
+  add('thing', 'agua', 'el agua', 'the water');
+  add('thing', 'fiebre', 'la fiebre', 'the fever');
+  add('thing', 'frente', 'la frente', 'the forehead');
+  add('phrase', 'enfermo', 'enfermo', 'sick');
+  add('phrase', 'tienefiebre', 'tiene fiebre', 'has a fever');
+  add('phrase', 'pasotoca', '¡Toca!', 'Touch it!');
+  add('phrase', 'pasollena', '¡Llena!', 'Fill it!');
   add('phrase', 'cruzar', 'cruzar', 'to cross');
   add('phrase', 'felizcumple', '¡Feliz cumpleaños!', 'Happy birthday!');   // the party at the monkey's tree (AS-0328)
   add('phrase', 'guau', '¡Guau!', 'Woof!').pitch = 1.25;   // el perrito's bark (animal.voice)

@@ -396,10 +396,17 @@ current; when your change sets or changes something future tickets must follow, 
   while sliding, then at the bridged spot (overlapping the rock) it locks: `SA.surfaces.addFixed` registers walkable decks for the log and the
   rock (`removeFixed` drops them on a replay), `thing:tronco` is said and `{type:'pushed'}` advances the new generic `push` step kind. The
   `goTo` step with `place: <rock id>` only counts once the log is locked (`locate()` is null before: wading to the rock never completes it);
-  reaching the rock says `animal:perrito` then `phrase:guau` and the mission ends (more steps come in later slices). `SA.missionRuntime` asks
+  reaching the rock says `animal:perrito` then `phrase:guau`. `SA.missionRuntime` asks
   both `SA.missionCarry` and `SA.missionLog` for `locate` / `target` (the compass). A reload past the push step locks the log at once. The
   bridge stays after the mission, in memory only. `render/mission-log.js` draws the rock, log and the shivering, crying puppy (tear, whimper
   by distance), which hops when the bridge locks.
+  **Carry back and dry (AS-0320, slice 3 of AS-0182):** the row's `river` also names `bank` (`orilla`), `rubs` (3) and `action` (`lavar`,
+  the sponge). Steps continue with the generic `carry` (reaching the rock picks the puppy up via `SA.carry`; says `adj:mojado`), `deliver`
+  (`to: orilla`: set down on a towel on the dry west bank, `thing:orilla`) and the new `dry` step kind (event `dried`): tapping the puppy with
+  la esponja in hand (it is equipped on the first tap, like la cámara) `SA.missionLog.rub()`s it; the last rub says `adj:seco` and ends the
+  mission. State is `cur.pupState` `{ phase: rock|held|bank, wet, rubs, need }`. The render tints the puppy dark and drips drops while wet
+  (own cloned materials), carries it in front of the chest, and fades the wet look with each rub. A reload on `deliver` re-holds it, on
+  `dry` puts it on the towel. Nothing is keyed to `perrito`: the row's ids drive it.
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

@@ -86,3 +86,84 @@ test('solids are registered with the logic; a logic error never breaks the frame
   r.update(0.1);
   assert.equal(r.group.children.length, 4);
 });
+
+// AS-0320: the puppy is wet (dark tint, drops, a towel waiting on the bank) until the sponge dries it; it rides in the player's arms.
+function scriptedBank() {
+  const s = scripted();
+  Object.assign(s.cur, { phase: 'locked', t: 1, bank: { id: 'orilla', x: -41, z: 5, y: 0.1, r: 2.5 }, pupState: { phase: 'rock', wet: true, rubs: 0, need: 3 } });
+  return s;
+}
+function bodyBrightness(pup) {
+  let sum = 0;
+  pup.traverse((o) => { if (o.material && o.material.color && o.material.type !== 'MeshBasicMaterial') sum += o.material.color.r + o.material.color.g + o.material.color.b; });
+  return sum;
+}
+
+test('a bank adds a towel and drips; the puppy is tinted dark while wet and back to normal once dry', () => {
+  const { SA, THREE } = world();
+  const s = scriptedBank();
+  SA.audio = { sfx() {} };
+  const r = SA.render.createMissionLog(THREE, { scene: new THREE.Scene(), log: s.log, getPlayer: () => ({ x: -30, z: 5 }) });
+  r.update(0.1);
+  assert.equal(r.group.children.length, 6, 'rock, log, puppy, tear, towel, drips');
+  const pup = r.group.children[2], drips = r.group.children[5];
+  assert.equal(drips.visible, true);
+  const wet = bodyBrightness(pup);
+  s.cur.pupState.rubs = 2;
+  r.update(0.1);
+  assert.ok(bodyBrightness(pup) > wet, 'it dries a little with each rub');
+  s.cur.pupState.wet = false;
+  r.update(0.1);
+  assert.equal(drips.visible, false);
+  const dry = bodyBrightness(pup);
+  assert.ok(dry > wet);
+  // another puppy built from the same species is not tinted by this one (the materials are its own)
+  const other = SA.render.animalBuilder(THREE)(SA.data.get('animals', 'perrito'), {});
+  assert.ok(Math.abs(bodyBrightness(other) - dry) < 1e-6, 'a fresh puppy matches the dry one');
+});
+
+test('carried, the puppy rides in front of the player; set down it stands on the towel', () => {
+  const { SA, THREE } = world();
+  const s = scriptedBank();
+  SA.audio = { sfx() {} };
+  const player = { x: -35, z: 5, y: 0.3, heading: Math.PI / 2 };
+  const r = SA.render.createMissionLog(THREE, { scene: new THREE.Scene(), log: s.log, getPlayer: () => player });
+  r.update(0.1);
+  const pup = r.group.children[2], tear = r.group.children[3];
+  s.cur.pupState.phase = 'held';
+  r.update(0.1);
+  assert.ok(pup.position.x > player.x && pup.position.y > player.y, 'in front of the chest');
+  assert.equal(tear.visible, false);
+  s.cur.pupState.phase = 'bank';
+  r.update(0.1);
+  assert.equal(pup.position.x, -41);
+  assert.equal(pup.position.z, 5);
+  assert.equal(r.group.children[4].position.x, -41, 'the towel lies under it');
+});
+
+test('tapping the puppy on the bank rubs it with the sponge; without the sponge in hand it is picked up first', () => {
+  const { SA, THREE } = world();
+  const s = scriptedBank();
+  s.cur.pupState.phase = 'bank';
+  SA.audio = { sfx() {}, say() {} };
+  const equipped = [];
+  SA.inventory = { equip: (id) => { equipped.push(id); return true; } };
+  const rubs = [];
+  s.log.rub = () => { rubs.push(1); return rubs.length === 1 ? { status: 'noitem', item: 'esponja' } : { status: 'rub' }; };
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 200);
+  const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }) };
+  const r = SA.render.createMissionLog(THREE, { scene: new THREE.Scene(), log: s.log, getPlayer: () => ({ x: -40, z: 5 }), canvas, camera });
+  r.update(0.1);
+  r.group.updateMatrixWorld(true);
+  const vol = r.group.children[2].userData.pickVolumes[0];                         // look straight at one of the puppy's pick volumes
+  const at = new THREE.Vector3().setFromMatrixPosition(vol.matrixWorld);
+  camera.position.set(at.x, at.y + 0.5, at.z + 5);
+  camera.lookAt(at);
+  camera.updateMatrixWorld(true);
+  assert.equal(r.tapAt(2, 2), false, 'a tap on empty ground does nothing');
+  assert.equal(rubs.length, 0);
+  assert.equal(r.tapAt(50, 50), false, 'the sponge was not in hand: it is now equipped');
+  assert.deepEqual(equipped, ['esponja']);
+  assert.equal(r.tapAt(50, 50), true);
+  assert.equal(rubs.length, 2);
+});

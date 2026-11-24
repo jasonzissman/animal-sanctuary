@@ -14,13 +14,20 @@
  *       within ~66 degrees of +x) pushes it at PUSH_SPEED. At t = 1 it snaps to the bridged position, locks, becomes a walkable deck
  *       (SA.surfaces, so the kid stands on it above the water), says "el tronco" and reports 'pushed'. Reaching the rock over the
  *       locked log says "el perrito" then its bark ("phrase:guau"). A reload on a later step locks the log at once (never stuck).
+ *   Carry back and dry (AS-0320, slice 3 of AS-0182): when the row's `river` has `bank` (an id) the rescue continues with the generic
+ *       'carry' step (item = the animal's id: reaching the rock picks the puppy up with SA.carry and says "mojado"), the 'deliver' step
+ *       (to = the bank id: walk it back over the log; letting go within reach of the bank sets it down on its towel and says the bank's
+ *       word) and the 'dry' step (item = the animal id, event 'dried'): tapping the puppy with the tool of the row's `action`
+ *       (default 'lavar' = la esponja, game/data/actions.js) `rubs` times (default 3) makes it seco and says "seco". The puppy is
+ *       `cur.pupState` { phase: 'rock' | 'held' | 'bank', wet, rubs, need }; the render shows wet as a dark tint and drips.
+ *   SA.missionLog.rub(player?)    -> { status: 'none' | 'far' | 'noitem' | 'rub' | 'done', have?, need? }  one sponge tap on the puppy
  *   SA.missionLog.solids()        -> [[x, z, r], ...] the sliding log's footprint as circles (none once locked: you walk ON it)
  *   SA.missionLog.logX()          -> the log centre's x now          SA.missionLog.logSpan() the west and east end x
  *   SA.missionLog.locate(id)      -> { x, z, r } | null   the rock, only once the log is locked (wading to it does not count)
  *   SA.missionLog.target(step)    -> { x, z, role, id } | null   where the step points the compass: the log (push), the rock (goTo)
  *   SA.missionLog.current()       the state without re-reading the mission;  onChange(fn) -> unsubscribe
  *   SA.missionLog.setSolids(listOrFn)  the walk list kept clear when placing (scene.js sets it)
- *   SA.missionLog.create({ missions?, audio?, track?, runtime?, surfaces?, solids?, later? })   a separate instance (tests)
+ *   SA.missionLog.create({ missions?, audio?, track?, runtime?, surfaces?, solids?, later?, carry?, inventory? })   a separate instance (tests)
  * Rendering: game/render/mission-log.js.
  */
 (function (root) {
@@ -33,6 +40,7 @@
   var WEST = 7.7, EAST = 3.0;                 // the log centre starts this far west of the rock's centre and ends this far west of it
   var PUSH_SPEED = 2.2, TOUCH_BACK = 1.15, TOUCH_FWD = 0.25, TOUCH_SIDE = R + 0.65, FACING = 0.4;
   var ROCK_REACH = ROCK_R + 0.5, TRIES = 400;
+  var BANK_OFF = 1.0, BANK_REACH = 2.5, RUB_REACH = 4, RUBS = 3;   // the towel lies this far west of the log's start; sponge range; default rubs
 
   function ok(spec) { return !!spec && typeof spec.rock === 'string' && typeof spec.log === 'string' && typeof spec.animal === 'string'; }
 
@@ -78,9 +86,10 @@
     }
     for (var s = M.BOUNDS.minZ + 8; z === null && s <= M.BOUNDS.maxZ - 8; s += 1) if (fits(s, solids, surf)) z = s;   // luck ran out: a deterministic scan
     if (z === null) return null;
-    var cx = M.riverX(z);
+    var cx = M.riverX(z), bx = cx - WEST - HALF - BANK_OFF;
     return {
       z: z,
+      bank: typeof spec.bank === 'string' ? { id: spec.bank, x: bx, z: z, y: M.groundHeight(bx, z), r: BANK_REACH } : null,
       rock: { id: spec.rock, x: cx, z: z, y: ROCK_TOP, r: ROCK_R },
       log: { id: spec.log, z: z, half: HALF, r: R, x0: cx - WEST, x1: cx - EAST, y: LOG_TOP },
       pup: { id: spec.animal, x: cx, z: z, y: ROCK_TOP, rotY: Math.PI / 2 }
@@ -98,6 +107,7 @@
       try { if (opts.track) opts.track(type, f); else if (root.SAT && root.SAT.track) root.SAT.track(type, f); } catch (e) { /* telemetry never breaks play */ }
     }
     function report(ev) { try { var r = opts.runtime || SA.missionRuntime; if (r && r.report) r.report(ev); } catch (e) { /* the mission never breaks the loop */ } }
+    function carryApi() { return opts.carry || SA.carry; }
     function active() { try { return missions().active(); } catch (e) { return null; } }
 
     function dropDecks() {
@@ -120,9 +130,11 @@
       if (!key && cur && cur.phase === 'locked') return cur;          // a finished mission leaves the bridge and the rock in place
       dropDecks();
       cache = null;
+      if (cur && cur.pupState && cur.pupState.phase === 'held') { try { carryApi().drop(); } catch (e) { /* nothing to drop */ } }
       var src = (o && o.solids) || solidsSrc, solids = typeof src === 'function' ? src() : src || [];
       var spots = key ? place(spec, a.seed, { solids: solids, surfaces: surfaces() }) : null;
-      cur = spots ? { key: key, spec: spec, rock: spots.rock, log: spots.log, pup: spots.pup, t: 0, phase: 'ready', arrived: false } : null;
+      cur = spots ? { key: key, spec: spec, rock: spots.rock, log: spots.log, pup: spots.pup, bank: spots.bank, t: 0, phase: 'ready', arrived: false,
+        pupState: { phase: 'rock', wet: true, rubs: 0, need: typeof spec.rubs === 'number' ? spec.rubs : RUBS } } : null;
       if (cur) addDeck({ id: cur.rock.id + '-deck', x: cur.rock.x, z: cur.rock.z, dx: 1, dz: 0, halfLen: ROCK_DECK, halfWid: ROCK_DECK, y: ROCK_TOP, ramp: 0, railR: 0.1 });
       emit();
       return cur;
@@ -162,7 +174,55 @@
         (opts.later || setTimeout)(function () { say('phrase:guau'); }, 900);   // the bark follows the name (opts.later: tests)
         track('log.crossed', { animal: cur.spec.animal });
       }
+      if (cur.phase === 'locked' && cur.bank) carrying(player, s);
       return cur.phase;
+    }
+
+    // The puppy's trip (AS-0320): picked up on the rock, set down on the bank's towel, then sponged dry.
+    function carrying(player, s) {
+      var ps = cur.pupState, id = cur.spec.animal, c = carryApi();
+      if (ps.phase === 'rock' && s && (s.kind === 'deliver' || s.kind === 'dry')) {
+        if (s.kind === 'dry') toBank(true);                                 // resumed (a reload) at the drying step: it is on the towel (never stuck)
+        else if (c.pickUp(id, {})) ps.phase = 'held';                       // resumed at the deliver step: it is in the arms at once
+      } else if (ps.phase === 'rock' && s && s.kind === 'carry' && s.item === id && player &&
+          Math.hypot(player.x - cur.rock.x, player.z - cur.rock.z) <= ROCK_REACH) {
+        if (c.pickUp(id, {})) { ps.phase = 'held'; say('adj:mojado'); track('log.pickup', { animal: id }); emit(); }
+      } else if (ps.phase === 'held' && !c.holds(id)) toBank(false);          // let go at the bank (the 'deliver' step dropped it)
+    }
+
+    function toBank(resumed) {
+      cur.pupState.phase = 'bank';
+      emit();
+      if (resumed) return;
+      say('thing:' + cur.bank.id);
+      track('log.placed', { animal: cur.spec.animal, to: cur.bank.id });
+    }
+
+    function tool() {
+      var act = null;
+      try { act = SA.data.get('actions', cur.spec.action || 'lavar'); } catch (e) { act = null; }
+      return { item: (act && act.item) || 'esponja', sfx: (act && act.sfx) || 'splash' };
+    }
+
+    function sfx(n) { try { var au = opts.audio || SA.audio; if (au && au.sfx) au.sfx(n); } catch (e) { /* sound is best effort */ } }
+
+    // One tap on the puppy with the sponge while the 'dry' step is current (the render calls this when the pup is tapped).
+    function rub(player) {
+      var a = active(), s = a && a.stepData;
+      if (!cur || !cur.bank || !s || s.kind !== 'dry' || cur.pupState.phase !== 'bank' || !cur.pupState.wet) return { status: 'none' };
+      var inv = opts.inventory || SA.inventory, tl = tool(), ps = cur.pupState;
+      if (player && Math.hypot(player.x - cur.bank.x, player.z - cur.bank.z) > RUB_REACH) return { status: 'far' };
+      if (!inv || inv.equipped() !== tl.item) return { status: 'noitem', item: tl.item };
+      ps.rubs++;
+      sfx(tl.sfx);
+      if (ps.rubs < ps.need) { emit(); return { status: 'rub', have: ps.rubs, need: ps.need }; }
+      ps.wet = false;
+      emit();
+      sfx('sparkle');
+      say('adj:seco');
+      track('log.dried', { animal: cur.spec.animal });
+      report({ type: 'dried', item: cur.spec.animal });
+      return { status: 'done', have: ps.rubs, need: ps.need };
     }
 
     function solids() {
@@ -174,7 +234,9 @@
     }
 
     function locate(id) {
-      if (!cur || cur.phase !== 'locked' || id !== cur.rock.id) return null;
+      if (!cur || cur.phase !== 'locked') return null;
+      if (cur.bank && id === cur.bank.id) return { x: cur.bank.x, z: cur.bank.z, r: BANK_REACH };
+      if (id !== cur.rock.id) return null;
       return { x: cur.rock.x, z: cur.rock.z, r: ROCK_REACH };
     }
 
@@ -182,10 +244,13 @@
       if (!cur || !step) return null;
       if (step.kind === 'push' && step.item === cur.log.id && cur.phase === 'ready') return { x: logX(), z: cur.log.z, role: 'log', id: cur.log.id };
       if (step.kind === 'goTo' && step.place === cur.rock.id) return { x: cur.rock.x, z: cur.rock.z, role: 'rock', id: cur.rock.id };
+      if (!cur.bank) return null;
+      if (step.kind === 'carry' && step.item === cur.pup.id && cur.pupState.phase === 'rock') return { x: cur.rock.x, z: cur.rock.z, role: 'item', id: cur.pup.id };
+      if ((step.kind === 'deliver' && step.to === cur.bank.id) || (step.kind === 'dry' && step.item === cur.pup.id)) return { x: cur.bank.x, z: cur.bank.z, role: 'to', id: cur.bank.id };
       return null;
     }
 
-    return { sync: sync, update: update, solids: solids, locate: locate, target: target, current: function () { return cur; }, logX: logX,
+    return { sync: sync, update: update, rub: rub, solids: solids, locate: locate, target: target, current: function () { return cur; }, logX: logX,
       logSpan: function () { return cur ? [logX() - HALF, logX() + HALF] : null; },
       setSolids: function (s) { solidsSrc = s; },
       onChange: function (fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; },

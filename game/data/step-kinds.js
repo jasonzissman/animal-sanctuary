@@ -49,6 +49,7 @@
     { id: 'deliver', event: 'delivered', required: { item: 'string', to: 'string' }, match: { item: 'item', to: 'to' } },
     { id: 'hatch', event: 'hatched', required: { item: 'string' }, match: { item: 'item' } },   // AS-0315: the placed egg hatches after a short wait
     { id: 'push', event: 'pushed', required: { item: 'string' }, match: { item: 'item' } },   // AS-0319: the log slides to its bridged spot and locks
+    { id: 'dry', event: 'dried', required: { item: 'string' }, match: { item: 'item' } },   // AS-0320: rub the wet animal dry with the sponge
     { id: 'collect', event: 'collected', required: { item: 'string', n: 'number' }, match: { item: 'item' }, progress: { total: 'n' } },
     { id: 'goTo', event: 'arrived', required: { place: 'string' }, match: { place: 'place' } },
     { id: 'talk', event: 'talked', required: { who: 'string' }, match: { who: 'who' } },

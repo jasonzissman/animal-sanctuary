@@ -27,6 +27,7 @@ test('Spanish labels have correct articles, accents, gender and number', () => {
     pico: 'el pico', cola: 'la cola', patas: 'las patas', alas: 'las alas', caparazon: 'el caparazón',
     cuernos: 'los cuernos', aletas: 'las aletas', plumas: 'las plumas', nariz: 'la nariz',
     joroba: 'la joroba', mejillas: 'las mejillas', pelo: 'el pelo', barriga: 'la barriga',
+    cresta: 'la cresta',
   });
   const p = (k) => SA.data.get('parts', k);
   assert.equal(p('caparazon').gender, 'm');

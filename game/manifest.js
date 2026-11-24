@@ -172,6 +172,7 @@ globalThis.SA_MANIFEST = {
     'game/scientist-talk.js',
     'game/render/care-fx.js',
     'game/word-sequence.js',
+    'game/census.js',
     'game/ui/care-flow.js',
     'game/ui/encounter-flow.js',
     'game/ui/mission-flow.js',

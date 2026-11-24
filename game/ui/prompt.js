@@ -158,7 +158,7 @@
   function createView(doc, handlers) {
     var noop = function () {};
     if (!doc || typeof doc.createElement !== 'function' || !doc.body) {
-      return { showRound: noop, showStep: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop,
+      return { showRound: noop, showStep: noop, showChecklist: noop, showCare: noop, celebrate: noop, clear: noop, toast: noop, shake: noop, confetti: noop, showHint: noop,
         setStars: noop, setHidden: noop, setPill: noop, levelCue: noop, snapshot: noop, snapshotHide: noop };
     }
     handlers = handlers || {};
@@ -175,7 +175,8 @@
     var icon = el('span', 'font-size:2.6rem;line-height:1;flex:none;', '❓');
     // Photo mission: the camera icon is a plain badge in the pill (la cámara is in the hotbar; no button for it here).
     var camEl = el('span', 'font-size:2rem;line-height:1;flex:none;display:none;', '📷');
-    var text = el('span', 'flex:1;min-width:0;overflow:hidden;');
+    var TEXT_CSS = 'flex:1;min-width:0;overflow:hidden;';
+    var text = el('span', TEXT_CSS);
     var starsEl = el('div', 'position:fixed;box-sizing:border-box;z-index:4;display:flex;align-items:center;justify-content:center;' +
       'white-space:nowrap;background:#fff8d6;border:.1em solid #24543a;border-radius:1em;font:700 2rem system-ui,sans-serif;' +
       'color:#24543a;', '⭐ 0');
@@ -259,9 +260,25 @@
       showStep: function (s) {
         stepOn = true; applyPill();
         current = s.icon;
+        text.style.cssText = TEXT_CSS;      // back from the census chips
         text.textContent = s.text;
         camEl.style.display = 'none';
         setIcon(s.icon, false);
+      },
+      // Census checklist (AS-0342, SA.missionPill): one chip per list entry ("🩶 0/3", "🩶 3/3 ✓") in place of the step text; the chips
+      // whose index is in `bounced` (count just went up) hop. rows: [{ text, done }].
+      showChecklist: function (rows, bounced) {
+        stepOn = true; applyPill();
+        text.textContent = '';
+        text.style.cssText = TEXT_CSS + 'display:flex;align-items:center;gap:.4em;white-space:nowrap;';
+        rows.forEach(function (r, i) {
+          var chip = el('span', 'flex:none;padding:0 .3em;border-radius:.6em;border:.08em solid #24543a;background:' + (r.done ? '#c9f0d2' : '#fff') + ';', r.text);
+          text.appendChild(chip);
+          if (bounced && bounced.indexOf(i) >= 0 && typeof chip.animate === 'function') {
+            chip.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-.5em) scale(1.3)' },
+              { transform: 'translateY(0) scale(.95)' }, { transform: 'translateY(0) scale(1)' }], { duration: 500, easing: 'ease-out' });
+          }
+        });
       },
       // s: { icon, text, stamp?, hold? }. White flash, then a framed snapshot (animal icon + its Spanish name) slides in from the right.
       // With `stamp` ("¡Está bien!") a red stamp thumps onto the photo (the rescue proof card); with `hold` the card stays until

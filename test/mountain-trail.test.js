@@ -125,8 +125,8 @@ test('boulders stay off the trail, the spawn, the station, the peaks, the biome 
 test('solids match the boulders; near() covers trail and field, inField() only the field', () => {
   const L = MP.get(), s = MP.solids();
   assert.equal(s, MP.solids());
-  assert.equal(s.length, L.boulders.length);
-  assert.ok(s.every(([x, z, r, h]) => r > 0.4 && h > 0.2 && h < 3));
+  assert.equal(s.length, L.boulders.length + (L.waterfall ? 1 + L.waterfall.cliffSolids.length : 0));   // + the waterfall's pool and cliff (AS-0310, test/waterfall.test.js)
+  assert.ok(s.slice(0, L.boulders.length).every(([x, z, r, h]) => r > 0.4 && h > 0.2 && h < 3));
   const c = L.clusters[0];
   assert.ok(MP.near(c.x, c.z) && MP.inField(c.x, c.z));
   assert.ok(MP.near(T.END[0], T.END[1]) && !MP.inField(T.END[0], T.END[1]));

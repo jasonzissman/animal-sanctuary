@@ -2,7 +2,7 @@
  * pines, snow-capped peaks), plus their placement counts. Used by game/render/decor.js. Only touches THREE.
  * (The trees, snow pine included, live in game/render/trees.js since AS-0296.)
  *   SA.render.dryDecor.materials(THREE) -> shared flat materials
- *   SA.render.dryDecor.builders        { cactus, peak, sandRock }  each (THREE, mats, size) -> Object3D (peak takes SA.peaks.shape(peak) instead of a size)
+ *   SA.render.dryDecor.builders        { cactus, peak }  each (THREE, mats, size) -> Object3D (peak takes SA.peaks.shape(peak) instead of a size)
  */
 (function (root) {
   'use strict';
@@ -53,15 +53,8 @@
     return g;
   }
 
-  function sandRock(THREE, m, s) {
-    var r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 0), m.sand);
-    r.scale.set(s, s * 0.6, s * 0.9);
-    r.position.y = 0.2 * s;
-    return r;
-  }
-
   SA.render.dryDecor = {
     materials: materials,
-    builders: { cactus: cactus, peak: peak, sandRock: sandRock },
+    builders: { cactus: cactus, peak: peak },
   };
 })(typeof window !== 'undefined' ? window : globalThis);

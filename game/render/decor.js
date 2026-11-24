@@ -1,4 +1,4 @@
-/* SA.render.buildDecor(THREE): procedural low-poly trees, rocks and flowers per biome.
+/* SA.render.buildDecor(THREE): procedural low-poly trees, rocks (game/render/rocks.js, from SA.rocks) and flowers per biome.
  * Trees are 2-3 kinds per biome (game/render/trees.js; which decor id is which kind is `kind` in game/data/decor.js), each with seeded
  * colour variation and a slight canopy sway: the returned group has userData.update(dt) (the wind; no per-frame allocation).
  * Placement is the pure, seeded SA.decorPlan (identical every load; covers the whole map, avoids water, spawn and station).
@@ -12,13 +12,6 @@
   function tag(obj, id) { obj.userData.decor = id; return obj; }
 
   function mat(THREE, color) { return new THREE.MeshPhongMaterial({ color: color, flatShading: true, specular: 0x000000 }); }
-
-  function rock(THREE, m, s) {
-    var r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 0), m.rock);
-    r.scale.set(s, s * 0.65, s * 0.9);
-    r.position.y = 0.2 * s;
-    return r;
-  }
 
   function flower(THREE, m) {
     var g = new THREE.Group();
@@ -46,20 +39,22 @@
     var biomes = {};
     SA.data.all('biomes').forEach(function (b) { biomes[b.id] = b; });
     var m = {
-      leaf: mat(THREE, '#2c9a46'), rock: mat(THREE, '#9a9a96'), flower: mat(THREE, (biomes.selva && biomes.selva.accent) || '#e8b84a'),
+      leaf: mat(THREE, '#2c9a46'), flower: mat(THREE, (biomes.selva && biomes.selva.accent) || '#e8b84a'),
     };
     var group = new THREE.Group();
     group.name = 'decor';
     var D = SA.render.dryDecor, dm = D ? D.materials(THREE) : null;
     var T = SA.render.trees ? SA.render.trees.create(THREE) : null;
+    var R = SA.render.rocks && SA.rocks ? SA.render.rocks.create(THREE) : null;   // seeded faceted rocks, colour per biome (AS-0299)
+    var rock = function (e) { return !R ? null : R.build(SA.rocks.spec(SA.rocks.seedAt(e.x, e.z), e.biome), e.size); };
     // What each decor id is built from; where, how big and which way it faces is the pure SA.decorPlan (AS-0248).
     var builders = {
-      roca: function (e) { return rock(THREE, m, e.size); },
+      roca: rock,
+      rocaarena: rock,
       flor: function () { return flower(THREE, m); },
     };
     if (D) {
       builders.cactus = function (e) { return D.builders.cactus(THREE, dm, e.size); };
-      builders.rocaarena = function (e) { return D.builders.sandRock(THREE, dm, e.size); };
     }
     SA.decorPlan.plan({ seed: 42 }).forEach(function (e) {
       var row = SA.data.get('decor', e.decor), kind = row && row.kind;

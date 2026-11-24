@@ -35,6 +35,7 @@
     { decor: 'rocaarena', biome: 'desierto', count: 20, gap: 2, size: 'rock' },
     { decor: 'pinonieve', biome: 'montana', count: 26, gap: 3, size: 'tree', hiInset: 4 },
     { decor: 'abeto', biome: 'montana', count: 22, gap: 3, size: 'tree', hiInset: 4 },
+    { decor: 'roca', biome: 'montana', count: 14, gap: 2, size: 'rock', hiInset: 4 },   // AS-0299: grey rocks among the pines (last, so no earlier item moves)
   ];
 
   /** A seeded 0..1 colour tint from where the item stands (a hash, so it never shifts the placement random stream). */

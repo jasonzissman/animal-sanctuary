@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = [
   'game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js',
-  'game/map.js', 'game/peaks.js', 'game/terrain-color.js', 'game/camera.js', 'game/player.js', 'game/render/world.js', 'game/decor-plan.js', 'game/render/decor-dry.js', 'game/render/trees.js', 'game/render/decor.js',
+  'game/map.js', 'game/peaks.js', 'game/terrain-color.js', 'game/camera.js', 'game/player.js', 'game/render/world.js', 'game/decor-plan.js', 'game/rocks.js', 'game/render/rocks.js', 'game/render/decor-dry.js', 'game/render/trees.js', 'game/render/decor.js',
   'game/data/decor.js', 'game/perch.js',
 ];
 

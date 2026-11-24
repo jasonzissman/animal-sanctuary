@@ -201,6 +201,9 @@
     var envelope = null;
     try { if (SA.envelopeFly) envelope = SA.envelopeFly.create({ doc: root.document, rig: stage.rig, camera: stage.camera }); }
     catch (e) { report('envelope.start', e); }
+    // A newly earned badge pops up as a big sticker, is named aloud and slaps onto the album's Pegatinas page (AS-0168). Never blocks play.
+    try { if (SA.stickerPop) SA.stickerPop.create({ doc: root.document }); }
+    catch (e) { report('stickers.start', e); }
     // Grown-up drawer (press-and-hold gear, an item of the 🎒 menu). Never blocks the main loop.
     var menuView = null;
     try { if (SA.settingsView) SA.settingsView.create(root.document, { onOpen: function () { if (menuView) menuView.used('settings'); } }); }

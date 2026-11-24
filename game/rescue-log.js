@@ -9,7 +9,8 @@
  *   SA.rescueLog.count(kind)   how many entries of that story kind
  *   SA.rescueLog.list()        the entries, oldest first
  *   SA.rescueLog.earned()      -> badge rows whose rule is met now
- *   SA.rescueLog.create({ save?, badges?, track?, album?, now? })   a separate instance (tests); the default one is SA.rescueLog.*
+ *       The default log also hands the new badge rows to SA.stickers.notify (the sticker celebration, AS-0168); create({ onEarned }) replaces that.
+ *   SA.rescueLog.create({ save?, badges?, track?, album?, now?, onEarned? })   a separate instance (tests); the default one is SA.rescueLog.*
  * Telemetry: rescue.logged { kind|animalId, need, mission }, rescue.badge { id } (from SA.badges.check).
  */
 (function (root) {
@@ -57,7 +58,11 @@
       store().update({ rescues: after });       // the save replaces arrays wholesale (like inventory), so this persists as is
       track('rescue.logged', { kind: row.kind, mission: row.mission, animalId: row.animalId || '', need: row.need || '' });
       var ids = badges().check(after), list2 = rows();
-      return { added: true, earned: ids.map(function (id) { return list2.filter(function (b) { return b.id === id; })[0]; }) };
+      var got = ids.map(function (id) { return list2.filter(function (b) { return b.id === id; })[0]; });
+      // The default log tells the sticker book (AS-0168), so every newly earned badge pops up once, wherever the rescue came from.
+      var tell = opts.onEarned || (opts.save ? null : function (r2) { if (SA.stickers) SA.stickers.notify(r2); });
+      if (tell && got.length) { try { tell(got); } catch (e) { /* the celebration never breaks play */ } }
+      return { added: true, earned: got };
     }
 
     return { record: record, count: count, list: list, earned: earned, create: create };

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { loadGame } from './helpers/vm.js';
 
 // Ground cover (AS-0294): seeded, legal placement per biome, density that thins with distance, and soft (never an obstacle).
-const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/map.js', 'game/peaks.js', 'game/save.js',
+const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/plants.js', 'game/map.js', 'game/peaks.js', 'game/save.js',
   'game/station.js', 'game/player.js', 'game/ground-cover-plan.js'];
 
 const SA = loadGame(FILES);
@@ -19,14 +19,24 @@ test('plan is deterministic and seeded', () => {
   assert.notDeepEqual(G.plan({ seed: 8 }), plan);
 });
 
-test('every biome has grass and plants, in its own strip', () => {
+test('every biome has grass, and every plant of the data is placed in its own strip', () => {
   for (const biome of BIOMES) {
-    for (const kind of ['grass', 'plant']) {
-      const rows = plan.filter((e) => e.biome === biome && e.kind === kind);
-      assert.ok(rows.length > 100, `${biome} ${kind}: ${rows.length}`);
-      for (const e of rows) assert.equal(SA.map.biomeAt(e.x), biome);
-    }
+    const grass = plan.filter((e) => e.biome === biome && e.kind === 'grass');
+    assert.ok(grass.length > 100, `${biome} grass: ${grass.length}`);
+    for (const e of grass) assert.equal(SA.map.biomeAt(e.x), biome);
   }
+  for (const p of G.plants()) {
+    const rows = plan.filter((e) => e.plant === p.id);
+    assert.ok(rows.length > p.count * 0.25, `${p.id}: ${rows.length} of ${p.count}`);
+    for (const e of rows) { assert.equal(e.kind, 'plant'); assert.equal(e.biome, p.biome); assert.equal(SA.map.biomeAt(e.x), p.biome); }
+    assert.ok(rows.every((e) => e.scale >= p.scale[0] && e.scale <= p.scale[1]), `${p.id} scale range`);
+  }
+});
+
+test('grass does not move when plant data changes (grass is planned first)', () => {
+  const grass = plan.filter((e) => e.kind === 'grass');
+  assert.deepEqual(grass, G.plan().filter((e) => e.kind === 'grass'));
+  assert.equal(plan.findIndex((e) => e.kind === 'plant') > grass.length - 1, true);
 });
 
 test('nothing lands in water, on the spawn, the station, a peak or out of bounds', () => {
@@ -45,7 +55,8 @@ test('palettes come from the biome data and differ per biome', () => {
   const seen = new Set();
   for (const biome of BIOMES) {
     const p = G.palette(biome);
-    for (const kind of ['grass', 'plant']) { assert.equal(p[kind].length, 3); p[kind].forEach((h) => assert.match(h, /^#[0-9a-f]{6}$/)); }
+    assert.equal(p.grass.length, 3);
+    p.grass.forEach((h) => assert.match(h, /^#[0-9a-f]{6}$/));
     seen.add(p.grass[1]);
   }
   assert.equal(seen.size, BIOMES.length);
@@ -69,14 +80,19 @@ test('density is highest near the player and thins with distance', () => {
   assert.ok(dens[0] > dens[1] && dens[1] > dens[2], `densities ${dens}`);
 });
 
-test('the fixed instance pools (game/render/ground-cover.js POOL) are never overfull anywhere on the map', () => {
-  const POOL = { grass: 1400, plant: 500 }, out = new Int32Array(100000), src = fs.readFileSync('game/render/ground-cover.js', 'utf8');
-  assert.ok(src.includes('grass: 1400, plant: 500'), 'keep this test in step with POOL');
-  for (const s of SA.map.STRIPS) for (const kind of ['grass', 'plant']) {
-    const grid = G.makeGrid(plan.filter((e) => e.biome === s.id && e.kind === kind));
+test('the fixed instance pools (G.poolSize) are never overfull anywhere on the map', () => {
+  const out = new Int32Array(100000);
+  const groups = [];
+  for (const s of SA.map.STRIPS) groups.push({ name: `${s.id} grass`, kind: 'grass', lo: s.lo, hi: s.hi, rows: plan.filter((e) => e.biome === s.id && e.kind === 'grass') });
+  for (const p of G.plants()) {
+    const s = SA.map.STRIPS.find((t) => t.id === p.biome);
+    groups.push({ name: p.id, kind: 'plant', lo: s.lo, hi: s.hi, rows: plan.filter((e) => e.plant === p.id) });
+  }
+  for (const g of groups) {
+    const grid = G.makeGrid(g.rows), pool = G.poolSize(g.kind, g.rows.length);
     let max = 0;
-    for (let x = s.lo; x < s.hi; x += 4) for (let z = B.minZ; z < B.maxZ; z += 4) max = Math.max(max, G.select(grid, x, z, 30, out));
-    assert.ok(max < POOL[kind] * 0.9, `${s.id} ${kind} max ${max}`);
+    for (let x = g.lo; x < g.hi; x += 4) for (let z = B.minZ; z < B.maxZ; z += 4) max = Math.max(max, G.select(grid, x, z, 30, out));
+    assert.ok(max < pool * 0.9, `${g.name} max ${max} of pool ${pool}`);
   }
 });
 

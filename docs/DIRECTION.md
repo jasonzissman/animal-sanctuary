@@ -403,10 +403,16 @@ current; when your change sets or changes something future tickets must follow, 
   **Carry back and dry (AS-0320, slice 3 of AS-0182):** the row's `river` also names `bank` (`orilla`), `rubs` (3) and `action` (`lavar`,
   the sponge). Steps continue with the generic `carry` (reaching the rock picks the puppy up via `SA.carry`; says `adj:mojado`), `deliver`
   (`to: orilla`: set down on a towel on the dry west bank, `thing:orilla`) and the new `dry` step kind (event `dried`): tapping the puppy with
-  la esponja in hand (it is equipped on the first tap, like la cámara) `SA.missionLog.rub()`s it; the last rub says `adj:seco` and ends the
-  mission. State is `cur.pupState` `{ phase: rock|held|bank, wet, rubs, need }`. The render tints the puppy dark and drips drops while wet
+  la esponja in hand (it is equipped on the first tap, like la cámara) `SA.missionLog.rub()`s it; the last rub says `adj:seco` and moves on to
+  the photo (AS-0321, below). State is `cur.pupState` `{ phase: rock|held|bank, wet, rubs, need }`. The render tints the puppy dark and drips drops while wet
   (own cloned materials), carries it in front of the chest, and fades the wet look with each rub. A reload on `deliver` re-holds it, on
   `dry` puts it on the towel. Nothing is keyed to `perrito`: the row's ids drive it.
+  **Finale: wag and photo (AS-0321, slice 4 of AS-0182):** once dry the puppy plays its `animal.wag` (`SA.wag`, drawn by `render/mission-log.js`
+  while it stands dry on the bank; wet = tail at rest). The row ends with `{ kind: 'photo', target: 'perrito', line 'Foto del perrito' 📷 }`.
+  `SA.missionLog.snap(player?)` (a tap on the puppy with la cámara in hand, equipped on the first tap; within 9 of the bank) reports `photo`,
+  so the runtime completes the mission (stars, replayable on the board, mission 4 unlocks), keeps the picture in the album (`SA.photo.record`)
+  and logs one rescue row `{ kind: 'river', key: <mission id> }`: the sticker `perrito-feliz` (once, never again on a replay). `onSticker`
+  (main.js) shows the sticker line. A reload on the photo step puts the dry puppy on the towel. Same pattern as mission 2's family photo.
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

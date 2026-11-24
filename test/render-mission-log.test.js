@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = ['game/vendor/three.min.js', 'game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'game/data/biomes.js', 'game/data/animals.js',
-  'game/map.js', 'game/spacing.js', 'game/animal-plan.js', 'game/render/instances.js', 'game/render/animals.js', 'game/render/mission-log.js'];
+  'game/map.js', 'game/spacing.js', 'game/animal-plan.js', 'game/wag.js', 'game/render/instances.js', 'game/render/animals.js', 'game/render/mission-log.js'];
 
 function world() {
   const ctx = vm.createContext({ console });
@@ -166,4 +166,54 @@ test('tapping the puppy on the bank rubs it with the sponge; without the sponge 
   assert.deepEqual(equipped, ['esponja']);
   assert.equal(r.tapAt(50, 50), true);
   assert.equal(rubs.length, 2);
+});
+
+// AS-0321: once dry the puppy on the bank wags its tail; a tap on it with la cámara takes the finale photo.
+test('the dry puppy wags its tail on the bank; the wet one keeps it still', () => {
+  const { SA, THREE } = world();
+  const s = scriptedBank();
+  s.cur.pupState.phase = 'bank';
+  SA.audio = { sfx() {} };
+  const r = SA.render.createMissionLog(THREE, { scene: new THREE.Scene(), log: s.log, getPlayer: () => ({ x: -40, z: 5 }) });
+  r.update(0.1);
+  const pup = r.group.children[2];
+  const tail = pup.children.find((m) => m.userData.part === 'cola' && !m.userData.pick);
+  assert.ok(tail, 'the puppy has a tail mesh');
+  const x0 = tail.position.x, z0 = tail.position.z;
+  r.update(0.1);
+  assert.ok(Math.abs(tail.position.x - x0) < 1e-9 && Math.abs(tail.position.z - z0) < 1e-9, 'wet: tail at rest');
+  s.cur.pupState.wet = false;
+  let moved = 0;
+  for (let i = 0; i < 12; i++) { r.update(0.05); if (Math.abs(tail.position.x - x0) > 0.01 || Math.abs(tail.position.z - z0) > 0.01) moved++; }
+  assert.ok(moved > 3, 'dry: the tail swings side to side');
+  s.cur.pupState.wet = true;
+  r.update(0.1);
+  assert.ok(Math.abs(tail.position.x - x0) < 1e-9, 'wet again: back at rest');
+});
+
+test('tapping the dry puppy takes its photo; without la cámara in hand it is equipped first', () => {
+  const { SA, THREE } = world();
+  const s = scriptedBank();
+  Object.assign(s.cur.pupState, { phase: 'bank', wet: false });
+  SA.audio = { sfx() {}, say() {} };
+  const equipped = [];
+  SA.inventory = { equip: (id) => { equipped.push(id); return true; } };
+  const calls = [];
+  s.log.rub = () => { calls.push('rub'); return { status: 'none' }; };
+  s.log.snap = () => { calls.push('snap'); return calls.filter((c) => c === 'snap').length === 1 ? { status: 'nocamera' } : { status: 'complete' }; };
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 200);
+  const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }) };
+  const r = SA.render.createMissionLog(THREE, { scene: new THREE.Scene(), log: s.log, getPlayer: () => ({ x: -40, z: 5 }), canvas, camera });
+  r.update(0.1);
+  r.group.updateMatrixWorld(true);
+  const vol = r.group.children[2].userData.pickVolumes[0];
+  const at = new THREE.Vector3().setFromMatrixPosition(vol.matrixWorld);
+  camera.position.set(at.x, at.y + 0.5, at.z + 5);
+  camera.lookAt(at);
+  camera.updateMatrixWorld(true);
+  assert.equal(r.tapAt(2, 2), false, 'a tap on empty ground does nothing');
+  assert.equal(r.tapAt(50, 50), false, 'la cámara was not in hand: it is now equipped');
+  assert.deepEqual(equipped, ['camara']);
+  assert.equal(r.tapAt(50, 50), true, 'the photo is taken');
+  assert.deepEqual(calls, ['snap', 'snap'], 'a dry puppy is never rubbed');
 });

@@ -54,6 +54,7 @@
       if (rule.album) return 'Fotografía todos los animales';
       var n = rule.count || 1, one = n === 1, num = n + ' ';
       if (rule.kind === 'hatch') return 'Salva ' + num + (one ? 'huevo' : 'huevos');
+      if (rule.kind === 'river') return 'Salva ' + num + (one ? 'perrito' : 'perritos');
       if (rule.kind === 'reunion') return 'Reúne ' + num + (one ? 'familia' : 'familias');
       if (rule.need && NEED[rule.need]) return NEED[rule.need][0] + ' ' + num + NEED[rule.need][one ? 1 : 2];
       var noun = one ? 'animal' : 'animales';

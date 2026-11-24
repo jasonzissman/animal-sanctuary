@@ -230,6 +230,18 @@
     ];
   }
 
+  /** The duck's parts (el pato). The duckling (el patito, mission 2) is babyParts of this list. */
+  function duckParts() {
+    return [
+      p('cuerpo', '#f2d33c', 1, 1, [0, 0.75, 0]), p('cabeza', '#f2d33c', 0.55, 1, [0, 1.3, 0.4]),
+      p('pico', '#f08a24', [0.3, 0.2, 0.4], 1, [0, 1.25, 0.8]), p('alas', '#e0bd22', [0.1, 0.5, 0.7], 2, [0.5, 0.75, 0]),
+      p('patas', '#f08a24', [0.12, 0.4, 0.12], 2, [0.2, 0.2, 0.05]), p('cola', '#e0bd22', 0.25, 1, [0, 0.85, -0.55]),
+      eyes(0.13, [0.14, 1.37, 0.61])
+    ];
+  }
+
+  var DUCKLING = { of: 'pato', scale: 0.5, headScale: 1.4, eyeScale: 1.6 };   // AS-0315: a small, big-headed, big-eyed hatchling
+
   var PIGLET = { of: 'cerda', scale: 0.55, headScale: 1.45, eyeScale: 1.7 };   // AS-0232: ~55% size, bigger head, much bigger eyes
 
   SA.data.register('animals', [
@@ -244,12 +256,7 @@
       ], easterEgg: false },
     { id: 'pato', name: { es: 'pato', en: 'duck', gender: 'm' }, icon: '🦆', biome: 'bosque', herd: 4,
       traits: { size: 'mediano', color: 'amarillo', movement: 'nada', diet: 'omnívoro', legs: 2 },
-      parts: [
-        p('cuerpo', '#f2d33c', 1, 1, [0, 0.75, 0]), p('cabeza', '#f2d33c', 0.55, 1, [0, 1.3, 0.4]),
-        p('pico', '#f08a24', [0.3, 0.2, 0.4], 1, [0, 1.25, 0.8]), p('alas', '#e0bd22', [0.1, 0.5, 0.7], 2, [0.5, 0.75, 0]),
-        p('patas', '#f08a24', [0.12, 0.4, 0.12], 2, [0.2, 0.2, 0.05]), p('cola', '#e0bd22', 0.25, 1, [0, 0.85, -0.55]),
-        eyes(0.13, [0.14, 1.37, 0.61])
-      ], easterEgg: false },
+      parts: duckParts(), easterEgg: false },
     { id: 'tortuga', name: { es: 'tortuga', en: 'turtle', gender: 'f' }, icon: '🐢', biome: 'bosque', herd: 3,
       traits: { size: 'mediano', color: 'verde', movement: 'camina lento', alsoMoves: ['nada'], diet: 'herbívoro', legs: 4 },
       parts: [
@@ -330,6 +337,10 @@
     { id: 'cerdito', name: { es: 'cerdito', en: 'piglet', gender: 'm' }, icon: '🐷', biome: 'bosque', story: true, voice: 'phrase:oincbebe',
       baby: PIGLET, traits: { size: 'pequeño', color: 'rosa', movement: 'corre', diet: 'omnívoro', legs: 4 },
       parts: babyParts(pigParts(), PIGLET), easterEgg: false },
+    // The duckling (AS-0315, mission 2): hatches next to mamá pato; a story animal, so it never joins the normal population.
+    { id: 'patito', name: { es: 'patito', en: 'duckling', gender: 'm' }, icon: '🐥', biome: 'bosque', story: true, voice: 'phrase:pio',
+      baby: DUCKLING, traits: { size: 'pequeño', color: 'amarillo', movement: 'nada', diet: 'omnívoro', legs: 2 },
+      parts: babyParts(duckParts(), DUCKLING), easterEgg: false },
     // Easter egg #1 (original design): a blocky yellow mouse. Hidden until the player has 10 stars AND has tapped the
     // same tree of the forest 5 times. The condition is plain data (see game/unlocks.js).
     { id: 'raton', name: { es: 'ratón chispa', en: 'spark mouse', gender: 'm' }, icon: '🐭', biome: 'bosque',

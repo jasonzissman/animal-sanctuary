@@ -176,6 +176,7 @@ test('goal phrases: short, with gender/number agreement, for every shipped badge
   assert.equal(g({ animalId: 'tucan', count: 15 }), 'Rescata 15 tucanes');
   assert.equal(g({ animalId: 'aguila', count: 5 }), 'Rescata 5 águilas');
   assert.equal(g({ animalId: 'tortuga', count: 1 }), 'Rescata 1 tortuga');
+  assert.equal(g({ kind: 'hatch', count: 1 }), 'Salva 1 huevo');
   assert.equal(g({ kind: 'reunion', count: 1 }), 'Reúne 1 familia');
   assert.equal(g({ kind: 'reunion', count: 3 }), 'Reúne 3 familias');
   assert.equal(g({ need: 'thorn', count: 5 }), 'Quita 5 espinas');

@@ -80,6 +80,11 @@
         rt.onStars = function (n) { if (ctl && ctl.setStars) ctl.setStars(n); };
         // The baby reached mamá (AS-0235): one short line with an icon and confetti; SA.missionReunion speaks the family words.
         if (SA.missionReunion) SA.missionReunion.onReunion = function () { if (ctl && ctl.celebrate) ctl.celebrate('💕 ¡La familia está junta!'); };
+        // The egg hatched / the family photo earned the mission sticker (AS-0315): one short line each; the call and words are spoken by SA.missionHatch.
+        if (SA.missionHatch) {
+          SA.missionHatch.onHatch = function () { if (ctl && ctl.celebrate) ctl.celebrate('🐥 ¡Pío pío!'); };
+          SA.missionHatch.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
+        }
         SA.picking.onPick(rt.onPick);
         if (SA.npc && SA.npc.onTalk) SA.npc.onTalk(function () { rt.report({ type: 'talked', who: 'scientist' }); return false; });
       }

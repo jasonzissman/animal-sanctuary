@@ -58,6 +58,7 @@
     { id: 'primer-rescate', es: 'Primer rescate', en: 'First rescue', icon: '⭐', rule: { count: 1 } },
     { id: 'super-ayudante', es: 'Súper ayudante', en: 'Super helper', icon: '🦸', rule: { count: 25 } },
     { id: 'reune-familias', es: 'Reúne familias', en: 'Reunite families', icon: '👨‍👩‍👧', rule: { kind: 'reunion', count: 1 } },
+    { id: 'patito-nuevo', es: 'Patito nuevo', en: 'New duckling', icon: '🐥', rule: { kind: 'hatch', count: 1 } },   // the mission 2 sticker (AS-0315)
     { id: 'doctora-de-patitas', es: 'Doctora de patitas', en: 'Paw doctor', icon: '🩹', rule: { need: 'thorn', count: 5 } },
     { id: 'heroe-del-barro', es: 'Héroe del barro', en: 'Mud hero', icon: '🛁', rule: { need: 'mud', count: 5 } },
     { id: 'chef-del-santuario', es: 'Chef del santuario', en: 'Sanctuary chef', icon: '🍓', rule: { need: 'hungry', count: 5 } },

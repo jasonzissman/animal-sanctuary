@@ -12,6 +12,22 @@
   var STRAW = 0xc9a15a, TWIG = 0x8a6a3a, SHELL = 0xfff4dc, SPOT = 0xc98f5a;
   var EGG_LIFT = 0.28, HELD_FRONT = 0.7, HELD_UP = 1.1;
 
+  function flat(THREE, c) { return new THREE.MeshPhongMaterial({ color: c, flatShading: true, shininess: 0 }); }
+
+  // The cream, spotted egg (shared with the hatch renderer, AS-0315).
+  function eggModel(THREE) {
+    var g = new THREE.Group();
+    var shell = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), flat(THREE, SHELL));
+    shell.scale.set(0.8, 1.1, 0.8);
+    g.add(shell);
+    [[0.18, 0.08, 0.14], [-0.2, -0.05, 0.1], [0.05, 0.2, -0.2]].forEach(function (p) {
+      var s = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), flat(THREE, SPOT));
+      s.position.set(p[0], p[1], p[2]);
+      g.add(s);
+    });
+    return g;
+  }
+
   SA.render.createMissionCarry = function (THREE, opts) {
     var thing = opts.thing || SA.missionCarry;
     if (opts.solids && thing.setSolids) thing.setSolids(opts.solids);
@@ -37,18 +53,7 @@
       return g;
     }
 
-    function makeEgg() {
-      var g = new THREE.Group();
-      var shell = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), mat(SHELL));
-      shell.scale.set(0.8, 1.1, 0.8);
-      g.add(shell);
-      [[0.18, 0.08, 0.14], [-0.2, -0.05, 0.1], [0.05, 0.2, -0.2]].forEach(function (p) {
-        var s = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), mat(SPOT));
-        s.position.set(p[0], p[1], p[2]);
-        g.add(s);
-      });
-      return g;
-    }
+    function makeEgg() { return SA.render.createMissionCarry.makeEgg(THREE); }
 
     function rebuild(cur) {
       while (group.children.length) group.remove(group.children[0]);
@@ -73,8 +78,10 @@
           p.z + Math.cos(p.heading || 0) * HELD_FRONT);
         egg.rotation.set(w.tilt, 0, w.angle);
       } else if (cur.phase === 'placed') {
+        var hv = SA.missionHatch && SA.missionHatch.view();        // AS-0315: it rocks while it waits; SA.render.createMissionHatch draws the cracking and the hatchling
+        egg.visible = !hv || hv.phase === 'none' || hv.phase === 'waiting';
         egg.position.set(cur.to.x, cur.to.y + EGG_LIFT, cur.to.z);
-        egg.rotation.set(0, 0, 0);
+        egg.rotation.set(0, 0, hv && hv.phase === 'waiting' ? Math.sin(t * 6) * 0.1 : 0);
       } else {
         egg.position.set(cur.item.x, cur.item.y + EGG_LIFT + Math.abs(Math.sin(t * 2)) * 0.05, cur.item.z);
         egg.rotation.set(0, 0, Math.sin(t * 3) * 0.12);        // rocks a little: "pick me up"
@@ -84,4 +91,5 @@
 
     return { group: group, update: update };
   };
+  SA.render.createMissionCarry.makeEgg = eggModel;
 })(typeof window !== 'undefined' ? window : globalThis);

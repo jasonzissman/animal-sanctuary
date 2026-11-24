@@ -34,14 +34,14 @@ function startEgg(ctx) {
 }
 const at = (p, dx = 0, dz = 0) => ({ x: p.x + dx, z: p.z + dz, heading: 0, y: 0 });
 
-test('data: mission 2 follows mission 1, has a one-line intro of <= 4 words, and its steps are carry then deliver', () => {
+test('data: mission 2 follows mission 1, has a one-line intro of <= 4 words, and its steps are carry, deliver, hatch, photo', () => {
   const { SA } = setup();
   const rows = SA.data.all('missions');
   assert.deepEqual(Array.from(rows.map((m) => m.n)), [1, 2]);
   const m = rows[1];
   assert.equal(m.id, 'huevo');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['carry', 'deliver']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['carry', 'deliver', 'hatch', 'photo']);
   assert.equal(m.steps[0].item, m.carry.item);
   assert.equal(m.steps[1].to, m.carry.to);
 });
@@ -119,7 +119,7 @@ test('carry step: too far away does nothing; close up picks the egg up and says 
   assert.equal(ctx.thing.locate('huevo'), null, 'a held egg is no longer on the ground');
 });
 
-test('place step: far from the nest keeps holding; at the nest it is placed, said and the mission completes', () => {
+test('place step: far from the nest keeps holding; at the nest it is placed and said, and the mission moves on to the hatch', () => {
   const ctx = startEgg(setup());
   const cur = ctx.thing.current();
   ctx.rt.update(at(cur.item));                                   // pick up
@@ -128,13 +128,13 @@ test('place step: far from the nest keeps holding; at the nest it is placed, sai
   assert.equal(cur.phase, 'held');
   assert.equal(ctx.thing.target(ctx.missions.active().stepData).role, 'to', 'the compass points at the nest');
   const res = ctx.rt.update(at(cur.to, 1, 0));
-  assert.equal(res.status, 'complete');
+  assert.equal(res.status, 'step', 'the delivery is no longer the last step (AS-0315)');
   assert.equal(ctx.carry.holds('huevo'), false);
-  assert.equal(ctx.missions.active(), null);
+  assert.equal(ctx.missions.active().stepData.kind, 'hatch');
   ctx.thing.update(at(cur.to));
-  assert.equal(ctx.thing.current().phase, 'placed', 'the egg rests in the nest after the mission');
+  assert.equal(ctx.thing.current().phase, 'placed', 'the egg rests in the nest');
   assert.deepEqual(ctx.said, ['thing:huevo', 'thing:nido']);
-  assert.equal(ctx.cheers.length, 1);
+  assert.equal(ctx.cheers.length, 0);
   ctx.thing.update(at(cur.to));
   assert.deepEqual(ctx.said, ['thing:huevo', 'thing:nido'], 'said once');
 });
@@ -171,7 +171,8 @@ test('a replay re-places the egg for the new run', () => {
   const cur = ctx.thing.current();
   ctx.rt.update(at(cur.item));
   ctx.rt.update(at(cur.to));
-  assert.equal(ctx.missions.active(), null);
+  assert.equal(ctx.missions.active().stepData.kind, 'hatch');
+  assert.equal(ctx.missions.complete().status, 'complete');       // (the hatch and photo are tested in mission-hatch.test.js)
   assert.equal(ctx.missions.start('huevo').ok, true, 'a finished mission can be replayed');
   const again = ctx.thing.sync();
   assert.equal(again.phase, 'ground');
@@ -195,7 +196,7 @@ test('a reload on the deliver step puts the egg back in hand, so the kid can sti
   assert.equal(carry.holds('huevo'), true, 'back in hand without walking to the egg');
   assert.equal(thing.current().phase, 'held');
   const res = rt.update(at(thing.current().to, 1, 0));
-  assert.equal(res.status, 'complete');
+  assert.equal(res.status, 'step');
   thing.update(at(thing.current().to));
   assert.equal(thing.current().phase, 'placed');
   assert.ok(said.includes('thing:nido'));

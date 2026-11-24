@@ -14,7 +14,15 @@
  *   SA.surfaces.bridges()             the cached default layout
  *   SA.surfaces.propDeck(rec)         -> the deck of a placed 'puente' record { prop, x, z }, or null for other props
  *   SA.surfaces.setPlaced(records)    registers the decks of the placed puente props (scene.js calls it whenever props change)
- *   SA.surfaces.decks()               river bridges + placed puente decks
+ *   SA.surfaces.decks()               river bridges + placed puente decks (not the fixed ones below)
+ *   SA.surfaces.addFixed(list)        registers fixed decks of other modules (the montaña's rope bridge, AS-0159: game/rope-bridge.js). A deck may carry
+ *                                     `profile: { u0, y0, u1, y1 }` (the top climbs linearly from y0 at u0 to y1 at u1 along the deck, flat beyond) instead of
+ *                                     the flat `y`, and `rope: true`: a rope deck hangs high above the ground, so its rails are NOT in solids() (they would
+ *                                     wall off the ground below) but come from ropeSolidsAt(x, z): the whole obstacle list for a player standing on it
+ *   SA.surfaces.ropeSolidsAt(x, z)    -> the rope decks' rail circles when (x, z) is over a rope deck (scene.js uses them INSTEAD of every ground obstacle, so a
+ *                                     peak's solid ring or a boulder under the bridge never blocks the crossing), else null
+ *   SA.surfaces.confine(prev, next)   -> next, with its sideways offset clamped inside the rails when prev stood on a rope deck (camera-rig applies it after each step)
+ *   SA.surfaces.exitTo(x, z, y)       -> the deck top at (x, z) when a deck is within 0.6 of the height y (stepping off a summit onto the rope bridge), else null
  * Rendering: game/render/bridges.js (river bridges) and the 'bridge' builder in game/render/props.js (the sandbox puente).
  */
 (function (root) {
@@ -31,7 +39,7 @@
   var MIN_GAP = 16;           // metres between the two bridges
   var FORD_CLEAR = 8;
   var PROP_HALF_LEN = 1.925, PROP_HALF_WID = 1.3, PROP_TOP = 0.27;   // the sandbox puente: seven 0.55 planks, deck top 0.27 above the ground/water
-  var cached = null, placed = [], placedSolids = [], cachedSolids = null, allSolids = null;
+  var cached = null, placed = [], placedSolids = [], cachedSolids = null, allSolids = null, fixed = [], ropeRails = null;
 
   function smooth(t) { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t); }
 
@@ -41,12 +49,20 @@
     return { u: rx * d.dx + rz * d.dz, v: -rx * d.dz + rz * d.dx };
   }
 
+  /** The deck top at distance u along the deck: flat d.y, or the linear d.profile (clamped beyond its two points). */
+  function topAt(d, u) {
+    var p = d.profile;
+    if (!p) return d.y;
+    var t = p.u1 === p.u0 ? 1 : (u - p.u0) / (p.u1 - p.u0);
+    return p.y0 + (p.y1 - p.y0) * (t < 0 ? 0 : t > 1 ? 1 : t);
+  }
+
   /** Standing height on deck d at (x, z), or null off it. */
   function deckHeight(d, x, z) {
     var rx = x - d.x, rz = z - d.z, u = rx * d.dx + rz * d.dz, v = -rx * d.dz + rz * d.dx;
     if (Math.abs(v) > d.halfWid || Math.abs(u) > d.halfLen) return null;
     var g = SA.map.groundHeight(x, z), k = d.ramp > 0 ? smooth((d.halfLen - Math.abs(u)) / d.ramp) : 1;
-    var h = g + (d.y - g) * k;
+    var h = g + (topAt(d, u) - g) * k;
     return h > g ? h : g;
   }
 
@@ -127,6 +143,7 @@
     var list = bridges(), best = null, i, h;
     for (i = 0; i < list.length; i++) { h = deckHeight(list[i], x, z); if (h !== null && (best === null || h > best)) best = h; }
     for (i = 0; i < placed.length; i++) { h = deckHeight(placed[i], x, z); if (h !== null && (best === null || h > best)) best = h; }
+    for (i = 0; i < fixed.length; i++) { h = deckHeight(fixed[i], x, z); if (h !== null && (best === null || h > best)) best = h; }
     return best;
   }
 
@@ -142,7 +159,7 @@
   }
 
   function near(x, z, pad) {
-    var list = bridges(), p = pad || 0;
+    var list = bridges().concat(fixed), p = pad || 0;
     for (var i = 0; i < list.length; i++) {
       var l = local(list[i], x, z);
       if (Math.abs(l.v) <= list[i].halfWid + p && Math.abs(l.u) <= list[i].halfLen + p) return true;
@@ -155,6 +172,46 @@
     return allSolids || cachedSolids;
   }
 
-  SA.surfaces = { SEED: SEED, HALF_WID: HALF_WID, RAMP: RAMP, layout: layout, bridges: bridges, propDeck: propDeck, setPlaced: setPlaced, decks: decks,
+  function addFixed(list) {
+    (list || []).forEach(function (d) { if (d && fixed.indexOf(d) < 0) fixed.push(d); });
+    ropeRails = null;
+  }
+
+  /** The rail circles of every rope deck (cached); a player on a rope deck is blocked by these and nothing else. */
+  function ropeSolidsAt(x, z) {
+    var any = false, i;
+    for (i = 0; i < fixed.length; i++) if (fixed[i].rope && deckHeight(fixed[i], x, z) !== null) { any = true; break; }
+    if (!any) return null;
+    if (!ropeRails) { ropeRails = []; fixed.forEach(function (d) { if (d.rope) ropeRails = ropeRails.concat(railCircles(d)); }); }
+    return ropeRails;
+  }
+
+  function exitTo(x, z, y) {
+    for (var i = 0; i < fixed.length; i++) {
+      var h = deckHeight(fixed[i], x, z);
+      if (h !== null && Math.abs(h - y) < 0.6) return h;
+    }
+    return null;
+  }
+
+  /** After a walking step (camera-rig): a player who was on a rope deck can never end up beside it. The rail circles do the pushing; this is the airtight
+   *  guarantee (running into a rail seam can slip a circle-only wall): the sideways offset is clamped inside the rails, the way along the deck is untouched. */
+  function confine(prev, next) {
+    if (!prev || !next || next.climb) return next;
+    for (var i = 0; i < fixed.length; i++) {
+      var d = fixed[i];
+      if (!d.rope) continue;
+      var p = local(d, prev.x, prev.z), q = local(d, next.x, next.z), lim = d.halfWid - d.railR - 0.1;
+      if (Math.abs(p.v) > d.halfWid || Math.abs(p.u) > d.halfLen || Math.abs(q.u) > d.halfLen || Math.abs(q.v) <= lim) continue;
+      var v = q.v < 0 ? -lim : lim;
+      var out = {};
+      for (var k in next) out[k] = next[k];
+      out.x = d.x + d.dx * q.u - d.dz * v; out.z = d.z + d.dz * q.u + d.dx * v;
+      return out;
+    }
+    return next;
+  }
+
+  SA.surfaces = { addFixed: addFixed, confine: confine, ropeSolidsAt: ropeSolidsAt, exitTo: exitTo, topAt: topAt, SEED: SEED, HALF_WID: HALF_WID, RAMP: RAMP, layout: layout, bridges: bridges, propDeck: propDeck, setPlaced: setPlaced, decks: decks,
     deckHeight: deckHeight, railCircles: railCircles, heightAt: heightAt, onDeck: onDeck, walkable: walkable, near: near, solids: solids };
 })(typeof window !== 'undefined' ? window : globalThis);

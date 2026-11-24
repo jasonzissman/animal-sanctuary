@@ -286,6 +286,12 @@ current; when your change sets or changes something future tickets must follow, 
   height, so a hop never clears them) are added to the player's obstacles in `scene.js`. Two seeded river bridges
   (`render/bridges.js`) plus every placed `puente` prop (`setPlaced`; the prop is no longer a solid blocker). A new walkable thing
   (rope bridge, tower deck) = one more deck record; use `SA.player.inWater` (not `SA.map.isWater`) for wading sounds.
+  Rope bridge (AS-0159): `SA.ropeBridge` (pure, `game/rope-bridge.js`, mesh `render/rope-bridge.js`) joins the summits of `pico-n1` and `pico-n2`
+  on the montaña as a fixed deck (`SA.surfaces.addFixed`, `rope: true`, a height `profile` from one summit height to the other). You climb a peak
+  (the trail's lower legs pass close by), walk off the summit toward the other peak (`SA.climb` top mode hands over via `SA.surfaces.exitTo`) and
+  cross. While you stand on a rope deck only its rails block (`SA.surfaces.ropeSolidsAt` replaces every ground obstacle in `scene.js`; they are NOT in
+  `solids()`, so there is no wall on the ground below) and `SA.surfaces.confine` (camera-rig, after each step) clamps you inside the ropes. The mesh sways
+  and bobs a hair (more with you on it) and a soft `creak` SFX plays while you walk on it: visual/audio only, the surface never moves.
   Lookout towers (AS-0160): `SA.lookouts` (pure, `game/lookouts.js`, mesh `render/lookouts.js`): one seeded wooden tower in the forest and one in
   the desert, each with a ladder on one side. `SA.lookouts.targets()` are plain climb targets of kind `'ladder'` in the same `climbables` list as
   trees, peaks and the station; climb kinds are data in `SA.climb.KINDS` (`tree|peak|building|ladder`: mode on top, climb path, arrival spot), so the

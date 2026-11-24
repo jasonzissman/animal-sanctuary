@@ -232,7 +232,11 @@
     if (c.mode === 'canopy' || c.mode === 'top') {
       var w = SA.player.step(state, input, dt, n.solids);   // the flat top is open, bar its solids (the station's dish and antenna)
       var walked = copy(state, { x: w.x, z: w.z, heading: w.heading, y: n.topY });
-      if (edgeDist(n.top, n.x, n.z, w.x, w.z) > 0) return leave(walked, c, input, targets);   // walked off the edge: a fall, or the landing assist
+      if (edgeDist(n.top, n.x, n.z, w.x, w.z) > 0) {
+        var deck = SA.surfaces && SA.surfaces.exitTo ? SA.surfaces.exitTo(w.x, w.z, n.topY) : null;   // a rope bridge starts at this top (AS-0159): walk onto it
+        if (deck !== null) return copy(state, { x: w.x, z: w.z, heading: w.heading, y: deck, climb: null });
+        return leave(walked, c, input, targets);   // walked off the edge: a fall, or the landing assist
+      }
       return walked;
     }
     var dur = c.dur || (c.mode === 'up' ? UP_TIME : DOWN_TIME), t = Math.min(1, c.t + dt / dur), k = ease(t);

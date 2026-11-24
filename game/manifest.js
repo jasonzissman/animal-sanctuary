@@ -187,6 +187,7 @@ globalThis.SA_MANIFEST = {
     'game/compass.js',
     'game/ui/compass-view.js',
     'game/render/mission-spawn.js',
+    'game/render/sun-shadow.js',
     'game/render/scene.js',
     'game/main.js',
   ],

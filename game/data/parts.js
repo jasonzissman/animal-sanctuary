@@ -52,7 +52,7 @@
 
   var ICONS = { cabeza: '🙂', cuerpo: '🧸', orejas: '👂', ojos: '👀', hocico: '🐽', pico: '🐤', cola: '〰️', patas: '🐾',
     alas: '🪽', caparazon: '🐢', cuernos: '🐂', aletas: '🐟', plumas: '🪶', nariz: '👃', joroba: '🐫', mejillas: '😊',
-    pelo: '🧶', barriga: '🫃', cresta: '👑' };
+    pelo: '🧶', barriga: '🫃', cresta: '👑', cuello: '🦒' };
 
   function part(key, es, en, gender, number, builder, anchor, reaction) {
     return { id: key, key: key, label: { es: es, en: en }, gender: gender, number: number,
@@ -78,6 +78,7 @@
     part('mejillas', 'las mejillas', 'cheeks', 'f', 'pl', 'sphere', 'front', 'wobble'),
     part('pelo', 'el pelo', 'fur', 'm', 'sg', 'box', 'top', 'wiggle'),
     part('barriga', 'la barriga', 'belly', 'f', 'sg', 'sphere', 'bottom', 'wobble'),
-    part('cresta', 'la cresta', 'crest', 'f', 'sg', 'cone', 'top', 'wiggle')
+    part('cresta', 'la cresta', 'crest', 'f', 'sg', 'cone', 'top', 'wiggle'),
+    part('cuello', 'el cuello', 'neck', 'm', 'sg', 'cylinder', 'front', 'boing')
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

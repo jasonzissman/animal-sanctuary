@@ -17,6 +17,8 @@
  *                                     find, mamá's for follow (SA.missionSpawn); the compass (AS-0228) reads this
  *   SA.missionRuntime.create({ missions?, run?, spawn?, locate?, grant?, celebrate?, track?, proofs? })   a separate instance (tests).
  *       proofs   a SA.proofs instance: a mission finished by a 'photo' event is recorded as a proof sent to the station (AS-0206)
+ *       thing    a SA.missionCarry instance (AS-0313): update(player) picks the carried thing up when close; its locate / target
+ *                answer for carry / deliver steps after the spawned animals do
  *       locate(id) -> { x, z, r? } | null   where a place / find target is (default: none; mission content registers them)
  *       grant(reward)       the reward of the FIRST completion (stars; default adds to save.stars); never called on a replay
  *       celebrate(result)   the finish cheer (default: the fanfare, then the instance's `celebrateHook(result)`, which main.js sets to
@@ -122,15 +124,22 @@
 
     // Where the current step points in the world (AS-0233): { x, z, role, id } or null. The compass (AS-0228) points at it.
     // `at: 'baby'` is the spawned baby (find), `at: 'mama'` is mamá (follow); a step with no `at` has no target here.
+    // The carried thing and its drop-off (SA.missionCarry, AS-0313) answer for carry / deliver steps; spawned animals for the rest.
+    function thing() { return opts.thing || SA.missionCarry || null; }
+
     function target() {
-      var sp = spawner(), a;
+      var sp = spawner(), th = thing(), a;
       try { a = missions().active(); } catch (e) { return null; }
-      return sp && a && a.stepData ? sp.target(a.stepData) : null;
+      if (!a || !a.stepData) return null;
+      return (sp && sp.target(a.stepData)) || (th && th.target ? th.target(a.stepData) : null);
     }
 
     function update(player) {
-      var sp = spawner();
-      var locate = opts.locate || api.locate || (sp && sp.locate ? function (id) { return sp.locate(id); } : null);
+      var sp = spawner(), th = thing();
+      if (th && th.update && player) { try { th.update(player); } catch (e) { /* the egg never breaks the loop */ } }   // picks the thing up when close
+      var locate = opts.locate || api.locate || ((sp && sp.locate) || (th && th.locate) ? function (id) {
+        return (sp && sp.locate && sp.locate(id)) || (th && th.locate && th.locate(id)) || null;
+      } : null);
       if (!player || !locate) return { status: 'none' };
       var a;
       try { a = missions().active(); } catch (e) { return { status: 'none' }; }

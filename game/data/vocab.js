@@ -60,6 +60,10 @@
     ['cabra', 'la cabra'], ['aguila', 'el águila'], ['raton', 'el ratón chispa'],
     ['cerda', 'la cerda'], ['cerdito', 'el cerdito']].forEach(function (a) { add('animal', a[0], a[1]); });
 
+  // Things a mission carries or visits (AS-0313): spoken when the egg is picked up and when it rests in the nest.
+  add('thing', 'huevo', 'el huevo', 'the egg');
+  add('thing', 'nido', 'el nido', 'the nest');
+
   add('biome', 'bosque', 'El bosque y el río');
   add('biome', 'selva', 'La selva');
   add('biome', 'desierto', 'El desierto');

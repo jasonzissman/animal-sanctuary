@@ -370,6 +370,13 @@ current; when your change sets or changes something future tickets must follow, 
   there. A fragile thing wobbles after a jump (`SA.carry.update(dt, player)` in main.js reads the SA.jump `takeoff`/`double` event;
   `wobble()` -> `{ active, angle, tilt }` is drawn by `render/hand-item.js`): a gentle shake, never a drop, fail or reset. Mission content
   that needs a thing in hand calls `SA.carry.pickUp`; `locate(id)` resolves the deliver target like a goTo place.
+  **Mission 2, El huevo perdido (AS-0313, slice 1 of AS-0181):** a mission row may declare `carry: { item, to, near? }` (`near` = 'pond').
+  `SA.missionCarry` (`game/mission-carry.js`, pure) places the thing and its drop-off on dry ground by the pond (nest a few units off the
+  bank, egg 5-7 units from it, seeded like `SA.missionSpawn`), walks the kid up to the egg to pick it up automatically on the `carry` step
+  (`SA.carry.pickUp`; says "el huevo"), and says "el nido" when the `deliver` step drops it there (vocab keys `thing:huevo`, `thing:nido`).
+  `SA.missionRuntime` asks it (`opts.thing`) for `update`, `locate` and `target` (the compass) after the spawned animals. The egg stays
+  in the nest after the mission. `render/mission-carry.js` draws the egg and nest from primitives; the steps are the generic carry / deliver
+  kinds, so new carry missions are data rows. Mission 2 ends on the placement for now (a photo step can follow in a later slice).
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

@@ -33,7 +33,8 @@
     // Every photo of an animal also keeps a small picture in IndexedDB (AS-0236); the album view that shows them comes next.
     try {
       if (SA.albumPics && SA.render.createPhotoCapture) {
-        SA.albumPics.setCapture(SA.render.createPhotoCapture(root.THREE, { renderer: stage.renderer, scene: stage.scene, camera: stage.camera, animals: stage.animals }));
+        SA.albumPics.setCapture(SA.render.createPhotoCapture(root.THREE, { renderer: stage.renderer, scene: stage.scene, camera: stage.camera, animals: stage.animals,
+          special: { cielo: function () { return stage.skyView ? stage.skyView.capture() : null; } } }));   // the sky photo (AS-0371)
       }
     } catch (e) { report('photoCapture.start', e); }
     var game = null;
@@ -102,6 +103,9 @@
         // Winning the race: the one short line "🏅 ¡Ganaste!" (the medal over the player is drawn by game/render/mission-race.js) (AS-0356).
         // The photo from the lookout tower after handing over the letter earned the mission 11 sticker (AS-0364).
         if (SA.missionLetter) SA.missionLetter.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
+        // The sky photo through the roof telescope earned the mission 12 sticker (AS-0371); its controls pause the world's taps while the view is open.
+        if (SA.missionSky) SA.missionSky.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
+        if (SA.skyViewUi) SA.skyViewUi.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); } });
         if (SA.missionRace) SA.missionRace.onMedal = function () { if (ctl && ctl.celebrate) ctl.celebrate('🏅 ¡Ganaste!'); };
         if (SA.missionPantry) SA.missionPantry.onSticker =function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
         // Mission 7 census (AS-0341): a la cámara shot of an animal ticks the list (the trait word is spoken by SA.missionCensus); the finished list earns the sticker.

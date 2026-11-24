@@ -69,6 +69,7 @@
   add('phrase', 'buenosdias', '¡Buenos días!', 'Good morning!');
   add('thing', 'noche', 'la noche', 'the night');
   add('thing', 'luna', 'la luna', 'the moon');
+  add('thing', 'cielo', 'el cielo', 'the sky');   // AS-0371: Mission 12 (Noche de estrellas)
   add('thing', 'estrellas', 'las estrellas', 'the stars');
   add('thing', 'sol', 'el sol', 'the sun');
   // Mission 3 words (AS-0318): the river the puppy is stranded in, the log you cross it on, and the verb.

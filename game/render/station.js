@@ -75,6 +75,13 @@
     bowl.rotation.x = Math.PI + 0.6;   // opening up and tilted toward -z
     g.add(post, bowl);
 
+    // The roof telescope for Mission 12 (AS-0371): tapping it (render/sky-view.js) opens the night-sky view.
+    if (SA.render.buildTelescope && L.telescope) {
+      var scope = SA.render.buildTelescope(THREE, L.telescope);
+      g.add(scope);
+      g.userData.telescope = scope;
+    }
+
     // Antenna: a thin mast with a gold tip.
     var an = L.antenna;
     var mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, an.height, 5), m.metal);

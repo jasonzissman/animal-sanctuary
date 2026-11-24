@@ -67,6 +67,7 @@
     { id: 'hogar-nuevo', es: 'Hogar nuevo', en: 'New home', icon: '🏡', rule: { kind: 'home', count: 1 } },   // the mission 9 sticker (AS-0350)
     { id: 'buen-corredor', es: 'Buen corredor', en: 'Good runner', icon: '🏁', rule: { kind: 'race', count: 1 } },   // the mission 10 sticker (AS-0354)
     { id: 'cartero-valiente', es: 'Cartero valiente', en: 'Brave letter carrier', icon: '✉️', rule: { kind: 'letter', count: 1 } },   // the mission 11 sticker (AS-0364)
+    { id: 'noche-de-estrellas', es: 'Noche de estrellas', en: 'Starry night', icon: '🔭', rule: { kind: 'sky', count: 1 } },   // the mission 12 sticker (AS-0371)
     { id: 'fiesta-feliz', es: 'Fiesta feliz', en: 'Happy party', icon: '🎉', rule: { kind: 'party', count: 1 } },   // the mission 4 sticker (AS-0328)
     { id: 'doctora-de-patitas', es: 'Doctora de patitas', en: 'Paw doctor', icon: '🩹', rule: { need: 'thorn', count: 5 } },
     { id: 'heroe-del-barro', es: 'Héroe del barro', en: 'Mud hero', icon: '🛁', rule: { need: 'mud', count: 5 } },

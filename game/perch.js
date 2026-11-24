@@ -29,6 +29,7 @@
     palm: { height: 5.0, radius: 0.55 }, kapok: { height: 5.8, radius: 1.0 },
     acacia: { height: 3.1, radius: 0.9 }, yucca: { height: 2.6, radius: 0.5 },
     snowpine: { height: 3.2, radius: 0.55 }, fir: { height: 4.6, radius: 0.5 },
+    giant: { height: 15, radius: 4.2 },   // the selva's giant trees (AS-0388, SA.junglePlan): the flat top canopy tier you can stand on
   };
   var DEFAULT_KIND = 'jungle';
   var PER_TREE = 3;            // branch spots per tree

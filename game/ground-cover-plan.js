@@ -65,6 +65,7 @@
     if (SA.fallenLogs && SA.fallenLogs.near(x, z, 0.1)) return false;   // no plants under a fallen log (AS-0302)
     if (SA.desertPlan && SA.desertPlan.near(x, z, 0.2)) return false;   // no plants on the desierto's rock arch or oasis (AS-0308)
     if (SA.mountainPlan && SA.mountainPlan.near(x, z, 0.2)) return false;   // bare ground on the mountain trail and in the boulder field (AS-0309)
+    if (SA.junglePlan && SA.junglePlan.near(x, z, 0.3)) return false;   // no plants inside a giant tree's trunk (AS-0388)
     if (SA.surfaces && SA.surfaces.near(x, z, 0.3)) return false;   // no plants under a river bridge's ends (AS-0158)
     if (SA.forestPaths && SA.forestPaths.onPath(x, z, pad)) return false;   // bare dirt on the forest paths (AS-0300)
     if (SA.peaks) {

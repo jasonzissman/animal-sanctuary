@@ -44,6 +44,7 @@
     if (scientist) { scene.add(scientist.group); stationWalls = stationWalls.concat([SA.npc.obstacle()]); }
     var avoid = decor.children.map(function (o) { return [o.position.x, o.position.z]; });
     if (SA.station) avoid = avoid.concat(SA.station.avoidPoints());
+    if (SA.junglePlan) avoid = avoid.concat(SA.junglePlan.avoidPoints());   // animals and pickups keep off the giant trunks (AS-0388)
     var animals = SA.render.buildAnimals(THREE, { avoid: avoid });
     scene.add(animals);
 
@@ -58,12 +59,13 @@
     var logSolids = SA.fallenLogs ? SA.fallenLogs.solids() : [];   // low solids [x, z, r, h] along each fallen log (AS-0302), static
     var desertSolids = SA.desertPlan ? SA.desertPlan.solids() : [];   // the rock arch's pillars, the oasis pool and palm trunks (AS-0308), static; the gap under the arch stays open
     var boulderSolids = SA.mountainPlan ? SA.mountainPlan.solids() : [];   // the montaña's boulder field (AS-0309), static; low flat stones can be jumped
+    var giantSolids = SA.junglePlan ? SA.junglePlan.solids() : [];   // the selva's giant tree trunks (AS-0388), static; too tall to jump
     var towerSolids =SA.lookouts ? SA.lookouts.solids() : [];   // the lookout towers' legs and sides on the ground (AS-0160), static
     var lookoutsView = null;   // the towers' merged mesh, built with the other static scenery below
     function obstacles() {
       var pl = rig && rig.getPlayer ? rig.getPlayer() : null, rope = pl && SA.surfaces && SA.surfaces.ropeSolidsAt ? SA.surfaces.ropeSolidsAt(pl.x, pl.z, pl.y) : null;
       if (rope) return rope;   // up on the rope bridge (AS-0159) only its rails block: not the peak's ring or a boulder far below
-      return stationWalls.concat(streamStones, logSolids, desertSolids, boulderSolids, towerSolids, SA.surfaces ? SA.surfaces.solids() : [], SA.missionLog ? SA.missionLog.solids() : [], SA.blocking.obstacles({
+      return stationWalls.concat(streamStones, logSolids, desertSolids, boulderSolids, giantSolids, towerSolids, SA.surfaces ? SA.surfaces.solids() : [], SA.missionLog ? SA.missionLog.solids() : [], SA.blocking.obstacles({
         decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor, scale: o.scale ? o.scale.x : 1 }; }),
         propPoints: solidPropPoints,
         animals: animals.children.map(function (g) {
@@ -118,7 +120,7 @@
     // One combined climb-target list (AS-0193): the trees plus the data-driven peaks (SA.peaks.targets()). The camera rig, the
     // Space/E chooser, the outline and the auto-climb ring all read this same list, so a peak climbs exactly like a tree.
     // The station building (AS-0194) is a third kind of data target in the same list.
-    var climbables = trees.concat(SA.peaks ? SA.peaks.targets() : [], SA.station && SA.station.climbTarget ? [SA.station.climbTarget()] : [], SA.lookouts ? SA.lookouts.targets() : []);   // + the lookout-tower ladders (AS-0160)
+    var climbables = trees.concat(SA.peaks ? SA.peaks.targets() : [], SA.station && SA.station.climbTarget ? [SA.station.climbTarget()] : [], SA.lookouts ? SA.lookouts.targets() : [], SA.junglePlan ? SA.junglePlan.targets() : []);   // + the lookout-tower ladders (AS-0160) and the selva's giant trees (AS-0388)
     // Collectable finds (SA.pickups): fruit up in the canopies, rocks/flowers/leaves on the ground, fish on the banks.
     var pickups = SA.render.createPickups && SA.pickups ? SA.render.createPickups(THREE, { getPlayer: rig.getPlayer, trees: trees, avoid: avoid, seed: 80, container: container }) : null;
     if (pickups) scene.add(pickups.group);
@@ -292,6 +294,9 @@
     var ropeBridge = null;   // the swaying rope bridge between two peaks (AS-0159); update(dt, player) sways it and creaks under your feet
     if (SA.render.createRopeBridge && SA.ropeBridge) {
       try { ropeBridge = SA.render.createRopeBridge(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('ropeBridge.create', e); }
+    }
+    if (SA.render.createJungleGiants && SA.junglePlan) {   // the selva's giant trees with hanging vines, instanced (AS-0388)
+      try { SA.render.createJungleGiants(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('jungleGiants.create', e); }
     }
     if (SA.render.createMountainBoulders && SA.mountainPlan && SA.render.rocks) {   // the montaña's boulder field, instanced (AS-0309)
       try { SA.render.createMountainBoulders(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('mountainBoulders.create', e); }

@@ -36,14 +36,32 @@
     return new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ vertexColors: true, flatShading: true, specular: 0x000000 }));
   }
 
-  function waterMaterial(THREE, color) {
-    return new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: 0.85, flatShading: true, specular: 0x000000 });
+  // The gentle surface wave (AS-0298): two crossing sines in the vertex shader, driven by one shared time uniform, so the per-frame
+  // cost is advancing a number. Water geometry is baked in world coordinates (identity transform), so `position` is the world x/z.
+  // Flat shading takes its normals from the displaced positions, so the facets catch the light as they move.
+  function applyWave(material, uTime, key) {
+    var W = SA.waterBanks ? SA.waterBanks.WAVE : { amp: 0.045, speed: 1.3, freqX: 0.9, freqZ: 0.7 };
+    material.onBeforeCompile = function (shader) {
+      shader.uniforms.uTime = uTime;
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nuniform float uTime;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\n' +
+          'transformed.y += (sin(position.x * ' + W.freqX.toFixed(3) + ' + uTime * ' + W.speed.toFixed(3) + ') + sin(position.z * ' + W.freqZ.toFixed(3) +
+          ' - uTime * ' + (W.speed * 0.8).toFixed(3) + ' + position.x * 0.3)) * ' + W.amp.toFixed(3) + ';');
+    };
+    material.customProgramCacheKey = function () { return 'water-wave-' + (key || 'surface'); };
+    return material;
+  }
+  SA.render.applyWaterWave = applyWave;
+
+  function waterMaterial(THREE, color, uTime) {
+    return applyWave(new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: 0.85, flatShading: true, specular: 0x000000 }), uTime);
   }
 
-  function buildRiver(THREE, color) {
-    var M = SA.map, B = M.BOUNDS, n = 32;
+  function buildRiver(THREE, color, uTime) {
+    var M = SA.map, B = M.BOUNDS, n = 96;   // fine enough along the river for the wave to show as facets
     var hw = M.RIVER.halfWidth + 0.8;
-    var geo = new THREE.PlaneGeometry(2 * hw, B.maxZ - B.minZ, 1, n);
+    var geo = new THREE.PlaneGeometry(2 * hw, B.maxZ - B.minZ, 8, n);
     geo.rotateX(-Math.PI / 2);
     var pos = geo.attributes.position;
     for (var i = 0; i < pos.count; i++) {
@@ -52,18 +70,18 @@
       pos.setY(i, M.WATER_LEVEL);
     }
     geo.computeVertexNormals();
-    return new THREE.Mesh(geo, waterMaterial(THREE, color));
+    return new THREE.Mesh(geo, waterMaterial(THREE, color, uTime));
   }
 
-  function buildPond(THREE, color) {
+  function buildPond(THREE, color, uTime) {
     var M = SA.map;
-    var mesh = new THREE.Mesh(new THREE.CircleGeometry(M.POND.radius + 0.6, 14), waterMaterial(THREE, color));
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(M.POND.x, M.WATER_LEVEL, M.POND.z);
-    return mesh;
+    var geo = new THREE.RingGeometry(0.001, M.POND.radius + 0.6, 24, 5);
+    geo.rotateX(-Math.PI / 2);
+    geo.translate(M.POND.x, M.WATER_LEVEL, M.POND.z);   // baked in world coordinates, like the river
+    return new THREE.Mesh(geo, waterMaterial(THREE, color, uTime));
   }
 
-  /** Returns a THREE.Group with ground, river and pond. */
+  /** Returns a THREE.Group with ground, river and pond. group.userData.update(dt) advances the water wave; userData.uTime is its clock. */
   SA.render.buildWorld = function (THREE) {
     var biomes = {};
     SA.data.all('biomes').forEach(function (b) { biomes[b.id] = b; });
@@ -71,8 +89,11 @@
     group.name = 'world';
     group.add(buildGround(THREE, biomes));
     var river = (biomes.bosque && biomes.bosque.accent) || '#4aa3c7';
-    group.add(buildRiver(THREE, river));
-    group.add(buildPond(THREE, '#3f9fb0'));
+    var uTime = { value: 0 };
+    group.userData.uTime = uTime;
+    group.userData.update = function (dt) { uTime.value += dt || 0; };   // the wave clock; allocates nothing
+    group.add(buildRiver(THREE, river, uTime));
+    group.add(buildPond(THREE, '#3f9fb0', uTime));
     return group;
   };
 })(typeof window !== 'undefined' ? window : globalThis);

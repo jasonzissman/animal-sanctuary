@@ -14,7 +14,7 @@ function ranaRound(SA) {
   for (let seed = 1; seed < 400; seed++) {
     const game = SA.round.create({ rng: SA.clues.makeRng(seed), level: 1, track: (type, f) => events.push({ type, ...f }) });
     const r = game.start();
-    if (r && r.clue.answer.animalId === 'rana' && r.clue.answer.part === 'ojos') return { game, r, events };
+    if (r && r.clue.answer.animalId === 'rana' && r.clue.answer.part === 'ojos' && r.clue.text === 'Busca el animal con ojos grandes') return { game, r, events };
   }
   throw new Error('no rana ojos clue rolled');
 }

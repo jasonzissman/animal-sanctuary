@@ -171,6 +171,8 @@ test('dragging never picks; tapping empty sky picks nothing; English chip only w
   s.handlers.pointermove(ev(440, 300));
   s.handlers.pointerup(ev(440, 300));
   assert.equal(picks.length, 0, 'drag is not a pick');
+  // Only the aimed animal stays pickable: a far-away tall animal (llama) may happen to stand on the corner pixel's ray.
+  for (const c of s.animals.children) if (c !== s.g) c.visible = false;
   s.handlers.pointerdown(ev(2, 2));
   s.handlers.pointerup(ev(2, 2));
   assert.equal(picks.length, 0, 'sky is not a pick');

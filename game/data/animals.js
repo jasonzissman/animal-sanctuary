@@ -383,6 +383,43 @@
         p('patas', '#b9a58a', [0.1, 0.75, 0.1], 2, [0.15, 0.375, 0.05]),
         { part: 'cola', color: '#6e5236', scale: [0.25, 0.1, 0.75], count: 1, offset: [0, 0.95, -0.92], builder: 'box',
           also: [{ scale: [0.2, 0.08, 0.6], count: 1, offset: [0, 0.95, -1.55] }] }
+      ], easterEgg: false },
+    // AS-0269: three more mountain species (montana now has 5), appended last for the same herd-placement reason.
+    { id: 'oso', name: { es: 'oso', en: 'bear', gender: 'm' }, icon: '🐻', biome: 'montana', herd: 3,
+      traits: { size: 'grande', color: 'marrón', movement: 'camina lento', diet: 'omnívoro', legs: 4 },
+      parts: [
+        // A big, heavy, dark-brown bear: thick body, round ball ears, a pale snout, a stub tail and a deep coat on the back.
+        // Coat 1.3 long (the only one over the "pelo largo" threshold in game/data/clues.js); legs 0.75 stay under "patas largas".
+        p('cuerpo', '#5a3b22', [1.3, 1.2, 1.8], 1, [0, 1.1, 0]), p('cabeza', '#5a3b22', 0.8, 1, [0, 1.45, 1.0]),
+        p('hocico', '#c9a27a', [0.4, 0.34, 0.4], 1, [0, 1.35, 1.4]),
+        { part: 'orejas', builder: 'sphere', color: '#4a2f1a', scale: 0.22, count: 2, offset: [0.28, 1.85, 0.9] },
+        eyes(0.12, [0.2, 1.55, 1.3]), p('cola', '#4a2f1a', 0.25, 1, [0, 1.0, -0.95]),
+        { part: 'patas', color: '#4a2f1a', builder: 'cylinder', scale: [0.35, 0.75, 0.35], count: 4, offset: [0.4, 0.375, 0], row: 0.6 },
+        p('pelo', '#3f2916', [1.0, 0.3, 1.3], 1, [0, 1.75, -0.1]), p('barriga', '#7a5232', [0.9, 0.4, 1.0], 1, [0, 0.7, 0.2])
+      ], easterEgg: false },
+    { id: 'llama', name: { es: 'llama', en: 'llama', gender: 'f' }, icon: '🦙', biome: 'montana', herd: 4,
+      traits: { size: 'mediano', color: 'blanco', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
+      parts: [
+        // Slim cream body on long legs, a long straight neck (part cuello, 1.0: "cuello largo" names it), a small head with tall
+        // pointed ears and a fluffy woolly coat (0.9, under the bear's "pelo largo").
+        p('cuerpo', '#efe6d2', [0.8, 0.8, 1.3], 1, [0, 1.1, 0]),
+        { part: 'cuello', color: '#efe6d2', builder: 'cylinder', scale: [0.25, 1.1, 0.25], count: 1, offset: [0, 1.95, 0.6], rot: [0.26, 0, 0] },
+        p('cabeza', '#efe6d2', [0.35, 0.35, 0.5], 1, [0, 2.5, 0.75]), p('hocico', '#cdbfa5', 0.2, 1, [0, 2.42, 1.02]),
+        p('orejas', '#e2d6bd', [0.14, 0.55, 0.14], 2, [0.12, 2.9, 0.7]), eyes(0.09, [0.14, 2.55, 0.92]),
+        p('cola', '#efe6d2', [0.12, 0.12, 0.4], 1, [0, 1.35, -0.75]),
+        p('patas', '#d9ceb4', [0.14, 0.95, 0.14], 4, [0.25, 0.475, 0]),
+        p('pelo', '#fbf5e6', [0.75, 0.35, 0.9], 1, [0, 1.55, -0.05]), p('barriga', '#d9ceb4', [0.55, 0.3, 0.8], 1, [0, 0.8, 0.1])
+      ], easterEgg: false },
+    { id: 'condor', name: { es: 'cóndor', en: 'condor', gender: 'm' }, icon: '🐦‍⬛', biome: 'montana', herd: 3,
+      traits: { size: 'grande', color: 'negro', movement: 'vuela', diet: 'carnívoro', legs: 2 },
+      parts: [
+        // Black body and huge black wings (2.4: the only ones over the "alas grandes" threshold), a white feather collar, a bare
+        // pinkish head and a pale hooked beak.
+        p('cuerpo', '#1c1c22', [0.8, 0.8, 1.1], 1, [0, 1.0, 0]),
+        { part: 'plumas', color: '#f6f4ee', builder: 'cylinder', scale: [0.62, 0.2, 0.62], count: 1, offset: [0, 1.33, 0.42] },
+        p('cabeza', '#b78f86', 0.4, 1, [0, 1.52, 0.5]), p('pico', '#e6dfc8', [0.18, 0.2, 0.4], 1, [0, 1.45, 0.85]),
+        p('alas', '#15151a', [0.12, 0.9, 2.4], 2, [0.55, 1.05, 0]), p('cola', '#1c1c22', [0.4, 0.1, 0.8], 1, [0, 0.9, -0.85]),
+        p('patas', '#8a8a92', [0.1, 0.75, 0.1], 2, [0.2, 0.375, 0]), eyes(0.09, [0.12, 1.57, 0.66])
       ], easterEgg: false }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

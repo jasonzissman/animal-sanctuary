@@ -92,13 +92,18 @@
 
   var templates = [
     { id: 'part-length', type: 'partAdjective', lead: lead.withPart, adjectives: lengthAdjectives,
-      parts: ['orejas', 'cola', 'pico', 'patas', 'alas', 'cuernos', 'ojos'] },
+      parts: ['orejas', 'cola', 'pico', 'patas', 'alas', 'cuernos', 'ojos', 'cuello'] },
     // "ojos grandes": a distinguishing feature (the frog's big eyes) that no other animal's eyes reach.
     { id: 'part-size', type: 'partAdjective', lead: lead.withPart, parts: ['ojos'],
       adjectives: [{ id: 'grande', min: 0.2, forms: { m: { sg: 'grande', pl: 'grandes' }, f: { sg: 'grande', pl: 'grandes' } } }] },
     // "orejas grandes": the desert fox's huge ears (taller than the rabbit's long ones).
     { id: 'part-size-orejas', type: 'partAdjective', lead: lead.withPart, parts: ['orejas'],
       adjectives: [{ id: 'grande', min: 1.45, forms: { m: { sg: 'grande', pl: 'grandes' }, f: { sg: 'grande', pl: 'grandes' } } }] },
+    // AS-0269 mountain trio: "alas grandes" (the condor's, wider than the eagle's long ones) and "pelo largo" (the bear's thick coat).
+    { id: 'part-size-alas', type: 'partAdjective', lead: lead.withPart, parts: ['alas'],
+      adjectives: [{ id: 'grande', min: 2.0, forms: { m: { sg: 'grande', pl: 'grandes' }, f: { sg: 'grande', pl: 'grandes' } } }] },
+    { id: 'part-length-pelo', type: 'partAdjective', lead: lead.withPart, parts: ['pelo'],
+      adjectives: [{ id: 'largo', min: 1.0, forms: { m: { sg: 'largo', pl: 'largos' }, f: { sg: 'larga', pl: 'largas' } } }] },
     { id: 'trait-movement', type: 'trait', lead: lead.that, trait: 'movement',
       values: ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre', 'repta'] },
     { id: 'trait-size', type: 'trait', lead: lead.plain, trait: 'size', values: ['pequeño', 'mediano', 'grande'] },
@@ -115,7 +120,7 @@
       values: ['pequeño', 'mediano', 'grande'] },
     { id: 'touch-part', type: 'touchPart', lead: lead.touch,
       parts: ['cabeza', 'orejas', 'ojos', 'hocico', 'pico', 'cola', 'patas', 'alas', 'caparazon', 'cuernos', 'aletas',
-        'plumas', 'nariz', 'joroba', 'cresta'] }
+        'plumas', 'nariz', 'joroba', 'cresta', 'cuello'] }
   ];
   SA.data.register('clueTemplates', templates);
 

@@ -20,7 +20,8 @@ test('every registered animal has a head that overlaps its body', () => {
     const body = plan.find((e) => e.part === 'cuerpo');
     assert.ok(head && body, `${a.id} needs a cabeza and a cuerpo`);
     // The head attaches to the body directly, or through a chain of overlapping extra head pieces (a long neck).
-    const pieces = plan.filter((e) => e.part === 'cabeza');
+    // (the llama's neck is its own part, cuello, linked the same way)
+    const pieces = plan.filter((e) => e.part === 'cabeza' || e.part === 'cuello');
     const linked = new Set([head]);
     for (let grew = true; grew;) {
       grew = false;

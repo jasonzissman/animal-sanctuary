@@ -152,10 +152,10 @@ test('selection is seeded and deterministic', () => {
   for (let i = 0; i < 100; i++) { const v = r(); assert.ok(v >= 0 && v < 1); }
 });
 
-test('with all 13 animals every clue has one answer; the new animals get clues (joroba, repta, cuernos, desert trio)', () => {
+test('with all 16 animals every clue has one answer; the new animals get clues (joroba, repta, cuernos, desert and mountain trios)', () => {
   const SA = load();
   const ids = SA.data.all('animals').filter((a) => !a.easterEgg && !a.story).map((a) => a.id);   // the hidden egg and story animals are not in play
-  assert.equal(ids.length, 13);
+  assert.equal(ids.length, 16);
   const clues = SA.clues.candidates(ids, null);
   const byText = Object.fromEntries(clues.map((c) => [c.text, c.answer.animalId]));
   assert.equal(byText['Toca la joroba'], 'camello');
@@ -167,8 +167,15 @@ test('with all 13 animals every clue has one answer; the new animals get clues (
   // AS-0268: each desert newcomer is the one answer of a clue (agreeing gender/number).
   assert.equal(byText['Busca el animal con orejas grandes'], 'zorrodesierto');
   assert.equal(byText['Busca el animal con alas cortas'], 'correcaminos');
-  assert.equal(byText['Busca la criatura azul'], 'lagartija');  for (const c of clues) c.vocabKeys.forEach((k) => assert.ok(SA.vocab.get(k), `missing vocab ${k}`));
-  for (const id of ['camello', 'serpiente', 'cabra', 'aguila', 'mono', 'zorrodesierto', 'lagartija', 'correcaminos']) assert.ok(clues.some((c) => c.answer.animalId === id), id);
+  assert.equal(byText['Busca la criatura azul'], 'lagartija');
+  // AS-0269: each mountain newcomer is the one answer of a clue (agreeing gender/number: cuello is masculine, pelo masculine, alas feminine).
+  assert.equal(byText['Busca el animal con cuello largo'], 'llama');
+  assert.equal(byText['Busca el animal con pelo largo'], 'oso');
+  assert.equal(byText['Busca el animal con alas grandes'], 'condor');
+  assert.equal(byText['Toca el cuello'], 'llama');
+  assert.equal(byText['Toca las plumas'], 'condor');
+  for (const c of clues) c.vocabKeys.forEach((k) => assert.ok(SA.vocab.get(k), `missing vocab ${k}`));
+  for (const id of ['camello', 'serpiente', 'cabra', 'aguila', 'mono', 'zorrodesierto', 'lagartija', 'correcaminos', 'oso', 'llama', 'condor']) assert.ok(clues.some((c) => c.answer.animalId === id), id);
 });
 
 test('every animal has at least one unique level-1 single-fact clue (the rana via "ojos grandes")', () => {

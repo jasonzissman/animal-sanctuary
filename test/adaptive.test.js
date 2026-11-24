@@ -50,8 +50,9 @@ test('challenge: needs a count, every fact is necessary, parts only', () => {
     assert.match(c.text, /\b(dos|tres|cuatro|cinco|seis) \w+/);
     assert.doesNotMatch(c.text, /vive en|salta|vuela/);
   }
-  // Close pair: both have two ears, only the rabbit has a short tail; neither fact alone is enough.
-  const conejo = clues.find((c) => c.text === 'Toca el animal con dos orejas y cola corta');
+  // Close set: the rabbit and the bear both have two ears and a short tail (AS-0269), so only the rabbit's short legs
+  // too tell it apart; no pair of those facts alone is enough.
+  const conejo = clues.find((c) => c.text === 'Toca el animal con dos orejas, cola corta y patas cortas');
   assert.equal(conejo.answer.animalId, 'conejo');
   assert.ok(conejo.vocabKeys.includes('number:2') && conejo.vocabKeys.includes('adj:corta'));
 });

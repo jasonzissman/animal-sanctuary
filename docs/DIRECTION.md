@@ -485,6 +485,12 @@ current; when your change sets or changes something future tickets must follow, 
   nest. The renderer only places the chick at `sample` and beats its alas (`SA.gait.flap`); `say.fly` ('volar') is spoken as the loop begins.
   Early / far / empty-handed taps never fail: the chick wobbles (`view().nudge`) and '¡Acércate!' or la pluma is spoken. The summit photo
   tap on the nest and the sticker are the next slice.
+  **Summit photo + sticker (AS-0338, slice 3):** the photo step is `{ kind: 'photo', target: 'nido-aguila' }` (a place id, so a photo of some wild
+  eagle through the generic pick path never completes it). On that step a tap on the chick or mamá (render/mission-nest.js, only those two) calls
+  `SA.missionNest.snap(player)`: la cámara in hand (a first tap equips it), the kid standing on the summit peak or the nest peak (not on the ground
+  below). It records the album photo (`SA.photo.record('aguila')`), completes the mission (stars, replayable on the board, Mission 7 would unlock)
+  and logs one `{ kind: 'nest', key: <mission id> }` rescue row -> sticker `aguilucho-volador` (`onSticker` in main.js). A replay gets a fresh
+  seed, so the feather lies on the trail again, the bridge is uncrossed and the chick is unfed; a stale feather in the bag is put away at the start.
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

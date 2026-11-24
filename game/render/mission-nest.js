@@ -6,6 +6,7 @@
  * AS-0337: an invisible, enlarged pick volume on the chick (userData { animalId, part: 'cuerpo', pick: true }) takes a tap or click and calls
  * thing.give(player) (its own volume only, never the whole scene). When the feather is given, the chick flaps its alas and flies a small loop beside
  * mamá along SA.flight.sample (pure path / timing math), then lands in the nest again; mamá turns to watch. A tap at the wrong moment wobbles it.
+ * AS-0338: on the 'photo' step a tap on the chick or mamá calls thing.snap(player) (the summit photo; la cámara is put in hand on a first tap).
  *   update(dt)   once per frame; returns the group it manages
  *   tapAt(x, y)  client coordinates -> true when the chick's volume was hit and handled
  */
@@ -135,6 +136,16 @@
       chick.updateMatrixWorld(true);
       var ray = new THREE.Raycaster();
       ray.setFromCamera(new THREE.Vector2(((x - r.left) / r.width) * 2 - 1, -(((y - r.top) / r.height) * 2 - 1)), opts.camera);
+      var v = thing.view ? thing.view() : null;
+      if (v && v.photo && thing.snap) {                  // AS-0338: the summit photo, any part of the chick or mamá counts (only these two, never the whole scene)
+        if (mama) mama.updateMatrixWorld(true);
+        if (!ray.intersectObjects([chick, mama].filter(Boolean), true).length) return false;
+        var res = thing.snap(opts.getPlayer && opts.getPlayer());
+        if (res.status === 'nocamera' && SA.inventory && SA.inventory.equip(SA.photo ? SA.photo.CAMERA : 'camara')) {
+          try { SA.audio.say('item:camara'); } catch (e) { /* sound is best effort */ }       // la cámara is now in hand: tap again
+        }
+        return res.status === 'complete' || res.status === 'step';
+      }
       if (!ray.intersectObjects([pick], false)[0]) return false;
       thing.give(opts.getPlayer && opts.getPlayer());
       return true;

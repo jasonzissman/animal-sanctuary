@@ -8,18 +8,23 @@ const FILES = ['game/sa.js', 'game/data-registry.js', 'game/data/parts.js', 'gam
   'game/data/vocab.js', 'game/data/props.js', 'game/data/foods.js', 'game/data/items.js', 'game/save.js', 'game/mountain-trail.js', 'game/map.js', 'game/peaks.js',
   'game/station.js', 'game/player.js', 'game/jump.js', 'game/perch.js', 'game/reach.js', 'game/climb.js', 'game/surfaces.js', 'game/rope-bridge.js', 'game/npc.js',
   'game/inventory.js', 'game/photo.js', 'game/data/step-kinds.js', 'game/mission-run.js', 'game/data/missions.js', 'game/missions.js', 'game/focus.js',
-  'game/mission-pill.js', 'game/carry.js', 'game/flight.js', 'game/mission-nest.js', 'game/mission-runtime.js'];
+  'game/mission-pill.js', 'game/carry.js', 'game/flight.js', 'game/data/badges.js', 'game/album.js', 'game/badges.js', 'game/rescue-log.js',
+  'game/mission-nest.js', 'game/mission-runtime.js'];
 
 function setup(now) {
   const SA = loadGame(FILES);
   SA.save.reset();
-  const said = [], tracked = [], cheers = [];
+  const said = [], tracked = [], cheers = [], photos = [];
   const missions = SA.missions.create({ track: (t, f) => tracked.push([t, f]) });
   let rt = null;
-  const nest = SA.missionNest.create({ missions, audio: { say: (k) => said.push(k) }, track: (t, f) => tracked.push([t, f]), report: (e) => rt.report(e), now });
+  const log = SA.rescueLog.create({});
+  const nest = SA.missionNest.create({ missions, audio: { say: (k) => said.push(k), sfx: (n) => said.push('sfx:' + n) }, track: (t, f) => tracked.push([t, f]), report: (e) => rt.report(e), now,
+    photo: { record: (id) => photos.push(id) }, rescueLog: log });
   rt = SA.missionRuntime.create({ missions, thing: nest, spawn: null, celebrate: (r) => cheers.push(r), track: (t, f) => tracked.push([t, f]) });
   SA.audio = { say: (k) => said.push(k) };
-  return { SA, missions, nest, rt, said, tracked, cheers };
+  const out = { SA, missions, nest, rt, said, tracked, cheers, photos, log };
+  nest.onSticker = (e) => (out.sticker = e);
+  return out;
 }
 
 function startAguila(ctx) {
@@ -42,6 +47,7 @@ test('data: mission 6 follows mission 5, a one-line intro of <= 4 words, steps f
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
   assert.equal(typeof m.intro, 'object');
   assert.deepEqual(Array.from(m.steps.map((s) => s.kind + ':' + (s.item || s.place))), ['collect:pluma', 'goTo:cima', 'goTo:nido-aguila', 'give:pluma', 'photo:undefined']);
+  assert.equal(m.steps[4].target, 'nido-aguila', 'a place, so a wild eagle photo never completes it');
   m.steps.forEach((s) => assert.ok(s.line.es.split(/\s+/).length <= 4));
   SA.missionRun.validate(m.steps);
   assert.ok(SA.peaks.LIST.some((p) => p.id === m.nest.summit) && SA.peaks.LIST.some((p) => p.id === m.nest.peak));
@@ -222,7 +228,8 @@ test('give: the photo after the flight completes the mission; with no mission th
   const ctx = startAguila(setup(() => 1000));
   const at = toGive(ctx);
   ctx.nest.give(at);
-  assert.equal(ctx.rt.report({ type: 'photo', target: 'cualquiera' }).status, 'complete');
+  assert.equal(ctx.rt.report({ type: 'photo', target: 'aguila' }).status, 'ignored', 'a photo of some wild eagle is not the summit photo');
+  assert.equal(ctx.rt.report({ type: 'photo', target: 'nido-aguila' }).status, 'complete');
   assert.equal(ctx.cheers.length, 1);
   assert.equal(ctx.missions.active(), null);
   assert.equal(setup().nest.give({ x: 0, z: 0 }).reason, 'none');
@@ -234,4 +241,92 @@ test('spots: mamá and the chick sit in the bowl beside the nest peak top', () =
   const sp = ctx.nest.spots(), cur = ctx.nest.current();
   assert.ok(Math.hypot(sp.chick.x - cur.nest.x, sp.chick.z - cur.nest.z) < 2 && Math.hypot(sp.mama.x - sp.chick.x, sp.mama.z - sp.chick.z) > 0.2);
   assert.ok(Math.abs(sp.chick.y - cur.nest.y) < 0.5);
+});
+
+// Plays Mission 6 up to the summit photo step (the feather given). Returns the nest peak's top.
+function toPhoto(ctx) {
+  const at = toGive(ctx);
+  ctx.nest.give(at);
+  assert.equal(kind(ctx).kind, 'photo');
+  return at;
+}
+
+test('photo (AS-0338): needs la cámara, the summit or nest peak and the photo step; completes the mission, the album, the stars and the sticker', () => {
+  const ctx = startAguila(setup(() => 1000));
+  const { SA, nest, missions } = ctx, cur = nest.current();
+  assert.equal(nest.snap({ x: cur.nest.x, z: cur.nest.z, y: cur.nest.y }).status, 'none', 'too early: the feather is not given yet');
+  const top = toPhoto(ctx);
+  assert.equal(nest.view().photo, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(nest.target(kind(ctx)))), { x: cur.nest.x, z: cur.nest.z, role: 'place', id: 'nido-aguila' });
+  assert.equal(nest.snap(top).status, 'nocamera');
+  assert.equal(SA.inventory.equip('camara'), true);
+  assert.equal(nest.snap({ x: cur.nest.x + 40, z: cur.nest.z, y: cur.nest.y }).status, 'far', 'from far away');
+  assert.equal(nest.snap({ x: cur.nest.x + 2, z: cur.nest.z, y: cur.nest.y - 6 }).status, 'far', 'not from the ground below');
+  assert.equal(missions.active().id, 'aguila', 'nothing was lost by a wrong try');
+  const stars = SA.save.get().stars || 0;
+  const r = nest.snap({ x: cur.summit.x, z: cur.summit.z, y: cur.summit.y });          // from the summit peak: also frames the eagles
+  assert.equal(r.status, 'complete');
+  assert.equal(r.id, 'aguila');
+  assert.equal(r.firstTime, true);
+  assert.deepEqual(ctx.photos, ['aguila']);
+  assert.equal(missions.status('aguila'), 'done');
+  assert.equal(missions.active(), null);
+  assert.equal(ctx.cheers.length, 1);
+  assert.equal(ctx.sticker.mission, 'aguila');
+  assert.equal(ctx.sticker.badges[ctx.sticker.badges.length - 1].id, 'aguilucho-volador');
+  assert.ok(Array.from(SA.save.get().badges).includes('aguilucho-volador'));
+  assert.equal(ctx.log.count('nest'), 1);
+  assert.ok(ctx.said.includes('sfx:shutter'));
+  assert.ok(ctx.tracked.some(([t]) => t === 'nest.photo'));
+  assert.ok((SA.save.get().stars || 0) >= stars + 2, 'the mission reward');
+  assert.equal(nest.snap(top).status, 'none', 'no second photo');
+});
+
+test('replay: Mission 6 is done and replayable on the board, the next mission unlocks, a replay starts clean and never pays the sticker or stars twice', () => {
+  const ctx = startAguila(setup(() => 1000));
+  const { SA, nest, missions } = ctx;
+  SA.data.register('missions', [{ id: 'siguiente7', n: 7, es: 'Siguiente', en: 'Next', icon: '🦅', intro: { es: 'Hola', icon: '🦅' },
+    steps: [{ kind: 'photo', line: { es: 'Foto', icon: '📷' } }], reward: { stars: 1 } }]);
+  assert.equal(missions.status('siguiente7'), 'locked');
+  const first = nest.current();
+  const top = toPhoto(ctx);
+  SA.inventory.equip('camara');
+  assert.equal(nest.snap(top).status, 'complete');
+  assert.equal(missions.status('aguila'), 'done');
+  assert.equal(missions.status('siguiente7'), 'available', 'the next mission unlocks');
+  const stars = SA.save.get().stars || 0;
+  const re = missions.start('aguila');
+  assert.deepEqual([re.ok, re.replay], [true, true]);
+  nest.sync();
+  const again = nest.current();
+  assert.notEqual(again.key, first.key, 'a fresh run');
+  assert.equal(again.feather.taken, false, 'la pluma lies on the trail again');
+  assert.equal(nest.view().flight, null);
+  assert.equal(nest.view().flown, false, 'the chick has not been given the feather yet');
+  assert.equal(nest.view().crossed, false, 'the bridge is to be crossed again');
+  assert.equal(nest.view().photo, false);
+  assert.equal(SA.inventory.has('pluma'), false);
+  assert.equal(kind(ctx).kind, 'collect');
+  const top2 = toPhoto(ctx);
+  SA.inventory.equip('camara');
+  const r2 = nest.snap(top2);
+  assert.equal(r2.status, 'complete');
+  assert.equal(r2.firstTime, false);
+  assert.equal(ctx.log.count('nest'), 1, 'the sticker row is logged once');
+  assert.equal(Array.from(SA.save.get().badges).filter((b) => b === 'aguilucho-volador').length, 1);
+  assert.equal(SA.save.get().stars || 0, stars, 'no stars again');
+});
+
+test('replay: a feather left in the bag by an abandoned run is put away when a new run starts', () => {
+  const ctx = startAguila(setup(() => 1000));
+  const { SA, nest, missions } = ctx, cur = nest.current();
+  frame(ctx, { x: cur.feather.x, z: cur.feather.z, y: cur.feather.y });
+  assert.equal(SA.inventory.has('pluma'), true);
+  missions.abandon();
+  nest.sync();
+  assert.equal(nest.current(), null);
+  assert.equal(missions.start('aguila').ok, true);
+  nest.sync();
+  assert.equal(SA.inventory.has('pluma'), false, 'a clean restart: the feather lies on the trail again');
+  assert.equal(nest.view().feather.taken, false);
 });

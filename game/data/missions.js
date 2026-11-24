@@ -231,7 +231,8 @@
     // the grey peak `nest.summit`, then cross the rope bridge to the nest peak `nest.peak`, where the chick and mamá sit in the nest.
     // game/mission-nest.js places the feather and tracks the climb; the steps are the generic collect / goTo kinds. AS-0337 (slice 2): the
     // 'give' step hands la pluma to the chick, which flaps and flies a small loop beside mamá (game/flight.js), then a photo of the
-    // family from the summit (its nest photo tap and the sticker are the next slice).
+    // family from the summit or the nest peak. AS-0338 (slice 3): that photo (target 'nido-aguila', a place so a wild eagle never completes it) is
+    // SA.missionNest.snap: it completes the mission, goes into the album and earns the sticker 'aguilucho-volador'.
     { id: 'aguila', n: 6, es: 'El nido del águila', en: "The eagle's nest", icon: '🦅',
       intro: { es: '¡Busca la pluma!', en: 'Find the feather!', icon: '🪶' },
       nest: { item: 'pluma', summit: 'pico-n1', peak: 'pico-n2', summitPlace: 'cima', nestPlace: 'nido-aguila', chick: 'aguila', mama: 'aguila',
@@ -240,7 +241,7 @@
         { kind: 'goTo', place: 'cima', line: { es: 'Sube la montaña', icon: '⛰️', en: 'Climb the mountain' } },
         { kind: 'goTo', place: 'nido-aguila', line: { es: 'Cruza el puente', icon: '🌉', en: 'Cross the bridge' } },
         { kind: 'give', item: 'pluma', to: 'aguila', line: { es: 'Dale la pluma', icon: '🪶', en: 'Give the feather' } },
-        { kind: 'photo', line: { es: 'Haz una foto', icon: '📷', en: 'Take a photo' } }],
+        { kind: 'photo', target: 'nido-aguila', line: { es: 'Foto de las águilas', icon: '📷', en: 'Photo of the eagles' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

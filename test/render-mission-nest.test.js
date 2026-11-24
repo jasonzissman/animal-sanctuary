@@ -72,6 +72,36 @@ test('the chick has an enlarged invisible pick volume; a tap on it gives the fea
   assert.equal(gives.length, 1);
 });
 
+test('on the photo step a tap on either eagle takes the summit photo (snap), la cámara is put in hand first; nothing else counts', () => {
+  const { SA, THREE } = world();
+  const cur = state();
+  const snaps = [], gives = [];
+  let status = 'nocamera';
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 500);
+  const thing = { ...stub(() => cur, () => ({ photo: true, flight: null, flown: true, nudge: null })), give: () => gives.push(1), snap: (p) => { snaps.push(p); return { status }; } };
+  const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 200 }) };
+  const equipped = [];
+  SA.inventory = { equip: (id) => { equipped.push(id); return true; } };
+  SA.photo = { CAMERA: 'camara' };
+  SA.audio = { say: () => {} };
+  const r = SA.render.createMissionNest(THREE, { scene: new THREE.Scene(), thing, canvas, camera, getPlayer: () => ({ x: 3, z: 4 }) });
+  r.update(0.1);
+  const chick = r.chickNode(), p = new THREE.Vector3();
+  chick.updateMatrixWorld(true);
+  chick.getWorldPosition(p);
+  camera.position.set(p.x + 4, p.y + 1, p.z + 4);
+  camera.lookAt(p);
+  camera.updateMatrixWorld(true);
+  assert.equal(r.tapAt(100, 100), false, 'no camera yet: the camera is put in hand, the photo comes on the next tap');
+  assert.deepEqual([snaps, equipped], [[{ x: 3, z: 4 }], ['camara']]);
+  status = 'complete';
+  assert.equal(r.tapAt(100, 100), true);
+  assert.equal(snaps.length, 2);
+  assert.equal(r.tapAt(2, 2), false, 'the sky is not the eagles');
+  assert.equal(snaps.length, 2);
+  assert.equal(gives.length, 0, 'the photo step never gives la pluma');
+});
+
 test('the chick flaps and flies a loop along SA.flight, then sits in the nest again; a wrong tap wobbles it', () => {
   const { SA, THREE } = world();
   const cur = state();

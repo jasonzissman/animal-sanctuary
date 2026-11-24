@@ -49,6 +49,9 @@
     sparkle: arp([1568, 2093, 2637, 3136, 4186], 0.06, 0.25, 0.14),
     // Soft bird-like call from a treetop (AS-0117): two quick rising peeps. sfx(name, volume) scales it with distance.
     chirp: [{ w: 'sine', f: 1900, f2: 2700, t: 0, d: 0.1, g: 0.2 }, { w: 'sine', f: 2200, f2: 3100, t: 0.14, d: 0.12, g: 0.2 }],
+    // Sleeping animals (AS-0171): a soft breathy snore (low wobble + a hush of noise) and a slow falling yawn; both quiet and sweet.
+    snore: [{ w: 'sine', f: 140, f2: 110, t: 0, d: 0.7, g: 0.12, wob: 9 }, { n: 1, lp: 500, hp: 150, t: 0.05, d: 0.6, g: 0.05 }],
+    yawn: [{ w: 'sine', f: 420, f2: 600, t: 0, d: 0.3, g: 0.14 }, { w: 'sine', f: 600, f2: 260, t: 0.3, d: 0.5, g: 0.14 }],
     // Worried duck "quack" (AS-0314): two short, nasal, slightly falling honks; funny, never scary.
     quack: [{ w: 'sawtooth', f: 520, f2: 330, t: 0, d: 0.14, g: 0.1, wob: 30 }, { w: 'sawtooth', f: 480, f2: 300, t: 0.18, d: 0.16, g: 0.09, wob: 30 }],
     // Soft whimper of a lost baby (AS-0233): two small falling sobs, quiet and never scary. sfx(name, volume) scales it with distance.

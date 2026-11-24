@@ -309,6 +309,12 @@
     function select(hit) {
       if (!hit || !hit.mesh) return;
       if (!inReach(hit)) { nudgeCloser(hit); return; }
+      // A sleeping animal (AS-0171) is never used: a yawn and "¡Shh! Está durmiendo", and it stays asleep.
+      if (SA.sleep && SA.sleep.asleep(hit.instanceId || hit.animalId)) {
+        SA.sleep.disturb(hit.instanceId || hit.animalId);
+        if (opts.reachCue && opts.reachCue.show) opts.reachCue.show(SA.sleep.cue());
+        return;
+      }
       // The tapped herd instance: reactions that only know the species (round-fx, care-fx, ambient pin) now land on THIS one (AS-0255).
       if (hit.instanceId) SA.render.instances.tapped(hit.animalId, hit.instanceId);
       var heldItem = SA.inventory && SA.inventory.equipped ? SA.inventory.equipped() : null;

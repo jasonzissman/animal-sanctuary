@@ -44,6 +44,7 @@
     function animals() {
       var unlocked = SA.save.get().unlockedAnimals;
       var list = opts.animals || SA.data.all('animals').filter(function (a) { return !a.story && (!a.easterEgg || unlocked.indexOf(a.id) >= 0); });
+      if (!opts.animals && SA.sleep) list = SA.sleep.awakeOr(list);   // AS-0171: a rescue only picks an animal that is awake right now
       return list.map(function (a) { return typeof a === 'string' ? SA.data.get('animals', a) : a; });
     }
 

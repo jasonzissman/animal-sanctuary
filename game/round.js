@@ -59,6 +59,7 @@
     function animals() {
       var found = SA.save.get().unlockedAnimals;   // unlocked easter eggs join the clue rotation
       var list = opts.animals || SA.data.all('animals').filter(function (a) { return !a.story && (!a.easterEgg || found.indexOf(a.id) >= 0); });
+      if (!opts.animals && SA.sleep) list = SA.sleep.awakeOr(list);   // AS-0171: clues only ask for animals that are awake right now
       return list.map(function (a) { return typeof a === 'string' ? SA.data.get('animals', a) : a; });
     }
 

@@ -251,8 +251,11 @@
       var cells = subAreas(a.biome), k = species[a.biome] = (species[a.biome] === undefined ? 0 : species[a.biome] + 1);
       var me = { r: SA.spacing ? SA.spacing.bodyRadius(a) : 0, pick: pickRadius(a) };
       for (var n = 0; n < (a.herd || 1); n++) {
-        var c = cells.length ? cells[(2 * k + n) % cells.length] : { x0: -14, x1: 14, z0: -18, z1: 18 };
-        var best = null, bestScore = -Infinity;
+        // Its own sub-area first; only when that one is too crowded to hold it (a busy biome, AS-0171) does it try the biome's others.
+        var tryCells = cells.length ? [cells[(2 * k + n) % cells.length]].concat(cells.filter(function (_, j) { return j !== (2 * k + n) % cells.length; })) : [{ x0: -14, x1: 14, z0: -18, z1: 18 }];
+        var best = null, bestScore = -Infinity, found = false;
+        for (var ci = 0; ci < tryCells.length && !found; ci++) {
+        var c = tryCells[ci];
         for (var t = 0; t < 600; t++) {
           var x = c.x0 + rand() * (c.x1 - c.x0), z = c.z0 + rand() * (c.z1 - c.z0), h = M.groundHeight(x, z), i, d;
           if (M.biomeAt(x) !== a.biome || h < M.WATER_LEVEL + 0.45) continue;
@@ -271,9 +274,10 @@
             near = Math.min(near, d);
           }
           for (i = 0; i < avoid.length && clear; i++) clear = Math.hypot(avoid[i][0] - x, avoid[i][1] - z) >= 2.4;
-          if (clear && room >= 0 && near >= MIN_CENTRE) { best = [x, z]; break; }
+          if (clear && room >= 0 && near >= MIN_CENTRE) { best = [x, z]; found = true; break; }
           var score = (clear ? 0 : -1000) + Math.min(room, near - MIN_CENTRE);
           if (score > bestScore) { best = [x, z]; bestScore = score; }
+        }
         }
         best = best || [(c.x0 + c.x1) / 2, (c.z0 + c.z1) / 2];
         spots.push([best[0], best[1], me.r, me.pick]);

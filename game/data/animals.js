@@ -25,6 +25,9 @@
  *   baby      optional { of: <animal id>, scale, headScale, eyeScale }: marks a baby variant of another animal. Its parts list is
  *             built with SA.animals.babyParts (overall `scale`, the head group `headScale` x bigger, the eyes `eyeScale` x);
  *             the engine just reads parts, so nothing special-cases an id.
+ *   active    optional 'day' (default) | 'night' (AS-0171): when it is awake. A day animal dozes at dusk and through the night, a night
+ *             animal (búho, murciélago) sleeps by day (SA.sleep, game/sleep.js). Story animals and easter eggs never sleep.
+ *   sleepPose optional 'curl' (default: lies down, squashed, eyes closed) | 'hang' (hangs upside down, like a bat)
  *   easterEgg boolean (false for real animals)
  *   unlock    easter eggs only: the condition that reveals it (plain data, evaluated by game/unlocks.js)
  * A parts[] entry may also set `pupil` ('#rrggbb'): a dark pupil sphere drawn in front of each instance, so eyes read as
@@ -134,6 +137,8 @@
     if (a.perch !== undefined) oneOf(a.perch, PERCHES, 'perch');
     if (typeof a.easterEgg !== 'boolean') fail('easterEgg', 'must be true or false');
     if (a.story !== undefined && typeof a.story !== 'boolean') fail('story', 'must be true or false');
+    if (a.active !== undefined) oneOf(a.active, ['day', 'night'], 'active');
+    if (a.sleepPose !== undefined) oneOf(a.sleepPose, ['curl', 'hang'], 'sleepPose');
     if (a.herd !== undefined && (!Number.isInteger(a.herd) || a.herd < 1 || a.herd > 5)) fail('herd', 'must be an integer from 1 to 5 (got ' + JSON.stringify(a.herd) + ')');
     if (a.voice !== undefined && (typeof a.voice !== 'string' || !/^[a-z]+:\S+$/.test(a.voice))) fail('voice', 'must be a vocab key like "phrase:oinc"');
     if (a.wag !== undefined) {
@@ -557,6 +562,28 @@
         p('pelo', '#6f6450', [0.7, 0.2, 0.8], 1, [0, 1.3, -0.1]), p('cola', '#8c8068', 0.15, 1, [0, 0.7, -0.55]),
         { part: 'patas', color: '#7d7058', builder: 'cylinder', scale: [0.14, 1.2, 0.14], count: 4, offset: [0.3, 0.6, 0], row: 0.25 },
         { part: 'garras', color: '#efe6d0', scale: [0.08, 0.22, 0.08], count: 4, offset: [0.3, 0.08, 0.05], row: 0.25 }, p('barriga', '#a89c82', [0.5, 0.3, 0.6], 1, [0, 0.55, 0.3])
+      ], easterEgg: false },
+    // Night animals (AS-0171): awake from dusk to dawn, asleep by day (SA.sleep). Both perch in trees; the bat hangs upside down asleep.
+    // They are listed LAST so the seeded herd placement of every older animal stays exactly where it was.
+    { id: 'buho', name: { es: 'búho', en: 'owl', gender: 'm' }, icon: '🦉', biome: 'bosque', herd: 3, perch: 'tree', active: 'night',
+      traits: { size: 'mediano', color: 'marrón', movement: 'vuela', diet: 'carnívoro', legs: 2 },
+      parts: [
+        // A round brown owl with a paler head, big yellow eyes with dark pupils, ear tufts and a tiny hooked beak.
+        p('cuerpo', '#7a5a3a', [0.85, 0.95, 0.8], 1, [0, 0.8, 0]), p('cabeza', '#8b6a47', 0.62, 1, [0, 1.5, 0.15]),
+        p('pico', '#e8a317', [0.14, 0.14, 0.26], 1, [0, 1.42, 0.5]), eyes(0.26, [0.17, 1.58, 0.38], '#ffd84a'),
+        p('orejas', '#5e432a', [0.14, 0.26, 0.14], 2, [0.2, 1.88, 0.1]), p('alas', '#5e432a', [0.1, 0.7, 0.6], 2, [0.5, 0.85, -0.05]),
+        p('cola', '#5e432a', [0.3, 0.1, 0.5], 1, [0, 0.45, -0.55]), p('patas', '#e8a317', [0.1, 0.4, 0.1], 2, [0.15, 0.2, 0.1]),
+        p('barriga', '#e8d9b8', [0.55, 0.55, 0.3], 1, [0, 0.75, 0.35]),
+        p('cuello', '#a58660', [0.35, 0.15, 0.35], 1, [0, 1.22, 0.1])   // a fluffy feather collar: "cuello corto" is the búho's own clue
+      ], easterEgg: false },
+    { id: 'murcielago', name: { es: 'murciélago', en: 'bat', gender: 'm' }, icon: '🦇', biome: 'selva', herd: 3, perch: 'tree', active: 'night', sleepPose: 'hang',
+      traits: { size: 'pequeño', color: 'negro', movement: 'vuela', diet: 'insectívoro', legs: 2 },
+      parts: [
+        // A small dark bat: furry body, pointed ears, wide wings, little pale eyes and a pink nose ("nariz corta" is its own clue).
+        p('cuerpo', '#2a2630', [0.45, 0.5, 0.6], 1, [0, 0.5, 0]), p('cabeza', '#3a3440', 0.34, 1, [0, 0.85, 0.2]),
+        p('orejas', '#2a2630', [0.1, 0.3, 0.1], 2, [0.12, 1.1, 0.18]), eyes(0.12, [0.09, 0.9, 0.34], '#f4e8a0'),
+        p('alas', '#4a4252', [0.05, 0.7, 1.1], 2, [0.4, 0.55, 0]), p('patas', '#2a2630', [0.06, 0.25, 0.06], 2, [0.1, 0.2, 0]),
+        p('nariz', '#d98aa0', 0.07, 1, [0, 0.82, 0.38])
       ], easterEgg: false }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

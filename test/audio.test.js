@@ -70,7 +70,7 @@ test('landing thump recipe is soft (gain <= 0.2) and short', () => {
 
 test('after unlock all 6 named effects play; unknown names do not', () => {
   const { SA, stats } = setup();
-  assert.deepEqual([...SA.audio.NAMES].sort(), ['boing', 'chime', 'chirp', 'creak', 'fanfare', 'giggle', 'hop', 'hop2', 'land', 'leafPop', 'ouch', 'pop', 'quack', 'rustle', 'shutter', 'sparkle', 'splash', 'squeak', 'step', 'stepLeaf', 'stepWet', 'whimper', 'whine', 'whoosh']);
+  assert.deepEqual([...SA.audio.NAMES].sort(), ['boing', 'chime', 'chirp', 'creak', 'fanfare', 'giggle', 'hop', 'hop2', 'land', 'leafPop', 'ouch', 'pop', 'quack', 'rustle', 'shutter', 'snore', 'sparkle', 'splash', 'squeak', 'step', 'stepLeaf', 'stepWet', 'whimper', 'whine', 'whoosh', 'yawn']);
   assert.equal(SA.audio.unlock(), true);
   assert.equal(SA.audio.unlock(), true);
   assert.equal(stats.created, 1, 'context created once');

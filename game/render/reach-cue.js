@@ -29,8 +29,9 @@
     function refresh() { if (SA.hudPlace) SA.hudPlace.refresh(); }
 
     return {
-      show: function () {
-        var cue = SA.reach.cue();
+      // show(cue?): the "¡Acércate!" nudge, or another short { icon, es } cue (AS-0171: "¡Shh! Está durmiendo", spoken by its sender).
+      show: function (custom) {
+        var cue = custom || SA.reach.cue();
         if (!el) build();
         el.textContent = '';
         var icon = root.document.createElement('span'), es = root.document.createElement('span');
@@ -41,7 +42,7 @@
         el.style.display = 'flex';
         left = SECONDS;
         refresh();
-        if (SA.reach.speakCue) SA.reach.speakCue();   // spoken once per cue (throttled in SA.reach)
+        if (!custom && SA.reach.speakCue) SA.reach.speakCue();   // spoken once per cue (throttled in SA.reach)
       },
       update: function (dt) {
         if (left <= 0 || !el) return;

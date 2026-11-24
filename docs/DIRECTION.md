@@ -770,6 +770,16 @@ current; when your change sets or changes something future tickets must follow, 
   ones with progress; a tap speaks the name and goal). The mission `onSticker` toasts are unchanged.
 - **The world has a rhythm.** Day/night cycle (AS-0170): day animals sleep at night with floating Zzz, nocturnal animals
   (búho, murciélago) wake up (AS-0171). Night stays readable for kids.
+  **Sleep schedule (AS-0171):** animal data `active: 'day' | 'night'` (default day) and optional `sleepPose: 'curl' | 'hang'`. The pure
+  `SA.sleep` (`game/sleep.js`) decides by phase: day animals are awake in day and dawn and doze at dusk and night; night animals are awake
+  from dusk through night and sleep by day (`isAsleep`, `awake(list)` strict, `awakeOr(list)` never empty). Story animals, easter eggs and
+  animals a mission has pinned never sleep. Clues (`round.js`), rescue missions (`mission.js`), the census and encounters only take awake
+  animals; new picks of animals must go through `SA.sleep.awake/awakeOr`. `render/ambient.js` (`bedtime`) holds sleepers still, lies them
+  down (squash, eyes shut, slow breath; a bat hangs upside down) and reports `SA.sleep.set(instanceId, true)`; `render/sleep-fx.js`
+  floats three block-letter Zs over the nearest sleepers and plays a soft `snore`. Using a sleeper (`render/picking.js`) does nothing but
+  `SA.sleep.disturb`: `yawn` + "¡Shh! Está durmiendo" in the reach-cue bubble, and it stays asleep. búho (bosque) and murciélago (selva)
+  are tree perchers listed last in `data/animals.js` (so older animals keep their seeded herd spots); `animal-plan` tries a biome's other
+  sub-areas when an animal's own is too crowded. Night-mission use of the owl/bat and the "tapa al conejo" rescue are still to do.
 - **Mission variety.** Lost-baby missions: the cría follows you to its mamá, and you take a family photo (AS-0172, AS-0173). Secret
   treasure chests behind waterfalls are original easter eggs (AS-0174).
 

@@ -39,7 +39,7 @@ test('data: mission 4 follows mission 3, a one-line intro of <= 4 words, steps c
   assert.equal(m.id, 'fiesta');
   assert.ok(m.intro.es.split(/\s+/).length <= 4);
   assert.equal(m.intro.es, '¡Feliz cumpleaños, mono!');
-  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)), ['collect', 'talk']);
+  assert.deepEqual(Array.from(m.steps.map((s) => s.kind)).slice(0, 2), ['collect', 'talk']);   // AS-0327 adds the invite steps after the crown
   assert.deepEqual([m.steps[0].item, m.steps[0].n, m.bananas.item, m.bananas.n], ['platano', 3, 'platano', 3]);
   assert.equal(m.steps[0].line.es, 'Recoge 3 plátanos');
   assert.equal(m.steps[1].line.es, 'Pide la corona');
@@ -172,7 +172,10 @@ test('talking to the scientist gives the crown (spoken + cheered) and completes 
   assert.equal(ctx.rt.report({ type: 'talked', who: 'scientist' }).status, 'ignored');   // too early: still collecting
   assert.deepEqual(ctx.gives, []);
   for (let i = 0; i < 3; i++) ctx.rt.report({ type: 'collected', item: 'platano' });
-  const r = ctx.rt.report({ type: 'talked', who: 'scientist' });
+  assert.equal(ctx.rt.report({ type: 'talked', who: 'scientist' }).status, 'step');
+  assert.equal(ctx.rt.report({ type: 'invited', animal: 'conejo' }).status, 'step');
+  assert.equal(ctx.rt.report({ type: 'invited', animal: 'ciervo' }).status, 'step');
+  const r = ctx.rt.report({ type: 'arrived', place: 'arbol-mono' });
   assert.equal(r.status, 'complete');
   assert.equal(r.id, 'fiesta');
   assert.equal(r.firstTime, true);
@@ -182,7 +185,7 @@ test('talking to the scientist gives the crown (spoken + cheered) and completes 
   assert.equal(ctx.missions.status('fiesta'), 'done');
   assert.equal(ctx.missions.active(), null);
   assert.equal(ctx.bananas.sync(), null);
-  assert.equal(ctx.rt.report({ type: 'talked', who: 'scientist' }).status, 'none');
+  assert.equal(ctx.rt.report({ type: 'arrived', place: 'arbol-mono' }).status, 'none');
   assert.equal(ctx.gives.length, 1);
 });
 
@@ -190,12 +193,15 @@ test('a replay scatters fresh bananas and gives no second reward', () => {
   const ctx = startFiesta(setup());
   for (let i = 0; i < 3; i++) ctx.rt.report({ type: 'collected', item: 'platano' });
   ctx.rt.report({ type: 'talked', who: 'scientist' });
+  ctx.rt.report({ type: 'invited', animal: 'conejo' }); ctx.rt.report({ type: 'invited', animal: 'ciervo' }); ctx.rt.report({ type: 'arrived', place: 'arbol-mono' });
   const r = ctx.missions.start('fiesta');
   assert.equal(r.replay, true);
   ctx.bananas.sync();
   assert.equal(ctx.bananas.visible().length, 3);
   for (let i = 0; i < 3; i++) ctx.rt.report({ type: 'collected', item: 'platano' });
-  const done = ctx.rt.report({ type: 'talked', who: 'scientist' });
+  ctx.rt.report({ type: 'talked', who: 'scientist' });
+  ctx.rt.report({ type: 'invited', animal: 'conejo' }); ctx.rt.report({ type: 'invited', animal: 'ciervo' });
+  const done = ctx.rt.report({ type: 'arrived', place: 'arbol-mono' });
   assert.equal(done.status, 'complete');
   assert.equal(done.firstTime, false);
   assert.equal(done.reward, null);

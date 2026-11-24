@@ -5,6 +5,9 @@
  *   SA.follow.step(f, leader, solids, dt)  -> f           advances ONE follower (mutates and returns it)
  *   SA.follow.stepAll(followers, player, solids, dt)      a line of followers: the first follows the player, each next one
  *                                                         follows the one ahead; they never overlap each other
+ *   SA.follow.stepGroup(followers, player, solids, dt)    a group (AS-0327): EVERY follower follows the player on its own trail, so
+ *                                                         each waits at the water and follows again when the player returns; they
+ *                                                         treat each other as solids and never overlap
  *     leader   { x, z, heading, lift? }   the player (or the follower ahead); lift > 0 = airborne (SA.jump)
  *     solids   [[x, z, r(, h)], ...]      same shape as SA.blocking.obstacles; a low solid (h <= HOP_HEIGHT) can be hopped
  *     dt       seconds (clamped to 0.1)
@@ -239,6 +242,16 @@
     return followers;
   }
 
+  /** A group of followers (AS-0327): each one trails the player itself (own breadcrumbs, own wait at the water) and avoids the others. */
+  function stepGroup(followers, player, solids, dt) {
+    for (var i = 0; i < followers.length; i++) {
+      var s = (solids || []).slice();
+      for (var j = 0; j < followers.length; j++) if (j !== i) s.push([followers[j].x, followers[j].z, BODY]);
+      step(followers[i], player, s, dt);
+    }
+    return followers;
+  }
+
   SA.follow = { GAP_MIN: GAP_MIN, GAP_STOP: GAP_STOP, GAP_START: GAP_START, POP_DIST: POP_DIST, STUCK_SECONDS: STUCK_SECONDS,
-    BODY: BODY, HOP_HEIGHT: HOP_HEIGHT, create: create, step: step, stepAll: stepAll, free: free };
+    BODY: BODY, HOP_HEIGHT: HOP_HEIGHT, create: create, step: step, stepAll: stepAll, stepGroup: stepGroup, free: free };
 })(typeof window !== 'undefined' ? window : globalThis);

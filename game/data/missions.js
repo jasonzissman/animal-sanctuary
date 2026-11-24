@@ -21,6 +21,11 @@
  *   bananas optional { item, n, biome? } (AS-0326): the `n` pickups of `item` that game/mission-bananas.js scatters in `biome` (default 'selva')
  *           while this mission runs; a 'collect' step { item, n } counts them. A step may carry `gives` (a vocab 'thing' id, e.g. 'corona'):
  *           what the scientist hands over on a 'talk' step; it is spoken and cheered when that step is met.
+ *   friends optional { animals, tree, monkey?, biome?, friendBiome?, say? } (AS-0327): the animal ids that 'invite' steps name (each
+ *           { kind: 'invite', animal }), the id of the monkey's tree (a 'goTo' step's place), the monkey standing by it, the biome of the
+ *           tree (default 'selva') and of the friends (default 'bosque'), and `say`: vocab keys spoken one per invite ('thing:fiesta').
+ *           game/mission-friends.js places them while the mission runs; invited friends follow you, and the goTo to the tree only counts
+ *           with them all there.
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -87,6 +92,14 @@
       if (!Number.isInteger(b.n) || b.n < 1 || b.n > 6) fail('bananas.n', 'must be a whole number from 1 to 6');
       if (b.biome !== undefined && (typeof b.biome !== 'string' || !b.biome)) fail('bananas.biome', 'must be a biome id string');
     }
+    if (m.friends !== undefined) {
+      var fr = m.friends, idRe = /^[a-z][a-z0-9-]*$/;
+      if (!fr || typeof fr !== 'object' || Array.isArray(fr)) fail('friends', 'must be { animals, tree, monkey?, biome?, friendBiome?, say? }');
+      if (!Array.isArray(fr.animals) || fr.animals.length < 1 || fr.animals.length > 3 || fr.animals.some(function (a) { return typeof a !== 'string' || !idRe.test(a); })) fail('friends.animals', 'must be 1 to 3 animal id strings');
+      if (typeof fr.tree !== 'string' || !idRe.test(fr.tree)) fail('friends.tree', 'must be a lowercase id string');
+      ['monkey', 'biome', 'friendBiome'].forEach(function (k) { if (fr[k] !== undefined && (typeof fr[k] !== 'string' || !idRe.test(fr[k]))) fail('friends.' + k, 'must be a lowercase id string'); });
+      if (fr.say !== undefined && (!Array.isArray(fr.say) || fr.say.some(function (k) { return typeof k !== 'string' || !k; }))) fail('friends.say', 'must be a list of vocab keys');
+    }
     m.steps.forEach(function (s, i) {
       if (s.gives !== undefined && (typeof s.gives !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.gives))) fail('steps[' + i + '].gives', 'must be a lowercase vocab id string');
     });
@@ -134,8 +147,13 @@
     { id: 'fiesta', n: 4, es: 'La fiesta del mono', en: "The monkey's party", icon: '🎂',
       intro: { es: '¡Feliz cumpleaños, mono!', en: 'Happy birthday, monkey!', icon: '🐵' },
       bananas: { item: 'platano', n: 3, biome: 'selva' },
+      friends: { animals: ['conejo', 'ciervo'], tree: 'arbol-mono', monkey: 'mono', biome: 'selva', friendBiome: 'bosque', say: ['thing:fiesta', 'thing:regalo'] },
       steps: [{ kind: 'collect', item: 'platano', n: 3, line: { es: 'Recoge 3 plátanos', icon: '🍌', en: 'Pick up 3 bananas' } },
-        { kind: 'talk', who: 'scientist', gives: 'corona', line: { es: 'Pide la corona', icon: '👑', en: 'Ask for the crown' } }],
+        { kind: 'talk', who: 'scientist', gives: 'corona', line: { es: 'Pide la corona', icon: '👑', en: 'Ask for the crown' } },
+        // AS-0327 (slice 2): walk up to two friends (each then follows you), then take them both to the monkey's tree.
+        { kind: 'invite', animal: 'conejo', line: { es: 'Invita al conejo', icon: '🐰', en: 'Invite the rabbit' } },
+        { kind: 'invite', animal: 'ciervo', line: { es: 'Invita al ciervo', icon: '🦌', en: 'Invite the deer' } },
+        { kind: 'goTo', place: 'arbol-mono', line: { es: 'Al árbol del mono', icon: '🌳', en: "To the monkey's tree" } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -38,12 +38,59 @@
     return null;
   }
 
-  /** Snowy peaks: rise from just inside the montaña border (MOUNTAIN_EDGE) to bumpy peaks up to ~5.5 high. */
-  function mountainHeight(x, z) {
+  function rolling(x, z) { return 0.6 * Math.sin(x * 0.21) * Math.cos(z * 0.17) + 0.4 * Math.sin(x * 0.09 + z * 0.13); }
+
+  // The summit ridge (AS-0309): a broad bell across x (SA.mountainTrail.DOME), flat along z over the trail's legs so they run along contours.
+  // Without the trail module there is no ridge (h = 0) and the mountain is just the lumpy slope.
+  var DOME = SA.mountainTrail ? SA.mountainTrail.DOME : { x: -100, half: 46, h: 0, zFlat: 17, zFade: 17 };
+  function domeWeight(x, z) { return smooth(1 - Math.abs(x - DOME.x) / DOME.half) * smooth((DOME.zFlat + DOME.zFade - Math.abs(z)) / DOME.zFade); }
+
+  /** The mountain strip without the trail: it rises from just inside the montaña border (MOUNTAIN_EDGE) to bumpy peaks up to ~5.5 high,
+   *  plus the summit ridge, where the lumps are mostly smoothed away, and entirely within 3 m of the trail (fading back in by 12 m, `d` = the
+   *  distance to the trail centre line) so the climb is gentle and the trail's shoulders never meet a cliff. */
+  function mountainBase(x, z, d) {
     var ramp = smooth((MOUNTAIN_EDGE - x) / 10);
     if (ramp <= 0) return 0;
-    var bump = Math.max(0, Math.sin(x * 0.19) * Math.sin(z * 0.23 + 1.3));
-    return ramp * (1 + 4.5 * bump * bump);
+    var bump = Math.max(0, Math.sin(x * 0.19) * Math.sin(z * 0.23 + 1.3)), dw = DOME.h > 0 ? domeWeight(x, z) : 0;
+    return ramp * (1 + 4.5 * bump * bump * (1 - 0.85 * smooth(2 * dw)) * smooth((d - 3) / 9)) + DOME.h * dw;
+  }
+
+  var trailProfile = null, trailHit = { d: 0, s: 0 };
+  function boxcar(a, half) {
+    var out = [], n = a.length;
+    for (var i = 0; i < n; i++) {
+      var sum = 0, cnt = 0;
+      for (var k = Math.max(0, i - half); k <= Math.min(n - 1, i + half); k++) { sum += a[k]; cnt++; }
+      out.push(sum / cnt);
+    }
+    return out;
+  }
+  /** The trail's ground height at each centre-line point (computed once): the surrounding terrain smoothed over ~12 m (so the trail follows the
+   *  lie of the land and never needs a deep cut), then forced never to go downhill, then smoothed again: a steady, gentle grade. */
+  function profile() {
+    if (trailProfile) return trailProfile;
+    var P = SA.mountainTrail.POINTS, raw = [], i;
+    for (i = 0; i < P.length; i++) raw.push(rolling(P[i][0], P[i][1]) + mountainBase(P[i][0], P[i][1], 0));
+    var y = boxcar(boxcar(raw, 6), 6), hi = -Infinity;
+    for (i = 0; i < y.length; i++) { hi = Math.max(hi, y[i]); y[i] = hi; }
+    return (trailProfile = boxcar(y, 4));
+  }
+  function trailGround(s, length) {
+    var p = profile(), u = s / length * (p.length - 1), i = Math.min(p.length - 2, Math.floor(u)), f = u - i;
+    return p[i] + (p[i + 1] - p[i]) * f;
+  }
+
+  /** The mountain's height above the rolling ground: mountainBase with the switchback trail (SA.mountainTrail, AS-0309) carved in. Along the
+   *  trail the ground follows profile(), a steady grade far below MAX_WALK_SLOPE; over the shoulder beyond the 2.6 m strip it blends smoothly
+   *  back into the surrounding slope (the shoulder never reaches the next leg, so there is no seam). */
+  function mountainHeight(x, z) {
+    var T = SA.mountainTrail;
+    if (!T || x > MOUNTAIN_EDGE) return mountainBase(x, z, Infinity);
+    T.sample(x, z, trailHit);
+    var m = mountainBase(x, z, trailHit.d), over = trailHit.d - T.WIDTH / 2;
+    if (over >= T.FADE) return m;
+    var w = smooth(1 - over / T.FADE) * smooth(trailHit.s / 8);   // eased in over the first 8 m so it leaves the border seamlessly
+    return m + (trailGround(trailHit.s, T.LENGTH) - rolling(x, z) - m) * w;
   }
 
   // Seeded dune phases (AS-0307): fixed for every load, so the dunes are the same each time and tests can pin them.
@@ -70,7 +117,7 @@
 
   /** The rolling terrain without the climbable peaks (SA.peaks raises those on top of this). */
   function baseHeight(x, z) {
-    var h = 0.6 * Math.sin(x * 0.21) * Math.cos(z * 0.17) + 0.4 * Math.sin(x * 0.09 + z * 0.13);
+    var h = rolling(x, z);
     var dr = Math.abs(x - riverX(z));
     var span = RIVER.halfWidth + 2;
     h -= 2.2 * smooth((span - dr) / 2.5);
@@ -125,7 +172,7 @@
   }
 
   SA.map = {
-    BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND, FORD: FORD, MOUNTAIN_EDGE: MOUNTAIN_EDGE, DUNE_EDGE: DUNE_EDGE, MAX_WALK_SLOPE: MAX_WALK_SLOPE, duneHeight: duneHeight,
+    BOUNDS: BOUNDS, STRIPS: STRIPS, biomeRange: biomeRange, WATER_LEVEL: WATER_LEVEL, RIVER: RIVER, POND: POND, FORD: FORD, MOUNTAIN_EDGE: MOUNTAIN_EDGE, DUNE_EDGE: DUNE_EDGE, MAX_WALK_SLOPE: MAX_WALK_SLOPE, duneHeight: duneHeight, mountainHeight: mountainHeight, DOME: DOME,
     clamp: clamp, biomeAt: biomeAt, riverX: riverX, baseHeight: baseHeight, groundHeight: groundHeight, followHeight: followHeight, cameraHeight: cameraHeight, isWater: isWater, nearWater: nearWater, rng: rng,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

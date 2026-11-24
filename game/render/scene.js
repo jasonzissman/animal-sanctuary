@@ -56,10 +56,11 @@
     var streamStones = SA.forestStreams ? SA.forestStreams.stoneSolids() : [];   // low solids [x, z, r, h] (AS-0301), static
     var logSolids = SA.fallenLogs ? SA.fallenLogs.solids() : [];   // low solids [x, z, r, h] along each fallen log (AS-0302), static
     var desertSolids = SA.desertPlan ? SA.desertPlan.solids() : [];   // the rock arch's pillars, the oasis pool and palm trunks (AS-0308), static; the gap under the arch stays open
-    var towerSolids = SA.lookouts ? SA.lookouts.solids() : [];   // the lookout towers' legs and sides on the ground (AS-0160), static
+    var boulderSolids = SA.mountainPlan ? SA.mountainPlan.solids() : [];   // the montaña's boulder field (AS-0309), static; low flat stones can be jumped
+    var towerSolids =SA.lookouts ? SA.lookouts.solids() : [];   // the lookout towers' legs and sides on the ground (AS-0160), static
     var lookoutsView = null;   // the towers' merged mesh, built with the other static scenery below
     function obstacles() {
-      return stationWalls.concat(streamStones, logSolids, desertSolids, towerSolids, SA.surfaces ? SA.surfaces.solids() : [], SA.blocking.obstacles({
+      return stationWalls.concat(streamStones, logSolids, desertSolids, boulderSolids, towerSolids, SA.surfaces ? SA.surfaces.solids() : [], SA.blocking.obstacles({
         decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor, scale: o.scale ? o.scale.x : 1 }; }),
         propPoints: solidPropPoints,
         animals: animals.children.map(function (g) {
@@ -229,6 +230,9 @@
     }
     if (SA.render.createDesertLandmarks && SA.desertPlan) {   // the desierto's rock arch and oasis (AS-0308)
       try { SA.render.createDesertLandmarks(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('desertLandmarks.create', e); }
+    }
+    if (SA.render.createMountainBoulders && SA.mountainPlan && SA.render.rocks) {   // the montaña's boulder field, instanced (AS-0309)
+      try { SA.render.createMountainBoulders(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('mountainBoulders.create', e); }
     }
     if (SA.render.createFallenLogs && SA.fallenLogs) {
       try { SA.render.createFallenLogs(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('fallenLogs.create', e); }

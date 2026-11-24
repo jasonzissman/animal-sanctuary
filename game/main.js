@@ -204,6 +204,29 @@
     // A newly earned badge pops up as a big sticker, is named aloud and slaps onto the album's Pegatinas page (AS-0168). Never blocks play.
     try { if (SA.stickerPop) SA.stickerPop.create({ doc: root.document }); }
     catch (e) { report('stickers.start', e); }
+    // Naming (AS-0169): after a rescue photo the skippable '¿Cómo se llama?' card offers 3 names, then 3 adjectives ('Luna la rápida').
+    // The individual is the herd instance the player just worked with (SA.render.instances); using a named animal greets it by name.
+    try {
+      if (SA.nameCard && SA.names) {
+        var instOf = function (animalId) {
+          var g = SA.render.instances && SA.render.instances.get(stage.animals, animalId);
+          return g && g.name ? g.name : null;
+        };
+        var nameCard = SA.nameCard.create(root.document, { onToggle: function (on) { SA.picking.setPaused(on); }, resolve: instOf });
+        SA.names.onRescued(function (animalId) {
+          var id = instOf(animalId);      // pinned now: the card opens after the "¡Está bien!" proof has been said
+          if (id) root.setTimeout(function () { nameCard.offer(id); }, 1500);      // an instance id resolves to itself
+        });
+        var greetedAt = {};
+        SA.picking.onPick(function (p) {
+          if (!p || p.part || p.item === 'camara') return;       // only a plain Use on the whole animal (no care part, no photo)
+          var id = instOf(p.animalId), text = id ? SA.names.greeting(id) : '';
+          if (!text || Date.now() - (greetedAt[id] || 0) < 4000) return;
+          greetedAt[id] = Date.now();
+          root.setTimeout(function () { SA.audio.say(text); }, 450);   // after the picked animal's own word
+        });
+      }
+    } catch (e) { report('names.start', e); }
     // Grown-up drawer (press-and-hold gear, an item of the 🎒 menu). Never blocks the main loop.
     var menuView = null;
     try { if (SA.settingsView) SA.settingsView.create(root.document, { onOpen: function () { if (menuView) menuView.used('settings'); } }); }

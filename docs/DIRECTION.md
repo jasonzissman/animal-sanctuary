@@ -319,6 +319,13 @@ current; when your change sets or changes something future tickets must follow, 
   fitting species); the easter-egg reveal shows every instance. Herd placement (AS-0254): the animal data field `herd` (1-5, default 1; regular
   species declare 3-5) and `SA.animalPlan.herdPlacements(animals, opts)` give `{ instanceId: '<id>#<n>', animalId, x, z, y, rotY,
   radius }` per instance, each with its own home in a different sub-area (`subAreas`, 2 x 3) of the biome strip, same clearances.
+- **Name the animals you rescue: 'Luna la rápida' (AS-0169).** After a rescue photo (`SA.missionFlow` calls `SA.names.rescued(animalId)`, main.js opens the
+  card ~1.5 s later) a skippable '¿Cómo se llama?' card offers 3 spoken names, then 3 adjective cards (words that fit its traits first, plus fun extras).
+  `SA.names` (game/names.js, pure; data in game/data/names.js: kinds `names`, `nameAdjectives`) `compose(name, adj, gender)` agrees article and ending with the
+  ANIMAL's gender ('Coco el rápido'; invariant adjectives valiente/grande keep one form). The individual is its herd instance id ('conejo#2', stable across
+  reloads; a story animal keeps its species id); `save.names = { id: { animalId, name, adj? } }` (optional, no version bump). `render/name-labels.js` floats the
+  name over a named animal within ~9 units; a plain Use (no part, no camera) says '¡Hola, Luna la rápida!'; the album shows '💛 Mis amigos' chips. New name/adjective
+  words are data rows, never code. Story missions' own photos do not offer the card yet (only the rescue loop does); they can call `SA.names.rescued(animalId)`.
 - **Small inventory (AS-0154, AS-0155).** Tools (cámara, cepillo, esponja, venda), la fresa as the only food, and rocks.
   No flor or hoja collectibles. Add items only when a mission needs them; fewer is better.
 - **Lots of animals.** Several of each species (3-5) spread around each biome, and >= 5 species per biome. Any instance

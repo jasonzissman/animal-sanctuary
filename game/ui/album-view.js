@@ -7,6 +7,7 @@
  * a big ✕ and a 🔊. No picture / no storage keeps the icon card. A 🔊 next to the name also says it.
  * Two tabs under the title: 🐾 Animales (the cards above) and 🏅 Pegatinas (the sticker book, SA.stickersPage; AS-0168). open('pegatinas')
  * opens straight on the stickers; the tab resets nowhere, so the book reopens on the last tab used.
+ * 💛 Mis amigos (AS-0169): above the cards, one chip per animal you named ('🐰 Luna la rápida', SA.names.friends()); tap = hear it.
  * Tapping a card speaks the animal name; tapping a part chip speaks the part (SA.audio.say with the vocab key). A silhouette
  * only wobbles (no name: it stays a surprise). The page is rebuilt each time it opens, so new photos show up. No-op without a DOM.
  */
@@ -57,7 +58,8 @@
     }
     var grid = el('div', 'display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;');
     var stickerBox = el('div', 'display:none;');
-    page.appendChild(head); page.appendChild(tabs); page.appendChild(grid); page.appendChild(stickerBox);
+    var friendsBox = el('div', 'display:none;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:.6em;');   // named friends (AS-0169)
+    page.appendChild(head); page.appendChild(tabs); page.appendChild(friendsBox); page.appendChild(grid); page.appendChild(stickerBox);
     doc.body.appendChild(opener);
     doc.body.appendChild(page);
     var opened = false;
@@ -156,9 +158,26 @@
       return c;
     }
 
+    // 💛 Mis amigos: the animals you named, one big chip each ('🐰 Luna la rápida'); tap = hear the name (AS-0169).
+    function fillFriends() {
+      while (friendsBox.firstChild) friendsBox.removeChild(friendsBox.firstChild);
+      var list = tab === 'animales' && SA.names ? SA.names.friends() : [];
+      friendsBox.style.display = list.length ? 'flex' : 'none';
+      if (!list.length) return;
+      friendsBox.appendChild(el('div', 'color:#fff8d6;font:700 1.5rem system-ui,sans-serif;', '💛'));
+      list.forEach(function (f) {
+        var b = el('button', BTN + 'min-height:56px;padding:0 .7em;font-size:1.3rem;border-radius:.8em;background:#fff8d6;', f.icon + ' ' + f.text);
+        b.type = 'button';
+        b.setAttribute('aria-label', f.text);
+        b.addEventListener('click', function (ev) { ev.stopPropagation(); say(f.text); });
+        friendsBox.appendChild(b);
+      });
+    }
+
     function build() {
       while (grid.firstChild) grid.removeChild(grid.firstChild);
       while (stickerBox.firstChild) stickerBox.removeChild(stickerBox.firstChild);
+      fillFriends();
       var mine = ++token;
       hideBig();
       var p = SA.album.progress();

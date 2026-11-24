@@ -413,6 +413,14 @@ current; when your change sets or changes something future tickets must follow, 
   so the runtime completes the mission (stars, replayable on the board, mission 4 unlocks), keeps the picture in the album (`SA.photo.record`)
   and logs one rescue row `{ kind: 'river', key: <mission id> }`: the sticker `perrito-feliz` (once, never again on a replay). `onSticker`
   (main.js) shows the sticker line. A reload on the photo step puts the dry puppy on the towel. Same pattern as mission 2's family photo.
+  **Mission 4, La fiesta del mono (AS-0326, slice 1 of AS-0183):** the row `fiesta` (n 4, intro '¡Feliz cumpleaños, mono!') declares
+  `bananas: { item: 'platano', n: 3, biome: 'selva' }` and steps `collect` (3 bananas, 'Recoge 3 plátanos') then `talk` the scientist
+  ('Pide la corona', `gives: 'corona'`). `SA.missionBananas` (`mission-bananas.js`, pure) places the `n` pickups on dry selva ground from the
+  mission seed ONLY while that mission runs (gone when it ends or is abandoned), takes one when the kid walks within 1.6, reports `collected`
+  and says `number:N` (uno / dos / tres); `render/mission-bananas.js` draws bobbing bunches. The generic counted `collect` kind already
+  lived in `data/step-kinds.js`. A step with `gives` (a vocab `thing:` id) is spoken and passed to `SA.missionRuntime.onGive(id)` when met
+  (main.js toasts the crown); the runtime's `target()` points the compass at the scientist's post for a `talk` step. Later slices add the
+  invite-friends, party and photo steps after the crown (the mission currently completes right after it).
 - **Free roam (AS-0246, slice 3 of AS-0179): no clue round starts by itself.** `SA.taskGate` never calls `missionFlow.begin(animalId)` any more;
   with no story mission the world is free roam plus encounters. A story mission starts only from the station board / the scientist
   (`SA.missions.start` in `missions-board-view.js`; a test scans `game/` so nothing else calls it). `SA.mission.start({ animalId })` /

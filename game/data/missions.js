@@ -18,6 +18,9 @@
  *           (AS-0315, optional): the egg placed in the nest hatches `baby` next to `mama` after `seconds` (default 5, 1..30)
  *   river   optional { animal, rock, log } (AS-0319): the stranded animal's id and the ids of the river rock and the fallen log; game/mission-log.js
  *           places them in the river and slides the log across ('push' step: item = the log id; 'goTo' step: place = the rock id)
+ *   bananas optional { item, n, biome? } (AS-0326): the `n` pickups of `item` that game/mission-bananas.js scatters in `biome` (default 'selva')
+ *           while this mission runs; a 'collect' step { item, n } counts them. A step may carry `gives` (a vocab 'thing' id, e.g. 'corona'):
+ *           what the scientist hands over on a 'talk' step; it is spoken and cheered when that step is met.
  *   reward  one-time reward { stars: whole number >= 0 }; never granted again on a replay
  * Missions not built yet are simply absent: the list ends and the board shows "Próximamente".
  */
@@ -77,6 +80,16 @@
       ['bank', 'action'].forEach(function (k) { if (rv[k] !== undefined && (typeof rv[k] !== 'string' || !/^[a-z][a-z0-9-]*$/.test(rv[k]))) fail('river.' + k, 'must be a lowercase id string'); });
       if (rv.rubs !== undefined && (!Number.isInteger(rv.rubs) || rv.rubs < 1 || rv.rubs > 8)) fail('river.rubs', 'must be a whole number from 1 to 8');
     }
+    if (m.bananas !== undefined) {
+      var b = m.bananas;
+      if (!b || typeof b !== 'object' || Array.isArray(b)) fail('bananas', 'must be { item, n, biome? }');
+      if (typeof b.item !== 'string' || !/^[a-z][a-z0-9-]*$/.test(b.item)) fail('bananas.item', 'must be a lowercase id string');
+      if (!Number.isInteger(b.n) || b.n < 1 || b.n > 6) fail('bananas.n', 'must be a whole number from 1 to 6');
+      if (b.biome !== undefined && (typeof b.biome !== 'string' || !b.biome)) fail('bananas.biome', 'must be a biome id string');
+    }
+    m.steps.forEach(function (s, i) {
+      if (s.gives !== undefined && (typeof s.gives !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.gives))) fail('steps[' + i + '].gives', 'must be a lowercase vocab id string');
+    });
     var r = m.reward;
     if (!r || typeof r !== 'object' || typeof r.stars !== 'number' || r.stars < 0 || r.stars !== Math.floor(r.stars)) fail('reward', 'must be { stars: whole number >= 0 }');
   }
@@ -115,6 +128,14 @@
         { kind: 'dry', item: 'perrito', line: { es: 'Sécalo', icon: '🧽', en: 'Dry it off' } },
         // AS-0321: the dry puppy wags its tail; a photo of it ends the mission (and earns the sticker).
         { kind: 'photo', target: 'perrito', line: { es: 'Foto del perrito', icon: '📷', en: 'Puppy photo' } }],
+      reward: { stars: 2 } },
+    // Mission 4 (AS-0326, slice 1 of AS-0183): the monkey's birthday. Collect 3 bananas in the selva (game/mission-bananas.js scatters them
+    // only while this mission runs), then ask the scientist for the flower crown. Inviting friends, the party and the photo come later.
+    { id: 'fiesta', n: 4, es: 'La fiesta del mono', en: "The monkey's party", icon: '🎂',
+      intro: { es: '¡Feliz cumpleaños, mono!', en: 'Happy birthday, monkey!', icon: '🐵' },
+      bananas: { item: 'platano', n: 3, biome: 'selva' },
+      steps: [{ kind: 'collect', item: 'platano', n: 3, line: { es: 'Recoge 3 plátanos', icon: '🍌', en: 'Pick up 3 bananas' } },
+        { kind: 'talk', who: 'scientist', gives: 'corona', line: { es: 'Pide la corona', icon: '👑', en: 'Ask for the crown' } }],
       reward: { stars: 2 } }
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

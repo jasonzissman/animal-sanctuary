@@ -100,6 +100,8 @@
         // The photo of the big tree at the end of the race earned the mission 10 sticker (AS-0354).
         if (SA.missionRace) SA.missionRace.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
         // Winning the race: the one short line "🏅 ¡Ganaste!" (the medal over the player is drawn by game/render/mission-race.js) (AS-0356).
+        // The photo from the lookout tower after handing over the letter earned the mission 11 sticker (AS-0364).
+        if (SA.missionLetter) SA.missionLetter.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
         if (SA.missionRace) SA.missionRace.onMedal = function () { if (ctl && ctl.celebrate) ctl.celebrate('🏅 ¡Ganaste!'); };
         if (SA.missionPantry) SA.missionPantry.onSticker =function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
         // Mission 7 census (AS-0341): a la cámara shot of an animal ticks the list (the trait word is spoken by SA.missionCensus); the finished list earns the sticker.

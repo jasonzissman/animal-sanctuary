@@ -46,7 +46,8 @@
     // AS-0351: what Mission 9 gathers near the build spot before building the rabbit home (mission-only pickups, kept in the bag)
     item('palo', '🪵', 'el palo', 'stick', 'm', 'find', true),
     item('hoja', '🍃', 'la hoja', 'leaf', 'f', 'find', true),
-    item('hierba', '🌾', 'la hierba', 'soft grass', 'f', 'find', true)
+    item('hierba', '🌾', 'la hierba', 'soft grass', 'f', 'find', true),
+    item('carta', '✉️', 'la carta', 'letter', 'f', 'find', false)    // AS-0364: the scientist's letter Mission 11 carries to the lookout tower
   ];
 
   SA.data.defineKind('items', validateItem);

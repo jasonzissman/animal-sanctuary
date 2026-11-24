@@ -14,7 +14,8 @@
  *   SA.missionRuntime.update(player)  polled each frame with { x, z }: a 'goTo' step finishes when the player is inside the place
  *                                     radius, a 'find' step when the player is near the target (places/targets from locate()).
  *   SA.missionRuntime.target()        -> { x, z, role, id } | null   the current step's world target (AS-0233): the piglet's spot for
- *                                     find, mamá's for follow (SA.missionSpawn); the compass (AS-0228) reads this
+ *                                     find, mamá's for follow (SA.missionSpawn); the compass (AS-0228) reads this. null on a step
+ *                                     with `noArrow: true` (AS-0364: Mission 11's spoken directions have no arrow)
  *   SA.missionRuntime.create({ missions?, run?, spawn?, locate?, grant?, celebrate?, track?, proofs? })   a separate instance (tests).
  *       proofs   a SA.proofs instance: a mission finished by a 'photo' event is recorded as a proof sent to the station (AS-0206)
  *       thing    a SA.missionCarry instance (AS-0313): update(player) picks the carried thing up when close; its locate / target
@@ -140,7 +141,7 @@
     // The river log and rock (SA.missionLog, AS-0319) answer the same way: the first world piece that knows the id / step wins.
     function thing() {
       if (opts.thing) return opts.thing;
-      var list = [SA.missionCarry, SA.missionLog, SA.missionBananas, SA.missionDoctor, SA.missionNest, SA.missionFriends, SA.missionParty, SA.missionCensus, SA.missionPantry, SA.missionTrail, SA.missionHome, SA.missionGather, SA.missionRace].filter(Boolean);
+      var list = [SA.missionCarry, SA.missionLog, SA.missionBananas, SA.missionDoctor, SA.missionNest, SA.missionFriends, SA.missionParty, SA.missionCensus, SA.missionPantry, SA.missionTrail, SA.missionHome, SA.missionGather, SA.missionRace, SA.missionLetter].filter(Boolean);
       if (!list.length) return null;
       function first(fn, arg) {
         for (var i = 0; i < list.length; i++) { var r = list[i][fn] ? list[i][fn](arg) : null; if (r) return r; }
@@ -153,7 +154,7 @@
     function target() {
       var sp = spawner(), th = thing(), a;
       try { a = missions().active(); } catch (e) { return null; }
-      if (!a || !a.stepData) return null;
+      if (!a || !a.stepData || a.stepData.noArrow === true) return null;      // AS-0364: a listen-and-find step (data flag) has no compass arrow
       var t = (sp && sp.target(a.stepData)) || (th && th.target ? th.target(a.stepData) : null);
       if (!t && a.stepData.kind === 'talk' && a.stepData.who === 'scientist' && SA.npc) {      // AS-0326: the compass points at her post
         var p = SA.npc.scientist();

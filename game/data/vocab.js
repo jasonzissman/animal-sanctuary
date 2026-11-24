@@ -112,6 +112,13 @@
   add('thing', 'bandera', 'la bandera', 'the flag');
   add('thing', 'arbol', 'el árbol', 'the tree');
   // AS-0355: the spoken countdown "¡Tres, dos, uno, ya!" (tres / dos / uno are the number words), the rabbit's carrot stop and the win.
+  // Mission 11 words (AS-0364): the lost message, spoken directions to the lookout tower (cruzar and el puente are above).
+  add('thing', 'carta', 'la carta', 'the letter');
+  add('thing', 'torre', 'la torre', 'the tower');
+  add('phrase', 'izquierda', 'izquierda', 'left');
+  add('phrase', 'derecha', 'derecha', 'right');
+  add('phrase', 'cerca', 'cerca', 'near');
+  add('phrase', 'lejos', 'lejos', 'far');
   add('phrase', 'ya', '¡Ya!', 'Go!');
   add('phrase', 'rapido', 'rápido', 'fast');
   add('phrase', 'lento', 'lento', 'slow');

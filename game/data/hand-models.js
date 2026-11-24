@@ -65,7 +65,9 @@
     // AS-0351: Mission 9's building materials: a forked brown stick, a green leaf on its stalk, a tuft of soft grass
     model('palo', [cyl(0.02, 0.025, 0.34, 0x8a5a2b, 0, 0.17, 0), cyl(0.012, 0.016, 0.14, 0x8a5a2b, 0.05, 0.24, 0, [0, 0, -0.7])]),
     model('hoja', [ball(0.09, 0x59b04a, 0, 0.14, 0, [1, 0.12, 1.5]), cyl(0.008, 0.01, 0.1, 0x3f7f35, 0, 0.05, 0)]),
-    model('hierba', [cone(0.035, 0.26, 0x8fcf5a, 0, 0.13, 0), cone(0.03, 0.2, 0x7bbf4a, 0.05, 0.1, 0, [0, 0, -0.3]), cone(0.03, 0.2, 0xa5db6a, -0.05, 0.1, 0, [0, 0, 0.3])])
+    model('hierba', [cone(0.035, 0.26, 0x8fcf5a, 0, 0.13, 0), cone(0.03, 0.2, 0x7bbf4a, 0.05, 0.1, 0, [0, 0, -0.3]), cone(0.03, 0.2, 0xa5db6a, -0.05, 0.1, 0, [0, 0, 0.3])]),
+    // AS-0364: Mission 11's letter: a cream envelope with a red wax seal
+    model('carta', [box(0.2, 0.13, 0.015, 0xf7efd8, 0, 0.1, 0), box(0.2, 0.012, 0.018, 0xd9c9a0, 0, 0.14, 0), ball(0.025, 0xd2412f, 0, 0.1, 0.012, [1, 1, 0.4])])
   ];
 
   SA.data.defineKind('handmodels', validateHandModel);

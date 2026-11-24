@@ -15,6 +15,8 @@
  *   SA.missionBananas.locate(id)    -> { x, z, r } | null   the nearest untaken pickup when id is the item
  *   SA.missionBananas.target(step)  -> { x, z, role, id } | null   the compass target of the collect step: the next banana (nearest to `from`)
  *   SA.missionBananas.visible()     -> the untaken pickups that exist right now (the renderer draws these)
+ *   AS-0348: `bananas.bag: true` also puts each pickup into the inventory (Mission 8's strawberries); the pickups wait (shown() false) until their
+ *   'collect' step is current, which need not be the first step. SA.missionBananas.shown() -> the collect step is current (the renderer draws only then).
  *   SA.missionBananas.current()     the state; onChange(fn) -> unsubscribe; setSolids(listOrFn) the walk list kept clear
  *   SA.missionBananas.create({ missions?, audio?, report?, track?, solids? })   a separate instance (tests)
  */
@@ -88,20 +90,32 @@
     function stepOf() { var a = null; try { a = missions().active(); } catch (e) { a = null; } return a && a.stepData; }
     function isCollect(s) { return !!(cur && s && s.kind === 'collect' && s.item === cur.spec.item); }
 
+    // Is the mission's step list past its collect step (a reload on a later step)? Before it (AS-0348: the collect is not the first step) the pickups wait.
+    function pastCollect() {
+      var a = null;
+      try { a = missions().active(); } catch (e) { a = null; }
+      var steps = a && a.mission ? a.mission.steps : [];
+      for (var k = 0; k < steps.length; k++) if (steps[k].kind === 'collect' && steps[k].item === cur.spec.item) return a.step > k;
+      return true;
+    }
+    // Only drawn / reachable while their collect step is the current one.
+    function shown() { return isCollect(stepOf()); }
+
     function update(player, o) {
       sync(o);
       if (player) last = { x: player.x, z: player.z };
       if (!cur) return null;
       var s = stepOf();
-      if (!isCollect(s)) {         // past the collect step (a reload on the next step): nothing is left standing
+      if (!isCollect(s)) {
         var left = visible();
-        if (left.length) { left.forEach(function (i) { i.taken = true; }); emit(); }
+        if (left.length && pastCollect()) { left.forEach(function (i) { i.taken = true; }); emit(); }   // past the collect step: nothing is left standing
         return cur;
       }
       if (!player) return cur;
       var hit = visible().filter(function (i) { return Math.hypot(player.x - i.x, player.z - i.z) <= PICK_REACH; })[0];
       if (!hit) return cur;
       hit.taken = true;
+      if (cur.spec.bag) { try { var iv = opts.inventory || SA.inventory; if (iv && iv.add) iv.add(cur.spec.item, 1); } catch (e) { /* the bag never breaks the loop */ } }   // AS-0348: kept for the share step
       emit();
       var r = report({ type: 'collected', item: cur.spec.item });
       var have = r && r.status === 'progress' ? r.have : cur.spec.n;
@@ -125,7 +139,7 @@
       return { x: v[0].x, z: v[0].z, role: 'item', id: v[0].id };
     }
 
-    return { sync: sync, update: update, locate: locate, target: target, visible: visible, current: function () { return cur; },
+    return { sync: sync, update: update, locate: locate, target: target, visible: visible, shown: shown, current: function () { return cur; },
       setSolids: function (s) { solidsSrc = s; },
       onChange: function (fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; },
       create: create, PICK_REACH: PICK_REACH };

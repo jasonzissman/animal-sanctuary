@@ -47,7 +47,10 @@
       bunches = [];
       if (!cur) return;
       cur.items.forEach(function (it) {
-        var b = bunchModel(THREE);
+        // AS-0348: an item with a hand model in the data (the strawberry) is drawn from it, big; otherwise the banana bunch.
+        var held = SA.render.buildItemModel ?SA.render.buildItemModel(THREE, cur.spec.item) : null;
+        if (held) held.scale.set(3.2, 3.2, 3.2);
+        var b = held || bunchModel(THREE);
         b.position.set(it.x, it.y + LIFT, it.z);
         group.add(b);
         bunches.push({ item: it, mesh: b });
@@ -60,7 +63,7 @@
       if (k !== key) { key = k; rebuild(cur); }
       t += dt || 0;
       bunches.forEach(function (b, i) {
-        b.mesh.visible = !b.item.taken;
+        b.mesh.visible = !b.item.taken && (!thing.shown || thing.shown());
         b.mesh.position.y = b.item.y + LIFT + Math.sin(t * 2.2 + i) * 0.1;
         b.mesh.rotation.y = t * 1.2 + i;
       });

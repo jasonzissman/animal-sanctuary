@@ -360,7 +360,12 @@ current; when your change sets or changes something future tickets must follow, 
   doorstep, along a dry route from `SA.trailRoute` (`game/trail-route.js`: A* over dry cells, through the river's ford, round the station), with a
   raised log across the way to walk under. `game/render/mission-trail.js` shows the prints ONLY while the step is active (the next 3 glow and
   pulse); the basket and log stay for the whole mission. The compass points 5 prints ahead of your progress. The step finishes within 6.6 of
-  the tree (so a straight dash works too: no fail state), then `goTo` / `photo` go on as before. Slice 3 adds the rest of the mission.
+  the tree (so a straight dash works too: no fail state), then `goTo` / `photo` go on as before.
+  **Mission 8 share (AS-0348, slice 3):** steps are now trail → goTo → `collect` fresa ×3 → `give` fresa ×3 to the mice → photo. The collect reuses
+  `SA.missionBananas` via the row's `bananas: { item: 'fresa', n: 3, biome: 'bosque', bag: true }` (`bag` also puts each pickup in the inventory; the
+  pickups only stand while their collect step is current, drawn from the item's hand model). The `give` kind has an optional `n`. Tapping the mice
+  (`SA.missionPantry.give`) takes the strawberries from the bag (a short bag still counts: never stuck), the family squeaks and hops, `compartir`
+  is spoken, and `pantry.gift` (`bellota`, a new `find` item with a hand model) goes into the inventory (once; a replay does not stack it).
 - **The story starts at the research station (AS-0141 to AS-0144).** You spawn by a small station; a scientist coworker
   (always there, on the station porch) opens a new game with a quick ~15-20 s talk: animals in the sanctuary need
   help, find them, help them, photo proof (spoken, picture cards), hands you la cámara and gives missions; proof photos go on the station's

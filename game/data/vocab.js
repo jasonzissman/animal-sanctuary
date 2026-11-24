@@ -97,6 +97,7 @@
   add('thing', 'familia', 'la familia', 'the family');
   add('thing', 'huellas', 'las huellas', 'the footprints');   // AS-0347: the trail to the hollow tree
   add('phrase', 'seguir', 'seguir', 'to follow');
+  add('phrase', 'compartir', 'compartir', 'to share');   // AS-0348: sharing the strawberries with the mouse family
   add('phrase', 'pasotoca', '¡Toca!', 'Touch it!');
   add('phrase', 'pasollena', '¡Llena!', 'Fill it!');
   add('phrase', 'cruzar', 'cruzar', 'to cross');

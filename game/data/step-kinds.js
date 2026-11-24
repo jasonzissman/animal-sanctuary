@@ -55,7 +55,7 @@
     { id: 'touch', event: 'touched', required: { animal: 'string', part: 'string' }, match: { animal: 'animal', part: 'part' } },   // AS-0331: tap a body part (the sick camel's la frente)
     { id: 'recover', event: 'recovered', required: { animal: 'string' }, match: { animal: 'animal' } },   // AS-0333: the sick animal rests until the next session / mission
     { id: 'fill', event: 'filled', required: { item: 'string' }, match: { item: 'item' } },   // AS-0331: fill the held bucket at the water
-    { id: 'give', event: 'gave', required: { item: 'string', to: 'string' }, match: { item: 'item', to: 'to' } },   // AS-0337: hand the held item to an animal (the eagle chick's feather)
+    { id: 'give', event: 'gave', required: { item: 'string', to: 'string' }, optional: { n: 'number' }, match: { item: 'item', to: 'to' } },   // AS-0337: hand the held item to an animal (the eagle chick's feather); AS-0348: optional n = how many (3 strawberries)
     { id: 'census', event: 'censused', required: {}, match: {} },   // AS-0341: the whole census list is photographed (SA.missionCensus reports it)
     { id: 'trail', event: 'trailed', required: { trail: 'string' }, match: { trail: 'trail' } },   // AS-0347: follow the footprints to the hollow tree (SA.missionTrail reports it)
     { id: 'collect', event: 'collected', required: { item: 'string', n: 'number' }, match: { item: 'item' }, progress: { total: 'n' } },

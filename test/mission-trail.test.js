@@ -110,13 +110,13 @@ test('the step: shown only while active, spoken once, compass follows the prints
   // Reaching the hollow tree finishes the step.
   rt.update({ x: t.x + Math.sin(t.face) * 5, z: t.z + Math.cos(t.face) * 5, y: t.y });
   assert.notEqual(step(c).kind, 'trail', 'reaching the doorstep ends the footprints step');
-  assert.ok(['goTo', 'photo'].includes(step(c).kind));
+  assert.ok(['goTo', 'collect', 'photo'].includes(step(c).kind));
   assert.equal(trail.view().active, false, 'prints are hidden once the step is over');
   assert.equal(trail.target(step(c)), null);
   assert.ok(tracked.some(([n]) => n === 'trail.start') && tracked.some(([n]) => n === 'trail.end'));
   // The existing goTo step then finishes at the tree itself.
   rt.update({ x: t.x, z: t.z + 1, y: t.y });
-  assert.equal(step(c).kind, 'photo');
+  assert.equal(step(c).kind, 'collect', 'AS-0348: the strawberries come after reaching the tree');
 });
 
 test('a straight dash to the tree also finishes the step (no fail state, no need to walk every print)', () => {

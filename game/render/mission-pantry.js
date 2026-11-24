@@ -2,6 +2,7 @@
  * inside it (AS-0346). It follows SA.missionPantry (pure: where the tree stands and where each mouse sits). The tree is built from the prop's data
  * `builder` key (SA.render.propBuilders, game/render/hollow-tree.js) and the family through the normal animal path (SA.render.animalBuilder) from the
  * animal ids in the data; the babies hop a little on the spot so the hollow looks alive. Nothing here knows a mission id or an animal id.
+ * On the 'give' step (AS-0348) a tap on any mouse calls thing.give(player): the family hops happily (view().cheer) and the acorn goes into the bag.
  * On the 'photo' step a tap on any mouse calls thing.snap(player) (la cámara is put in hand on a first tap, like the eagle photo); only the family's
  * own meshes are raycast, never the whole scene.
  *   update(dt)   once per frame; returns the group it manages
@@ -47,20 +48,27 @@
       var k = cur ? cur.key : null;
       if (k !== key) { key = k; rebuild(cur); }
       t += dt || 0;
-      mice.forEach(function (e) { e.m.position.y = e.y + (e.baby ? Math.abs(Math.sin(t * 3 + e.phase)) * 0.08 : 0); });   // the babies hop on the spot
+      var v = cur && thing.view ? thing.view() : null, cheer = v && v.cheer != null ? v.cheer : null;
+      mice.forEach(function (e) {
+        // the babies hop on the spot; after the share (AS-0348) the whole family hops happily for a moment
+        var hop = e.baby ? Math.abs(Math.sin(t * 3 + e.phase)) * 0.08 : 0;
+        if (cheer != null) hop += Math.abs(Math.sin(cheer * 9 + e.phase)) * (e.baby ? 0.3 : 0.2) * Math.max(0, 1 - cheer / 2.4);
+        e.m.position.y = e.y + hop;
+      });
       return group;
     }
 
     function tapAt(x, y) {
       if (!mice.length || !opts.canvas || !opts.camera || !thing.snap || (SA.picking && SA.picking.isPaused && SA.picking.isPaused())) return false;
       var v = thing.view ? thing.view() : null;
-      if (!v || !v.photo) return false;                        // only the family photo is a tap here
+      if (!v || (!v.photo && !v.share)) return false;          // only sharing the strawberries and the family photo are taps here
       var r = opts.canvas.getBoundingClientRect();
       if (!r.width || !r.height) return false;
       var ray = new THREE.Raycaster();
       ray.setFromCamera(new THREE.Vector2(((x - r.left) / r.width) * 2 - 1, -(((y - r.top) / r.height) * 2 - 1)), opts.camera);
       var nodes = mice.map(function (e) { e.m.updateMatrixWorld(true); return e.m; });
       if (!ray.intersectObjects(nodes, true).length) return false;
+      if (v.share) { var g = thing.give(opts.getPlayer && opts.getPlayer()); return !!(g && g.ok); }
       var res = thing.snap(opts.getPlayer && opts.getPlayer());
       if (res.status === 'nocamera' && SA.inventory && SA.inventory.equip(SA.photo ? SA.photo.CAMERA : 'camara')) {
         try { SA.audio.say('item:camara'); } catch (e) { /* sound is best effort */ }       // la cámara is now in hand: tap again

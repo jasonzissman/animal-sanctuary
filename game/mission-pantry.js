@@ -17,13 +17,17 @@
  *   SA.missionPantry.snap(player?)   a tap on the family with la cámara on the 'photo' step (render/mission-pantry.js), from near the tree:
  *                                    { status: 'none' | 'nocamera' | 'far' | 'complete' | 'step' }. It goes into the album (SA.photo.record), completes the
  *                                    mission (stars) and logs one rescue row { kind: 'pantry' } -> the sticker 'despensa-secreta' (onSticker hook for main.js)
- *   SA.missionPantry.view()          -> { photo, arrived } | null     current() / onChange(fn) / setSolids(listOrFn)
+ *   AS-0348 (slice 3): the 'give' step { item: 'fresa', to: <mamá's animal id>, n: 3 } (after a 'collect' of the strawberries, game/mission-bananas.js with
+ *   bananas.bag). SA.missionPantry.give(player?) is a tap on the mice (render/mission-pantry.js) near the tree: it takes `n` of the item out of the bag, plays a
+ *   happy reaction (squeak + sparkle sfx, view().cheer = seconds into the hop, the render makes the whole family hop), speaks say.give ('compartir') then say.gift,
+ *   puts `pantry.gift` (la bellota, a shiny acorn) into the inventory and reports { type: 'gave' } -> { ok, gift? } | { ok: false, reason: 'step' | 'far' }.
+ *   SA.missionPantry.view()          -> { photo, share, arrived, cheer } | null     current() / onChange(fn) / setSolids(listOrFn)
  *   SA.missionPantry.create({ missions?, audio?, report?, track?, solids?, photo?, rescueLog? })   a separate instance (tests)
  */
 (function (root) {
   'use strict';
   var SA = root.SA;
-  var TREE_R = 3.2, PHOTO_REACH = 11, EDGE = 6, TRIES = 900, MIN_FROM_START = 22, MAX_FROM_START = 70, FLAT = 0.35, SOLID_GAP = 3;
+  var TREE_R = 3.2, PHOTO_REACH = 11, GIVE_REACH = 9, CHEER_S = 2.4, EDGE = 6, TRIES = 900, MIN_FROM_START = 22, MAX_FROM_START = 70, FLAT = 0.35, SOLID_GAP = 3;
   // Where the family sits inside the hollow, in the tree's own frame (x = right, z = out through the opening): mamá and papá in the middle,
   // the babies in a row in front of them. The pantry shelves stand at the back (render/hollow-tree.js).
   var SLOTS = { mama: [-0.55, 0.15], papa: [0.55, 0.15], baby: [[-0.85, 0.85], [0, 0.95], [0.85, 0.85], [-0.4, 1.4], [0.4, 1.4]] };
@@ -87,7 +91,12 @@
     function missions() { return opts.missions || SA.missions; }
     function audio() { return opts.audio || SA.audio; }
     function emit() { listeners.slice().forEach(function (f) { try { f(cur); } catch (e) { /* a view never breaks the loop */ } }); }
-    function say(key) { try { var a = audio(); if (key && a && a.say) a.say(key); } catch (e) { /* sound is best effort */ } }
+    function say(keys) {
+      [].concat(keys || []).forEach(function (k, i) {
+        try { var a = audio(); if (k && a && a.say) { if (i && root.setTimeout && !opts.audio) root.setTimeout(function () { a.say(k); }, i * 1200); else a.say(k); } } catch (e) { /* sound is best effort */ }
+      });
+    }
+    function now() { return opts.now ? opts.now() : Date.now(); }
     function track(type, f) {
       try { if (opts.track) opts.track(type, f); else if (root.SAT && root.SAT.track) root.SAT.track(type, f); } catch (e) { /* telemetry never breaks play */ }
     }
@@ -95,6 +104,7 @@
     function stepOf() { var a = null; try { a = missions().active(); } catch (e) { a = null; } return a && a.stepData; }
     function sayOf(k) { return cur && cur.spec.say ? cur.spec.say[k] : null; }
     function isGoTo(s) { return !!(cur && s && s.kind === 'goTo' && s.place === cur.spec.place); }
+    function isShare(s) { return !!(cur && s && s.kind === 'give' && s.to === cur.spec.family.mama); }
 
     function sync(o) {
       var a = null;
@@ -104,7 +114,7 @@
       if ((cur && cur.key) === key) return cur;
       var src = (o && o.solids) || solidsSrc;
       var p = spec ? place(spec, a.seed, { solids: typeof src === 'function' ? src() : src || [] }) : null;
-      cur = p ? { key: key, spec: spec, tree: p.tree, family: p.family, said: {}, snapped: false } : null;
+      cur = p ? { key: key, spec: spec, tree: p.tree, family: p.family, said: {}, snapped: false, sharedAt: null } : null;
       emit();
       return cur;
     }
@@ -125,8 +135,29 @@
 
     function target(step) {
       if (!cur || !step) return null;
-      if (isGoTo(step) || (step.kind === 'photo' && step.target === cur.spec.place)) return { x: cur.tree.x, z: cur.tree.z, role: 'place', id: cur.spec.place };
+      if (isGoTo(step) || isShare(step) || (step.kind === 'photo' && step.target === cur.spec.place)) return { x: cur.tree.x, z: cur.tree.z, role: 'place', id: cur.spec.place };
       return null;
+    }
+
+    // Sharing (AS-0348): a tap on the mice (render/mission-pantry.js) on the 'give' step, from near the tree. The babies were just hungry: the strawberries leave
+    // the bag, the family squeaks and hops happily and hands back `spec.gift` (a shiny acorn) into the inventory. Never punishing and never stuck: a tap that
+    // is too early or too far just makes the mice wiggle (and says '¡Acércate!'); a bag that came up short (a strawberry was fed away) still counts.
+    function give(player) {
+      sync();
+      var s = stepOf(), p = player || last;
+      if (!cur || !isShare(s) || cur.sharedAt != null) return { ok: false, reason: 'step' };
+      if (p && Math.hypot(p.x - cur.tree.x, p.z - cur.tree.z) > GIVE_REACH) { say('phrase:acercate'); return { ok: false, reason: 'far' }; }
+      var iv = opts.inventory || SA.inventory, n = typeof s.n === 'number' && s.n >= 1 ? Math.floor(s.n) : 1;
+      try { var have = iv.count(s.item); if (have > 0) iv.remove(s.item, Math.min(have, n)); } catch (e) { /* the bag never breaks the loop */ }
+      var gift = cur.spec.gift;
+      try { if (gift && iv && iv.add && !(iv.has && iv.has(gift))) iv.add(gift, 1); } catch (e) { /* the bag never breaks the loop */ }
+      cur.sharedAt = now();
+      try { var au = audio(); if (au && au.sfx) { au.sfx('squeak'); au.sfx('sparkle'); } } catch (e) { /* sound is best effort */ }
+      say([].concat(sayOf('give') || [], sayOf('gift') || []));
+      track('pantry.share', { tree: cur.spec.tree, gift: gift || '' });
+      emit();
+      report({ type: 'gave', item: s.item, to: s.to });
+      return { ok: true, gift: gift || null };
     }
 
     // The family photo (a tap on the mice with la cámara in hand, from near the tree). Never punishing: a far or camera-less tap just returns a status.
@@ -156,10 +187,11 @@
     function view() {
       if (!cur) return null;
       var s = stepOf();
-      return { photo: !!(s && s.kind === 'photo'), arrived: !!cur.said.arrive };
+      var cheer = cur.sharedAt == null ? null : Math.max(0, (now() - cur.sharedAt) / 1000);
+      return { photo: !!(s && s.kind === 'photo'), share: isShare(s), arrived: !!cur.said.arrive, cheer: cheer != null && cheer < CHEER_S ? cheer : null };
     }
 
-    var api = { sync: sync, update: update, locate: locate, target: target, snap: snap, view: view, onSticker: null, current: function () { return cur; },
+    var api = { sync: sync, update: update, locate: locate, target: target, snap: snap, give: give, view: view, onSticker: null, current: function () { return cur; },
       setSolids: function (s) { solidsSrc = s; },
       onChange: function (fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; },
       create: create, TREE_R: TREE_R, PHOTO_REACH: PHOTO_REACH };

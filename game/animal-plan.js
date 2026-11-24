@@ -27,6 +27,9 @@
  *
  * placements(animals, opts) -> { <animalId>: { x, z, y, rotY } } deterministic spots on dry ground in each
  * animal's biome (uses SA.map). opts.avoid = [[x,z],...] points (e.g. trees) to keep clear of.
+ *
+ * herdPlacements(animals, opts) -> [ { instanceId: '<animalId>#<n>', animalId, x, z, y, rotY, radius } ] `animal.herd` (1-5)
+ * spread-out instances per species, each with its own wander home (see below). Pure planning only: nothing renders them yet.
  */
 (function (root) {
   'use strict';
@@ -217,5 +220,59 @@
     return result;
   }
 
-  SA.animalPlan = { PICK_SCALE: PICK_SCALE, BIG_PICK_SCALE: BIG_PICK_SCALE, DEFAULT_RADIUS: DEFAULT_RADIUS, plan: plan, choosePick: choosePick, pickRadius: pickRadius, quadrants: quadrants, placements: placements };
+  // Herds (AS-0254): each species has `herd` instances (1-5), every one with its own home in a different sub-area of its biome.
+  var CELL_ORDER = [[0, 0], [1, 2], [1, 0], [0, 2], [0, 1], [1, 1]];   // [column (west/east), row (south..north)] of the 2 x 3 grid; consecutive cells lie far apart
+
+  /** The 2 x 3 sub-areas of a biome strip, in CELL_ORDER: [{ x0, x1, z0, z1 }]. [] for an unknown biome. */
+  function subAreas(biome) {
+    var M = SA.map, strip = M.biomeRange(biome), B = M.BOUNDS;
+    if (!strip) return [];
+    var zLo = B.minZ + QUAD_Z_EDGE, rowH = (B.maxZ - QUAD_Z_EDGE - zLo) / 3;
+    return CELL_ORDER.map(function (c) {
+      var x0 = c[0] ? strip.centerX : strip.lo, x1 = c[0] ? strip.hi : strip.centerX;
+      return { x0: x0 + QUAD_EDGE, x1: x1 - QUAD_EDGE, z0: zLo + c[1] * rowH, z1: zLo + (c[1] + 1) * rowH };
+    });
+  }
+
+  /** herdPlacements(animals, opts) -> [{ instanceId: '<animalId>#<n>', animalId, x, z, y, rotY, radius }], `animal.herd` (default 1)
+   *  instances per animal, in input order. Instance n of the k-th species of a biome takes sub-area (2k + n) of subAreas(), so the
+   *  homes spread over the whole strip. Spots are dry, flat, off the station footprint and spawn zone, and keep the body gap, the
+   *  pick-volume clearance and MIN_CENTRE from every other instance and from opts.avoid ([[x,z],...]); a crowded cell falls back to
+   *  its most roomy spot. Deterministic (SA.map.rng). `radius` is the wander radius around the home. */
+  function herdPlacements(animals, opts) {
+    var M = SA.map, avoid = (opts && opts.avoid) || [], rand = M.rng(11);
+    var spots = [], out = [], species = {}, gap = SA.spacing ? SA.spacing.GAP : 0;
+    animals.forEach(function (a) {
+      var cells = subAreas(a.biome), k = species[a.biome] = (species[a.biome] === undefined ? 0 : species[a.biome] + 1);
+      var me = { r: SA.spacing ? SA.spacing.bodyRadius(a) : 0, pick: pickRadius(a) };
+      for (var n = 0; n < (a.herd || 1); n++) {
+        var c = cells.length ? cells[(2 * k + n) % cells.length] : { x0: -14, x1: 14, z0: -18, z1: 18 };
+        var best = null, bestScore = -Infinity;
+        for (var t = 0; t < 600; t++) {
+          var x = c.x0 + rand() * (c.x1 - c.x0), z = c.z0 + rand() * (c.z1 - c.z0), h = M.groundHeight(x, z), i, d;
+          if (M.biomeAt(x) !== a.biome || h < M.WATER_LEVEL + 0.45) continue;
+          if (t < 450 && (Math.abs(M.groundHeight(x + 1, z) - h) > 0.6 || Math.abs(M.groundHeight(x, z + 1) - h) > 0.6)) continue;
+          if (SA.station && SA.station.inFootprint(x, z, 1.5)) continue;
+          if (SA.player && SA.player.inSpawnZone(x, z, 1)) continue;
+          var room = Infinity, near = Infinity, clear = true;
+          for (i = 0; i < spots.length; i++) {
+            d = Math.hypot(spots[i][0] - x, spots[i][1] - z);
+            room = Math.min(room, d - Math.max(me.r + spots[i][2] + gap, me.pick + spots[i][3]));
+            near = Math.min(near, d);
+          }
+          for (i = 0; i < avoid.length && clear; i++) clear = Math.hypot(avoid[i][0] - x, avoid[i][1] - z) >= 2.4;
+          if (clear && room >= 0 && near >= MIN_CENTRE) { best = [x, z]; break; }
+          var score = (clear ? 0 : -1000) + Math.min(room, near - MIN_CENTRE);
+          if (score > bestScore) { best = [x, z]; bestScore = score; }
+        }
+        best = best || [(c.x0 + c.x1) / 2, (c.z0 + c.z1) / 2];
+        spots.push([best[0], best[1], me.r, me.pick]);
+        out.push({ instanceId: a.id + '#' + n, animalId: a.id, x: best[0], z: best[1], y: M.groundHeight(best[0], best[1]), rotY: (rand() - 0.5) * 1.2, radius: DEFAULT_RADIUS });
+      }
+    });
+    return out;
+  }
+
+  SA.animalPlan = { PICK_SCALE: PICK_SCALE, BIG_PICK_SCALE: BIG_PICK_SCALE, DEFAULT_RADIUS: DEFAULT_RADIUS, plan: plan, choosePick: choosePick, pickRadius: pickRadius, quadrants: quadrants, placements: placements,
+    subAreas: subAreas, herdPlacements: herdPlacements };
 })(typeof window !== 'undefined' ? window : globalThis);

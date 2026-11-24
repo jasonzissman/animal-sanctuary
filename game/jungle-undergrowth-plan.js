@@ -84,7 +84,7 @@
     if (M.groundHeight(x, z) < M.WATER_LEVEL + 0.4 || M.nearWater(x, z, 1)) return false;
     for (i = 0; i < giants.length; i++) if (Math.hypot(x - giants[i].x, z - giants[i].z) < GIANT_CLEAR + scale * 0.5) return false;
     for (i = 0; i < corridors.length; i++) if (segDist(x, z, corridors[i]) < HALF + scale * 0.6) return false;
-    if (JP.near(x, z, 0.8)) return false;
+    if (JP.near(x, z, 0.8) || JP.inClearing(x, z, scale * 0.6)) return false;   // and the sunny clearings (AS-0391)
     if (SA.player && SA.player.inSpawnZone(x, z, 1)) return false;
     if (SA.station && SA.station.inFootprint(x, z, 1.5)) return false;
     if (SA.lookouts && SA.lookouts.near(x, z, 1.5)) return false;

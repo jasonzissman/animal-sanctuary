@@ -39,6 +39,7 @@
   var GRASS = [hex('#6fae5e'), hex('#7cb86a'), hex('#8cc873')], DRY = hex('#c3b872');
   var FLOWERS = [hex('#f6f0d8'), hex('#f4c542'), hex('#f08fb0')];
   var SOIL = [hex('#4b3a2a'), hex('#3a2c20')], MOSS = hex('#2f5d36'), LITTER = hex('#6a4a2c');
+  var SUNNY = [hex('#a8d56a'), hex('#bce074')];   // sunny clearing grass (AS-0391)
   var SAND = hex('#e0c27a'), TROUGH = hex('#c9a85f'), CREST = hex('#f3e1ac');
   var SCREE = [hex('#8a9a8c'), hex('#767f78'), hex('#9aa398')], ROCK = hex('#5f6663'), SNOW = hex('#f4f8fb');
 
@@ -61,6 +62,8 @@
     mix(o, SOIL[1], n);
     mix(o, MOSS, smooth((noise(x * 0.1, z * 0.1, seed + 12) - 0.5) / 0.2) * 0.8);
     if (hash(Math.round(x), Math.round(z), seed + 13) > 0.85) mix(o, LITTER, 0.6);   // leaf litter
+    var sun = SA.junglePlan && SA.junglePlan.clearingStrength ? SA.junglePlan.clearingStrength(x, z) : 0;   // AS-0391: a sunny clearing is lighter, warmer grass
+    if (sun > 0) mix(o, SUNNY[noise(x * 0.6, z * 0.6, seed + 14) < 0.5 ? 0 : 1], 0.9 * sun * sun * (3 - 2 * sun));
   }
 
   function desert(x, z, h, seed, o) {

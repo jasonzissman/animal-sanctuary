@@ -21,7 +21,8 @@
  *                answer for carry / deliver steps after the spawned animals do. Without it, SA.missionCarry and SA.missionLog
  *                (the river rock and log, AS-0319) are both asked in turn
  *       locate(id) -> { x, z, r? } | null   where a place / find target is (default: none; mission content registers them)
- *       grant(reward)       the reward of the FIRST completion (stars; default adds to save.stars); never called on a replay
+ *       onGive(id)          set on the instance: called when a 'talk' step with `gives` is met (main.js toasts the crown)
+ *       grant(reward)      the reward of the FIRST completion (stars; default adds to save.stars); never called on a replay
  *       celebrate(result)   the finish cheer (default: the fanfare, then the instance's `celebrateHook(result)`, which main.js sets to
  *                           the toast + confetti); the instance's `onStars(total)` refreshes the star badge after a reward
  * The run state (a collect count) lives in memory, keyed by mission id + seed; the step index lives in the save, so a reload
@@ -70,12 +71,22 @@
       if (api.celebrateHook) api.celebrateHook(res);
     }
 
+    // A 'talk' step with `gives` hands something over (AS-0326: the flower crown): spoken and cheered once, when the step is met.
+    function gave(s) {
+      if (!s || typeof s.gives !== 'string') return;
+      try { if (SA.audio && SA.audio.say) SA.audio.say('thing:' + s.gives); } catch (e) { /* sound is best effort */ }
+      try { if (api.onGive) api.onGive(s.gives); } catch (e) { /* a cheer never breaks play */ }
+      track('mission.give', { item: s.gives });
+    }
+
     function report(event) {
       var a;
       try { a = sync(); } catch (e) { return { status: 'none' }; }
       if (!a || !run) return { status: 'none' };
+      var before = engine().current(run);
       var r = engine().step(run, event);
       if (!r.advanced && !r.progressed) return { status: 'ignored' };
+      if (r.advanced) gave(before);
       run = r.state;
       if (r.progressed) {
         track('mission.progress', { id: a.id, step: a.step, have: run.progress });
@@ -129,7 +140,7 @@
     // The river log and rock (SA.missionLog, AS-0319) answer the same way: the first world piece that knows the id / step wins.
     function thing() {
       if (opts.thing) return opts.thing;
-      var list = [SA.missionCarry, SA.missionLog].filter(Boolean);
+      var list = [SA.missionCarry, SA.missionLog, SA.missionBananas].filter(Boolean);
       if (!list.length) return null;
       function first(fn, arg) {
         for (var i = 0; i < list.length; i++) { var r = list[i][fn] ? list[i][fn](arg) : null; if (r) return r; }
@@ -143,7 +154,12 @@
       var sp = spawner(), th = thing(), a;
       try { a = missions().active(); } catch (e) { return null; }
       if (!a || !a.stepData) return null;
-      return (sp && sp.target(a.stepData)) || (th && th.target ? th.target(a.stepData) : null);
+      var t = (sp && sp.target(a.stepData)) || (th && th.target ? th.target(a.stepData) : null);
+      if (!t && a.stepData.kind === 'talk' && a.stepData.who === 'scientist' && SA.npc) {      // AS-0326: the compass points at her post
+        var p = SA.npc.scientist();
+        t = { x: p.x, z: p.z, role: 'npc', id: 'scientist' };
+      }
+      return t;
     }
 
     function update(player) {
@@ -164,7 +180,7 @@
       return report(s.kind === 'goTo' ? { type: 'arrived', place: id } : { type: 'found', target: id });
     }
 
-    var api = { report: report, onPick: onPick, update: update, target: target, create: create, celebrateHook: null, onStars: null, locate: null };
+    var api = { report: report, onPick: onPick, update: update, target: target, create: create, celebrateHook: null, onGive: null, onStars: null, locate: null };
     return api;
   }
 

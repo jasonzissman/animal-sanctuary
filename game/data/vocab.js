@@ -68,6 +68,12 @@
   add('thing', 'tronco', 'el tronco', 'the log');
   add('thing', 'roca', 'la roca', 'the rock');   // AS-0319: the rock the puppy waits on
   add('thing', 'orilla', 'la orilla', 'the bank');   // AS-0320: where the rescued puppy is set down to dry
+  // Mission 4 words (AS-0326): the monkey's birthday; uno / dos / tres are the number words below.
+  add('thing', 'cumpleanos', 'el cumpleaños', 'the birthday');
+  add('thing', 'regalo', 'el regalo', 'the gift');
+  add('thing', 'platanos', 'los plátanos', 'the bananas');
+  add('thing', 'fiesta', 'la fiesta', 'the party');
+  add('thing', 'corona', 'la corona', 'the crown');
   add('phrase', 'cruzar', 'cruzar', 'to cross');
   add('phrase', 'guau', '¡Guau!', 'Woof!').pitch = 1.25;   // el perrito's bark (animal.voice)
 

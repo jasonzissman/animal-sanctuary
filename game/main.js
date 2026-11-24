@@ -87,6 +87,8 @@
         }
         // The puppy's photo earned the mission 3 sticker (AS-0321).
         if (SA.missionLog) SA.missionLog.onSticker = function (r) { var b = r && r.badges && r.badges[r.badges.length - 1]; if (b && ctl && ctl.celebrate) ctl.celebrate(b.icon + ' ' + b.es); };
+        // The scientist hands over the flower crown (mission 4, AS-0326); SA.missionRuntime speaks "la corona".
+        rt.onGive = function (id) { if (id === 'corona' && ctl && ctl.celebrate) ctl.celebrate('👑 ¡La corona!'); };
         SA.picking.onPick(rt.onPick);
         if (SA.npc && SA.npc.onTalk) SA.npc.onTalk(function () { rt.report({ type: 'talked', who: 'scientist' }); return false; });
       }

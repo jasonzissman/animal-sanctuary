@@ -22,7 +22,9 @@
  *   SA.missionRace.snap(player?)   a tap on the big tree with la cámara on the 'photo' step, from near it: { status: 'none' | 'nocamera' | 'far' | 'complete' | 'step' }.
  *                                  It goes into the album (SA.photo.record), completes the mission (stars) and logs one rescue row { kind: 'race' } -> the sticker
  *                                  'buen-corredor' (onSticker hook for main.js)
- *   SA.missionRace.view()          -> { talk, photo, arrived, passed: [flag indexes], race: { state, waiting, losses, mode, eat, ate, x, y, z, rotY, carrot } | null } | null
+ *   SA.missionRace.onMedal = fn({ losses })   AS-0356 hook for main.js: called once when the race is won (fanfare + "¡Ganaste!" are already played here;
+ *                                  view().medal then stays true until the mission ends, so the finish photo shows the medal the renderer hangs over the player)
+ *   SA.missionRace.view()          -> { talk, photo, arrived, medal, passed: [flag indexes], race: { state, waiting, losses, mode, eat, ate, x, y, z, rotY, carrot } | null } | null
  *                                  current() / onChange(fn) / setSolids(listOrFn)   (race: the rabbit's pose while a goTo race is on; the renderer draws it)
  *   SA.missionRace.create({ missions?, audio?, report?, track?, solids?, photo?, rescueLog?, inventory?, now? })   a separate instance (tests)
  */
@@ -138,7 +140,7 @@
       if ((cur && cur.key) === key) return cur;
       var src = (o && o.solids) || solidsSrc;
       var p = spec ? place(spec, a.seed, { solids: typeof src === 'function' ? src() : src || [] }) : null;
-      cur = p ? { key: key, spec: spec, start: p.start, goal: p.goal, flags: p.flags, rabbit: p.rabbit, said: {}, passed: [], snapped: false, race: null } : null;
+      cur = p ? { key: key, spec: spec, start: p.start, goal: p.goal, flags: p.flags, rabbit: p.rabbit, said: {}, passed: [], snapped: false, medal: false, race: null } : null;
       if (cur && SA.racePace) {       // the rabbit runs: its start spot, the flags in order, the tree
         cur.race = SA.racePace.create({ points: [p.rabbit].concat(p.flags, [p.goal]), pace: spec.pace });
         cur.carrot = SA.racePace.carrotAt(cur.race.path, cur.race.pace);
@@ -146,6 +148,17 @@
       lastClock = null;
       emit();
       return cur;
+    }
+
+    // The medal moment (AS-0356): a win plays the fanfare, hangs a medal over the player (view().medal; it stays through the photo step so the finish photo shows it),
+    // and tells main.js (onMedal) to flash the one short line "¡Ganaste!" with its icon. The mission itself moves on to the photo step via locate() as soon as the race is won.
+    function medal(losses) {
+      if (cur.medal) return;
+      cur.medal = true;
+      sfx('fanfare');
+      track('race.won', { losses: losses });
+      track('race.medal', { place: cur.spec.place });
+      if (api.onMedal) { try { api.onMedal({ losses: losses }); } catch (e) { /* the view never breaks play */ } }
     }
 
     // The race on the goTo step: the countdown, the rabbit's run and what is said at each moment (all through SA.audio, so every word has a voice).
@@ -156,7 +169,7 @@
         else if (e.type === 'go') sfx('chime');
         else if (e.type === 'eat') say('phrase:lento');         // the rabbit slows right down at its carrot...
         else if (e.type === 'dash') say('phrase:rapido');       // ...and bolts again
-        else if (e.type === 'won') { say('phrase:ganaste'); track('race.won', { losses: R.losses }); emit(); }
+        else if (e.type === 'won') { say('phrase:ganaste'); medal(R.losses); emit(); }
         else if (e.type === 'lost') {      // the rabbit got there first: "¡Otra vez!" and the countdown starts again at once; nothing is lost
           say('phrase:otravez');
           cur.passed = [];
@@ -248,10 +261,10 @@
         rc = { state: R.state, waiting: R.waiting, losses: R.losses, mode: R.state === 'countdown' ? 'wait' : pose.mode, eat: R.eating(), ate: R.ate(), x: pose.x, z: pose.z, rotY: pose.rotY, carrot: cur.carrot };
         rc.y = SA.map && SA.map.groundHeight ? SA.map.groundHeight(pose.x, pose.z) : cur.rabbit.y;
       }
-      return { talk: isTalk(s), photo: isPhoto(s), arrived: !!cur.said.arrive, passed: cur.passed.slice(), race: rc };
+      return { talk: isTalk(s), photo: isPhoto(s), arrived: !!cur.said.arrive, medal: !!cur.medal, passed: cur.passed.slice(), race: rc };
     }
 
-    var api = { sync: sync, update: update, locate: locate, target: target, talk: talk, snap: snap, view: view, onSticker: null, current: function () { return cur; },
+    var api = { sync: sync, update: update, locate: locate, target: target, talk: talk, snap: snap, view: view, onSticker: null, onMedal: null, current: function () { return cur; },
       setSolids: function (s) { solidsSrc = s; },
       onChange: function (fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; },
       create: create, GOAL_R: GOAL_R, PHOTO_REACH: PHOTO_REACH, TALK_REACH: TALK_REACH };

@@ -1,8 +1,8 @@
 /* SA.climb (also SA.player.climb): pure climbing state machine for the walking player (no THREE, no DOM; node:vm tested).
  * Needs SA.map, SA.player and SA.perch (canopy heights per tree kind).
  *
- * A climb TARGET is plain data (AS-0192), the same for trees, peaks and buildings:
- *   { kind: 'tree'|'peak'|'building', x, z, radius | footprint: { w, d }, topY, top: { shape: 'circle'|'rect', size } }
+ * A climb TARGET is plain data (AS-0192), the same for trees, peaks, buildings and ladders (SA.lookouts towers, AS-0160):
+ *   { kind: 'tree'|'peak'|'building'|'ladder', x, z, radius | footprint: { w, d }, topY, top: { shape: 'circle'|'rect', size } }
  *   footprint/radius = the solid base you stand next to (range is measured to its edge, not its centre); topY = the flat
  *   standing height; top.size = radius for a circle, a side (or { w, d }) for an axis-aligned rect (centred on x, z).
  * Trees keep their old shape { x, z, y?, scale?, kind? }: SA.climb.fromTree adapts them (SA.perch canopy height and radius),
@@ -50,6 +50,9 @@
   var EDGE_PAD = 1.2;       // canopy walkable radius = canopy radius * scale + this
   var LAND_PAD = 0.6;       // land this far beyond the edge
   var MAX_DT = 0.1;
+  // The target kinds are data (AS-0160): top = the mode once up ('canopy' is the tree alias), along = the climb slides ALONG the surface
+  // (a peak's slope), center = you arrive at the top's centre (clear of a railing round its edge). A generic target whose kind is not listed here is junk (nearest/start ignore it). A ladder lifts you to its platform centre.
+  var KINDS = { tree: { top: 'canopy' }, peak: { top: 'top', along: true }, building: { top: 'top' }, ladder: { top: 'top', center: true } };
   var ASSIST_ARC = 0.9;     // extra height at the middle of the landing-assist hop between two tops
 
   function num(v, d) { return typeof v === 'number' && isFinite(v) ? v : d; }
@@ -100,6 +103,7 @@
     var hit = cache && cache.get(t);
     if (hit) return hit;
     var generic = typeof t.topY === 'number' && isFinite(t.topY), d = generic ? t : fromTree(t), foot;
+    if (!KINDS[d.kind || 'tree']) return null;
     if (d.footprint && d.footprint.w > 0 && d.footprint.d > 0) foot = rect(d.footprint.w / 2, d.footprint.d / 2);
     else foot = circle(num(d.radius, 1) > 0 ? num(d.radius, 1) : 1);
     var top = topShape(d.top, circle(Math.max(1.5, foot.r)));
@@ -164,7 +168,7 @@
     var dx = state.x - n.x, dz = state.z - n.z, d = Math.hypot(dx, dz);
     if (d < 1e-6) { dx = -Math.sin(state.heading || 0); dz = -Math.cos(state.heading || 0); d = 1; }
     var ux = dx / d, uz = dz / d;
-    var inset = n.inset || Math.min(TRUNK_R, 0.6 * extent(n.top, ux, uz));   // trees stand TRUNK_R out; others well inside the top
+    var inset = KINDS[n.kind].center ? 0 : n.inset || Math.min(TRUNK_R, 0.6 * extent(n.top, ux, uz));   // trees stand TRUNK_R out; others well inside the top
     var to = { x: n.x + ux * inset, z: n.z + uz * inset, y: n.topY };
     return copy(state, { y: num(state.y, 0), climb: {
       mode: 'up', t: 0, dur: UP_TIME, tree: target, target: n, from: { x: state.x, z: state.z, y: num(state.y, 0) }, to: to, safe: { x: state.x, z: state.z },
@@ -238,7 +242,7 @@
     if (c.assist) {   // the landing assist (AS-0166): a hop over to the next top, landing ON it (standing at its topY)
       if (t >= 1) {
         return copy(state, { x: c.to.x, z: c.to.z, y: n.topY, heading: heading, land: { x: c.to.x, z: c.to.z, y: n.topY, kind: n.kind },
-          climb: { mode: n.kind === 'tree' ? 'canopy' : 'top', t: 1, dur: c.dur, tree: c.tree, target: n, from: c.from, to: c.to, safe: c.safe } });
+          climb: { mode: KINDS[n.kind].top, t: 1, dur: c.dur, tree: c.tree, target: n, from: c.from, to: c.to, safe: c.safe } });
       }
       return copy(state, aboveRock({ x: lerp(c.from.x, c.to.x, k), z: lerp(c.from.z, c.to.z, k), y: lerp(c.from.y, c.to.y, k) + ASSIST_ARC * Math.sin(Math.PI * t),
         heading: heading, climb: next }));
@@ -246,7 +250,7 @@
     if (t >= 1) {
       if (c.mode === 'up') {
         return copy(state, { x: c.to.x, z: c.to.z, y: c.to.y, heading: heading,
-          climb: { mode: n.kind === 'tree' ? 'canopy' : 'top', t: 1, dur: c.dur, tree: c.tree, target: n, from: c.from, to: c.to, safe: c.safe } });
+          climb: { mode: KINDS[n.kind].top, t: 1, dur: c.dur, tree: c.tree, target: n, from: c.from, to: c.to, safe: c.safe } });
       }
       var land = SA.player.step({ x: c.to.x, z: c.to.z, heading: state.heading }, {}, 0, obstacles);   // push out of props, clamp to the map
       var out = { x: land.x, z: land.z, heading: land.heading, y: groundAt(land.x, land.z), climb: null };
@@ -258,7 +262,7 @@
     }
     // A peak is climbed ALONG its side (AS-0214): the slide to the centre takes the whole climb, so the feet follow the cone up (y never
     // below the visible rock), instead of a quick slide in and a vertical rise inside it. Trees and buildings keep the quick slide.
-    var m = n.kind === 'peak' ? k : c.mode === 'up' ? move : ease(Math.min(1, t * 1.5));
+    var m = KINDS[n.kind].along ? k : c.mode === 'up' ? move : ease(Math.min(1, t * 1.5));
     return copy(state, aboveRock({ x: lerp(c.from.x, c.to.x, m), z: lerp(c.from.z, c.to.z, m), y: lerp(c.from.y, c.to.y, k), heading: heading, climb: next }));
   }
 
@@ -303,7 +307,7 @@
     return { ms: ms, tree: tree, progress: Math.min(1, ms / AUTO_CLIMB_MS), climb: done };
   }
 
-  SA.climb = { RANGE: RANGE, EDGE_RANGE: EDGE_RANGE, UP_TIME: UP_TIME, DOWN_TIME: DOWN_TIME, TRUNK_R: TRUNK_R, nearest: nearest, prompt: prompt,
+  SA.climb = { KINDS: KINDS, RANGE: RANGE, EDGE_RANGE: EDGE_RANGE, UP_TIME: UP_TIME, DOWN_TIME: DOWN_TIME, TRUNK_R: TRUNK_R, nearest: nearest, prompt: prompt,
     start: start, stop: stop, toggle: toggle, step: step, active: active, onTop: onTop, landed: landed, fromTree: fromTree,
     edgeRadius: edgeOf, edgeDistance: edgeDistance, focusPoint: focusPoint, topOf: topOf, AUTO_CLIMB_MS: AUTO_CLIMB_MS, autoStep: autoStep };
   if (SA.player) SA.player.climb = SA.climb;

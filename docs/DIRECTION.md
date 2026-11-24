@@ -240,6 +240,13 @@ current; when your change sets or changes something future tickets must follow, 
   and the player wades freely (AS-0109). Stones are low solids `[x, z, r, h]` (`stoneSolids()`, added to `scene.js` obstacles): hop on and stand on top.
   Animals keep out: `wander.js`, `animal-plan.js`, `decor-plan.js` and `ground-cover-plan.js` call `SA.forestStreams.inWater(x, z, pad)`.
   New scenery planners should check it next to `SA.forestPaths.onPath`.
+- **Fallen logs (AS-0302).** `SA.fallenLogs` (pure, seeded, `game/fallen-logs.js`, loads after `forest-streams.js`) lies 2 logs across each forest
+  path (long enough to span the dirt strip) plus 2 off-path, on gentle dry ground clear of the spawn, station and streams. A log is a capsule
+  (`ax,az -> bx,bz`, radius `r` 0.3-0.4) with a standing height `h` = 1.8 r (the top above the ground; a normal hop clears it). `solids()` turns
+  each into overlapping `[x, z, r, h]` circles, the same low-solid shape as rocks and stream stones, so `scene.js`'s obstacles block walking, a jump
+  (lift + margin >= h) passes over, and `SA.player.floorAt` lets you stand on top and walk along it at `h`. Pushing sideways into a log can slide
+  you around its end, like a rock. Animals keep out: `wander.js` (`near(x, z, 0.6)`), `animal-plan.js`, `decor-plan.js`, `ground-cover-plan.js`.
+  `render/fallen-logs.js` draws all trunks as ONE merged vertex-coloured mesh (tapered 7-sided cylinders tilted with the slope, light end caps).
 - **Water moves and has edges (AS-0298).** The river and pond (`render/world.js`, geometry baked in world coordinates) move with a
   two-sine vertex-shader wave on one `uTime` uniform (`SA.render.applyWaterWave`; `world.userData.update(dt)` advances the clock, no
   allocation; constants in `SA.waterBanks.WAVE`, kept to a few cm so wading is unchanged). `SA.waterBanks` (pure, `game/water-banks-plan.js`)

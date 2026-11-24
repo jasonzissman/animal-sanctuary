@@ -54,8 +54,9 @@
     // Only things that should stop the player count: trees, rocks, ponds, bridges and big animals. Flowers, grass and small
     // animals are soft (SA.blocking reads that from data), so the player walks straight through them.
     var streamStones = SA.forestStreams ? SA.forestStreams.stoneSolids() : [];   // low solids [x, z, r, h] (AS-0301), static
+    var logSolids = SA.fallenLogs ? SA.fallenLogs.solids() : [];   // low solids [x, z, r, h] along each fallen log (AS-0302), static
     function obstacles() {
-      return stationWalls.concat(streamStones, SA.blocking.obstacles({
+      return stationWalls.concat(streamStones, logSolids,SA.blocking.obstacles({
         decor: decor.children.map(function (o) { return { x: o.position.x, z: o.position.z, decor: o.userData && o.userData.decor, scale: o.scale ? o.scale.x : 1 }; }),
         propPoints: solidPropPoints,
         animals: animals.children.map(function (g) {
@@ -212,6 +213,11 @@
     // The small forest streams (AS-0301): one moving water ribbon plus instanced stepping stones; the stones are low solids you can stand on.
     if (SA.render.createForestStreams && SA.forestStreams) {
       try { SA.render.createForestStreams(THREE, { scene: scene, world: world }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('forestStreams.create', e); }
+    }
+
+    // The fallen logs (AS-0302): one merged bark mesh; their footprint is in the obstacles above (hop over, stand on top).
+    if (SA.render.createFallenLogs && SA.fallenLogs) {
+      try { SA.render.createFallenLogs(THREE, { scene: scene }); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('fallenLogs.create', e); }
     }
 
     function resize() {

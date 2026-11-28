@@ -305,12 +305,35 @@ test('pupils: the plan carries the data pupil colour; the renderer adds it as a 
     const eyeMeshes = g.children.filter((m) => !m.userData.pick && m.userData.part === 'ojos');
     assert.equal(eyeMeshes.length, 2, g.name);
     for (const e of eyeMeshes) {
-      assert.equal(e.children.length, 1, `${g.name} eye has one pupil child`);
+      assert.equal(e.children.length, 3, `${g.name} eye has a pupil, a highlight and an eyelid child`);
       assert.equal(e.children[0].userData.pupil, true);
       assert.ok(e.children[0].position.z > 0.25, 'pupil sits in front of the eye');
+      assert.ok(e.children[1].userData.glint && e.children[2].userData.eyelid, 'highlight and eyelid');
+      assert.ok(e.children.every((c) => c.userData.decor && !c.userData.pick), 'eye children are decor, never pick targets');
     }
+    const eyes = group.children.flatMap((g) => g.children.filter((m) => !m.userData.pick && m.userData.part === 'ojos'));
+    assert.equal(new Set(eyes.map((e) => e.children[1].geometry)).size, 1, 'highlight geometry is shared');
+    assert.equal(new Set(eyes.map((e) => e.children[1].material)).size, 1, 'highlight material is shared');
+    assert.equal(new Set(eyes.map((e) => e.children[2].geometry)).size, 1, 'eyelid geometry is shared');
+    assert.ok(group.children.every((g) => g.userData.pickVolumes.every((v) => !v.userData.decor && v.children.length === 0)));
     assert.ok(g.userData.pickVolumes.every((v) => v.userData.part && !v.userData.pupil), 'pupils are not pick targets');
   }
+});
+
+test('AS-0405: eyelid colour is the eye entry\'s own, else the head colour, else the body colour; non-eyes have none', () => {
+  const SA = loadGame(DATA);
+  for (const a of SA.data.all('animals')) {
+    const head = a.parts.find((x) => x.part === 'cabeza') || a.parts.find((x) => x.part === 'cuerpo');
+    const eyeEntry = a.parts.find((x) => x.part === 'ojos');
+    for (const s of SA.animalPlan.plan(a)) {
+      if (s.part !== 'ojos') { assert.equal(s.eyelid, null, a.id); continue; }
+      assert.match(s.eyelid, /^#[0-9a-f]{6}$/i, a.id);
+      assert.equal(s.eyelid, eyeEntry.eyelid || (head && head.color) || eyeEntry.color, a.id);
+    }
+  }
+  const custom = JSON.parse(JSON.stringify(SA.data.get('animals', 'conejo')));
+  custom.parts.find((x) => x.part === 'ojos').eyelid = '#123456';
+  assert.ok(SA.animalPlan.plan(custom).filter((s) => s.part === 'ojos').every((s) => s.eyelid === '#123456'));
 });
 
 test('placements keep every animal out of the spawn circle (and its 1-unit margin)', () => {

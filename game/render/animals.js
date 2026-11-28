@@ -17,6 +17,12 @@
   var PUPIL_SIZE = 0.6;       // pupil diameter, as a fraction of the part's unit sphere
   var PUPIL_FORWARD = 0.3;    // pupil centre in front of the part centre, so it pokes out of the front surface
 
+  // AS-0405: a white specular dot on the pupil and a half-sphere eyelid over the top of the eye (unit-sphere space of the eye part).
+  var LID_SIZE = 1.08;           // lid sphere diameter vs the eye: a thin shell just outside the eye
+  var LID_CAP = 0.4 * Math.PI;   // polar angle the lid covers from the top: a drooping lid over the upper part of the eye
+  var GLINT_SIZE = 0.15;
+  var GLINT_POS = [0.1, 0.12, 0.55];   // on the pupil's front surface, up and toward the animal's left
+
   // AS-0404: rounded limb profiles, revolved around y in unit space (height 1, widest radius 0.5), so scale gives any limb size.
   var TAPER = 0.62;           // bottom radius of a tapered limb, as a fraction of its top radius
   var CAP_H = { tapered: 0.14, capsule: 0.22 };   // height of each rounded end, as a fraction of the limb length
@@ -41,6 +47,7 @@
     if (builder === 'sphere') return new THREE.SphereGeometry(0.5, 12, 9);
     if (builder === 'cone') return new THREE.ConeGeometry(0.5, 1, 8);
     if (builder === 'cylinder') return new THREE.CylinderGeometry(0.5, 0.5, 1, 8);
+    if (builder === 'eyelid') return new THREE.SphereGeometry(0.5, 12, 5, 0, Math.PI * 2, 0, LID_CAP);
     if (builder === 'zigzag') return SA.render.zigzagGeometry(THREE);
     throw new Error('unknown builder ' + builder);
   }
@@ -79,8 +86,23 @@
           var pupil = new THREE.Mesh(geos.pupil || (geos.pupil = unitGeometry(THREE, 'sphere')), pmat);
           pupil.scale.set(PUPIL_SIZE, PUPIL_SIZE, PUPIL_SIZE);
           pupil.position.set(0, 0, PUPIL_FORWARD);
-          pupil.userData = { animalId: spec.animalId, pupil: true };
+          pupil.userData = { animalId: spec.animalId, pupil: true, decor: true };
           mesh.add(pupil);
+          // Highlight and eyelid: also non-pick children (flagged decor), sharing cached geometry and materials.
+          var glint = new THREE.Mesh(geos.glint || (geos.glint = unitGeometry(THREE, 'sphere')),
+            mats.glint || (mats.glint = new THREE.MeshBasicMaterial({ color: 0xffffff })));
+          glint.scale.set(GLINT_SIZE, GLINT_SIZE, GLINT_SIZE);
+          glint.position.set(GLINT_POS[0], GLINT_POS[1], GLINT_POS[2]);
+          glint.userData = { animalId: spec.animalId, decor: true, glint: true };
+          mesh.add(glint);
+        }
+        if (spec.eyelid) {
+          var lkey = 'lid' + spec.eyelid;
+          var lid = new THREE.Mesh(geos.eyelid || (geos.eyelid = unitGeometry(THREE, 'eyelid')),
+            mats[lkey] || (mats[lkey] = new THREE.MeshPhongMaterial({ color: spec.eyelid, flatShading: false, specular: 0x000000 })));
+          lid.scale.set(LID_SIZE, LID_SIZE, LID_SIZE);
+          lid.userData = { animalId: spec.animalId, decor: true, eyelid: true };
+          mesh.add(lid);
         }
         var pick = new THREE.Mesh(pickGeo, pickMat);
         pick.scale.set(spec.pickSize[0], spec.pickSize[1], spec.pickSize[2]);

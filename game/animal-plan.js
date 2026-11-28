@@ -20,6 +20,8 @@
  *   - extra        true for pieces from an entry's `also` list (neck segments, knees, feet); false for the part itself
  *   - side         'left' | 'right' | null (null when centred)
  *   - pupil        '#rrggbb' | null: the data's pupil colour; the renderer adds a small sphere child in front of the part
+ *   - eyelid       '#rrggbb' | null (eyes only): the eyelid colour = the entry's optional `eyelid`, else the head's (or body's) colour;
+ *                  the renderer adds a half-sphere lid and a white highlight as children (AS-0405)
  * Instances spread symmetrically using |offset.x| as half-width: 2 -> left/right, 4 -> 2x2 grid
  * (rows at +-1.2 * half-width in z), other counts -> evenly across [-w, +w].
  *
@@ -65,6 +67,16 @@
     return out;
   }
 
+  /** Default eyelid colour: the animal's head colour, else its body colour (null when it has neither). */
+  function skinColor(animal) {
+    var k, e;
+    for (k = 0; k < 2; k++) {
+      e = animal.parts.filter(function (x) { return x.part === (k ? 'cuerpo' : 'cabeza'); })[0];
+      if (e) return e.color;
+    }
+    return null;
+  }
+
   function sign(n) { return n > 1e-9 ? 1 : n < -1e-9 ? -1 : 0; }
 
   /** Turn the part to point along z for forward/back anchored cones and cylinders. */
@@ -94,6 +106,7 @@
       out.push({
         animalId: animal.id, part: base.part, builder: builder, shape: builder === 'cylinder' && LIMB_SHAPES[base.part] || null, color: entry.color || base.color,
         pupil: entry.pupil || (entry === base ? null : base.pupil) || null,
+        eyelid: base.part === 'ojos' ? entry.eyelid || base.eyelid || skinColor(animal) || entry.color || base.color : null,
         size: local.slice(), worldSize: world.slice(),
         pickSize: pickSize, pickVolume: pickSize[0] * pickSize[1] * pickSize[2],
         position: [x, entry.offset[1], entry.offset[2] + spot[1]],

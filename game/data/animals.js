@@ -32,6 +32,8 @@
  *   unlock    easter eggs only: the condition that reveals it (plain data, evaluated by game/unlocks.js)
  * A parts[] entry may also set `pupil` ('#rrggbb'): a dark pupil sphere drawn in front of each instance, so eyes read as
  * eyes (it must contrast with the part colour). It is a child of the part mesh, so it is never separately pickable.
+ * An `ojos` entry may also set `eyelid` ('#rrggbb'): the half-sphere eyelid colour (default: the head's colour, else the body's).
+ * Eyes also get a white highlight; both are non-pick children of the eye (AS-0405).
  * A parts[] entry may also set `builder` (a SA.parts.BUILDERS name) to draw its part with another primitive.
  * A parts[] entry may also set `rot` [rx,ry,rz] radians (explicit tilt; replaces the automatic turn, and `scale` is then the
  * mesh's own x/y/z size) and `row` (z half-spacing of the two rows of a count-4 part, so legs sit at the body's corners).
@@ -99,6 +101,7 @@
         fail(f + '.pupil', 'does not contrast with the part colour ' + entry.color + ' (the pupil would be invisible)');
       }
     }
+    if (entry.eyelid !== undefined && !HEX.test(entry.eyelid)) fail(f + '.eyelid', 'must be a "#rrggbb" colour (got ' + JSON.stringify(entry.eyelid) + ')');
     if (entry.builder !== undefined && SA.parts.BUILDERS.indexOf(entry.builder) < 0) {
       fail(f + '.builder', 'must be one of ' + SA.parts.BUILDERS.join(', '));
     }

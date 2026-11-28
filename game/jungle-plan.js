@@ -18,7 +18,11 @@
  *       avoidPoints() keep scenery, animals and pickups off it), poolY (the pond's water level; no pool of its own), topY, lowY, fx: 0, sheetW,
  *       cliff: [{ x, z, w, d, y, h }] LOCAL offsets, cliffSolids: [[x, z, r, 99]] world, added to solids() (rock, never jumped) }. Seeded after the giants
  *       (same trees per seed), clear of the giants' canopies, spawn, station, lookouts, bridges and streams. The water itself is the pond: it blocks nobody extra.
- * Rendering: game/render/jungle-giants.js, game/render/waterfall.js (createJungleWaterfall).
+ * layout().clearings (AS-0391, slice 4/4): 1-2 sunny clearings, [{ id, x, z, y, r (open radius), shaftR }]: round, open, gentle, dry ground inside the selva, clear of
+ *       every giant's canopy, the pond, the waterfall, spawn, station, lookouts, bridges and streams. Seeded after the waterfall (same trees/falls per seed).
+ *   SA.junglePlan.inClearing(x, z, pad?)   true within pad of a clearing's open circle: decor trees, rocks, undergrowth and its flowers keep out of it
+ *   SA.junglePlan.clearingStrength(x, z)   0..1 ground-tint weight (1 inside the open circle, fading to 0 over TINT_FADE beyond it), for SA.terrain
+ * Rendering: game/render/jungle-giants.js, game/render/waterfall.js (createJungleWaterfall), game/render/jungle-clearing.js (light shaft), game/render/jungle-flowers.js.
  */
 (function (root) {
   'use strict';
@@ -32,6 +36,7 @@
   var MAX_SPREAD = 1.2;    // ground height difference round the trunk
   var VINES = 12;
   var FALL_R = 4.2, FALL_H = 5, FALL_FACE = 0.4, FALL_TRIES = 400;   // waterfall footprint radius, the lip's height above the water, how far the face stands inside the water edge
+  var CLEAR_COUNT = 2, CLEAR_TRIES = 600, CLEAR_R = 6, TINT_FADE = 2.5;   // clearings: up to 2, open radius ~6 m (+- 1), tint fades over 2.5 m beyond it
   var FALLBACK = { height: 15, radius: 4.2 };   // used when SA.perch is not loaded (kind 'giant' in game/perch.js is the source)
   var cached = null, cachedSolids = null, cachedTargets = null;
 
@@ -107,6 +112,27 @@
     return null;
   }
 
+  /** Sunny clearings (AS-0391): round open patches of the selva, at most CLEAR_COUNT, clear of everything the selva already holds. */
+  function makeClearings(rand, giants, falls) {
+    var M = SA.map, range = M.biomeRange('selva'), B = M.BOUNDS, P = M.POND, out = [];
+    for (var t = 0; t < CLEAR_TRIES && out.length < CLEAR_COUNT; t++) {
+      var r = CLEAR_R + (rand() - 0.5) * 2, pad = r + 2;
+      var x = range.lo + BORDER + pad + rand() * (range.hi - range.lo - 2 * (BORDER + pad)), z = B.minZ + BORDER + pad + rand() * (B.maxZ - B.minZ - 2 * (BORDER + pad));
+      if (Math.hypot(x - P.x, z - P.z) < P.radius + pad + 2 || M.groundHeight(x, z) < M.WATER_LEVEL + 0.6) continue;
+      if (giants.some(function (g) { return Math.hypot(x - g.x, z - g.z) < g.canopyR * 0.6 + pad; })) continue;   // the sun reaches it: canopies stay beside it
+      if (falls && Math.hypot(x - falls.cx, z - falls.cz) < falls.r + pad) continue;
+      if (out.some(function (c) { return Math.hypot(x - c.x, z - c.z) < c.r + pad + 8; })) continue;
+      if (SA.player && SA.player.inSpawnZone(x, z, pad)) continue;
+      if (SA.station && SA.station.inFootprint(x, z, pad)) continue;
+      if (SA.lookouts && SA.lookouts.near(x, z, pad)) continue;
+      if (SA.surfaces && SA.surfaces.near(x, z, pad)) continue;
+      if (SA.forestStreams && SA.forestStreams.inWater(x, z, pad)) continue;
+      if (spread(x, z, r) > MAX_SPREAD * 1.5) continue;
+      out.push({ id: 'claro-' + (out.length + 1), x: x, z: z, y: M.groundHeight(x, z), r: r, shaftR: r * 0.8 });
+    }
+    return out;
+  }
+
   function layout(seed) {
     var M = SA.map, rand = M.rng(seed === undefined ? SEED : seed), range = M.biomeRange('selva'), B = M.BOUNDS, giants = [];
     for (var t = 0; t < TRIES && giants.length < COUNT; t++) {
@@ -115,7 +141,8 @@
       if (giants.some(function (g) { return Math.hypot(x - g.x, z - g.z) < SPACING; })) continue;
       giants.push(makeGiant(rand, x, z, giants.length));
     }
-    return { giants: giants, waterfall: makeFalls(rand, giants) };   // after the giants, so the same seed keeps the same trees
+    var falls = makeFalls(rand, giants);   // after the giants, so the same seed keeps the same trees
+    return { giants: giants, waterfall: falls, clearings: makeClearings(rand, giants, falls) };
   }
 
   function get() { return cached || (cached = layout()); }
@@ -140,6 +167,22 @@
     return !!w && Math.hypot(x - w.cx, z - w.cz) < w.r + p;
   }
 
+  /** True within pad of a clearing's open circle. */
+  function inClearing(x, z, pad) {
+    var C = get().clearings, p = pad || 0;
+    for (var i = 0; i < C.length; i++) if (Math.hypot(x - C[i].x, z - C[i].z) < C[i].r + p) return true;
+    return false;
+  }
+
+  function clearingStrength(x, z) {
+    var C = get().clearings, best = 0;
+    for (var i = 0; i < C.length; i++) {
+      var k = 1 - (Math.hypot(x - C[i].x, z - C[i].z) - C[i].r) / TINT_FADE;
+      if (k > best) best = k > 1 ? 1 : k;
+    }
+    return best;
+  }
+
   function targets() {
     return cachedTargets || (cachedTargets = get().giants.map(function (g) {
       return { kind: 'tree', giant: true, id: g.id, x: g.x, z: g.z, y: g.y, radius: g.solidR, topY: g.topY, top: { shape: 'circle', size: g.topR } };
@@ -147,5 +190,5 @@
   }
 
   SA.junglePlan = { SEED: SEED, COUNT: COUNT, MIN_COUNT: MIN_COUNT, SPACING: SPACING, POND_GAP: POND_GAP, layout: layout, get: get, solids: solids,
-    near: near, targets: targets, avoidPoints: avoidPoints };
+    near: near, inClearing: inClearing, clearingStrength: clearingStrength, TINT_FADE: TINT_FADE, targets: targets, avoidPoints: avoidPoints };
 })(typeof window !== 'undefined' ? window : globalThis);

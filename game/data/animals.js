@@ -15,6 +15,8 @@
  *             reach from the ground). Omit for ground animals.
  *   feet      optional 'paw' | 'hoof' | 'claw' | 'none' (AS-0406): the foot drawn at the end of each `patas` leg by SA.animalPlan
  *             (a rounded paw, a dark flat hoof, a toed claw foot). Omitted or 'none' = no foot (the camel has its own `also` feet).
+ *   markings  optional { type: 'spots' | 'bands', color: '#rrggbb', count: 1..24 } (AS-0407): that many flat discs or thin bands on the body,
+ *             drawn as one instanced mesh per animal (SA.animalMarkings plans them, SA.render.animalShade draws them). Decor only: never pickable.
  *   story     optional boolean: true = a story animal (la cerda, el cerdito). It is NOT in the normal world population, clue
  *             rounds, random mission picks or the album; a mission places it (render code builds it on demand).
  *   herd      optional integer 1-5 (default 1): how many of this species live in the world, each with its own home spot
@@ -52,6 +54,8 @@
   var DIETS = ['herbívoro', 'carnívoro', 'omnívoro', 'insectívoro'];
   var PERCHES = ['tree'];
   var FEET = ['paw', 'hoof', 'claw', 'none'];
+  var MARKING_TYPES = ['spots', 'bands'];
+  var MAX_MARKINGS = 24;
   var HEX = /^#[0-9a-fA-F]{6}$/;
   var MIN_PUPIL_CONTRAST = 0.4;   // minimum luminance difference (0..1) between a pupil and its part colour
 
@@ -66,6 +70,14 @@
     v.forEach(function (n) {
       if (!isNum(n) || (positive && n <= 0)) fail(field, 'must be ' + (positive ? 'positive ' : '') + 'numbers');
     });
+  }
+
+  function validateMarkings(m, seen) {
+    if (!m || typeof m !== 'object') fail('markings', 'must be an object { type, color, count }');
+    oneOf(m.type, MARKING_TYPES, 'markings.type');
+    if (!HEX.test(m.color)) fail('markings.color', 'must be a "#rrggbb" colour (got ' + JSON.stringify(m.color) + ')');
+    if (!Number.isInteger(m.count) || m.count < 1 || m.count > MAX_MARKINGS) fail('markings.count', 'must be an integer from 1 to ' + MAX_MARKINGS + ' (got ' + JSON.stringify(m.count) + ')');
+    if (!seen.cuerpo) fail('markings', 'needs a cuerpo (body) part to sit on');
   }
 
   function luma(hex) {
@@ -145,6 +157,7 @@
     if (a.story !== undefined && typeof a.story !== 'boolean') fail('story', 'must be true or false');
     if (a.active !== undefined) oneOf(a.active, ['day', 'night'], 'active');
     if (a.feet !== undefined) oneOf(a.feet, FEET, 'feet');
+    if (a.markings !== undefined) validateMarkings(a.markings, seen);
     if (a.sleepPose !== undefined) oneOf(a.sleepPose, ['curl', 'hang'], 'sleepPose');
     if (a.herd !== undefined && (!Number.isInteger(a.herd) || a.herd < 1 || a.herd > 5)) fail('herd', 'must be an integer from 1 to 5 (got ' + JSON.stringify(a.herd) + ')');
     if (a.voice !== undefined && (typeof a.voice !== 'string' || !/^[a-z]+:\S+$/.test(a.voice))) fail('voice', 'must be a vocab key like "phrase:oinc"');
@@ -181,7 +194,7 @@
   // rana, ratón) are 0: the player walks through them. Medium and big ones push the player aside.
   var BLOCK_RADIUS = { 'pequeño': 0, 'mediano': 1, 'grande': 1.3 };
 
-  SA.animals = { SIZES: SIZES, COLORS: COLORS, MOVEMENTS: MOVEMENTS, DIETS: DIETS, PERCHES: PERCHES, FEET: FEET, BLOCK_RADIUS: BLOCK_RADIUS };
+  SA.animals = { SIZES: SIZES, COLORS: COLORS, MOVEMENTS: MOVEMENTS, DIETS: DIETS, PERCHES: PERCHES, FEET: FEET, MARKING_TYPES: MARKING_TYPES, MAX_MARKINGS: MAX_MARKINGS, BLOCK_RADIUS: BLOCK_RADIUS };
   SA.data.defineKind('animals', validateAnimal);
 
   function p(part, color, scale, count, offset) {
@@ -376,6 +389,7 @@
         p('barriga', '#d2a86a', [0.7, 0.3, 1.0], 1, [0, 1.65, 0.1])   // same colour as the body and tucked inside it: not a visible pale blob
       ], CAMEL_SCALE), easterEgg: false },
     { id: 'serpiente', feet: 'none', name: { es: 'serpiente', en: 'snake', gender: 'f' }, icon: '🐍', biome: 'desierto', herd: 3,
+      markings: { type: 'bands', color: '#7a3a14', count: 9 },   // AS-0407: dark bands along the body
       traits: { size: 'mediano', color: 'naranja', movement: 'repta', diet: 'carnívoro', legs: 0 },
       parts: [
         p('cuerpo', '#e08a3c', [0.45, 0.45, 2.4], 1, [0, 0.3, 0]), p('cabeza', '#e08a3c', 0.55, 1, [0, 0.4, 1.4]),
@@ -520,6 +534,7 @@
     // AS-0270: forest (ciervo, ardilla) and jungle (jaguar, perezoso) species: bosque and selva now have 5 each. Appended last
     // so earlier species keep their herd homes.
     { id: 'ciervo', feet: 'hoof', name: { es: 'ciervo', en: 'deer', gender: 'm' }, icon: '🦌', biome: 'bosque', herd: 3,
+      markings: { type: 'spots', color: '#f3e6cc', count: 10 },   // AS-0407: a fawn's pale back spots
       traits: { size: 'mediano', color: 'marrón', movement: 'corre', diet: 'herbívoro', legs: 4 },
       parts: shrink([
         // Tawny deer: slim body on four long thin legs, a leaning neck (extra pieces of la cabeza), a dark nose, a small white tail

@@ -202,4 +202,6 @@ test('validator rejects a pupil that is not a colour or does not contrast with t
   assert.throws(() => SA.data.register('animals', [withPupil('zorrob', '#f4f4f4', 'black')]), /pupil/);
   SA = loadGame(FILES);
   assert.throws(() => SA.data.register('animals', [withPupil('zorroc', '#222222', '#111111')]), /pupil/);
+  const withLid = (id, eyelid) => { const a = good(); a.id = id; a.parts = [{ ...part(), eyelid }]; return a; };
+  assert.throws(() => SA.data.register('animals', [withLid('zorrod', 'pink')]), /eyelid/);
 });

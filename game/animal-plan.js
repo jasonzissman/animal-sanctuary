@@ -18,6 +18,8 @@
  *   - position     [x,y,z] in animal space (+z is forward, +y up; the animal's left is +x)
  *   - rotation     [rx,ry,rz] radians (Euler XYZ)
  *   - extra        true for pieces from an entry's `also` list (neck segments, knees, feet); false for the part itself
+ *   - foot         'paw' | 'hoof' | 'claw' | undefined (AS-0406): set on the generated foot at the end of each leg when animal.feet is one
+ *                  of those (builder is then the same name; see SA.render.buildAnimals). Feet are extra pieces tagged 'patas'.
  *   - side         'left' | 'right' | null (null when centred)
  *   - pupil        '#rrggbb' | null: the data's pupil colour; the renderer adds a small sphere child in front of the part
  *   - eyelid       '#rrggbb' | null (eyes only): the eyelid colour = the entry's optional `eyelid`, else the head's (or body's) colour;
@@ -116,6 +118,36 @@
     });
   }
 
+  // AS-0406: the foot an animal's `feet` data value puts at the end of every `patas` leg. A foot is an extra piece of the leg
+  // (tagged 'patas', extra: true, so it rides with the leg swing). Sizes derive from the leg's width/height; the foot's bottom
+  // sits exactly at the leg's bottom, so ground contact is unchanged. Builders: 'paw' = rounded (flattened sphere), 'hoof' =
+  // dark flat cylinder, 'claw' = a small pad (the renderer adds the claw cones). `forward` shifts the foot toward the toes.
+  var HOOF_COLOR = '#2e2622';
+  var FEET = {
+    paw:  { width: 1.3, depth: 1.7, height: 0.6, cap: 0.4, forward: 0.25, color: null },
+    hoof: { width: 1.1, depth: 1.1, height: 0.5, cap: 0.25, forward: 0, color: HOOF_COLOR },
+    claw: { width: 1.2, depth: 1.5, height: 0.4, cap: 0.3, forward: 0.2, color: null }
+  };
+
+  function footSpec(leg, kind) {
+    var f = FEET[kind], w = Math.max(leg.worldSize[0], leg.worldSize[2]);
+    var h = Math.min(w * f.height, leg.worldSize[1] * f.cap);
+    var world = [w * f.width, h, w * f.depth];
+    var pickSize = world.map(function (n) { return n * PICK_SCALE; });
+    return {
+      animalId: leg.animalId, part: leg.part, builder: kind, foot: kind, shape: null, color: f.color || leg.color, pupil: null, eyelid: null,
+      size: world.slice(), worldSize: world, pickSize: pickSize, pickVolume: pickSize[0] * pickSize[1] * pickSize[2],
+      position: [leg.position[0], leg.position[1] - leg.worldSize[1] / 2 + h / 2, leg.position[2] + w * f.forward],
+      rotation: [0, 0, 0], index: 0, count: leg.count, extra: true, side: leg.side
+    };
+  }
+
+  /** One foot per leg (the non-extra specs of a `patas` entry, from out[from]) when the animal's `feet` is paw | hoof | claw. */
+  function addFeet(animal, from, out) {
+    if (!FEET[animal.feet]) return;
+    out.slice(from).filter(function (s) { return !s.extra; }).forEach(function (leg) { out.push(footSpec(leg, animal.feet)); });
+  }
+
   /** An entry's optional `also` pieces (neck segments, knee bumps, feet...) are extra meshes tagged with the SAME part key,
    *  so tapping one answers as that part. `index` keeps counting up across the entry, so each mesh of a part is unique. */
   function plan(animal, partDefs) {
@@ -129,6 +161,7 @@
       var from = out.length;
       pieces(animal, def, entry, entry, out);
       (entry.also || []).forEach(function (extra) { pieces(animal, def, extra, entry, out); });
+      if (entry.part === 'patas') addFeet(animal, from, out);
       for (var k = from; k < out.length; k++) out[k].index = k - from;
     });
     return out;

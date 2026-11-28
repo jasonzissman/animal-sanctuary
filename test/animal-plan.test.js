@@ -14,24 +14,25 @@ test('plan: part counts follow the data (4 patas, 2 orejas, 1 cola)', () => {
   const SA = loadGame(DATA);
   const rabbit = SA.animalPlan.plan(SA.data.get('animals', 'conejo'));
   const count = (k) => rabbit.filter((s) => s.part === k).length;
-  assert.equal(count('patas'), 4);
+  assert.equal(rabbit.filter((s) => s.part === 'patas' && !s.extra).length, 4);
+  assert.equal(count('patas'), 8, '4 legs + 4 paws (AS-0406)');
   assert.equal(count('orejas'), 2);
   assert.equal(count('ojos'), 2);
   assert.equal(count('cola'), 1);
-  assert.deepEqual(Array.from(rabbit.filter((s) => s.part === 'patas'), (s) => s.index), [0, 1, 2, 3]);
+  assert.deepEqual(Array.from(rabbit.filter((s) => s.part === 'patas'), (s) => s.index), [0, 1, 2, 3, 4, 5, 6, 7]);
   const duck = SA.animalPlan.plan(SA.data.get('animals', 'pato'));
-  assert.equal(duck.filter((s) => s.part === 'patas').length, 2);
+  assert.equal(duck.filter((s) => s.part === 'patas' && !s.extra).length, 2);
 });
 
 test('plan: every real animal expands from data alone, with sane numbers', () => {
   const SA = loadGame(DATA);
   for (const a of SA.data.all('animals')) {
     const specs = SA.animalPlan.plan(a);
-    const meshes = (p) => p.count + (p.also || []).reduce((n, x) => n + x.count, 0);
+    const meshes = (p) => p.count + (p.also || []).reduce((n, x) => n + x.count, 0) + (p.part === 'patas' && a.feet && a.feet !== 'none' ? p.count : 0);   // + one foot per leg
     assert.equal(specs.length, a.parts.reduce((n, p) => n + meshes(p), 0), a.id);
     for (const s of specs) {
       assert.equal(s.animalId, a.id);
-      assert.ok(SA.parts.BUILDERS.includes(s.builder));
+      assert.ok(s.foot ? s.builder === s.foot : SA.parts.BUILDERS.includes(s.builder));   // a generated foot has its own builder (AS-0406)
       for (const n of [...s.size, ...s.position, ...s.rotation, ...s.pickSize]) assert.ok(Number.isFinite(n));
     }
   }
@@ -199,7 +200,8 @@ test('buildAnimals: groups per animal; every part mesh and pick volume carries u
     const animal = SA.data.get('animals', g.userData.animalId);
     const parts = g.children.filter((m) => !m.userData.pick);
     const picks = g.children.filter((m) => m.userData.pick);
-    assert.equal(parts.length, animal.parts.reduce((n, p) => n + p.count + (p.also || []).reduce((m, x) => m + x.count, 0), 0));
+    const feet = (p) => (p.part === 'patas' && animal.feet && animal.feet !== 'none' ? p.count : 0);   // one foot per leg (AS-0406)
+    assert.equal(parts.length, animal.parts.reduce((n, p) => n + p.count + feet(p) + (p.also || []).reduce((m, x) => m + x.count, 0), 0));
     assert.equal(picks.length, parts.length);
     assert.equal(g.userData.pickVolumes.length, picks.length);
     for (const m of g.children) {
@@ -391,4 +393,59 @@ test('AS-0404: legs plan as tapered and necks as capsules; geometry is shared, m
       else assert.equal(m.material.flatShading, false, `${g.name} ${m.userData.part} is smooth shaded`);
     }
   }
+});
+
+test('AS-0406: feet by data: every animal declares feet; the plan emits one foot per leg with the matching builder', () => {
+  const SA = loadGame(DATA);
+  for (const a of SA.data.all('animals')) assert.ok(SA.animals.FEET.includes(a.feet), `${a.id} has a feet value`);
+  const leg = { part: 'patas', color: '#445566', scale: [0.2, 1, 0.2], count: 4, offset: [0.3, 0.5, 0], row: 0.5 };
+  const body = { part: 'cuerpo', color: '#112233', scale: 1, count: 1, offset: [0, 1, 0] };
+  const planOf = (feet) => SA.animalPlan.plan({ id: 'bicho', feet, parts: [body, leg] });
+  for (const feet of ['paw', 'hoof', 'claw']) {
+    const specs = planOf(feet);
+    const legs = specs.filter((s) => s.part === 'patas' && !s.extra), foot = specs.filter((s) => s.foot);
+    assert.equal(legs.length, 4);
+    assert.equal(foot.length, 4, `${feet}: one foot per leg`);
+    foot.forEach((f, i) => {
+      assert.equal(f.builder, feet);
+      assert.equal(f.foot, feet);
+      assert.equal(f.part, 'patas', 'taps on a foot answer as the legs');
+      assert.equal(f.extra, true, 'extra: it rides with the limb animation');
+      assert.equal(f.side, legs[i].side);
+      near(f.position[0], legs[i].position[0]);
+      near(f.position[1] - f.size[1] / 2, 0);   // the foot's bottom is the leg's bottom (the ground)
+      assert.ok(f.size[0] > legs[i].size[0], 'wider than the leg');
+      assert.ok(f.pickVolume > 0 && f.pickSize.every(Number.isFinite));
+    });
+    assert.deepEqual(Array.from(specs.filter((s) => s.part === 'patas'), (s) => s.index), [0, 1, 2, 3, 4, 5, 6, 7]);
+  }
+  assert.equal(planOf('hoof').find((s) => s.foot).color, '#2e2622', 'hooves are dark');
+  assert.equal(planOf('paw').find((s) => s.foot).color, '#445566', 'paws take the leg colour');
+  for (const feet of ['none', undefined]) assert.equal(planOf(feet).filter((s) => s.foot).length, 0, `${feet}: no feet`);
+});
+
+test('AS-0406: the renderer draws paws, hooves and claws from the plan; claws get three cone children', () => {
+  const ctx = vm.createContext({ console });
+  ctx.window = ctx;
+  ctx.self = ctx;
+  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+  }
+  const { SA, THREE } = ctx;
+  const group = SA.render.buildAnimals(THREE);
+  const feetOf = (id) => group.children.find((g) => g.userData.animalId === id).children.filter((m) => !m.userData.pick && m.userData.extra && m.userData.part === 'patas');
+  const claws = (m) => m.children.filter((c) => c.userData.claw);
+  const pato = feetOf('pato');
+  assert.equal(pato.length, 2, 'the duck has two claw feet');
+  for (const f of pato) {
+    assert.equal(claws(f).length, 3, 'each with 3 cones');
+    assert.ok(claws(f).every((c) => c.geometry instanceof THREE.ConeGeometry && c.userData.decor && !c.userData.pick));
+  }
+  const cabra = feetOf('cabra');
+  assert.equal(cabra.length, 4, 'the goat has four hooves');
+  assert.ok(cabra.every((m) => m.geometry instanceof THREE.CylinderGeometry && m.material.color.getHexString() === '2e2622'));
+  const conejo = feetOf('conejo');
+  assert.equal(conejo.length, 4, 'the rabbit has four paws');
+  assert.ok(conejo.every((m) => m.geometry instanceof THREE.SphereGeometry && claws(m).length === 0));
+  assert.equal(feetOf('serpiente').length, 0);
 });

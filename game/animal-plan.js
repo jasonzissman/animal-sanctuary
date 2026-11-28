@@ -5,6 +5,9 @@
  *   - one entry per part INSTANCE (count: 4 gives 4 entries, index 0..3). A parts[] entry's `also` extras add more specs
  *     with the same part key, one per instance of each extra; `index` then keeps counting across the entry (0..n-1, unique)
  *   - builder      primitive name from the part definition (box | sphere | cone | cylinder)
+ *   - shape        'tapered' | 'capsule' | null (AS-0404): a cylinder piece of a part in LIMB_SHAPES (patas -> tapered: narrower
+ *                  and rounded at the bottom; cuello -> capsule: rounded ends) is drawn with that smoother geometry. The
+ *                  builder, size and pick sizes are unchanged, so fit tests and picking behave exactly as before.
  *   - worldSize    [x,y,z] extents of the part in animal space (the data "scale"; a number means uniform)
  *   - size         local extents to give the unit primitive BEFORE `rotation` (axis-swapped when the
  *                  primitive is turned to point forward/back, so worldSize always holds)
@@ -43,6 +46,7 @@
   var ROW_FACTOR = 1.2;
   var TILT = { top: 0.2, side: 0.3 };
   var HALF_PI = Math.PI / 2;
+  var LIMB_SHAPES = { patas: 'tapered', cuello: 'capsule' };   // default smooth shape per part key; only cylinder pieces take it
 
   function vec(scale) {
     return Array.isArray(scale) ? [scale[0], scale[1], scale[2]] : [scale, scale, scale];
@@ -88,7 +92,7 @@
       var side = sign(x);
       var rz = !rx && !rot && entry.count > 1 && TILT[def.anchor] ? -side * TILT[def.anchor] : 0;
       out.push({
-        animalId: animal.id, part: base.part, builder: builder, color: entry.color || base.color,
+        animalId: animal.id, part: base.part, builder: builder, shape: builder === 'cylinder' && LIMB_SHAPES[base.part] || null, color: entry.color || base.color,
         pupil: entry.pupil || (entry === base ? null : base.pupil) || null,
         size: local.slice(), worldSize: world.slice(),
         pickSize: pickSize, pickVolume: pickSize[0] * pickSize[1] * pickSize[2],
@@ -287,6 +291,6 @@
     return out;
   }
 
-  SA.animalPlan = { PICK_SCALE: PICK_SCALE, BIG_PICK_SCALE: BIG_PICK_SCALE, DEFAULT_RADIUS: DEFAULT_RADIUS, plan: plan, choosePick: choosePick, pickRadius: pickRadius, quadrants: quadrants, placements: placements,
+  SA.animalPlan = { LIMB_SHAPES: LIMB_SHAPES, PICK_SCALE: PICK_SCALE, BIG_PICK_SCALE: BIG_PICK_SCALE, DEFAULT_RADIUS: DEFAULT_RADIUS, plan: plan, choosePick: choosePick, pickRadius: pickRadius, quadrants: quadrants, placements: placements,
     subAreas: subAreas, herdPlacements: herdPlacements };
 })(typeof window !== 'undefined' ? window : globalThis);

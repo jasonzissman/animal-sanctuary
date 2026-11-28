@@ -321,3 +321,51 @@ test('placements keep every animal out of the spawn circle (and its 1-unit margi
     assert.ok(Math.hypot(p.x - s.x, p.z - s.z) >= SA.player.SPAWN_CLEAR + 1, `${id} starts too close to the spawn`);
   }
 });
+
+test('AS-0404: legs plan as tapered and necks as capsules; geometry is shared, materials are smooth, picks unchanged', () => {
+  const ctx = vm.createContext({ console });
+  ctx.window = ctx;
+  ctx.self = ctx;
+  for (const f of ['game/vendor/three.min.js', ...DATA, 'game/render/zigzag.js', 'game/render/instances.js', 'game/render/animals.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+  }
+  const { SA, THREE } = ctx;
+  let legs = 0, necks = 0;
+  for (const a of SA.data.all('animals')) {
+    for (const s of SA.animalPlan.plan(a)) {
+      const want = s.builder !== 'cylinder' ? null : s.part === 'patas' ? 'tapered' : s.part === 'cuello' ? 'capsule' : null;
+      assert.equal(s.shape, want, `${a.id} ${s.part}/${s.builder}`);
+      if (want === 'tapered') legs++;
+      if (want === 'capsule') necks++;
+    }
+  }
+  assert.ok(legs > 0 && necks > 0, 'the data has tapered legs and capsule necks');
+
+  // Profiles: tapered is narrower at the bottom, a capsule is symmetric; both close on the axis at both ends, inside the unit box.
+  const tap = SA.render.limbProfile('tapered'), cap = SA.render.limbProfile('capsule');
+  for (const prof of [tap, cap]) {
+    assert.equal(prof[0][0], 0);
+    assert.equal(prof[prof.length - 1][0], 0);
+    assert.ok(prof.every((p) => p[1] >= -0.5 - 1e-9 && p[1] <= 0.5 + 1e-9 && p[0] <= 0.5 + 1e-9));
+  }
+  const maxR = (prof, lo, hi) => Math.max(...prof.filter((p) => p[1] >= lo && p[1] <= hi).map((p) => p[0]));
+  assert.ok(maxR(tap, -0.5, 0) < maxR(tap, 0, 0.5), 'tapered: bottom narrower than top');
+  assert.ok(Math.abs(maxR(cap, -0.5, 0) - maxR(cap, 0, 0.5)) < 1e-9, 'capsule: symmetric');
+  assert.ok(SA.render.unitGeometry(THREE, 'cylinder', 'tapered') instanceof THREE.LatheGeometry);
+  assert.ok(SA.render.unitGeometry(THREE, 'cylinder') instanceof THREE.CylinderGeometry, 'no shape: the plain cylinder');
+
+  const group = SA.render.buildAnimals(THREE);
+  const isLimb = (m) => !m.userData.pick && m.geometry instanceof THREE.LatheGeometry;
+  const leg = (g, i) => g.children.find((m) => !m.userData.pick && m.userData.part === 'patas' && m.userData.index === i);
+  const conejo = group.children.find((g) => g.userData.animalId === 'conejo');
+  assert.ok(isLimb(leg(conejo, 0)));
+  assert.equal(leg(conejo, 0).geometry, leg(conejo, 3).geometry, 'legs share one geometry');
+  const legGeos = new Set(group.children.flatMap((g) => g.children.filter((m) => m.userData.part === 'patas' && isLimb(m)).map((m) => m.geometry)));
+  assert.equal(legGeos.size, 1, 'every animal shares the same tapered geometry');
+  for (const g of group.children) {
+    for (const m of g.children) {
+      if (m.userData.pick) assert.ok(m.geometry instanceof THREE.BoxGeometry, 'pick volumes stay boxes');
+      else assert.equal(m.material.flatShading, false, `${g.name} ${m.userData.part} is smooth shaded`);
+    }
+  }
+});

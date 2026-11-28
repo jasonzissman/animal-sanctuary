@@ -90,10 +90,17 @@
       g.name = instanceId;
       g.userData = { animalId: animal.id, instanceId: instanceId, pickVolumes: [] };
       if (s && s.radius) g.userData.wanderRadius = s.radius;   // AS-0249: how far it roams from home (reaches empty quadrants)
-      SA.animalPlan.plan(animal).forEach(function (spec) {
+      var plan = SA.animalPlan.plan(animal);
+      plan.forEach(function (spec) {
         var gkey = spec.shape ? spec.builder + ':' + spec.shape : spec.builder;   // geometry is cached and shared by every animal
         var geo = geos[gkey] || (geos[gkey] = unitGeometry(THREE, spec.builder, spec.shape));
-        var mat = mats[spec.color] || (mats[spec.color] = new THREE.MeshPhongMaterial({ color: spec.color, flatShading: false, specular: 0x000000 }));
+        var mkey = spec.gradient ? spec.color + ':g' : spec.color;   // AS-0407: body/head/neck get the back-to-belly vertex-colour gradient
+        var shaded = !!(spec.gradient && SA.render.animalShade);   // (tests that load only part of the game skip the shade module)
+        if (shaded) {
+          var ggeo = gkey + ':g';
+          geo = geos[ggeo] || (geos[ggeo] = SA.render.animalShade.gradientGeometry(THREE, geo));
+        }
+        var mat = mats[mkey] || (mats[mkey] = new THREE.MeshPhongMaterial({ color: spec.color, flatShading: false, specular: 0x000000, vertexColors: shaded }));
         var mesh = new THREE.Mesh(geo, mat);
         mesh.scale.set(spec.size[0], spec.size[1], spec.size[2]);
         mesh.position.set(spec.position[0], spec.position[1], spec.position[2]);
@@ -136,6 +143,10 @@
         g.add(mesh, pick);
         g.userData.pickVolumes.push(pick);
       });
+      // AS-0407: spots / bands on the body, one instanced mesh per animal (decor: not in pickVolumes, no `part`).
+      var marks = animal.markings && SA.render.animalShade && SA.animalMarkings &&
+        SA.render.animalShade.markingsMesh(THREE, SA.animalMarkings.plan(animal, plan), { geos: geos, mats: mats }, g.userData);
+      if (marks) g.add(marks);
       g.position.set(s.x, s.y, s.z);
       g.rotation.y = s.rotY;
       // Easter eggs stay hidden (and cannot be picked) until SA.unlockFlow reveals them.

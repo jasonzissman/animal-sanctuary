@@ -20,6 +20,8 @@
  *   - extra        true for pieces from an entry's `also` list (neck segments, knees, feet); false for the part itself
  *   - foot         'paw' | 'hoof' | 'claw' | undefined (AS-0406): set on the generated foot at the end of each leg when animal.feet is one
  *                  of those (builder is then the same name; see SA.render.buildAnimals). Feet are extra pieces tagged 'patas'.
+ *   - gradient     true for body / head / neck pieces that stand upright: the renderer gives them a darker-back, lighter-belly
+ *                  vertex-colour gradient (AS-0407). Coat markings are planned separately by SA.animalMarkings (game/animal-markings.js).
  *   - side         'left' | 'right' | null (null when centred)
  *   - pupil        '#rrggbb' | null: the data's pupil colour; the renderer adds a small sphere child in front of the part
  *   - eyelid       '#rrggbb' | null (eyes only): the eyelid colour = the entry's optional `eyelid`, else the head's (or body's) colour;
@@ -51,6 +53,9 @@
   var TILT = { top: 0.2, side: 0.3 };
   var HALF_PI = Math.PI / 2;
   var LIMB_SHAPES = { patas: 'tapered', cuello: 'capsule' };   // default smooth shape per part key; only cylinder pieces take it
+
+  var GRADIENT_PARTS = { cuerpo: true, cabeza: true, cuello: true };   // AS-0407: darker back, lighter belly (vertex colours) on these
+  var UPRIGHT = 0.5;   // ...unless the piece is turned onto its side (its local y is then not "up"), e.g. a neck pointing forward
 
   function vec(scale) {
     return Array.isArray(scale) ? [scale[0], scale[1], scale[2]] : [scale, scale, scale];
@@ -109,6 +114,7 @@
         animalId: animal.id, part: base.part, builder: builder, shape: builder === 'cylinder' && LIMB_SHAPES[base.part] || null, color: entry.color || base.color,
         pupil: entry.pupil || (entry === base ? null : base.pupil) || null,
         eyelid: base.part === 'ojos' ? entry.eyelid || base.eyelid || skinColor(animal) || entry.color || base.color : null,
+        gradient: !!GRADIENT_PARTS[base.part] && Math.cos(rot ? rot[0] : rx) > UPRIGHT,
         size: local.slice(), worldSize: world.slice(),
         pickSize: pickSize, pickVolume: pickSize[0] * pickSize[1] * pickSize[2],
         position: [x, entry.offset[1], entry.offset[2] + spot[1]],

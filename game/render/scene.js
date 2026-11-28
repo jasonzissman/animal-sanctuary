@@ -10,7 +10,7 @@
 
   SA.render.createStage = function (THREE, container) {
     var renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(root.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(root.devicePixelRatio || 1, SA.quality ? SA.quality.params().pixelRatio : 2));   // capped by the quality level (AS-0412)
     renderer.setClearColor(SKY, 1);
     renderer.domElement.style.display = 'block';
     container.appendChild(renderer.domElement);
@@ -260,6 +260,16 @@
     // The sun casts soft shadows (AS-0292) from animals, the avatar, trees, rocks and peaks onto the ground, in a window that follows the player.
     var sunShadow = SA.render.createSunShadow ? SA.render.createSunShadow(THREE, { renderer: renderer, scene: scene, sun: sun, getPlayer: rig.getPlayer,
       world: world, casters: [decor, avatar.group], dynamic: [animals] }) : null;
+
+    // Graphics quality (AS-0412): the fps-driven level caps the pixel ratio and sizes the sun's shadow map; re-applied on every level change.
+    if (SA.quality && SA.render.applyQuality) {
+      var applyQ = function () { SA.render.applyQuality({ renderer: renderer, sun: sun, params: SA.quality.params(), dpr: root.devicePixelRatio || 1 }); };
+      applyQ();
+      SA.quality.onChange(function (info) {
+        try { applyQ(); } catch (e) { if (root.SAT && root.SAT.error) root.SAT.error('quality.apply', e); }
+        if (root.SAT && root.SAT.track) root.SAT.track('quality.change', { from: info.from, to: info.to, fps: info.fps });
+      });
+    }
 
     // The day/night cycle (AS-0170): sky, fog, sun, moon, stars, fireflies and the station's lamps follow SA.daynight (ticked by main.js).
     var daynightView = null;

@@ -52,6 +52,7 @@
     function goal(rule) {
       rule = rule || {};
       if (rule.album) return 'Fotografía todos los animales';
+      if (rule.treasure) return rule.treasure === 1 ? 'Halla un cofre' : 'Halla ' + rule.treasure + ' cofres';
       var n = rule.count || 1, one = n === 1, num = n + ' ';
       if (rule.kind === 'hatch') return 'Salva ' + num + (one ? 'huevo' : 'huevos');
       if (rule.kind === 'river') return 'Salva ' + num + (one ? 'perrito' : 'perritos');
@@ -80,7 +81,7 @@
     function rows(o) {
       var english = !!(o && o.english), byId = {};
       data().forEach(function (b) { byId[b.id] = b; });
-      return progress().map(function (p) {
+      return progress().filter(function (p) { return !(byId[p.id] && byId[p.id].secret && !p.earned); }).map(function (p) {   // a secret sticker stays hidden until found (AS-0174)
         var d = byId[p.id] || {}, es = d.es || p.id, g = goal(d.rule), earned = !!p.earned;
         var row = {
           id: p.id,

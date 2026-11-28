@@ -14,6 +14,7 @@
  *          names = { '<individualId>': { animalId, name, adj? } } (AS-0169, SA.names): pet names of rescued animals, keyed by herd instance id
  *          ('conejo#2'); name / adj are data ids ('luna', 'rapido'). Optional: absent until the first naming; no version bump.
  *          daynight = { t } (AS-0170, SA.daynight): ms into the day/night cycle; optional, no version bump.
+ *          treasure = { opened: [siteId], cosmetics: [id] } (AS-0174, SA.treasure): the waterfall chests already opened and the rewards found; optional.
  *          friend = { id, animalId } (AS-0175, SA.friend): the one rescued animal that follows you; id may be a herd instance ('conejo#2'); optional.
  *          album = { '<animalId>': { date: 'YYYY-MM-DD', pics: [{ id, date }] } } (v5, AS-0236): the first-photo date per photographed animal
  *          plus the kept picture entries (first ever + newest 3, SA.albumPics). Ids/dates only: the JPEGs live in IndexedDB (SA.photoStore).
@@ -160,8 +161,19 @@
     if (s.badges !== undefined) out.badges = normalizeBadges(s.badges);           // optional earned badge ids (AS-0167, SA.badges)
     if (s.names !== undefined) out.names = normalizeNames(s.names);               // optional pet names (AS-0169, SA.names)
     if (s.daynight !== undefined) out.daynight = normalizeDaynight(s.daynight);   // optional clock time (AS-0170, SA.daynight)
+    if (s.treasure !== undefined) out.treasure = normalizeTreasure(s.treasure);   // optional waterfall treasure (AS-0174, SA.treasure)
     var fr = normalizeFriend(s.friend);                                           // optional animal friend (AS-0175, SA.friend)
     if (fr) out.friend = fr; else delete out.friend;
+    return out;
+  }
+
+  // Waterfall treasure (AS-0174): { opened: ['montana', ...], cosmetics: ['sombrero-explorador', ...] }: lowercase ids, no duplicates, at most 20 each.
+  function normalizeTreasure(t) {
+    var out = { opened: [], cosmetics: [] }, word = /^[a-z][a-z0-9-]{0,40}$/;
+    if (!isObj(t)) return out;
+    ['opened', 'cosmetics'].forEach(function (k) {
+      (Array.isArray(t[k]) ? t[k] : []).forEach(function (id) { if (typeof id === 'string' && word.test(id) && out[k].indexOf(id) < 0 && out[k].length < 20) out[k].push(id); });
+    });
     return out;
   }
 

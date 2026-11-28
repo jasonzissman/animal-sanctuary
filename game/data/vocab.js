@@ -71,6 +71,8 @@
   add('phrase', 'shh', '¡Shh! Está durmiendo', 'Shh! It is sleeping');   // AS-0171: using an animal that is asleep
   add('phrase', 'amigoacompanar', 'Uno de tus amigos quiere acompañarte.', 'One of your friends wants to come along.');   // AS-0175: the animal friend
   add('phrase', 'poraqui', '¡Por aquí!', 'This way!');
+  add('phrase', 'untesoro', '¡Un tesoro!', 'A treasure!');   // AS-0174: the chest behind the waterfall
+  add('phrase', 'tesoroadivina', 'Detrás del agua que cae... hay algo brillante.', 'Behind the falling water... something shiny.');   // the scientist's whisper
   add('thing', 'noche', 'la noche', 'the night');
   add('thing', 'luna', 'la luna', 'the moon');
   add('thing', 'cielo', 'el cielo', 'the sky');   // AS-0371: Mission 12 (Noche de estrellas)

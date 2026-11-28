@@ -48,7 +48,9 @@ test('the waterfall also stands clear of every boulder and boulder cluster, and 
 test('the pool is water and the cliff is rock: both block the player, animals, pickups and decor keep out', () => {
   assert.ok(MP.inPool(W.x, W.z) && MP.inPool(W.x + W.poolR - 0.1, W.z) && !MP.inPool(W.x + W.poolR + 0.5, W.z));
   const sol = MP.solids();
-  assert.ok(sol.some((s) => s[0] === W.x && s[1] === W.z && s[2] >= W.poolR && s[3] > 10), 'pool solid');
+  // The deep middle of the pool blocks; the shallow west rim is a wading lane to the curtain and the grotto behind it (AS-0174).
+  assert.ok(sol.includes(W.poolSolid) && W.poolSolid[3] > 10 && Math.hypot(W.poolSolid[0] - W.x, W.poolSolid[1] - W.z) + W.poolSolid[2] <= W.poolR, 'pool solid');
+  assert.ok(Math.hypot(W.fx + 0.5 - W.poolSolid[0], W.z - W.poolSolid[1]) >= W.poolSolid[2] + 0.6, 'you can wade up to the curtain');
   assert.equal(sol.length, MP.get().boulders.length + 1 + W.cliffSolids.length);
   for (const [sx, sz, sr, sh] of W.cliffSolids.concat([W.poolSolid])) assert.ok(sh > 5 && Math.hypot(sx - W.x, sz - W.z) <= W.r, 'not jumpable, inside the footprint');
   for (let i = 0; i < 16; i++) {

@@ -57,7 +57,7 @@ test('rows come from the real SA.badges progress and the shipped data (every bad
   const { SA } = boot(['game/data/biomes.js', 'game/data/parts.js', 'game/data/animals.js', 'game/data/badges.js', 'game/badges.js',
     (sa) => { store.data = { rescues: [{ animalId: 'cerdo', night: false }], badges: [] }; sa.save = store; }]);
   const rows = SA.badgesBoard.rows();
-  const shipped = SA.data.all('badges');
+  const shipped = SA.data.all('badges').filter((b) => !b.secret);   // secret stickers stay hidden until found (AS-0174)
   assert.ok(shipped.length > 3);
   assert.deepEqual(rows.map((r) => r.id), shipped.map((b) => b.id));
   rows.forEach((r) => {

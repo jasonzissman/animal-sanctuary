@@ -174,7 +174,7 @@ test('waterfall: the cliff blocks the player (never jumped) and scenery, animals
   assert.equal(sol.length, giants.length + W.cliffSolids.length);
   W.cliffSolids.forEach((s, i) => {
     assert.ok(s[3] > 10 && s[2] >= 1);
-    const w = worldOf({ x: W.cliff[i].x, z: W.cliff[i].z });
+    const w = worldOf({ x: W.cliff[i * 2].x, z: W.cliff[i * 2].z });   // the two side blocks: the middle one is the grotto's tunnel (AS-0174)
     assert.ok(Math.hypot(s[0] - w.x, s[1] - w.z) < 0.5, 'the solid sits under its cliff block');
     assert.ok(sol.includes(s));
   });

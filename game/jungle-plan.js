@@ -107,7 +107,7 @@
         return { x: i === 1 ? -1.2 : -1.0, z: dz, w: i === 1 ? 1.6 : 1.7, d: i === 1 ? 2.4 : 2.8, y: baseY, h: topY - (i === 1 ? 0.5 : i * 0.2) - baseY };
       });
       return { x: x, z: z, ang: ang, yaw: yaw, local: true, moss: true, cx: cx, cz: cz, r: FALL_R, poolY: M.WATER_LEVEL, lowY: low, topY: topY, fx: 0, sheetW: 1.5, cliff: cliff,
-        cliffSolids: zs.map(function (dz) { return [x + (-1.2) * cy + dz * sy, z - (-1.2) * sy + dz * cy, 1.2, 99]; }) };
+        cliffSolids: [-2.0, 2.0].map(function (dz) { return [x + (-1.2) * cy + dz * sy, z - (-1.2) * sy + dz * cy, 1.0, 99]; }) };   // two side walls: the middle block is the grotto's tunnel (AS-0174)
     }
     return null;
   }
@@ -164,6 +164,7 @@
   function near(x, z, pad) {
     var L = get(), G = L.giants, p = pad || 0, w = L.waterfall;
     for (var i = 0; i < G.length; i++) if (Math.hypot(x - G[i].x, z - G[i].z) < G[i].solidR + p) return true;
+    if (w && SA.grottoPlan && SA.grottoPlan.near(x, z, p)) return true;   // the grotto behind the fall (AS-0174)
     return !!w && Math.hypot(x - w.cx, z - w.cz) < w.r + p;
   }
 

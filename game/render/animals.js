@@ -43,6 +43,8 @@
 
   function unitGeometry(THREE, builder, shape) {
     if (builder === 'cylinder' && (shape === 'tapered' || shape === 'capsule')) return limbGeometry(THREE, shape);
+    if (builder === 'paw' || builder === 'claw') return new THREE.SphereGeometry(0.5, 10, 7);   // AS-0406: rounded paw / claw pad, flattened by the part scale
+    if (builder === 'hoof') return new THREE.CylinderGeometry(0.5, 0.5, 1, 8);                   // a dark flat disc
     if (builder === 'box') return new THREE.BoxGeometry(1, 1, 1);
     if (builder === 'sphere') return new THREE.SphereGeometry(0.5, 12, 9);
     if (builder === 'cone') return new THREE.ConeGeometry(0.5, 1, 8);
@@ -50,6 +52,24 @@
     if (builder === 'eyelid') return new THREE.SphereGeometry(0.5, 12, 5, 0, Math.PI * 2, 0, LID_CAP);
     if (builder === 'zigzag') return SA.render.zigzagGeometry(THREE);
     throw new Error('unknown builder ' + builder);
+  }
+
+  // AS-0406: three small cone claws poking forward from a claw foot's pad. Children of the pad (so they ride with the leg),
+  // decor only (never pick targets); sizes are given in world units and divided by the pad's scale, so the squashed pad
+  // does not squash them. A cone's length axis is turned to +z, so after the turn its x/z map to the pad's x/y.
+  var CLAW_COLOR = '#d8cfbc', CLAW_SPREAD = 0.28, CLAW_LEN = 0.35, CLAW_WIDTH = 0.14;   // spread in pad-width units; length/width in pad widths
+  function addClaws(THREE, pad, spec, geos, mats) {
+    var sx = spec.size[0], sy = spec.size[1], sz = spec.size[2], len = CLAW_LEN * sx, d = Math.min(CLAW_WIDTH * sx, sy * 1.6);
+    var mat = mats.claw || (mats.claw = new THREE.MeshPhongMaterial({ color: CLAW_COLOR, flatShading: false, specular: 0x000000 }));
+    var geo = geos.clawCone || (geos.clawCone = unitGeometry(THREE, 'cone'));
+    [-1, 0, 1].forEach(function (k) {
+      var c = new THREE.Mesh(geo, mat);
+      c.scale.set(d / sx, len / sz, d / sy);
+      c.rotation.set(Math.PI / 2, 0, 0);
+      c.position.set(k * CLAW_SPREAD, 0, 0.4 + len / sz / 2);
+      c.userData = { animalId: spec.animalId, decor: true, claw: true };
+      pad.add(c);
+    });
   }
 
   function tag(mesh, spec) {
@@ -104,6 +124,7 @@
           lid.userData = { animalId: spec.animalId, decor: true, eyelid: true };
           mesh.add(lid);
         }
+        if (spec.foot === 'claw') addClaws(THREE, mesh, spec, geos, mats);
         var pick = new THREE.Mesh(pickGeo, pickMat);
         pick.scale.set(spec.pickSize[0], spec.pickSize[1], spec.pickSize[2]);
         pick.position.copy(mesh.position);

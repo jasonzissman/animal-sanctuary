@@ -13,6 +13,8 @@
  *             e.g. count 2 -> x = -offset.x and +offset.x; count 4 -> a 2x2 grid; offset y/z are shared.
  *   perch     optional; "tree" = lives in tree canopies (SA.perch: sits on branches and hops between trees, out of
  *             reach from the ground). Omit for ground animals.
+ *   feet      optional 'paw' | 'hoof' | 'claw' | 'none' (AS-0406): the foot drawn at the end of each `patas` leg by SA.animalPlan
+ *             (a rounded paw, a dark flat hoof, a toed claw foot). Omitted or 'none' = no foot (the camel has its own `also` feet).
  *   story     optional boolean: true = a story animal (la cerda, el cerdito). It is NOT in the normal world population, clue
  *             rounds, random mission picks or the album; a mission places it (render code builds it on demand).
  *   herd      optional integer 1-5 (default 1): how many of this species live in the world, each with its own home spot
@@ -49,6 +51,7 @@
   var MOVEMENTS = ['salta', 'nada', 'vuela', 'trepa', 'camina lento', 'corre', 'repta'];
   var DIETS = ['herbívoro', 'carnívoro', 'omnívoro', 'insectívoro'];
   var PERCHES = ['tree'];
+  var FEET = ['paw', 'hoof', 'claw', 'none'];
   var HEX = /^#[0-9a-fA-F]{6}$/;
   var MIN_PUPIL_CONTRAST = 0.4;   // minimum luminance difference (0..1) between a pupil and its part colour
 
@@ -141,6 +144,7 @@
     if (typeof a.easterEgg !== 'boolean') fail('easterEgg', 'must be true or false');
     if (a.story !== undefined && typeof a.story !== 'boolean') fail('story', 'must be true or false');
     if (a.active !== undefined) oneOf(a.active, ['day', 'night'], 'active');
+    if (a.feet !== undefined) oneOf(a.feet, FEET, 'feet');
     if (a.sleepPose !== undefined) oneOf(a.sleepPose, ['curl', 'hang'], 'sleepPose');
     if (a.herd !== undefined && (!Number.isInteger(a.herd) || a.herd < 1 || a.herd > 5)) fail('herd', 'must be an integer from 1 to 5 (got ' + JSON.stringify(a.herd) + ')');
     if (a.voice !== undefined && (typeof a.voice !== 'string' || !/^[a-z]+:\S+$/.test(a.voice))) fail('voice', 'must be a vocab key like "phrase:oinc"');
@@ -177,7 +181,7 @@
   // rana, ratón) are 0: the player walks through them. Medium and big ones push the player aside.
   var BLOCK_RADIUS = { 'pequeño': 0, 'mediano': 1, 'grande': 1.3 };
 
-  SA.animals = { SIZES: SIZES, COLORS: COLORS, MOVEMENTS: MOVEMENTS, DIETS: DIETS, PERCHES: PERCHES, BLOCK_RADIUS: BLOCK_RADIUS };
+  SA.animals = { SIZES: SIZES, COLORS: COLORS, MOVEMENTS: MOVEMENTS, DIETS: DIETS, PERCHES: PERCHES, FEET: FEET, BLOCK_RADIUS: BLOCK_RADIUS };
   SA.data.defineKind('animals', validateAnimal);
 
   function p(part, color, scale, count, offset) {
@@ -315,20 +319,20 @@
   var PIGLET = { of: 'cerda', scale: 0.55, headScale: 1.45, eyeScale: 1.7 };   // AS-0232: ~55% size, bigger head, much bigger eyes
 
   SA.data.register('animals', [
-    { id: 'conejo', name: { es: 'conejo', en: 'rabbit', gender: 'm' }, icon: '🐰', biome: 'bosque', herd: 5,
+    { id: 'conejo', feet: 'paw', name: { es: 'conejo', en: 'rabbit', gender: 'm' }, icon: '🐰', biome: 'bosque', herd: 5,
       traits: { size: 'pequeño', color: 'gris', movement: 'salta', diet: 'herbívoro', legs: 4 },
       parts: rabbitParts(), easterEgg: false },
-    { id: 'pato', name: { es: 'pato', en: 'duck', gender: 'm' }, icon: '🦆', biome: 'bosque', herd: 4,
+    { id: 'pato', feet: 'claw', name: { es: 'pato', en: 'duck', gender: 'm' }, icon: '🦆', biome: 'bosque', herd: 4,
       traits: { size: 'mediano', color: 'amarillo', movement: 'nada', diet: 'omnívoro', legs: 2 },
       parts: duckParts(), easterEgg: false },
-    { id: 'tortuga', name: { es: 'tortuga', en: 'turtle', gender: 'f' }, icon: '🐢', biome: 'bosque', herd: 3,
+    { id: 'tortuga', feet: 'claw', name: { es: 'tortuga', en: 'turtle', gender: 'f' }, icon: '🐢', biome: 'bosque', herd: 3,
       traits: { size: 'mediano', color: 'verde', movement: 'camina lento', alsoMoves: ['nada'], diet: 'herbívoro', legs: 4 },
       parts: [
         p('cuerpo', '#7ab86b', [1.1, 0.4, 1.3], 1, [0, 0.4, 0]), p('caparazon', '#3f7d3a', 1.2, 1, [0, 0.7, 0]),
         p('cabeza', '#7ab86b', 0.4, 1, [0, 0.6, 0.75]), p('patas', '#7ab86b', 0.3, 4, [0.35, 0.17, 0]),
         p('cola', '#7ab86b', [0.1, 0.1, 0.3], 1, [0, 0.4, -0.8]), eyes(0.1, [0.11, 0.68, 0.88])
       ], easterEgg: false },
-    { id: 'mono', name: { es: 'mono', en: 'monkey', gender: 'm' }, icon: '🐵', biome: 'selva', herd: 4, perch: 'tree',
+    { id: 'mono', feet: 'paw', name: { es: 'mono', en: 'monkey', gender: 'm' }, icon: '🐵', biome: 'selva', herd: 4, perch: 'tree',
       traits: { size: 'mediano', color: 'marrón', movement: 'trepa', diet: 'omnívoro', legs: 4 },
       parts: [
         p('cuerpo', '#8a5a34', 1, 1, [0, 0.8, 0]), p('cabeza', '#8a5a34', 0.65, 1, [0, 1.45, 0.3]),
@@ -337,7 +341,7 @@
         eyes(0.14, [0.15, 1.53, 0.56]),
         p('pelo', '#a06a40', [0.6, 0.16, 0.7], 1, [0, 1.28, -0.05]), p('barriga', '#e8b894', [0.6, 0.35, 0.5], 1, [0, 0.45, 0.4])
       ], easterEgg: false },
-    { id: 'tucan', name: { es: 'tucán', en: 'toucan', gender: 'm' }, icon: '🦜', biome: 'selva', herd: 3, perch: 'tree',
+    { id: 'tucan', feet: 'claw', name: { es: 'tucán', en: 'toucan', gender: 'm' }, icon: '🦜', biome: 'selva', herd: 3, perch: 'tree',
       traits: { size: 'mediano', color: 'negro', movement: 'vuela', diet: 'herbívoro', legs: 2 },
       parts: [
         p('cuerpo', '#1e1e24', 0.9, 1, [0, 0.8, 0]), p('cabeza', '#1e1e24', 0.5, 1, [0, 1.4, 0.3]),
@@ -345,13 +349,13 @@
         p('cola', '#2b2b34', [0.3, 0.1, 0.75], 1, [0, 0.7, -0.8]), p('patas', '#4aa3c7', [0.1, 0.5, 0.1], 2, [0.15, 0.25, 0]),
         eyes(0.17, [0.15, 1.48, 0.47])
       ], easterEgg: false },
-    { id: 'rana', name: { es: 'rana', en: 'frog', gender: 'f' }, icon: '🐸', biome: 'selva', herd: 5,
+    { id: 'rana', feet: 'none', name: { es: 'rana', en: 'frog', gender: 'f' }, icon: '🐸', biome: 'selva', herd: 5,
       traits: { size: 'pequeño', color: 'verde', movement: 'salta', diet: 'insectívoro', legs: 4 },
       parts: [
         p('cuerpo', '#4cc04a', [0.9, 0.6, 1], 1, [0, 0.4, 0]), p('cabeza', '#4cc04a', 0.5, 1, [0, 0.7, 0.5]),
         eyes(0.22, [0.18, 1.0, 0.55], '#f4f4a0'), p('patas', '#2f9a35', [0.15, 0.5, 0.3], 4, [0.3, 0.25, 0])
       ], easterEgg: false },
-    { id: 'camello', name: { es: 'camello', en: 'camel', gender: 'm' }, icon: '🐫', biome: 'desierto', herd: 3,
+    { id: 'camello', feet: 'none', name: { es: 'camello', en: 'camel', gender: 'm' }, icon: '🐫', biome: 'desierto', herd: 3,
       traits: { size: 'grande', color: 'marrón', movement: 'corre', diet: 'herbívoro', legs: 4 },
       parts: shrink([
         // Long horizontal oval body on tall thin legs; one hump sitting ON the back; an S-curved neck (3 segments + joint
@@ -371,13 +375,13 @@
         p('pelo', '#d6ab6a', [0.4, 0.14, 0.5], 1, [0, 2.9, -0.1]),
         p('barriga', '#d2a86a', [0.7, 0.3, 1.0], 1, [0, 1.65, 0.1])   // same colour as the body and tucked inside it: not a visible pale blob
       ], CAMEL_SCALE), easterEgg: false },
-    { id: 'serpiente', name: { es: 'serpiente', en: 'snake', gender: 'f' }, icon: '🐍', biome: 'desierto', herd: 3,
+    { id: 'serpiente', feet: 'none', name: { es: 'serpiente', en: 'snake', gender: 'f' }, icon: '🐍', biome: 'desierto', herd: 3,
       traits: { size: 'mediano', color: 'naranja', movement: 'repta', diet: 'carnívoro', legs: 0 },
       parts: [
         p('cuerpo', '#e08a3c', [0.45, 0.45, 2.4], 1, [0, 0.3, 0]), p('cabeza', '#e08a3c', 0.55, 1, [0, 0.4, 1.4]),
         eyes(0.1, [0.15, 0.52, 1.58]), p('cola', '#c06a24', [0.2, 0.2, 0.7], 1, [0, 0.2, -1.5])
       ], easterEgg: false },
-    { id: 'cabra', name: { es: 'cabra', en: 'goat', gender: 'f' }, icon: '🐐', biome: 'montana', herd: 4,
+    { id: 'cabra', feet: 'hoof', name: { es: 'cabra', en: 'goat', gender: 'f' }, icon: '🐐', biome: 'montana', herd: 4,
       traits: { size: 'mediano', color: 'blanco', movement: 'trepa', diet: 'herbívoro', legs: 4 },
       parts: [
         p('cuerpo', '#f2efe6', [0.9, 0.8, 1.3], 1, [0, 0.9, 0]), p('cabeza', '#f2efe6', 0.55, 1, [0, 1.25, 0.62]),
@@ -386,7 +390,7 @@
         p('patas', '#c8c2b4', [0.14, 0.75, 0.14], 4, [0.28, 0.375, 0]), eyes(0.09, [0.16, 1.31, 0.82]),
         p('pelo', '#ffffff', [0.55, 0.2, 0.8], 1, [0, 1.3, -0.1]), p('barriga', '#e6e0d0', [0.55, 0.3, 0.6], 1, [0, 0.55, 0.3])
       ], easterEgg: false },
-    { id: 'aguila', name: { es: 'águila', en: 'eagle', gender: 'f' }, icon: '🦅', biome: 'montana', herd: 3,
+    { id: 'aguila', feet: 'claw', name: { es: 'águila', en: 'eagle', gender: 'f' }, icon: '🦅', biome: 'montana', herd: 3,
       traits: { size: 'grande', color: 'marrón', movement: 'vuela', diet: 'carnívoro', legs: 2 },
       parts: [
         p('cuerpo', '#6b4a2b', 0.95, 1, [0, 0.9, 0]), p('cabeza', '#f4f1ea', 0.5, 1, [0, 1.42, 0.32]),
@@ -395,36 +399,36 @@
         eyes(0.1, [0.14, 1.5, 0.49])
       ], easterEgg: false },
     // Story animals (AS-0232): mission 1 places them; they are not in the normal world population (story: true).
-    { id: 'cerda', name: { es: 'cerda', en: 'sow', gender: 'f' }, icon: '🐖', biome: 'bosque', story: true, voice: 'phrase:oinc',
+    { id: 'cerda', feet: 'hoof', name: { es: 'cerda', en: 'sow', gender: 'f' }, icon: '🐖', biome: 'bosque', story: true, voice: 'phrase:oinc',
       traits: { size: 'mediano', color: 'rosa', movement: 'camina lento', diet: 'omnívoro', legs: 4 },
       parts: pigParts(), easterEgg: false },
-    { id: 'cerdito', name: { es: 'cerdito', en: 'piglet', gender: 'm' }, icon: '🐷', biome: 'bosque', story: true, voice: 'phrase:oincbebe',
+    { id: 'cerdito', feet: 'hoof', name: { es: 'cerdito', en: 'piglet', gender: 'm' }, icon: '🐷', biome: 'bosque', story: true, voice: 'phrase:oincbebe',
       baby: PIGLET, traits: { size: 'pequeño', color: 'rosa', movement: 'corre', diet: 'omnívoro', legs: 4 },
       parts: babyParts(pigParts(), PIGLET), easterEgg: false },
     // The duckling (AS-0315, mission 2): hatches next to mamá pato; a story animal, so it never joins the normal population.
-    { id: 'patito', name: { es: 'patito', en: 'duckling', gender: 'm' }, icon: '🐥', biome: 'bosque', story: true, voice: 'phrase:pio',
+    { id: 'patito', feet: 'claw', name: { es: 'patito', en: 'duckling', gender: 'm' }, icon: '🐥', biome: 'bosque', story: true, voice: 'phrase:pio',
       baby: DUCKLING, traits: { size: 'pequeño', color: 'amarillo', movement: 'nada', diet: 'omnívoro', legs: 2 },
       parts: babyParts(duckParts(), DUCKLING), easterEgg: false },
     // The puppy (AS-0318, mission 3: stranded on a river rock): a story animal, so it is not in the world until a mission places it.
-    { id: 'perrito', name: { es: 'perrito', en: 'puppy', gender: 'm' }, icon: '🐶', biome: 'bosque', story: true, voice: 'phrase:guau',
+    { id: 'perrito', feet: 'paw', name: { es: 'perrito', en: 'puppy', gender: 'm' }, icon: '🐶', biome: 'bosque', story: true, voice: 'phrase:guau',
       traits: { size: 'pequeño', color: 'marrón', movement: 'corre', diet: 'omnívoro', legs: 4 },
       wag: { part: 'cola', angle: 0.6, hz: 4 }, sounds: { sad: 'whine' },
       parts: puppyParts(), easterEgg: false },
     // The mouse family of Mission 8 (AS-0346): mamá and papá are el ratón de campo, the three babies los ratoncitos; story animals,
     // placed by the mission in the hollow tree (game/mission-pantry.js). Not the yellow easter-egg mouse below.
-    { id: 'ratoncampo', name: { es: 'ratón de campo', en: 'field mouse', gender: 'm' }, icon: '🐭', biome: 'bosque', story: true,
+    { id: 'ratoncampo', feet: 'paw', name: { es: 'ratón de campo', en: 'field mouse', gender: 'm' }, icon: '🐭', biome: 'bosque', story: true,
       traits: { size: 'pequeño', color: 'gris', movement: 'corre', diet: 'omnívoro', legs: 4 },
       parts: fieldMouseParts(), easterEgg: false },
-    { id: 'ratoncito', name: { es: 'ratoncito', en: 'baby mouse', gender: 'm' }, icon: '🐭', biome: 'bosque', story: true,
+    { id: 'ratoncito', feet: 'paw', name: { es: 'ratoncito', en: 'baby mouse', gender: 'm' }, icon: '🐭', biome: 'bosque', story: true,
       baby: MOUSE_BABY, traits: { size: 'pequeño', color: 'gris', movement: 'camina lento', diet: 'omnívoro', legs: 4 },
       parts: babyParts(fieldMouseParts(), MOUSE_BABY), easterEgg: false },
     // The kits of Mission 9's rabbit family (AS-0350): a story animal (not in the world population), placed beside the build spot by game/mission-home.js.
-    { id: 'conejito', name: { es: 'conejito', en: 'baby rabbit', gender: 'm' }, icon: '🐰', biome: 'bosque', story: true,
+    { id: 'conejito', feet: 'paw', name: { es: 'conejito', en: 'baby rabbit', gender: 'm' }, icon: '🐰', biome: 'bosque', story: true,
       baby: RABBIT_BABY, traits: { size: 'pequeño', color: 'gris', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
       parts: babyParts(rabbitParts(), RABBIT_BABY), easterEgg: false },
     // Easter egg #1 (original design): a blocky yellow mouse. Hidden until the player has 10 stars AND has tapped the
     // same tree of the forest 5 times. The condition is plain data (see game/unlocks.js).
-    { id: 'raton', name: { es: 'ratón chispa', en: 'spark mouse', gender: 'm' }, icon: '🐭', biome: 'bosque',
+    { id: 'raton', feet: 'paw', name: { es: 'ratón chispa', en: 'spark mouse', gender: 'm' }, icon: '🐭', biome: 'bosque',
       traits: { size: 'pequeño', color: 'amarillo', movement: 'corre', diet: 'omnívoro', legs: 4 },
       parts: [
         { part: 'cuerpo', builder: 'box', color: '#f6d63a', scale: [0.7, 0.6, 0.8], count: 1, offset: [0, 0.55, 0] },
@@ -441,7 +445,7 @@
       ] } },
     // AS-0268: three more desert species (desierto now has 5). Listed LAST on purpose: herd homes are drawn from one shared seeded
     // sequence in list order (SA.animalPlan.herdPlacements), so appending leaves every earlier species exactly where it was.
-    { id: 'zorrodesierto', name: { es: 'zorro del desierto', en: 'fennec fox', gender: 'm' }, icon: '🦊', biome: 'desierto', herd: 4,
+    { id: 'zorrodesierto', feet: 'paw', name: { es: 'zorro del desierto', en: 'fennec fox', gender: 'm' }, icon: '🦊', biome: 'desierto', herd: 4,
       traits: { size: 'pequeño', color: 'amarillo', movement: 'corre', diet: 'omnívoro', legs: 4 },
       parts: [
         // A small sandy fox with VERY large ears (taller than its head), a pale belly, a dark nose and a bushy dark-tipped tail.
@@ -453,7 +457,7 @@
           also: [{ scale: [0.28, 0.28, 0.3], count: 1, offset: [0, 0.65, -1.25], color: '#4a3a2c', builder: 'sphere' }] },
         p('pelo', '#f2e0b8', [0.5, 0.14, 0.55], 1, [0, 0.88, 0.05]), p('barriga', '#f4e6c4', [0.5, 0.2, 0.8], 1, [0, 0.4, 0.05])
       ], easterEgg: false },
-    { id: 'lagartija', name: { es: 'lagartija', en: 'lizard', gender: 'f' }, icon: '🦎', biome: 'desierto', herd: 5,
+    { id: 'lagartija', feet: 'claw', name: { es: 'lagartija', en: 'lizard', gender: 'f' }, icon: '🦎', biome: 'desierto', herd: 5,
       traits: { size: 'pequeño', color: 'azul', movement: 'corre', diet: 'insectívoro', legs: 4 },
       parts: [
         // Low and flat: four short splayed legs and a tail longer than the body (two pieces, both answer as la cola).
@@ -464,7 +468,7 @@
           also: [{ scale: [0.12, 0.1, 0.7], count: 1, offset: [0, 0.25, -1.6] }] },
         p('barriga', '#bfe0ee', [0.35, 0.15, 0.8], 1, [0, 0.2, 0])
       ], easterEgg: false },
-    { id: 'correcaminos', name: { es: 'correcaminos', en: 'roadrunner', gender: 'm' }, icon: '🐦', biome: 'desierto', herd: 3,
+    { id: 'correcaminos', feet: 'claw', name: { es: 'correcaminos', en: 'roadrunner', gender: 'm' }, icon: '🐦', biome: 'desierto', herd: 3,
       traits: { size: 'mediano', color: 'marrón', movement: 'corre', diet: 'omnívoro', legs: 2 },
       parts: [
         // A long, level body on two tall legs, a long flat tail, a spiky crest and a strong beak.
@@ -477,7 +481,7 @@
           also: [{ scale: [0.2, 0.08, 0.6], count: 1, offset: [0, 0.95, -1.55] }] }
       ], easterEgg: false },
     // AS-0269: three more mountain species (montana now has 5), appended last for the same herd-placement reason.
-    { id: 'oso', name: { es: 'oso', en: 'bear', gender: 'm' }, icon: '🐻', biome: 'montana', herd: 3,
+    { id: 'oso', feet: 'paw', name: { es: 'oso', en: 'bear', gender: 'm' }, icon: '🐻', biome: 'montana', herd: 3,
       traits: { size: 'grande', color: 'marrón', movement: 'camina lento', diet: 'omnívoro', legs: 4 },
       parts: [
         // A big, heavy, dark-brown bear: thick body, round ball ears, a pale snout, a stub tail and a deep coat on the back.
@@ -489,7 +493,7 @@
         { part: 'patas', color: '#4a2f1a', builder: 'cylinder', scale: [0.35, 0.75, 0.35], count: 4, offset: [0.4, 0.375, 0], row: 0.6 },
         p('pelo', '#3f2916', [1.0, 0.3, 1.3], 1, [0, 1.75, -0.1]), p('barriga', '#7a5232', [0.9, 0.4, 1.0], 1, [0, 0.7, 0.2])
       ], easterEgg: false },
-    { id: 'llama', name: { es: 'llama', en: 'llama', gender: 'f' }, icon: '🦙', biome: 'montana', herd: 4,
+    { id: 'llama', feet: 'hoof', name: { es: 'llama', en: 'llama', gender: 'f' }, icon: '🦙', biome: 'montana', herd: 4,
       traits: { size: 'mediano', color: 'blanco', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
       parts: [
         // Slim cream body on long legs, a long straight neck (part cuello, 1.0: "cuello largo" names it), a small head with tall
@@ -502,7 +506,7 @@
         p('patas', '#d9ceb4', [0.14, 0.95, 0.14], 4, [0.25, 0.475, 0]),
         p('pelo', '#fbf5e6', [0.75, 0.35, 0.9], 1, [0, 1.55, -0.05]), p('barriga', '#d9ceb4', [0.55, 0.3, 0.8], 1, [0, 0.8, 0.1])
       ], easterEgg: false },
-    { id: 'condor', name: { es: 'cóndor', en: 'condor', gender: 'm' }, icon: '🐦‍⬛', biome: 'montana', herd: 3,
+    { id: 'condor', feet: 'claw', name: { es: 'cóndor', en: 'condor', gender: 'm' }, icon: '🐦‍⬛', biome: 'montana', herd: 3,
       traits: { size: 'grande', color: 'negro', movement: 'vuela', diet: 'carnívoro', legs: 2 },
       parts: [
         // Black body and huge black wings (2.4: the only ones over the "alas grandes" threshold), a white feather collar, a bare
@@ -515,7 +519,7 @@
       ], easterEgg: false },
     // AS-0270: forest (ciervo, ardilla) and jungle (jaguar, perezoso) species: bosque and selva now have 5 each. Appended last
     // so earlier species keep their herd homes.
-    { id: 'ciervo', name: { es: 'ciervo', en: 'deer', gender: 'm' }, icon: '🦌', biome: 'bosque', herd: 3,
+    { id: 'ciervo', feet: 'hoof', name: { es: 'ciervo', en: 'deer', gender: 'm' }, icon: '🦌', biome: 'bosque', herd: 3,
       traits: { size: 'mediano', color: 'marrón', movement: 'corre', diet: 'herbívoro', legs: 4 },
       parts: shrink([
         // Tawny deer: slim body on four long thin legs, a leaning neck (extra pieces of la cabeza), a dark nose, a small white tail
@@ -531,7 +535,7 @@
         { part: 'patas', color: '#8f5f30', builder: 'cylinder', scale: [0.12, 1.3, 0.12], count: 4, offset: [0.25, 0.65, 0], row: 0.5 },
         p('barriga', '#e8d6b0', [0.5, 0.3, 0.9], 1, [0, 1.05, 0.1])
       ], 0.8), easterEgg: false },
-    { id: 'ardilla', name: { es: 'ardilla', en: 'squirrel', gender: 'f' }, icon: '🐿️', biome: 'bosque', herd: 3,
+    { id: 'ardilla', feet: 'paw', name: { es: 'ardilla', en: 'squirrel', gender: 'f' }, icon: '🐿️', biome: 'bosque', herd: 3,
       traits: { size: 'pequeño', color: 'rojo', movement: 'trepa', diet: 'omnívoro', legs: 4 },
       parts: [
         // Small red-brown squirrel with tufted ears and a big bushy tail standing up behind it (cola 1.0, tipped with a paler ball).
@@ -543,7 +547,7 @@
           also: [{ scale: 0.32, count: 1, offset: [0, 1.4, -0.6], color: '#e8a070' }] },
         p('barriga', '#f0d9b0', [0.3, 0.3, 0.4], 1, [0, 0.45, 0.2])
       ], easterEgg: false },
-    { id: 'jaguar', name: { es: 'jaguar', en: 'jaguar', gender: 'm' }, icon: '🐆', biome: 'selva', herd: 3,
+    { id: 'jaguar', feet: 'paw', name: { es: 'jaguar', en: 'jaguar', gender: 'm' }, icon: '🐆', biome: 'selva', herd: 3,
       traits: { size: 'mediano', color: 'amarillo', movement: 'corre', diet: 'carnívoro', legs: 4 },
       parts: [
         // Golden cat: long low body, broad round head, short thick legs, a medium tail, and black spots (manchas) on the back
@@ -556,7 +560,7 @@
           also: [{ scale: [0.08, 0.2, 0.2], count: 2, offset: [0.37, 0.95, 0.3] }, { scale: [0.08, 0.2, 0.2], count: 2, offset: [0.37, 0.95, -0.4] }] },
         p('barriga', '#ecd29a', [0.5, 0.3, 0.9], 1, [0, 0.6, 0.1])
       ], easterEgg: false },
-    { id: 'perezoso', name: { es: 'perezoso', en: 'sloth', gender: 'm' }, icon: '🦥', biome: 'selva', herd: 4, perch: 'tree',
+    { id: 'perezoso', feet: 'claw', name: { es: 'perezoso', en: 'sloth', gender: 'm' }, icon: '🦥', biome: 'selva', herd: 4, perch: 'tree',
       traits: { size: 'mediano', color: 'gris', movement: 'camina lento', diet: 'herbívoro', legs: 4 },
       parts: [
         // Shaggy grey-brown sloth with a pale round face, very long limbs ending in pale curved claws (garras).
@@ -568,7 +572,7 @@
       ], easterEgg: false },
     // Night animals (AS-0171): awake from dusk to dawn, asleep by day (SA.sleep). Both perch in trees; the bat hangs upside down asleep.
     // They are listed LAST so the seeded herd placement of every older animal stays exactly where it was.
-    { id: 'buho', name: { es: 'búho', en: 'owl', gender: 'm' }, icon: '🦉', biome: 'bosque', herd: 3, perch: 'tree', active: 'night',
+    { id: 'buho', feet: 'claw', name: { es: 'búho', en: 'owl', gender: 'm' }, icon: '🦉', biome: 'bosque', herd: 3, perch: 'tree', active: 'night',
       traits: { size: 'mediano', color: 'marrón', movement: 'vuela', diet: 'carnívoro', legs: 2 },
       parts: [
         // A round brown owl with a paler head, big yellow eyes with dark pupils, ear tufts and a tiny hooked beak.
@@ -579,7 +583,7 @@
         p('barriga', '#e8d9b8', [0.55, 0.55, 0.3], 1, [0, 0.75, 0.35]),
         p('cuello', '#a58660', [0.35, 0.15, 0.35], 1, [0, 1.22, 0.1])   // a fluffy feather collar: "cuello corto" is the búho's own clue
       ], easterEgg: false },
-    { id: 'murcielago', name: { es: 'murciélago', en: 'bat', gender: 'm' }, icon: '🦇', biome: 'selva', herd: 3, perch: 'tree', active: 'night', sleepPose: 'hang',
+    { id: 'murcielago', feet: 'claw', name: { es: 'murciélago', en: 'bat', gender: 'm' }, icon: '🦇', biome: 'selva', herd: 3, perch: 'tree', active: 'night', sleepPose: 'hang',
       traits: { size: 'pequeño', color: 'negro', movement: 'vuela', diet: 'insectívoro', legs: 2 },
       parts: [
         // A small dark bat: furry body, pointed ears, wide wings, little pale eyes and a pink nose ("nariz corta" is its own clue).

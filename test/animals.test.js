@@ -138,6 +138,7 @@ test('validator rejects other bad animals naming the field', () => {
     [(a) => { a.herd = 0; }, /field "herd".*1 to 5/],
     [(a) => { a.herd = 6; }, /field "herd"/],
     [(a) => { a.herd = 2.5; }, /field "herd"/],
+    [(a) => { a.feet = 'wheel'; }, /field "feet".*one of paw, hoof, claw, none \(got "wheel"\)/],
     [(a) => { a.voice = 'oinc'; }, /field "voice"/],
     [(a) => { a.baby = { of: 'cerda', scale: 1, headScale: 1.4, eyeScale: 1.4 }; }, /field "baby.scale"/],
     [(a) => { a.baby = { of: 'cerda', scale: 0.5, headScale: 0, eyeScale: 1.4 }; }, /field "baby.headScale"/],

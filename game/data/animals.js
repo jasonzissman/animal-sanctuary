@@ -566,7 +566,7 @@
         p('barriga', '#f0d9b0', [0.3, 0.3, 0.4], 1, [0, 0.45, 0.2])
       ], easterEgg: false },
     { id: 'jaguar', feet: 'paw', name: { es: 'jaguar', en: 'jaguar', gender: 'm' }, icon: '🐆', biome: 'selva', herd: 3,
-      markings: { type: 'spots', color: '#2a1c10', count: 14 },   // AS-0408: rosette spots all over the golden coat (decor, beside the pickable manchas)
+      // AS-0408: no decor markings here: the pickable manchas part IS the spots, so every visible spot answers "Toca las manchas".
       traits: { size: 'mediano', color: 'amarillo', movement: 'corre', diet: 'carnívoro', legs: 4 },
       parts: [
         // Golden cat: long low body, broad round head, short thick legs, a medium tail, and black spots (manchas) on the back

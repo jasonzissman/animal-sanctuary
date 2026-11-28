@@ -141,3 +141,20 @@ test('shipped animals with markings build ONE instanced mesh, decor only, outsid
   const plain = group.children.find((g) => g.userData.animalId === 'conejo');
   assert.ok(!plain.children.some((m) => m.isInstancedMesh), 'animals without markings get none');
 });
+
+test('AS-0408: detail pass: marked animals contrast with their body colour; the frog has feet; the camel is left alone', () => {
+  const { SA } = load();
+  const get = (id) => SA.data.get('animals', id);
+  const ids = SA.data.all('animals').filter((a) => a.markings).map((a) => a.id);
+  for (const id of ['serpiente', 'ciervo', 'rana', 'lagartija', 'correcaminos', 'buho']) assert.ok(ids.includes(id), `${id} has markings`);
+  const luma = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; };
+  for (const id of ids) {
+    const a = get(id), body = a.parts.find((p) => p.part === 'cuerpo');
+    assert.ok(Math.abs(luma(a.markings.color) - luma(body.color)) > 0.12, `${id}: markings show against the body`);
+    const plan = SA.animalMarkings.plan(a, SA.animalPlan.plan(a));
+    assert.equal(plan.items.length, a.markings.count, `${id}: every mark is laid out`);
+  }
+  assert.equal(get('jaguar').markings, undefined, 'the jaguar spots are the pickable manchas part, not unpickable decor');
+  assert.equal(get('rana').feet, 'paw');
+  assert.equal(get('camello').markings, undefined, 'the camel is covered by AS-0127');
+});

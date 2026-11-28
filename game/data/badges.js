@@ -19,7 +19,7 @@
   var TIERS = ['bronce', 'plata', 'oro'];
   var COUNTS = [1, 5, 15];
   var MEDALS = ['🥉', '🥈', '🥇'];
-  var RULE_KEYS = ['count', 'kind', 'animalId', 'need', 'biome', 'night', 'album'];
+  var RULE_KEYS = ['count', 'kind', 'animalId', 'need', 'biome', 'night', 'album', 'treasure'];
 
   // Registry lookup that tolerates a kind that is not loaded (a test loading only this file): undefined then, null when unknown.
   function lookup(kind, id) { try { return SA.data.get(kind, id); } catch (e) { return undefined; } }
@@ -30,9 +30,15 @@
     if (b.en !== undefined && (typeof b.en !== 'string' || !b.en.trim())) fail('en', 'must be a non-empty string when present');
     if (typeof b.icon !== 'string' || !b.icon.trim() || b.icon.length > 8) fail('icon', 'must be a short non-empty emoji string');
     if (b.tier !== undefined && TIERS.indexOf(b.tier) < 0) fail('tier', 'must be one of ' + TIERS.join(', '));
+    if (b.secret !== undefined && typeof b.secret !== 'boolean') fail('secret', 'must be true or false when present');
     var r = b.rule;
     if (!r || typeof r !== 'object' || Array.isArray(r)) fail('rule', 'must be an object');
     Object.keys(r).forEach(function (k) { if (RULE_KEYS.indexOf(k) < 0) fail('rule.' + k, 'unknown rule field'); });
+    if (r.treasure !== undefined) {
+      if (typeof r.treasure !== 'number' || r.treasure < 1 || r.treasure !== Math.floor(r.treasure)) fail('rule.treasure', 'must be a whole number >= 1');
+      if (Object.keys(r).length !== 1) fail('rule', 'a treasure rule has no other fields');
+      return;
+    }
     if (r.album !== undefined) {
       if (r.album !== 'all') fail('rule.album', 'must be "all"');
       if (Object.keys(r).length !== 1) fail('rule', 'an album rule has no other fields');
@@ -77,6 +83,9 @@
     { id: 'explorador-del-desierto', es: 'Explorador del desierto', en: 'Desert explorer', icon: '🌵', rule: { biome: 'desierto', count: 5 } },
     { id: 'explorador-de-la-montana', es: 'Explorador de la montaña', en: 'Mountain explorer', icon: '⛰️', rule: { biome: 'montana', count: 5 } },
     { id: 'buho-nocturno', es: 'Búho nocturno', en: 'Night owl', icon: '🦉', rule: { night: true, count: 3 } },
+    // Secret stickers (AS-0174): hidden in the sticker book until the first / both waterfall chests are opened.
+    { id: 'buscador-de-tesoros', es: 'Buscador de tesoros', en: 'Treasure seeker', icon: '💎', secret: true, rule: { treasure: 1 } },
+    { id: 'dos-cofres', es: 'Cofres dorados', en: 'Golden chests', icon: '🏆', secret: true, rule: { treasure: 2 } },
     { id: 'album-completo', es: 'Álbum completo', en: 'Complete album', icon: '📖', rule: { album: 'all' } }
   ];
 

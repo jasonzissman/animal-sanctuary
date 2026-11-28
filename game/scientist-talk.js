@@ -54,6 +54,10 @@
     try {   // AS-0175: after the 3rd rescue she offers to pick an animal friend (the view adds the 🐾 button for this line)
       if (SA.friend && SA.friend.pending()) { var o = SA.friend.offer(); lines.push({ role: 'friend', es: o.es, en: enOf(o.key), icon: '🐾', key: o.key }); }
     } catch (e) { /* the offer never breaks the talk */ }
+    try {   // AS-0174: after 10 rescues she whispers the waterfall riddle (a plain line, no icon, no hint text anywhere else)
+      var rd = SA.treasure && SA.treasure.riddle();
+      if (rd) lines.push({ role: 'riddle', es: rd.es, en: enOf(rd.key), icon: '', key: rd.key });
+    } catch (e) { /* the whisper never breaks the talk */ }
     return { state: state, lines: lines, missionId: id };
   }
 

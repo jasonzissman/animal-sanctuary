@@ -90,7 +90,9 @@
       return { x: fx - (i === 1 ? 1.2 : 1.0), z: best.z + dz, w: i === 1 ? 1.6 : 1.7, d: i === 1 ? 2.4 : 2.8, y: baseY, h: topY - (i === 1 ? 0.5 : i * 0.2) - baseY };
     });
     return { x: best.x, z: best.z, poolR: POOL_R, poolY: pool.hi + 0.05, lowY: pool.lo, topY: topY, fx: fx, sheetW: 1.5, r: FALL_R, cliff: cliff,
-      poolSolid: [best.x, best.z, POOL_R + 0.4, 99], cliffSolids: zs.map(function (dz) { return [fx - 1.2, best.z + dz, 1.2, 99]; }) };
+      // The pool's deep middle is solid; its shallow west rim is a wading lane to the curtain and the grotto behind it (AS-0174). The cliff has two side walls: the middle block is the tunnel.
+      poolSolid: [best.x + 1.4, best.z, POOL_R - 1.4, 99],
+      cliffSolids: [-2.0, 2.0].map(function (dz) { return [fx - 1.2, best.z + dz, 1.0, 99]; }) };
   }
 
   function layout(seed) {
@@ -125,6 +127,7 @@
   function inField(x, z, pad) {
     var p = pad || 0, L = get(), w = L.waterfall;
     if (w && Math.hypot(x - w.x, z - w.z) < w.r + p) return true;
+    if (w && SA.grottoPlan && SA.grottoPlan.near(x, z, p)) return true;   // the grotto behind the fall (AS-0174)
     for (var i = 0; i < L.clusters.length; i++) if (Math.hypot(x - L.clusters[i].x, z - L.clusters[i].z) < L.clusters[i].r + p) return true;
     return false;
   }

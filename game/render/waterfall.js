@@ -7,6 +7,8 @@
  *     (a `uScroll` uniform), so the animation costs advancing one number.
  *   - Spray: SPRAY little white blobs in ONE InstancedMesh, each looping a short ballistic hop from the foot of the sheet; update() rewrites their matrices
  *     through pre-allocated scratch objects and typed arrays, so nothing is allocated per frame.
+ *   opts.grotto (SA.grottoPlan site, AS-0174): the middle block becomes a lintel over the tunnel behind the curtain; fall.cliffMeshes lists the cliff
+ *   meshes (render/grotto.js hides them while you stand inside the cave so the camera sees in).
  * Built once; null when the layout found no site. Only code here touches THREE.
  *
  *   fall.group  THREE.Group (already added to the scene)   fall.update(dt)  advances the animation, allocates nothing
@@ -48,15 +50,20 @@
     var drawCalls = 0;
     function add(mesh, name) { mesh.name = name; group.add(mesh); drawCalls++; return mesh; }
 
+    var G = opts && opts.grotto, cliffMeshes = [];   // a grotto (AS-0174): the middle block is a lintel over the tunnel, so the curtain is a door
     W.cliff.forEach(function (c, i) {
-      var m = add(new THREE.Mesh(new THREE.BoxGeometry(c.d, c.h, c.w), stone), 'waterfall-cliff-' + i);
-      m.position.set(c.x - ox, c.y + c.h / 2, c.z - oz);
+      var y0 = c.y, h = c.h;
+      if (G && i === 1) { y0 = Math.min(G.tunnel.top, c.y + c.h - 0.3); h = c.y + c.h - y0; }
+      var m = add(new THREE.Mesh(new THREE.BoxGeometry(c.d, h, c.w), stone), 'waterfall-cliff-' + i);
+      m.position.set(c.x - ox, y0 + h / 2, c.z - oz);
       m.castShadow = true;
+      cliffMeshes.push(m);
     });
     if (W.moss) {   // mossy caps on each block and a green patch low on the face of the side blocks (flat boxes, a hair proud of the stone)
       var moss = new THREE.MeshPhongMaterial({ color: '#3f8a3c', flatShading: true, specular: 0x000000 });
       W.cliff.forEach(function (c, i) {
         var cap = add(new THREE.Mesh(new THREE.BoxGeometry(c.d + 0.25, 0.4, c.w + 0.25), moss), 'waterfall-moss-cap-' + i);
+        cliffMeshes.push(cap);
         cap.position.set(c.x - ox, c.y + c.h + 0.05, c.z - oz);
         if (i === 1) return;   // the notch stays bare: the water runs over it
         var patch = add(new THREE.Mesh(new THREE.BoxGeometry(0.12, c.h * 0.35, c.w * 0.8), moss), 'waterfall-moss-patch-' + i);
@@ -113,7 +120,7 @@
 
     if (opts && opts.scene) opts.scene.add(group);
     return {
-      group: group, uScroll: uScroll,
+      group: group, uScroll: uScroll, cliffMeshes: cliffMeshes,
       update: function (dt) { dt = dt || 0; uScroll.value += dt * SCROLL_SPEED; clock += dt; placeSpray(); },
       stats: function () { return { cliffBlocks: W.cliff.length, sprayParticles: SPRAY, drawCalls: drawCalls }; },
     };
@@ -122,6 +129,6 @@
   /** The selva's waterfall into the pond (AS-0389): the same builder, fed the jungle plan's site. Null when the plan found none. */
   SA.render.createJungleWaterfall = function (THREE, opts) {
     var site = SA.junglePlan && SA.junglePlan.get().waterfall;
-    return site ? SA.render.createWaterfall(THREE, { scene: opts && opts.scene, site: site }) : null;
+    return site ? SA.render.createWaterfall(THREE, { scene: opts && opts.scene, site: site, grotto: opts && opts.grotto }) : null;
   };
 })(typeof window !== 'undefined' ? window : globalThis);

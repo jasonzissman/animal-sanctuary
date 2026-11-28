@@ -16,7 +16,8 @@
   var SA = root.SA = root.SA || {};
   var FIELDS = ['kind', 'animalId', 'need', 'biome', 'night'];
 
-  function met(rule, rescues, album) {
+  function met(rule, rescues, album, treasure) {
+    if (rule.treasure !== undefined) return { have: Math.max(0, treasure | 0), need: rule.treasure };   // chests opened behind waterfalls (AS-0174)
     if (rule.album === 'all') {
       var p = album || { found: 0, total: 0 };
       return { have: p.found, need: Math.max(1, p.total) };
@@ -37,6 +38,7 @@
     function albumNow() {
       try { return opts.album ? opts.album() : (SA.album ? SA.album.progress() : null); } catch (e) { return null; }
     }
+    function chests() { var t = store().get().treasure; return t && Array.isArray(t.opened) ? t.opened.length : 0; }   // AS-0174
     function log() { var r = store().get().rescues; return Array.isArray(r) ? r : []; }
     function earnedIds() { var b = store().get().badges; return Array.isArray(b) ? b.slice() : []; }
     function track(type, fields) {
@@ -50,7 +52,7 @@
       var list = Array.isArray(rescues) ? rescues : log(), alb = albumNow(), have = earnedIds();
       var fresh = rows().filter(function (b) {
         if (have.indexOf(b.id) >= 0) return false;
-        var m = met(b.rule, list, alb);
+        var m = met(b.rule, list, alb, chests());
         return m.have >= m.need;
       }).map(function (b) { return b.id; });
       if (fresh.length) {
@@ -63,7 +65,7 @@
     function progress() {
       var list = log(), alb = albumNow(), have = earnedIds();
       return rows().map(function (b) {
-        var m = met(b.rule, list, alb);
+        var m = met(b.rule, list, alb, chests());
         var earned = have.indexOf(b.id) >= 0 || m.have >= m.need;
         return { id: b.id, have: Math.min(m.have, m.need), need: m.need, earned: earned };
       });

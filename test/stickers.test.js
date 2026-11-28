@@ -186,7 +186,7 @@ test('Pegatinas tab: earned and grey locked stickers with progress; tapping spea
   tabBtn.fire('click');
   assert.equal(v.tab(), 'pegatinas');
   const all = walk(doc.body);
-  const total = SA.data.all('badges').length;
+  const total = SA.data.all('badges').filter((b) => !b.secret).length;   // the secret treasure stickers show once found (AS-0174)
   const stickers = all.filter((n) => n.attrs.role === 'button');
   assert.equal(stickers.length, total, 'one per badge');
   const grey = stickers.filter((s) => /#e4e4e4/.test(s.style.cssText));
@@ -216,5 +216,5 @@ test('stickers page: no DOM or no sticker module is a quiet no-op', () => {
   assert.equal(SA.stickersPage.fill(null, {}).count, 0);
   assert.equal(SA.stickersPage.fill(fakeDoc(), null).count, 0);
   const r = SA.stickersPage.fill(fakeDoc(), fakeDoc().createElement('div'), { english: true });
-  assert.equal(r.count, SA.data.all('badges').length);
+  assert.equal(r.count, SA.data.all('badges').filter((b) => !b.secret).length);
 });

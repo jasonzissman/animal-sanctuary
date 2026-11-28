@@ -301,6 +301,7 @@
       if (hintFlow) { try { hintFlow.update(dt); } catch (e) { hintFlow = null; report('hintFlow.update', e); } }
       if (rerollWatch) { try { rerollWatch.update(dt); } catch (e) { rerollWatch = null; report('reroll.update', e); } }
       if (root.SAT && root.SAT.frame) { try { root.SAT.frame(dt); } catch (e) { /* telemetry never stops the loop */ } }
+      if (SA.quality) { try { SA.quality.frame(dt, !!(root.document && root.document.hidden)); } catch (e) { /* quality never stops the loop */ } }
       if (boot) { boot.parentNode.removeChild(boot); boot = null; }
       root.requestAnimationFrame(loop);
     }

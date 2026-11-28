@@ -53,11 +53,12 @@
     markReceivers(opts.world);
     (opts.casters || []).forEach(markCasters);
     var dynamic = opts.dynamic || [], counts = dynamic.map(function (g) { markCasters(g); return (g.children || []).length; });
-    var texel = (2 * e) / CFG.mapSize, lastX = NaN, lastZ = NaN, lastKey = NaN;
+    var lastX = NaN, lastZ = NaN, lastKey = NaN;
 
     function follow() {
       var p = opts.getPlayer && opts.getPlayer();
       if (!p) return;
+      var texel = (2 * e) / (sh.mapSize.width || CFG.mapSize);   // the quality level (AS-0412) can resize the map
       // Snap to the texel grid in world x/z so the shadow map does not swim as the player walks.
       var x = Math.round(p.x / texel) * texel, z = Math.round(p.z / texel) * texel;
       var o = CFG.offset, key = o.x + o.y * 1e3 + o.z * 1e6;   // the day/night cycle (AS-0170) moves the sun's offset: re-aim when it changes too

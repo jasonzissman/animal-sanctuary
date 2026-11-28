@@ -17,9 +17,28 @@
   var PUPIL_SIZE = 0.6;       // pupil diameter, as a fraction of the part's unit sphere
   var PUPIL_FORWARD = 0.3;    // pupil centre in front of the part centre, so it pokes out of the front surface
 
-  function unitGeometry(THREE, builder) {
+  // AS-0404: rounded limb profiles, revolved around y in unit space (height 1, widest radius 0.5), so scale gives any limb size.
+  var TAPER = 0.62;           // bottom radius of a tapered limb, as a fraction of its top radius
+  var CAP_H = { tapered: 0.14, capsule: 0.22 };   // height of each rounded end, as a fraction of the limb length
+  var CAP_STEPS = 3;
+  var QUARTER = Math.PI / 2;
+
+  /** Lathe profile [[radius, y], ...] (bottom to top) of a tapered limb or capsule neck segment. Pure; unit-tested. */
+  function limbProfile(shape) {
+    var rb = shape === 'tapered' ? 0.5 * TAPER : 0.5, rt = 0.5, c = CAP_H[shape], pts = [], i, a;
+    for (i = 0; i <= CAP_STEPS; i++) { a = (i / CAP_STEPS) * QUARTER; pts.push([rb * Math.sin(a), -0.5 + c * (1 - Math.cos(a))]); }
+    for (i = CAP_STEPS; i >= 0; i--) { a = (i / CAP_STEPS) * QUARTER; pts.push([rt * Math.sin(a), 0.5 - c * (1 - Math.cos(a))]); }
+    return pts;
+  }
+
+  function limbGeometry(THREE, shape) {
+    return new THREE.LatheGeometry(limbProfile(shape).map(function (p) { return new THREE.Vector2(p[0], p[1]); }), 10);
+  }
+
+  function unitGeometry(THREE, builder, shape) {
+    if (builder === 'cylinder' && (shape === 'tapered' || shape === 'capsule')) return limbGeometry(THREE, shape);
     if (builder === 'box') return new THREE.BoxGeometry(1, 1, 1);
-    if (builder === 'sphere') return new THREE.SphereGeometry(0.5, 10, 8);
+    if (builder === 'sphere') return new THREE.SphereGeometry(0.5, 12, 9);
     if (builder === 'cone') return new THREE.ConeGeometry(0.5, 1, 8);
     if (builder === 'cylinder') return new THREE.CylinderGeometry(0.5, 0.5, 1, 8);
     if (builder === 'zigzag') return SA.render.zigzagGeometry(THREE);
@@ -45,8 +64,9 @@
       g.userData = { animalId: animal.id, instanceId: instanceId, pickVolumes: [] };
       if (s && s.radius) g.userData.wanderRadius = s.radius;   // AS-0249: how far it roams from home (reaches empty quadrants)
       SA.animalPlan.plan(animal).forEach(function (spec) {
-        var geo = geos[spec.builder] || (geos[spec.builder] = unitGeometry(THREE, spec.builder));
-        var mat = mats[spec.color] || (mats[spec.color] = new THREE.MeshPhongMaterial({ color: spec.color, flatShading: true, specular: 0x000000 }));
+        var gkey = spec.shape ? spec.builder + ':' + spec.shape : spec.builder;   // geometry is cached and shared by every animal
+        var geo = geos[gkey] || (geos[gkey] = unitGeometry(THREE, spec.builder, spec.shape));
+        var mat = mats[spec.color] || (mats[spec.color] = new THREE.MeshPhongMaterial({ color: spec.color, flatShading: false, specular: 0x000000 }));
         var mesh = new THREE.Mesh(geo, mat);
         mesh.scale.set(spec.size[0], spec.size[1], spec.size[2]);
         mesh.position.set(spec.position[0], spec.position[1], spec.position[2]);
@@ -55,7 +75,7 @@
         tag(mesh, spec);
         if (spec.pupil) {
           // A child of the part mesh (unit-sphere space, so it follows the part's scale and reactions); never a pick target.
-          var pmat = mats[spec.pupil] || (mats[spec.pupil] = new THREE.MeshPhongMaterial({ color: spec.pupil, flatShading: true, specular: 0x000000 }));
+          var pmat = mats[spec.pupil] || (mats[spec.pupil] = new THREE.MeshPhongMaterial({ color: spec.pupil, flatShading: false, specular: 0x000000 }));
           var pupil = new THREE.Mesh(geos.pupil || (geos.pupil = unitGeometry(THREE, 'sphere')), pmat);
           pupil.scale.set(PUPIL_SIZE, PUPIL_SIZE, PUPIL_SIZE);
           pupil.position.set(0, 0, PUPIL_FORWARD);
@@ -80,6 +100,9 @@
       return g;
     };
   };
+
+  SA.render.limbProfile = limbProfile;
+  SA.render.unitGeometry = unitGeometry;
 
   SA.render.buildAnimals = function (THREE, opts) {
     var build = SA.render.animalBuilder(THREE);

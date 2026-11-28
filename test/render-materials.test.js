@@ -19,8 +19,15 @@ test('no render module passes flatShading to MeshLambertMaterial (r128 warns)', 
 });
 
 test('flatShading materials use MeshPhongMaterial', () => {
-  for (const f of ['animals.js', 'decor.js', 'decor-dry.js', 'trees.js', 'world.js']) {
+  for (const f of ['decor.js', 'decor-dry.js', 'trees.js', 'world.js']) {
     const src = readFileSync(join(dir, f), 'utf8');
     assert.match(src, /MeshPhongMaterial\([^)]*flatShading: true/, f);
   }
+});
+
+// AS-0404: animals use slightly smooth shading (rounded limbs and necks); they stay MeshPhongMaterial, never flat.
+test('animal materials are smooth-shaded MeshPhongMaterial', () => {
+  const src = readFileSync(join(dir, 'animals.js'), 'utf8');
+  assert.match(src, /MeshPhongMaterial\([^)]*flatShading: false/);
+  assert.doesNotMatch(src, /flatShading: true/);
 });

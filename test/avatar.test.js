@@ -66,3 +66,53 @@ test('arms and legs swing in opposition while moving, and settle when stopped', 
   a.update(1e9, { x: 0, z: 0, heading: 0, moving: true });   // a stalled tab must not blow up
   assert.ok(Number.isFinite(p.armL.rotation.x));
 });
+
+test('the kid has a face, hair, hands, shoes and a backpack (AS-0138)', () => {
+  const a = SA.render.createAvatar(THREE);
+  const body = a.group.children[0];
+  const colours = new Set(body.children.filter((c) => c.material).map((c) => c.material.color));
+  for (const c of [0x222222 /* eyes */, 0x5a3a22 /* hair + brows */, 0xb4423a /* smile */, 0x3fa56b /* backpack */]) assert.ok(colours.has(c), c.toString(16));
+  assert.ok(a.parts.eyes[0].position.z > 0.2 && a.parts.eyes[0].position.x < 0 && a.parts.eyes[1].position.x > 0, 'eyes on the front of the head');
+  assert.ok(a.parts.hands.every((h) => h.position.y < -0.35 && h.position.y > -0.5), 'hands at the end of the arm');
+  assert.ok(a.parts.armR.children.includes(a.parts.hands[1]), 'hand rides on the swinging arm');
+  assert.ok(a.parts.shoes.every((s) => s.scale.z > s.scale.y), 'shoes are longer than tall');
+  assert.ok(body.children.some((c) => c.position.z < -0.15 && c.geometry.w > 0.25), 'a backpack behind the shoulders');
+});
+
+test('the avatar keeps its old height and its soles touch the ground', () => {
+  const a = SA.render.createAvatar(THREE);
+  let top = 0, bottom = 1;
+  const walk = (n, y0) => {
+    for (const c of n.children) {
+      const y = y0 + c.position.y;
+      if (c.geometry) {
+        const h = c.geometry.h !== undefined ? c.geometry.h * c.scale.y / 2 : (c.geometry.r || 1) * c.scale.y;
+        top = Math.max(top, y + h); bottom = Math.min(bottom, y - h);
+      }
+      walk(c, y);
+    }
+  };
+  walk(a.group.children[0], 0);
+  assert.ok(top > 1.55 && top < 1.7, 'head top ' + top);
+  assert.ok(bottom > -0.03 && bottom < 0.05, 'soles near y=0: ' + bottom);
+});
+
+test('climbing and hopping poses still read: arms reach up, body leans, squash on takeoff', () => {
+  const a = SA.render.createAvatar(THREE);
+  for (let i = 0; i < 60; i++) a.update(0.05, { x: 0, z: 0, heading: 0, moving: false, climb: 'up' });
+  assert.ok(a.parts.armL.rotation.x < -1.4 && a.parts.armR.rotation.x < -1.4, 'both arms reach up (they alternate)');
+  assert.ok(a.parts.body.rotation.x > 0.2, 'leans into the trunk');
+  const b = SA.render.createAvatar(THREE);
+  b.update(0.016, { x: 0, z: 0, heading: 0, moving: false, lift: 0 });
+  b.update(0.016, { x: 0, z: 0, heading: 0, moving: false, lift: 0.1 });
+  assert.ok(b.parts.body.scale.y !== 1 && b.group.position.y === 0.1, 'airborne: lifted and squashed');
+});
+
+test('running leans the body forward; walking does not', () => {
+  const lean = (running) => {
+    const a = SA.render.createAvatar(THREE);
+    for (let i = 0; i < 40; i++) a.update(0.05, { x: 0, z: 0, heading: 0, moving: true, running });
+    return a.parts.body.rotation.x;
+  };
+  assert.ok(lean(true) > 0.08 && lean(false) === 0);
+});

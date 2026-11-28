@@ -362,7 +362,8 @@
         p('cola', '#2b2b34', [0.3, 0.1, 0.75], 1, [0, 0.7, -0.8]), p('patas', '#4aa3c7', [0.1, 0.5, 0.1], 2, [0.15, 0.25, 0]),
         eyes(0.17, [0.15, 1.48, 0.47])
       ], easterEgg: false },
-    { id: 'rana', feet: 'none', name: { es: 'rana', en: 'frog', gender: 'f' }, icon: '🐸', biome: 'selva', herd: 5,
+    { id: 'rana', feet: 'paw', name: { es: 'rana', en: 'frog', gender: 'f' }, icon: '🐸', biome: 'selva', herd: 5,
+      markings: { type: 'spots', color: '#237a2c', count: 7 },   // AS-0408: darker green spots; paw = broad flat webbed feet
       traits: { size: 'pequeño', color: 'verde', movement: 'salta', diet: 'insectívoro', legs: 4 },
       parts: [
         p('cuerpo', '#4cc04a', [0.9, 0.6, 1], 1, [0, 0.4, 0]), p('cabeza', '#4cc04a', 0.5, 1, [0, 0.7, 0.5]),
@@ -472,6 +473,7 @@
         p('pelo', '#f2e0b8', [0.5, 0.14, 0.55], 1, [0, 0.88, 0.05]), p('barriga', '#f4e6c4', [0.5, 0.2, 0.8], 1, [0, 0.4, 0.05])
       ], easterEgg: false },
     { id: 'lagartija', feet: 'claw', name: { es: 'lagartija', en: 'lizard', gender: 'f' }, icon: '🦎', biome: 'desierto', herd: 5,
+      markings: { type: 'bands', color: '#2d6aa0', count: 6 },   // AS-0408: darker cross-bands down the back
       traits: { size: 'pequeño', color: 'azul', movement: 'corre', diet: 'insectívoro', legs: 4 },
       parts: [
         // Low and flat: four short splayed legs and a tail longer than the body (two pieces, both answer as la cola).
@@ -483,6 +485,7 @@
         p('barriga', '#bfe0ee', [0.35, 0.15, 0.8], 1, [0, 0.2, 0])
       ], easterEgg: false },
     { id: 'correcaminos', feet: 'claw', name: { es: 'correcaminos', en: 'roadrunner', gender: 'm' }, icon: '🐦', biome: 'desierto', herd: 3,
+      markings: { type: 'spots', color: '#e6d5b0', count: 9 },   // AS-0408: the streaky pale speckles of its plumage
       traits: { size: 'mediano', color: 'marrón', movement: 'corre', diet: 'omnívoro', legs: 2 },
       parts: [
         // A long, level body on two tall legs, a long flat tail, a spiky crest and a strong beak.
@@ -563,6 +566,7 @@
         p('barriga', '#f0d9b0', [0.3, 0.3, 0.4], 1, [0, 0.45, 0.2])
       ], easterEgg: false },
     { id: 'jaguar', feet: 'paw', name: { es: 'jaguar', en: 'jaguar', gender: 'm' }, icon: '🐆', biome: 'selva', herd: 3,
+      markings: { type: 'spots', color: '#2a1c10', count: 14 },   // AS-0408: rosette spots all over the golden coat (decor, beside the pickable manchas)
       traits: { size: 'mediano', color: 'amarillo', movement: 'corre', diet: 'carnívoro', legs: 4 },
       parts: [
         // Golden cat: long low body, broad round head, short thick legs, a medium tail, and black spots (manchas) on the back
@@ -588,6 +592,7 @@
     // Night animals (AS-0171): awake from dusk to dawn, asleep by day (SA.sleep). Both perch in trees; the bat hangs upside down asleep.
     // They are listed LAST so the seeded herd placement of every older animal stays exactly where it was.
     { id: 'buho', feet: 'claw', name: { es: 'búho', en: 'owl', gender: 'm' }, icon: '🦉', biome: 'bosque', herd: 3, perch: 'tree', active: 'night',
+      markings: { type: 'spots', color: '#d9c29a', count: 10 },   // AS-0408: pale flecks on the brown feathers
       traits: { size: 'mediano', color: 'marrón', movement: 'vuela', diet: 'carnívoro', legs: 2 },
       parts: [
         // A round brown owl with a paler head, big yellow eyes with dark pupils, ear tufts and a tiny hooked beak.
